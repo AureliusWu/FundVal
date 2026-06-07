@@ -1,0 +1,23 @@
+name: Build and Deploy
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: .
