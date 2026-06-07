@@ -33,6 +33,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-si
 .logo em{color:var(--muted);font-style:normal;font-size:10px;margin-left:6px;font-variant-numeric:tabular-nums}
 .refresh-btn{background:none;border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer;transition:all .2s;font-family:var(--sans)}
 .refresh-btn:active{background:var(--bg3);color:var(--text)}
+.refresh-btn:disabled{cursor:default;opacity:.75}
 .refresh-btn.loading{color:var(--accent);border-color:var(--accent)}
 
 .summary{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line)}
@@ -184,20 +185,44 @@ const STORAGE_KEY = 'fuyu_holdings_v1';
 let holdings = [];
 let fundsData = [];
 const pendingRequests = new Map();
+let isRefreshing = false;
+let refreshQueued = false;
 
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    holdings = raw ? JSON.parse(raw) : [
+    const data = raw ? JSON.parse(raw) : [
       {code:'110020', name:'易方达沪深300ETF联接A', shares:1000, cost:1.50},
       {code:'270042', name:'广发纳斯达克100ETF联接A', shares:500, cost:2.80},
     ];
+    holdings = normalizeHoldings(data);
   } catch(e) { holdings = []; }
 }
 
 function saveHoldings() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings));
+}
+
+function normalizeHoldings(data) {
+  if (!Array.isArray(data)) return [];
+  const seen = new Set();
+  return data.reduce((acc, item) => {
+    const code = String(item && item.code || '').trim();
+    if (!/^\d{6}$/.test(code) || seen.has(code)) return acc;
+
+    const shares = toNonNegativeNumber(item.shares);
+    const cost = toNonNegativeNumber(item.cost);
+    const name = String(item.name || '').trim();
+    seen.add(code);
+    acc.push({code, name: name || code, shares, cost});
+    return acc;
+  }, []);
+}
+
+function toNonNegativeNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
 // ── 导出 / 导入 ───────────────────────────────────────────
@@ -216,8 +241,10 @@ function importData(e) {
   const reader = new FileReader();
   reader.onload = ev => {
     try {
-      const data = JSON.parse(ev.target.result);
-      if (!Array.isArray(data)) throw new Error();
+      const parsed = JSON.parse(ev.target.result);
+      if (!Array.isArray(parsed)) throw new Error();
+      const data = normalizeHoldings(parsed);
+      if (parsed.length && !data.length) throw new Error();
       holdings = data;
       saveHoldings();
       renderHoldingsList();
@@ -240,9 +267,9 @@ window.jsonpgz = function(data) {
       resolve({
         code: code,
         name: data.name || code,
-        last_nav: parseFloat(data.dwjz) || 0,
-        est_nav: parseFloat(data.gsz) || 0,
-        est_change: parseFloat(data.gszzl) || 0,
+        last_nav: parseNav(data.dwjz),
+        est_nav: parseNav(data.gsz),
+        est_change: parseNav(data.gszzl),
         nav_date: data.jzrq || '',
         est_time: data.gztime || '',
         status: 'ok'
@@ -285,45 +312,65 @@ function fetchFund(code) {
 
 // ── 刷新所有持仓数据 ─────────────────────────────────────
 async function refresh() {
-  const btn = document.getElementById('ref-btn');
-  btn.classList.add('loading');
-  btn.textContent = '↻ 获取中';
-
-  if (holdings.length === 0) {
-    renderFundList([]);
-    btn.classList.remove('loading');
-    btn.textContent = '↻ 刷新';
+  if (isRefreshing) {
+    refreshQueued = true;
     return;
   }
+  isRefreshing = true;
+  refreshQueued = false;
+  const btn = document.getElementById('ref-btn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  btn.textContent = '↻ 获取中';
 
-  const results = await Promise.all(holdings.map(h => fetchFund(h.code)));
-
-  // 合并持仓信息
-  fundsData = results.map((r, i) => {
-    const h = holdings[i];
-    const d = {...r, shares: h.shares || 0, cost: h.cost || 0};
-    if (r.status === 'ok' && r.name === r.code && h.name) d.name = h.name;
-    if (d.status === 'ok' && d.shares > 0) {
-      const curr = d.est_nav * d.shares;
-      const costVal = d.cost * d.shares;
-      d.today_profit = (d.est_nav - d.last_nav) * d.shares;
-      d.total_profit = curr - costVal;
-      d.total_profit_rate = costVal > 0 ? (curr - costVal) / costVal * 100 : 0;
-      d.curr_value = curr;
+  try {
+    if (holdings.length === 0) {
+      renderFundList([]);
+      return;
     }
-    return d;
-  });
 
-  renderFundList(fundsData);
-  const now = new Date();
-  document.getElementById('last-upd').textContent =
-    `估算时间 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const snapshot = holdings.map(h => ({...h}));
+    const results = await Promise.all(snapshot.map(h => fetchFund(h.code)));
 
-  btn.classList.remove('loading');
-  btn.textContent = '↻ 刷新';
+    // 合并持仓信息
+    fundsData = results.map((r, i) => {
+      const h = snapshot[i];
+      const d = {...r, shares: h.shares || 0, cost: h.cost || 0};
+      if (r.status === 'ok' && r.name === r.code && h.name) d.name = h.name;
+      if (d.status === 'ok' && d.shares > 0 && isUsableNav(d.est_nav) && isUsableNav(d.last_nav)) {
+        const curr = d.est_nav * d.shares;
+        const costVal = d.cost * d.shares;
+        d.today_profit = (d.est_nav - d.last_nav) * d.shares;
+        d.total_profit = curr - costVal;
+        d.total_profit_rate = costVal > 0 ? (curr - costVal) / costVal * 100 : 0;
+        d.curr_value = curr;
+      }
+      if (d.status === 'ok' && (!isUsableNav(d.est_nav) || !isUsableNav(d.last_nav))) {
+        d.status = 'error';
+        d.message = '净值数据无效';
+      }
+      return d;
+    });
+
+    renderFundList(fundsData);
+    const now = new Date();
+    document.getElementById('last-upd').textContent =
+      `估算时间 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    btn.textContent = '↻ 刷新';
+    isRefreshing = false;
+    if (refreshQueued) refresh();
+  }
 }
 
 function pad(n) { return String(n).padStart(2,'0'); }
+function isUsableNav(n) { return Number.isFinite(n) && n > 0; }
+function parseNav(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : NaN;
+}
 
 // ── 渲染基金列表 ─────────────────────────────────────────
 function renderFundList(data) {
@@ -431,8 +478,8 @@ function renderHoldingsList() {
 function addFund() {
   const code = document.getElementById('i-code').value.trim();
   const name = document.getElementById('i-name').value.trim();
-  const shares = parseFloat(document.getElementById('i-shares').value) || 0;
-  const cost = parseFloat(document.getElementById('i-cost').value) || 0;
+  const shares = toNonNegativeNumber(document.getElementById('i-shares').value);
+  const cost = toNonNegativeNumber(document.getElementById('i-cost').value);
   if (!code || !/^\d{6}$/.test(code)) { showToast('请输入6位数字基金代码'); return; }
   if (holdings.find(h => h.code === code)) { showToast('该基金已在列表中'); return; }
   holdings.push({code, name: name||code, shares, cost});
