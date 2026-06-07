@@ -183,7 +183,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-si
 const STORAGE_KEY = 'fuyu_holdings_v1';
 let holdings = [];
 let fundsData = [];
-let callbackCounter = 0;
+const pendingRequests = new Map();
 
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
@@ -229,55 +229,55 @@ function importData(e) {
   e.target.value = '';
 }
 
+// ── 全局回调函数（接口固定返回此函数） ──────────────────
+window.jsonpgz = function(data) {
+  if (!data || !data.fundcode) return;
+  const code = data.fundcode;
+  if (pendingRequests.has(code)) {
+    const resolve = pendingRequests.get(code);
+    pendingRequests.delete(code);
+    try {
+      resolve({
+        code: code,
+        name: data.name || code,
+        last_nav: parseFloat(data.dwjz) || 0,
+        est_nav: parseFloat(data.gsz) || 0,
+        est_change: parseFloat(data.gszzl) || 0,
+        nav_date: data.jzrq || '',
+        est_time: data.gztime || '',
+        status: 'ok'
+      });
+    } catch(e) {
+      resolve({code, status:'error', message:'数据解析失败'});
+    }
+  }
+};
+
 // ── 获取单只基金盘中估值 ──────────────────────────────────
-// 通过 JSONP 调用东方财富接口，无需后端，直接浏览器可调
 function fetchFund(code) {
   return new Promise((resolve) => {
-    const cbName = 'jsonpFund' + (++callbackCounter);
-    const script = document.createElement('script');
     const timer = setTimeout(() => {
-      delete window[cbName];
-      script.remove();
+      pendingRequests.delete(code);
       resolve({code, status:'error', message:'请求超时'});
     }, 8000);
 
-    window[cbName] = function(data) {
+    // 存储 resolve 方便全局回调函数调用
+    pendingRequests.set(code, (result) => {
       clearTimeout(timer);
-      delete window[cbName];
-      script.remove();
-      
-      if (!data || !data.fundcode) {
-        resolve({code, status:'error', message:'数据格式错误'});
-        return;
-      }
-      
-      try {
-        const estNav = parseFloat(data.gsz) || 0;
-        const lastNav = parseFloat(data.dwjz) || 0;
-        const estChange = parseFloat(data.gszzl) || 0;
-        
-        resolve({
-          code: data.fundcode || code,
-          name: data.name || code,
-          last_nav: lastNav,
-          est_nav: estNav,
-          est_change: estChange,
-          nav_date: data.jzrq || '',
-          est_time: data.gztime || '',
-          status: 'ok'
-        });
-      } catch(e) {
-        resolve({code, status:'error', message:'数据解析失败'});
-      }
-    };
+      resolve(result);
+    });
 
-    // 东方财富公开 JSONP 接口（使用正确的回调参数名）
-    script.src = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}&callback=${cbName}`;
+    // 直接请求，接口会返回 jsonpgz(...) 格式的数据
+    const script = document.createElement('script');
+    script.src = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
     script.onerror = () => {
       clearTimeout(timer);
-      delete window[cbName];
+      pendingRequests.delete(code);
       script.remove();
       resolve({code, status:'error', message:'网络请求失败'});
+    };
+    script.onload = () => {
+      script.remove();
     };
     document.head.appendChild(script);
   });
