@@ -71,16 +71,17 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-si
 .holding-item{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .h-name{font-size:13px;font-weight:500;margin-bottom:2px}
 .h-detail{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.del-btn{background:none;border:1px solid #3a2020;color:var(--down);width:28px;height:28px;border-radius:4px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1}
+.del-btn{background:none;border:1px solid #3a2020;color:var(--down);width:28px;height:28px;border-radius:4px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.del-btn:active{background:#2a1515}
 
 .add-form{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px}
 .f-label{font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px}
 .f-row{margin-bottom:12px}
 .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.f-input{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:4px;font-size:13px;outline:none;transition:border-color .2s;font-family:var(--sans);font-variant-numeric:tabular-nums}
+.f-input{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:4px;font-size:13px;outline:none;transition:border-color .2s;font-family:var(--sans)}
 .f-input:focus{border-color:var(--accent)}
 .f-input::placeholder{color:var(--muted)}
-.add-btn{width:100%;background:var(--accent);color:#0d0d0d;border:none;padding:10px;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;margin-top:2px;font-family:var(--sans);letter-spacing:1px}
+.add-btn{width:100%;background:var(--accent);color:#0d0d0d;border:none;padding:10px;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;margin-top:2px;font-family:var(--sans);letter-spacing:.5px}
 .add-btn:active{opacity:.8}
 
 .export-row{display:flex;gap:8px;margin-top:16px}
@@ -88,11 +89,11 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-si
 .exp-btn:active{background:var(--bg3);color:var(--text)}
 
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:100}
-.nav-btn{flex:1;background:none;border:none;color:var(--muted);padding:10px 0;font-size:10px;font-family:var(--sans);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s;letter-spacing:.5px}
+.nav-btn{flex:1;background:none;border:none;color:var(--muted);padding:10px 0;font-size:10px;font-family:var(--sans);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s}
 .nav-btn.active{color:var(--accent)}
 .nav-icon{font-size:17px;line-height:1}
 
-.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:7px 16px;border-radius:20px;font-size:12px;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:200}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:7px 16px;border-radius:20px;font-size:11px;opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;z-index:200}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 .empty-hint{padding:48px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8}
@@ -182,6 +183,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-si
 const STORAGE_KEY = 'fuyu_holdings_v1';
 let holdings = [];
 let fundsData = [];
+let callbackCounter = 0;
 
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
@@ -231,7 +233,7 @@ function importData(e) {
 // 通过 JSONP 调用东方财富接口，无需后端，直接浏览器可调
 function fetchFund(code) {
   return new Promise((resolve) => {
-    const cbName = '_fuyu_' + code + '_' + Date.now();
+    const cbName = 'jsonpFund' + (++callbackCounter);
     const script = document.createElement('script');
     const timer = setTimeout(() => {
       delete window[cbName];
@@ -243,13 +245,23 @@ function fetchFund(code) {
       clearTimeout(timer);
       delete window[cbName];
       script.remove();
+      
+      if (!data || !data.fundcode) {
+        resolve({code, status:'error', message:'数据格式错误'});
+        return;
+      }
+      
       try {
+        const estNav = parseFloat(data.gsz) || 0;
+        const lastNav = parseFloat(data.dwjz) || 0;
+        const estChange = parseFloat(data.gszzl) || 0;
+        
         resolve({
           code: data.fundcode || code,
           name: data.name || code,
-          last_nav: parseFloat(data.dwjz) || 0,
-          est_nav: parseFloat(data.gsz) || 0,
-          est_change: parseFloat(data.gszzl) || 0,
+          last_nav: lastNav,
+          est_nav: estNav,
+          est_change: estChange,
           nav_date: data.jzrq || '',
           est_time: data.gztime || '',
           status: 'ok'
@@ -259,12 +271,13 @@ function fetchFund(code) {
       }
     };
 
-    // 东方财富公开 JSONP 接口
+    // 东方财富公开 JSONP 接口（使用正确的回调参数名）
     script.src = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}&callback=${cbName}`;
     script.onerror = () => {
       clearTimeout(timer);
       delete window[cbName];
-      resolve({code, status:'error', message:'接口请求失败'});
+      script.remove();
+      resolve({code, status:'error', message:'网络请求失败'});
     };
     document.head.appendChild(script);
   });
