@@ -1,9 +1,11 @@
 const STORAGE_KEY = 'fuyu_holdings_v1';
+const CACHE_KEY = 'fuyu_funds_cache_v1';
 let holdings = [];
 let fundsData = [];
 const pendingRequests = new Map();
 let isRefreshing = false;
 let refreshQueued = false;
+let autoRefreshTimer = null;
 
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
@@ -78,7 +80,32 @@ function importData(e) {
   e.target.value = '';
 }
 
-// ── 全局回调函数（接口固定返回此函数） ──────────────────
+// ── 缓存 ──────────────────────────────────────────────────
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw);
+    if (!cache.data || !Array.isArray(cache.data) || !cache.data.length) return null;
+    return cache;
+  } catch { return null; }
+}
+
+function saveCache(data) {
+  try {
+    const slim = data.map(d => ({
+      code: d.code, name: d.name, last_nav: d.last_nav, est_nav: d.est_nav,
+      est_change: d.est_change, nav_date: d.nav_date, est_time: d.est_time,
+      yesterday_change: d.yesterday_change, ytd_change: d.ytd_change,
+      shares: d.shares, cost: d.cost, today_profit: d.today_profit,
+      total_profit: d.total_profit, total_profit_rate: d.total_profit_rate,
+      curr_value: d.curr_value, status: d.status
+    }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ data: slim, time: Date.now() }));
+  } catch {}
+}
+
+// ── 全局回调（天天基金 JSONP 接口） ──────────────────────
 window.jsonpgz = function(data) {
   if (!data || !data.fundcode) return;
   const code = data.fundcode;
@@ -102,34 +129,77 @@ window.jsonpgz = function(data) {
   }
 };
 
-// ── 获取单只基金盘中估值 ──────────────────────────────────
+// ── 主数据源：天天基金 JSONP ──────────────────────────────
 function fetchFund(code) {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       pendingRequests.delete(code);
-      resolve({code, status:'error', message:'请求超时'});
-    }, 8000);
+      resolve({code, status:'error', message:'主源超时'});
+    }, 7000);
 
-    // 存储 resolve 方便全局回调函数调用
     pendingRequests.set(code, (result) => {
       clearTimeout(timer);
       resolve(result);
     });
 
-    // 直接请求，接口会返回 jsonpgz(...) 格式的数据
     const script = document.createElement('script');
     script.src = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
     script.onerror = () => {
       clearTimeout(timer);
       pendingRequests.delete(code);
       script.remove();
-      resolve({code, status:'error', message:'网络请求失败'});
+      resolve({code, status:'error', message:'主源请求失败'});
     };
-    script.onload = () => {
-      script.remove();
-    };
+    script.onload = () => { script.remove(); };
     document.head.appendChild(script);
   });
+}
+
+// ── 备选数据源：东方财富 push2 API（CORS 友好） ──────────
+async function fetchFromEastmoney(code) {
+  try {
+    const resp = await fetch(
+      `https://push2.eastmoney.com/api/qt/stock/get?secid=0.${code}&fields=f43,f169,f170&_=${Date.now()}`
+    );
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    if (!json || !json.data) throw new Error('无数据');
+    return {
+      code,
+      name: '',
+      last_nav: parseNav(json.data.f43),
+      est_nav: NaN,
+      est_change: NaN,
+      nav_date: '',
+      est_time: '',
+      status: 'ok_fallback',
+      yesterday_change: parseNav(json.data.f169),
+      ytd_change: parseNav(json.data.f170)
+    };
+  } catch(e) {
+    return {code, status:'error', message:'备选源不可用'};
+  }
+}
+
+// ── 合并获取：主源 + 备选源并行 ──────────────────────────
+async function fetchFundFull(code) {
+  const [primary, em] = await Promise.all([
+    fetchFund(code),
+    fetchFromEastmoney(code)
+  ]);
+
+  if (primary.status !== 'ok') {
+    if (em.status === 'ok_fallback') {
+      return { ...em, name: primary.name || code, status: 'ok_fallback' };
+    }
+    return primary;
+  }
+
+  if (em.status === 'ok_fallback') {
+    primary.yesterday_change = em.yesterday_change;
+    primary.ytd_change = em.ytd_change;
+  }
+  return primary;
 }
 
 // ── 刷新所有持仓数据 ─────────────────────────────────────
@@ -152,13 +222,13 @@ async function refresh() {
     }
 
     const snapshot = holdings.map(h => ({...h}));
-    const results = await Promise.all(snapshot.map(h => fetchFund(h.code)));
+    const results = await Promise.all(snapshot.map(h => fetchFundFull(h.code)));
 
-    // 合并持仓信息，并把接口返回的基金名回填到本地持仓。
     let holdingsChanged = false;
+    let anyOk = false;
     fundsData = results.map((r, i) => {
       const h = snapshot[i];
-      const fetchedName = r.status === 'ok' && isRealFundName(r.name, h.code) ? String(r.name).trim() : '';
+      const fetchedName = (r.status === 'ok' || r.status === 'ok_fallback') && isRealFundName(r.name, h.code) ? String(r.name).trim() : '';
       const holdingName = String(h.name || '').trim();
       const d = {
         ...r,
@@ -175,29 +245,38 @@ async function refresh() {
         }
       }
 
-      if (d.status === 'ok' && d.shares > 0 && isUsableNav(d.est_nav) && isUsableNav(d.last_nav)) {
-        const curr = d.est_nav * d.shares;
-        const costVal = d.cost * d.shares;
-        d.today_profit = (d.est_nav - d.last_nav) * d.shares;
-        d.total_profit = curr - costVal;
-        d.total_profit_rate = costVal > 0 ? (curr - costVal) / costVal * 100 : 0;
-        d.curr_value = curr;
+      const hasEst = isUsableNav(d.est_nav);
+      const hasLast = isUsableNav(d.last_nav);
+
+      if ((d.status === 'ok' || d.status === 'ok_fallback') && d.shares > 0 && (hasEst || hasLast)) {
+        if (hasEst && hasLast) {
+          const curr = d.est_nav * d.shares;
+          d.today_profit = (d.est_nav - d.last_nav) * d.shares;
+          d.total_profit = curr - d.cost * d.shares;
+        } else if (hasLast) {
+          d.curr_value = d.last_nav * d.shares;
+          d.total_profit = d.curr_value - d.cost * d.shares;
+          d.today_profit = NaN;
+        }
+        anyOk = true;
       }
-      if (d.status === 'ok' && (!isUsableNav(d.est_nav) || !isUsableNav(d.last_nav))) {
+
+      if ((d.status === 'ok' || d.status === 'ok_fallback') && !hasLast && !hasEst) {
         d.status = 'error';
         d.message = '净值数据无效';
       }
       return d;
     });
-    if (holdingsChanged) {
-      saveHoldings();
-      renderHoldingsList();
-    }
+
+    if (holdingsChanged) { saveHoldings(); renderHoldingsList(); }
+    if (anyOk) saveCache(fundsData);
 
     renderFundList(fundsData);
     const now = new Date();
     document.getElementById('last-upd').textContent =
       `估算时间 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  } catch(e) {
+    if (!tryShowCache()) renderFundList([]);
   } finally {
     btn.classList.remove('loading');
     btn.disabled = false;
@@ -205,6 +284,17 @@ async function refresh() {
     isRefreshing = false;
     if (refreshQueued) refresh();
   }
+}
+
+function tryShowCache() {
+  const cache = loadCache();
+  if (!cache) return false;
+  fundsData = cache.data.map(d => ({ ...d, _cached: true }));
+  renderFundList(fundsData);
+  const ct = new Date(cache.time);
+  document.getElementById('last-upd').textContent =
+    `缓存数据 ${pad(ct.getMonth()+1)}/${pad(ct.getDate())} ${pad(ct.getHours())}:${pad(ct.getMinutes())}`;
+  return true;
 }
 
 function pad(n) { return String(n).padStart(2,'0'); }
@@ -230,7 +320,8 @@ function renderFundList(data) {
   let html = '';
 
   data.forEach(f => {
-    if (f.status !== 'ok') {
+    const isFallback = f.status === 'ok_fallback';
+    if (f.status !== 'ok' && !isFallback) {
       html += `<div class="fund-card">
         <div class="fund-top">
           <div><div class="fund-name">${esc(f.name||f.code)}</div><div class="fund-code">${f.code}</div></div>
@@ -239,31 +330,41 @@ function renderFundList(data) {
       </div>`;
       return;
     }
-    const cc = f.est_change > 0 ? 'up' : f.est_change < 0 ? 'down' : 'flat';
-    const sign = f.est_change >= 0 ? '+' : '';
-    todaySum += f.today_profit || 0;
+    const hasEst = isUsableNav(f.est_change);
+    const cc = hasEst ? (f.est_change > 0 ? 'up' : f.est_change < 0 ? 'down' : 'flat') : '';
+    const sign = hasEst && f.est_change >= 0 ? '+' : '';
+    const hasToday = Number.isFinite(f.today_profit);
+    const hasProfit = Number.isFinite(f.total_profit);
+    if (hasToday) todaySum += f.today_profit;
     totalVal += f.curr_value || 0;
-    profitSum += f.total_profit || 0;
+    profitSum += hasProfit ? f.total_profit : 0;
+
+    const yesterdayHtml = isUsableNav(f.yesterday_change)
+      ? ` · <span class="yest-chg ${f.yesterday_change >= 0 ? 'up' : 'down'}">昨${f.yesterday_change >= 0 ? '+' : ''}${fmt(f.yesterday_change)}%</span>`
+      : '';
+
+    const fallbackTag = isFallback || f._cached
+      ? ' <span class="cache-tag">备选</span>' : '';
 
     html += `<div class="fund-card ${cc}">
       <div class="fund-top">
         <div>
-          <div class="fund-name">${esc(f.name)}</div>
-          <div class="fund-code">${f.code} · ${f.nav_date}</div>
+          <div class="fund-name">${esc(f.name)}${fallbackTag}</div>
+          <div class="fund-code">${f.code} · ${f.nav_date}${yesterdayHtml}</div>
         </div>
         <div>
-          <div class="fund-pct ${cc}">${sign}${fmt(f.est_change)}%</div>
+          <div class="fund-pct ${cc}">${hasEst ? sign + fmt(f.est_change) + '%' : '--'}</div>
           <div class="fund-pct-time">${f.est_time||'--'}</div>
         </div>
       </div>
       <div class="fund-stats">
         <div><div class="stat-label">盘中估值</div><div class="stat-val">${fmt4(f.est_nav)}</div></div>
         <div><div class="stat-label">上一净值</div><div class="stat-val">${fmt4(f.last_nav)}</div></div>
-        <div><div class="stat-label">今日估算</div><div class="stat-val ${f.today_profit>=0?'up':'down'}">${f.shares>0?fmtM(f.today_profit):'--'}</div></div>
+        <div><div class="stat-label">今日估算</div><div class="stat-val ${hasToday ? (f.today_profit>=0?'up':'down') : ''}">${f.shares>0 && hasToday ? fmtM(f.today_profit) : '--'}</div></div>
         ${f.shares > 0 ? `
         <div><div class="stat-label">持有份额</div><div class="stat-val">${fmt2(f.shares)}</div></div>
         <div><div class="stat-label">持仓市值</div><div class="stat-val">${fmt2(f.curr_value)}</div></div>
-        <div><div class="stat-label">累计盈亏</div><div class="stat-val ${f.total_profit>=0?'up':'down'}">${fmtM(f.total_profit)}</div></div>
+        <div><div class="stat-label">累计盈亏</div><div class="stat-val ${hasProfit ? (f.total_profit>=0?'up':'down') : ''}">${hasProfit ? fmtM(f.total_profit) : '--'}</div></div>
         ` : ''}
       </div>
     </div>`;
@@ -331,7 +432,7 @@ function addFund() {
   document.getElementById('i-name').value='';
   document.getElementById('i-shares').value='';
   document.getElementById('i-cost').value='';
-  showToast('已添加' + (name||code));
+  showToast('已添加 ' + (name||code));
   refresh();
 }
 
@@ -368,13 +469,23 @@ function updateMktStatus() {
   document.getElementById('mkt-status').textContent = s;
 }
 
-// ── 自动刷新 ─────────────────────────────────────────────
+// ── 智能自动刷新 ─────────────────────────────────────────
+function getRefreshInterval() {
+  const now = new Date();
+  const d = now.getDay();
+  const t = now.getHours() * 60 + now.getMinutes();
+  if (d === 0 || d === 6) return 0;           // 周末不刷新
+  if (t >= 565 && t < 690) return 60000;       // 上午盘 9:25-11:30 每60s
+  if (t >= 690 && t < 780) return 0;           // 午休 11:30-13:00 不刷新
+  if (t >= 780 && t < 900) return 60000;       // 下午盘 13:00-15:00 每60s
+  if (t >= 900 && t < 930) return 120000;      // 收盘后 15:00-15:30 每120s
+  return 0;                                     // 其余时段不自动刷新
+}
+
 function startAutoRefresh() {
-  setInterval(() => {
-    const now = new Date();
-    const d = now.getDay(), t = now.getHours()*60+now.getMinutes();
-    const trading = d>=1&&d<=5&&((t>=565&&t<695)||(t>=775&&t<905));
-    if (trading) refresh();
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => {
+    if (getRefreshInterval() > 0) refresh();
   }, 60000);
 }
 
@@ -390,20 +501,16 @@ function showToast(msg, ms=2200) {
 async function fetchDeploymentStatus() {
   const REPO = 'AureliusWu/FundVal';
   try {
-    // 获取最后一次提交信息
     const response = await fetch(`https://api.github.com/repos/${REPO}/commits?per_page=1`);
     if (!response.ok) throw new Error('请求失败');
-    
     const commits = await response.json();
     if (!commits || commits.length === 0) {
       document.getElementById('status-time').textContent = '未找到提交';
       return;
     }
-    
     const commit = commits[0];
     const date = new Date(commit.commit.author.date);
     const timeStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-    
     document.getElementById('status-time').textContent = timeStr;
     document.getElementById('status-commit').textContent = commit.commit.message.split('\n')[0];
     document.getElementById('status-hash').textContent = commit.sha.substring(0, 7);

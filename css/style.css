@@ -531,6 +531,19 @@ html, body {
   background: var(--bg3);
 }
 
+/* ── 新增元素 ────────────────────────────────────── */
+.cache-tag {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.yest-chg {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── 桌面端适配 (≥768px) ─────────────────────────── */
 
 @media (min-width: 768px) {
