@@ -89,6 +89,40 @@
   <button class="nav-btn" id="nav-edit" onclick="switchPage('edit')">
     <span class="nav-icon">⚙️</span>持仓
   </button>
+  <button class="nav-btn" id="nav-status" onclick="switchPage('status')">
+    <span class="nav-icon">🔄</span>状态
+  </button>
+</div>
+
+<div class="page" id="page-status">
+  <div class="status-page">
+    <div class="sec-title">部署状态</div>
+    <div class="status-card">
+      <div class="status-item">
+        <div class="status-label">最后更新</div>
+        <div class="status-val" id="status-time">--</div>
+      </div>
+      <div class="status-item">
+        <div class="status-label">提交信息</div>
+        <div class="status-val" id="status-commit">--</div>
+      </div>
+      <div class="status-item">
+        <div class="status-label">提交哈希</div>
+        <div class="status-val status-hash" id="status-hash">--</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 20px;">
+      <a href="https://github.com/AureliusWu/FundVal/actions" target="_blank" class="status-link">
+        🔗 查看 GitHub Actions 构建状态
+      </a>
+    </div>
+    <div style="margin-top: 12px;">
+      <a href="https://github.com/AureliusWu/FundVal" target="_blank" class="status-link">
+        🔗 查看仓库代码
+      </a>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

@@ -351,6 +351,7 @@ function switchPage(name) {
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('nav-'+name).classList.add('active');
   if (name==='edit') renderHoldingsList();
+  if (name==='status') fetchDeploymentStatus();
 }
 
 // ── 市场状态 ─────────────────────────────────────────────
@@ -383,6 +384,34 @@ function showToast(msg, ms=2200) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+// ── 获取部署状态 ─────────────────────────────────────────
+async function fetchDeploymentStatus() {
+  const REPO = 'AureliusWu/FundVal';
+  try {
+    // 获取最后一次提交信息
+    const response = await fetch(`https://api.github.com/repos/${REPO}/commits?per_page=1`);
+    if (!response.ok) throw new Error('请求失败');
+    
+    const commits = await response.json();
+    if (!commits || commits.length === 0) {
+      document.getElementById('status-time').textContent = '未找到提交';
+      return;
+    }
+    
+    const commit = commits[0];
+    const date = new Date(commit.commit.author.date);
+    const timeStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+    
+    document.getElementById('status-time').textContent = timeStr;
+    document.getElementById('status-commit').textContent = commit.commit.message.split('\n')[0];
+    document.getElementById('status-hash').textContent = commit.sha.substring(0, 7);
+  } catch(err) {
+    document.getElementById('status-time').textContent = '获取失败（检查网络）';
+    document.getElementById('status-commit').textContent = '--';
+    document.getElementById('status-hash').textContent = '--';
+  }
 }
 
 // ── Service Worker ───────────────────────────────────────

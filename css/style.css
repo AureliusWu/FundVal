@@ -470,3 +470,63 @@ html, body {
   font-size: 13px;
   line-height: 1.8;
 }
+
+.status-page {
+  padding: 16px 16px 80px;
+}
+
+.status-card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.status-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.status-item:last-child {
+  border-bottom: none;
+}
+
+.status-label {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.status-val {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
+}
+
+.status-hash {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.status-link {
+  display: block;
+  padding: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 12px;
+  text-align: center;
+  transition: all .2s;
+  cursor: pointer;
+}
+
+.status-link:active {
+  background: var(--bg3);
+}
