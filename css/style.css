@@ -544,6 +544,271 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 点击编辑 ────────────────────────────────────── */
+.fund-card {
+  cursor: pointer;
+}
+
+/* ── 排序栏 ──────────────────────────────────────── */
+.sort-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.sort-bar::-webkit-scrollbar { display: none; }
+
+.sort-chip {
+  flex-shrink: 0;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--sans);
+  white-space: nowrap;
+  transition: all .2s;
+}
+
+.sort-chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.sort-chip:active {
+  opacity: .8;
+}
+
+/* ── 累计收益率 ──────────────────────────────────── */
+.profit-rate {
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: 400;
+}
+
+/* ── 重仓股展开 ──────────────────────────────────── */
+.fund-card.expanded {
+  background: var(--bg2);
+}
+
+.holdings-detail {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.holdings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.edit-holdings-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+
+.edit-holdings-btn:active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.holdings-loading,
+.holdings-empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 8px 0;
+}
+
+.holdings-table {
+  font-size: 11px;
+}
+
+.holdings-header {
+  display: grid;
+  grid-template-columns: 1fr 60px 60px;
+  gap: 4px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.holdings-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 60px;
+  gap: 4px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.stock-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-name em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 9px;
+  margin-left: 4px;
+}
+
+/* ── 收益日历 ────────────────────────────────────── */
+.daily-log {
+  padding: 0 16px 80px;
+}
+
+.daily-title {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 12px 0 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.daily-title:active {
+  color: var(--accent);
+}
+
+.daily-log-list {
+  display: none;
+}
+
+.daily-log-list.show {
+  display: block;
+}
+
+.daily-empty {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+
+.daily-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f2f5;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.daily-date {
+  width: 55px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.daily-profit {
+  flex: 1;
+  font-weight: 500;
+}
+
+.daily-value {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ── 编辑按钮组 ──────────────────────────────────── */
+.edit-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.edit-btns .add-btn {
+  flex: 1;
+  margin-top: 0;
+}
+
+.cancel-edit-btn {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--sans);
+  white-space: nowrap;
+  transition: all .2s;
+}
+
+.cancel-edit-btn:active {
+  background: var(--line);
+}
+
+.cancel-edit-btn:hover {
+  background: var(--line);
+}
+
+/* ── 云同步 ──────────────────────────────────────── */
+.cloud-section {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.f-hint {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.f-hint code {
+  background: var(--bg3);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 9px;
+}
+
+.f-hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.cloud-status {
+  font-size: 11px;
+  text-align: center;
+  padding: 6px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cloud-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.cloud-btn {
+  flex: 1;
+}
+
+.cloud-clear {
+  width: 100%;
+  margin-top: 8px;
+  color: var(--down) !important;
+}
+
 /* ── 桌面端适配 (≥768px) ─────────────────────────── */
 
 @media (min-width: 768px) {
@@ -596,6 +861,25 @@ html, body {
 
   .status-link:hover {
     background: var(--bg3);
+  }
+
+  .sort-chip:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+
+  .sort-chip.active:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .edit-holdings-btn:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .daily-title:hover {
+    color: var(--accent);
   }
 
   /* 字号微调 */

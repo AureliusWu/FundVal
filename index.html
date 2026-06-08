@@ -29,6 +29,12 @@
 </div>
 
 <div class="page active" id="page-market">
+  <div class="sort-bar" id="sort-bar">
+    <button class="sort-chip active" data-sort="est_change_desc" onclick="setSort('est_change_desc')">估值涨跌↓</button>
+    <button class="sort-chip" data-sort="today_profit_desc" onclick="setSort('today_profit_desc')">今日盈亏↓</button>
+    <button class="sort-chip" data-sort="curr_value_desc" onclick="setSort('curr_value_desc')">市值↓</button>
+    <button class="sort-chip" data-sort="profit_rate_desc" onclick="setSort('profit_rate_desc')">收益率↓</button>
+  </div>
   <div class="fund-list" id="fund-list">
     <div class="fund-card" style="pointer-events:none">
       <div class="skeleton" style="width:55%;height:15px"></div>
@@ -44,6 +50,10 @@
     </div>
   </div>
   <div class="last-upd" id="last-upd"></div>
+  <div class="daily-log">
+    <div class="daily-title" onclick="renderDailyLog();document.getElementById('daily-log-list').classList.toggle('show')">收益日历 ▾</div>
+    <div class="daily-log-list" id="daily-log-list"></div>
+  </div>
 </div>
 
 <div class="page" id="page-edit">
@@ -71,7 +81,27 @@
           <input class="f-input" id="i-cost" placeholder="0.000" inputmode="decimal">
         </div>
       </div>
-      <button class="add-btn" onclick="addFund()">+ 添加</button>
+      <div class="edit-btns">
+        <button class="add-btn" id="add-btn" onclick="saveFund()">+ 添加</button>
+        <button class="cancel-edit-btn" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none">取消编辑</button>
+      </div>
+    </div>
+
+    <div class="sec-title">云同步 (GitHub Gist)</div>
+    <div class="cloud-section">
+      <div class="f-row">
+        <div class="f-label">GitHub Personal Access Token</div>
+        <input class="f-input" id="gist-token" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+        <div class="f-hint">
+          需要 <code>gist</code> 权限，<a href="https://github.com/settings/tokens" target="_blank">创建 Classic Token</a>
+        </div>
+      </div>
+      <div class="cloud-status" id="cloud-status">尚未同步</div>
+      <div class="cloud-btns">
+        <button class="exp-btn cloud-btn" onclick="uploadToCloud()">上传到云端</button>
+        <button class="exp-btn cloud-btn" onclick="downloadFromCloud()">从云端下载</button>
+      </div>
+      <button class="exp-btn cloud-clear" onclick="clearCloudConfig()">清除云同步配置</button>
     </div>
 
     <div class="export-row">

@@ -1,7 +1,16 @@
 const STORAGE_KEY = 'fuyu_holdings_v1';
 const CACHE_KEY = 'fuyu_funds_cache_v1';
+const GIST_TOKEN_KEY = 'fuyu_gist_token';
+const GIST_ID_KEY = 'fuyu_gist_id';
+const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
+const GIST_FILENAME = 'fuyu-holdings.json';
+const DAILY_LOG_KEY = 'fuyu_daily_log';
 let holdings = [];
 let fundsData = [];
+let editingCode = null;
+let sortBy = 'est_change_desc';
+let expandedFund = null;
+const holdingsCache = {};
 const pendingRequests = new Map();
 let isRefreshing = false;
 let refreshQueued = false;
@@ -78,6 +87,124 @@ function importData(e) {
   };
   reader.readAsText(file);
   e.target.value = '';
+}
+
+// ── 云同步 (GitHub Gist) ──────────────────────────────────
+function getGistToken() { return localStorage.getItem(GIST_TOKEN_KEY) || ''; }
+function setGistToken(t) { localStorage.setItem(GIST_TOKEN_KEY, t); }
+function getGistId() { return localStorage.getItem(GIST_ID_KEY) || ''; }
+function setGistId(id) { localStorage.setItem(GIST_ID_KEY, id); }
+function getSyncTime() { return localStorage.getItem(GIST_SYNC_TIME_KEY) || ''; }
+function setSyncTime(t) { localStorage.setItem(GIST_SYNC_TIME_KEY, t); }
+
+function renderCloudStatus() {
+  const syncTime = getSyncTime();
+  const el = document.getElementById('cloud-status');
+  if (!el) return;
+  if (syncTime) {
+    const d = new Date(syncTime);
+    el.textContent = '上次同步: ' + d.toLocaleString('zh-CN');
+    el.style.color = 'var(--up)';
+  } else {
+    el.textContent = '尚未同步';
+    el.style.color = 'var(--muted)';
+  }
+}
+
+async function uploadToCloud() {
+  const token = document.getElementById('gist-token').value.trim();
+  if (!token) { showToast('请输入 GitHub Token'); return; }
+  if (!holdings.length) { showToast('没有持仓数据可上传'); return; }
+  setGistToken(token);
+
+  const content = JSON.stringify(holdings, null, 2);
+  const gistId = getGistId();
+  const desc = 'FundVal 持仓数据 | ' + new Date().toISOString();
+
+  try {
+    let resp;
+    if (gistId) {
+      resp = await fetch('https://api.github.com/gists/' + gistId, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: desc, files: { [GIST_FILENAME]: { content } } })
+      });
+    } else {
+      resp = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: desc, public: false, files: { [GIST_FILENAME]: { content } } })
+      });
+    }
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      if (resp.status === 401) { showToast('Token 无效，请检查'); }
+      else if (resp.status === 404) { showToast('云端存档不存在，请重新上传'); setGistId(''); renderCloudStatus(); }
+      else { showToast('上传失败: ' + (err.message || resp.status)); }
+      return;
+    }
+
+    const data = await resp.json();
+    setGistId(data.id);
+    setSyncTime(new Date().toISOString());
+    renderCloudStatus();
+    showToast('已上传到云端');
+  } catch (e) {
+    showToast('网络错误，上传失败');
+  }
+}
+
+async function downloadFromCloud() {
+  const token = document.getElementById('gist-token').value.trim();
+  if (!token) { showToast('请输入 GitHub Token'); return; }
+  setGistToken(token);
+
+  const gistId = getGistId();
+  if (!gistId) { showToast('请先上传一次以创建云端存档'); return; }
+
+  try {
+    const resp = await fetch('https://api.github.com/gists/' + gistId, {
+      headers: { 'Authorization': 'token ' + token }
+    });
+
+    if (!resp.ok) {
+      if (resp.status === 401) { showToast('Token 无效'); }
+      else if (resp.status === 404) { showToast('云端存档不存在，请重新上传'); setGistId(''); renderCloudStatus(); }
+      else { showToast('下载失败: ' + resp.status); }
+      return;
+    }
+
+    const data = await resp.json();
+    const file = data.files[GIST_FILENAME];
+    if (!file || !file.content) { showToast('云端存档为空'); return; }
+
+    const parsed = JSON.parse(file.content);
+    const normalized = normalizeHoldings(parsed);
+    if (!normalized.length) { showToast('云端数据格式错误'); return; }
+
+    if (holdings.length && !confirm('本地已有 ' + holdings.length + ' 条持仓，云端有 ' + normalized.length + ' 条。\n\n确定用云端数据覆盖本地？')) return;
+
+    holdings = normalized;
+    saveHoldings();
+    renderHoldingsList();
+    setSyncTime(new Date().toISOString());
+    renderCloudStatus();
+    showToast('已从云端下载，共 ' + holdings.length + ' 条');
+    refresh();
+  } catch (e) {
+    showToast('下载失败: ' + (e.message || '未知错误'));
+  }
+}
+
+function clearCloudConfig() {
+  if (!confirm('清除云端同步配置？（不会删除云端 Gist 数据）')) return;
+  localStorage.removeItem(GIST_TOKEN_KEY);
+  localStorage.removeItem(GIST_ID_KEY);
+  localStorage.removeItem(GIST_SYNC_TIME_KEY);
+  document.getElementById('gist-token').value = '';
+  renderCloudStatus();
+  showToast('已清除云端配置');
 }
 
 // ── 缓存 ──────────────────────────────────────────────────
@@ -253,9 +380,11 @@ async function refresh() {
           const curr = d.est_nav * d.shares;
           d.today_profit = (d.est_nav - d.last_nav) * d.shares;
           d.total_profit = curr - d.cost * d.shares;
+          d.total_profit_rate = (d.cost > 0 && d.shares > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
         } else if (hasLast) {
           d.curr_value = d.last_nav * d.shares;
           d.total_profit = d.curr_value - d.cost * d.shares;
+          d.total_profit_rate = (d.cost > 0 && d.shares > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
           d.today_profit = NaN;
         }
         anyOk = true;
@@ -275,6 +404,7 @@ async function refresh() {
     const now = new Date();
     document.getElementById('last-upd').textContent =
       `估算时间 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    if (now.getHours() >= 15) saveTodayLog();
   } catch(e) {
     if (!tryShowCache()) renderFundList([]);
   } finally {
@@ -304,70 +434,171 @@ function parseNav(value) {
   return Number.isFinite(n) ? n : NaN;
 }
 
+// ── 排序 ─────────────────────────────────────────────────
+function sortFunds(data) {
+  const sorted = [...data];
+  sorted.sort((a, b) => {
+    const va = (a.status === 'ok' || a.status === 'ok_fallback') ? a : null;
+    const vb = (b.status === 'ok' || b.status === 'ok_fallback') ? b : null;
+    if (va && !vb) return -1;
+    if (!va && vb) return 1;
+    if (!va && !vb) return 0;
+    switch (sortBy) {
+      case 'est_change_desc': return (b.est_change || -Infinity) - (a.est_change || -Infinity);
+      case 'est_change_asc':  return (a.est_change || Infinity) - (b.est_change || Infinity);
+      case 'today_profit_desc': return (b.today_profit || -Infinity) - (a.today_profit || -Infinity);
+      case 'today_profit_asc':  return (a.today_profit || Infinity) - (b.today_profit || Infinity);
+      case 'curr_value_desc': return (b.curr_value || 0) - (a.curr_value || 0);
+      case 'curr_value_asc':  return (a.curr_value || 0) - (b.curr_value || 0);
+      case 'total_profit_desc': return (b.total_profit || -Infinity) - (a.total_profit || -Infinity);
+      case 'total_profit_asc':  return (a.total_profit || Infinity) - (b.total_profit || Infinity);
+      case 'profit_rate_desc': return (b.total_profit_rate || -Infinity) - (a.total_profit_rate || -Infinity);
+      case 'profit_rate_asc':  return (a.total_profit_rate || Infinity) - (b.total_profit_rate || Infinity);
+      default: return 0;
+    }
+  });
+  return sorted;
+}
+
+function setSort(by) {
+  sortBy = by;
+  renderFundList(fundsData);
+}
+
+function updateSortBar() {
+  document.querySelectorAll('.sort-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.sort === sortBy);
+  });
+}
+
+// ── 重仓股 ───────────────────────────────────────────────
+function toggleFundDetail(code) {
+  if (expandedFund === code) {
+    expandedFund = null;
+    renderFundList(fundsData);
+    return;
+  }
+  expandedFund = code;
+  renderFundList(fundsData);
+  if (holdingsCache[code] === undefined) fetchTopHoldings(code);
+}
+
+function fetchTopHoldings(code) {
+  holdingsCache[code] = undefined;
+  const cbName = 'jjcc_' + code;
+  window[cbName] = function(data) {
+    try {
+      const stocks = parseHoldingsData(data);
+      holdingsCache[code] = stocks || [];
+    } catch(e) { holdingsCache[code] = []; }
+    delete window[cbName];
+    if (expandedFund === code) renderFundList(fundsData);
+  };
+
+  const script = document.createElement('script');
+  script.src = 'https://api.fund.eastmoney.com/f10/JJCC?callback=' + cbName + '&fundCode=' + code + '&topline=10&_=' + Date.now();
+  script.onerror = function() {
+    holdingsCache[code] = [];
+    delete window[cbName];
+    if (expandedFund === code) renderFundList(fundsData);
+  };
+  document.head.appendChild(script);
+}
+
+function parseHoldingsData(data) {
+  if (!data || !data.Data) return null;
+  var d = data.Data;
+  var stocks = d.InverstPosition || d.topStocks || d.JJCC || [];
+  if (!Array.isArray(stocks) || !stocks.length) return null;
+  return stocks.slice(0, 10).map(function(s) {
+    return {
+      code: s.stockCode || s.code || '',
+      name: s.stockName || s.name || '',
+      ratio: parseFloat(s.ratio || s.ratioInFund || 0) || 0,
+      change: parseFloat(s.change || s.priceChange || 0)
+    };
+  });
+}
+
 // ── 渲染基金列表 ─────────────────────────────────────────
 function renderFundList(data) {
-  const list = document.getElementById('fund-list');
+  var list = document.getElementById('fund-list');
   if (!data || data.length === 0) {
     list.innerHTML = '<div class="empty-hint">暂无持仓<br>在「持仓」页添加基金代码</div>';
-    ['s-today','s-total','s-profit'].forEach(id => {
+    ['s-today','s-total','s-profit'].forEach(function(id) {
       document.getElementById(id).textContent = '--';
       document.getElementById(id).className = 'sum-val';
     });
     return;
   }
 
-  let todaySum = 0, totalVal = 0, profitSum = 0;
-  let html = '';
+  var sorted = sortFunds(data);
+  var todaySum = 0, totalVal = 0, profitSum = 0;
+  var html = '';
 
-  data.forEach(f => {
-    const isFallback = f.status === 'ok_fallback';
+  sorted.forEach(function(f) {
+    var isFallback = f.status === 'ok_fallback';
     if (f.status !== 'ok' && !isFallback) {
-      html += `<div class="fund-card">
-        <div class="fund-top">
-          <div><div class="fund-name">${esc(f.name||f.code)}</div><div class="fund-code">${f.code}</div></div>
-        </div>
-        <div class="fund-error">获取失败 · ${esc(f.message||'')}</div>
-      </div>`;
+      html += '<div class="fund-card"><div class="fund-top"><div><div class="fund-name">' + esc(f.name||f.code) + '</div><div class="fund-code">' + f.code + '</div></div></div><div class="fund-error">获取失败 · ' + esc(f.message||'') + '</div></div>';
       return;
     }
-    const hasEst = isUsableNav(f.est_change);
-    const cc = hasEst ? (f.est_change > 0 ? 'up' : f.est_change < 0 ? 'down' : 'flat') : '';
-    const sign = hasEst && f.est_change >= 0 ? '+' : '';
-    const hasToday = Number.isFinite(f.today_profit);
-    const hasProfit = Number.isFinite(f.total_profit);
+    var hasEst = isUsableNav(f.est_change);
+    var cc = hasEst ? (f.est_change > 0 ? 'up' : f.est_change < 0 ? 'down' : 'flat') : '';
+    var sign = hasEst && f.est_change >= 0 ? '+' : '';
+    var hasToday = Number.isFinite(f.today_profit);
+    var hasProfit = Number.isFinite(f.total_profit);
+    var hasRate = Number.isFinite(f.total_profit_rate);
     if (hasToday) todaySum += f.today_profit;
     totalVal += f.curr_value || 0;
     profitSum += hasProfit ? f.total_profit : 0;
 
-    const yesterdayHtml = isUsableNav(f.yesterday_change)
-      ? ` · <span class="yest-chg ${f.yesterday_change >= 0 ? 'up' : 'down'}">昨${f.yesterday_change >= 0 ? '+' : ''}${fmt(f.yesterday_change)}%</span>`
+    var yesterdayHtml = isUsableNav(f.yesterday_change)
+      ? ' · <span class="yest-chg ' + (f.yesterday_change >= 0 ? 'up' : 'down') + '">昨' + (f.yesterday_change >= 0 ? '+' : '') + fmt(f.yesterday_change) + '%</span>'
       : '';
 
-    const fallbackTag = isFallback || f._cached
+    var fallbackTag = isFallback || f._cached
       ? ' <span class="cache-tag">备选</span>' : '';
 
-    html += `<div class="fund-card ${cc}">
-      <div class="fund-top">
-        <div>
-          <div class="fund-name">${esc(f.name)}${fallbackTag}</div>
-          <div class="fund-code">${f.code} · ${f.nav_date}${yesterdayHtml}</div>
-        </div>
-        <div>
-          <div class="fund-pct ${cc}">${hasEst ? sign + fmt(f.est_change) + '%' : '--'}</div>
-          <div class="fund-pct-time">${f.est_time||'--'}</div>
-        </div>
-      </div>
-      <div class="fund-stats">
-        <div><div class="stat-label">盘中估值</div><div class="stat-val">${fmt4(f.est_nav)}</div></div>
-        <div><div class="stat-label">上一净值</div><div class="stat-val">${fmt4(f.last_nav)}</div></div>
-        <div><div class="stat-label">今日估算</div><div class="stat-val ${hasToday ? (f.today_profit>=0?'up':'down') : ''}">${f.shares>0 && hasToday ? fmtM(f.today_profit) : '--'}</div></div>
-        ${f.shares > 0 ? `
-        <div><div class="stat-label">持有份额</div><div class="stat-val">${fmt2(f.shares)}</div></div>
-        <div><div class="stat-label">持仓市值</div><div class="stat-val">${fmt2(f.curr_value)}</div></div>
-        <div><div class="stat-label">累计盈亏</div><div class="stat-val ${hasProfit ? (f.total_profit>=0?'up':'down') : ''}">${hasProfit ? fmtM(f.total_profit) : '--'}</div></div>
-        ` : ''}
-      </div>
-    </div>`;
+    var profitRateHtml = hasRate
+      ? ' <span class="profit-rate ' + (f.total_profit_rate >= 0 ? 'up' : 'down') + '">' + (f.total_profit_rate >= 0 ? '+' : '') + fmt(f.total_profit_rate) + '%</span>'
+      : '';
+
+    var isExpanded = expandedFund === f.code;
+
+    html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开重仓股">';
+    html += '<div class="fund-top"><div><div class="fund-name">' + esc(f.name) + fallbackTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
+    html += '<div><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + (f.est_time||'--') + '</div></div></div>';
+
+    html += '<div class="fund-stats">';
+    html += '<div><div class="stat-label">盘中估值</div><div class="stat-val">' + fmt4(f.est_nav) + '</div></div>';
+    html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
+    html += '<div><div class="stat-label">今日估算</div><div class="stat-val ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '">' + (f.shares>0 && hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';
+    if (f.shares > 0) {
+      html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt2(f.shares) + '</div></div>';
+      html += '<div><div class="stat-label">持仓市值</div><div class="stat-val">' + fmt2(f.curr_value) + '</div></div>';
+      html += '<div><div class="stat-label">累计盈亏</div><div class="stat-val ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';
+    }
+    html += '</div>';
+
+    if (isExpanded) {
+      html += '<div class="holdings-detail">';
+      html += '<div class="holdings-actions"><button class="edit-holdings-btn" onclick="event.stopPropagation();editFund(\'' + f.code + '\')">编辑持仓</button></div>';
+      if (holdingsCache[f.code] === undefined) {
+        html += '<div class="holdings-loading">加载重仓股...</div>';
+      } else if (!holdingsCache[f.code] || !holdingsCache[f.code].length) {
+        html += '<div class="holdings-empty">暂无重仓股数据</div>';
+      } else {
+        html += '<div class="holdings-table"><div class="holdings-header"><span>股票名称</span><span>占比</span><span>涨跌幅</span></div>';
+        holdingsCache[f.code].forEach(function(s) {
+          var sc = Number.isFinite(s.change) ? (s.change >= 0 ? 'up' : 'down') : '';
+          html += '<div class="holdings-row"><span class="stock-name">' + esc(s.name) + '<em>' + s.code + '</em></span><span>' + fmt(s.ratio) + '%</span><span class="' + sc + '">' + (Number.isFinite(s.change) ? (s.change >= 0 ? '+' : '') + fmt(s.change) + '%' : '--') + '</span></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
   });
 
   list.innerHTML = html;
@@ -376,6 +607,8 @@ function renderFundList(data) {
   document.getElementById('s-total').textContent = fmtM2(totalVal);
   document.getElementById('s-total').className = 'sum-val';
   setSumVal('s-profit', profitSum);
+
+  updateSortBar();
 }
 
 function setSumVal(id, val) {
@@ -418,22 +651,61 @@ function renderHoldingsList() {
     </div>`).join('');
 }
 
-function addFund() {
+function editFund(code) {
+  const fund = holdings.find(h => h.code === code);
+  if (!fund) return;
+  editingCode = code;
+  document.getElementById('i-code').value = fund.code;
+  document.getElementById('i-code').disabled = true;
+  document.getElementById('i-name').value = fund.name !== fund.code ? fund.name : '';
+  document.getElementById('i-shares').value = fund.shares;
+  document.getElementById('i-cost').value = fund.cost;
+  document.getElementById('add-btn').textContent = '✓ 保存修改';
+  document.getElementById('cancel-edit-btn').style.display = 'block';
+  switchPage('edit');
+}
+
+function cancelEdit() {
+  editingCode = null;
+  document.getElementById('i-code').value = '';
+  document.getElementById('i-code').disabled = false;
+  document.getElementById('i-name').value = '';
+  document.getElementById('i-shares').value = '';
+  document.getElementById('i-cost').value = '';
+  document.getElementById('add-btn').textContent = '+ 添加';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+}
+
+function saveFund() {
   const code = document.getElementById('i-code').value.trim();
   const name = document.getElementById('i-name').value.trim();
   const shares = toNonNegativeNumber(document.getElementById('i-shares').value);
   const cost = toNonNegativeNumber(document.getElementById('i-cost').value);
   if (!code || !/^\d{6}$/.test(code)) { showToast('请输入6位数字基金代码'); return; }
-  if (holdings.find(h => h.code === code)) { showToast('该基金已在列表中'); return; }
-  holdings.push({code, name: name||code, shares, cost});
-  saveHoldings();
-  renderHoldingsList();
-  document.getElementById('i-code').value='';
-  document.getElementById('i-name').value='';
-  document.getElementById('i-shares').value='';
-  document.getElementById('i-cost').value='';
-  showToast('已添加 ' + (name||code));
-  refresh();
+
+  if (editingCode) {
+    const idx = holdings.findIndex(h => h.code === editingCode);
+    if (idx === -1) { showToast('基金不存在'); cancelEdit(); return; }
+    holdings[idx].name = name || code;
+    holdings[idx].shares = shares;
+    holdings[idx].cost = cost;
+    saveHoldings();
+    renderHoldingsList();
+    cancelEdit();
+    showToast('已更新 ' + (name || code));
+    refresh();
+  } else {
+    if (holdings.find(h => h.code === code)) { showToast('该基金已在列表中'); return; }
+    holdings.push({code, name: name||code, shares, cost});
+    saveHoldings();
+    renderHoldingsList();
+    document.getElementById('i-code').value='';
+    document.getElementById('i-name').value='';
+    document.getElementById('i-shares').value='';
+    document.getElementById('i-cost').value='';
+    showToast('已添加 ' + (name||code));
+    refresh();
+  }
 }
 
 function delFund(i) {
@@ -451,7 +723,8 @@ function switchPage(name) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('nav-'+name).classList.add('active');
-  if (name==='edit') renderHoldingsList();
+  if (name==='edit') { renderHoldingsList(); renderCloudStatus(); }
+  else if (editingCode) cancelEdit();
   if (name==='status') fetchDeploymentStatus();
 }
 
@@ -487,6 +760,54 @@ function startAutoRefresh() {
   autoRefreshTimer = setInterval(() => {
     if (getRefreshInterval() > 0) refresh();
   }, 60000);
+}
+
+// ── 收益日历 ─────────────────────────────────────────────
+function loadDailyLog() {
+  try {
+    var raw = localStorage.getItem(DAILY_LOG_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function saveTodayLog() {
+  var today = new Date().toISOString().slice(0, 10);
+  var totalVal = 0, todayProfit = 0;
+  fundsData.forEach(function(d) {
+    if (d.status === 'ok' || d.status === 'ok_fallback') {
+      if (Number.isFinite(d.curr_value)) totalVal += d.curr_value;
+      if (Number.isFinite(d.today_profit)) todayProfit += d.today_profit;
+    }
+  });
+  if (!totalVal && !todayProfit) return;
+
+  var log = loadDailyLog();
+  var entry = { date: today, todayProfit: Math.round(todayProfit * 100) / 100, totalValue: Math.round(totalVal * 100) / 100 };
+  if (log.length && log[log.length - 1].date === today) {
+    log[log.length - 1] = entry;
+  } else {
+    log.push(entry);
+  }
+  if (log.length > 90) log = log.slice(-90);
+  localStorage.setItem(DAILY_LOG_KEY, JSON.stringify(log));
+}
+
+function renderDailyLog() {
+  var container = document.getElementById('daily-log-list');
+  if (!container) return;
+  var log = loadDailyLog();
+  if (!log.length) {
+    container.innerHTML = '<div class="daily-empty">暂无历史记录，收盘后自动保存</div>';
+    return;
+  }
+  var recent = log.slice(-30).reverse();
+  var html = '';
+  recent.forEach(function(d) {
+    var pc = d.todayProfit >= 0 ? 'up' : 'down';
+    var sign = d.todayProfit >= 0 ? '+' : '';
+    html += '<div class="daily-row"><span class="daily-date">' + d.date.slice(5) + '</span><span class="daily-profit ' + pc + '">' + sign + fmtM(d.todayProfit) + '</span><span class="daily-value">' + fmtM2(d.totalValue) + '</span></div>';
+  });
+  container.innerHTML = html;
 }
 
 // ── Toast ────────────────────────────────────────────────
@@ -532,3 +853,4 @@ updateMktStatus();
 setInterval(updateMktStatus, 30000);
 refresh();
 startAutoRefresh();
+if (getGistToken()) document.getElementById('gist-token').value = getGistToken();
