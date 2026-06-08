@@ -1,7 +1,9 @@
-const CACHE = 'fuyu-v2';
+const CACHE = 'fuyu-v3';
 const ASSETS = [
   './',
   './index.html',
+  './js/app.js',
+  './css/style.css',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
