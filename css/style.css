@@ -530,3 +530,67 @@ html, body {
 .status-link:active {
   background: var(--bg3);
 }
+
+/* ── 桌面端适配 (≥768px) ─────────────────────────── */
+
+@media (min-width: 768px) {
+
+  /* 内容区最大宽度居中 */
+  .header-inner,
+  .summary,
+  .page.active {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* 底部导航居中并控制宽度 */
+  .bottom-nav {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    border-radius: 8px 8px 0 0;
+  }
+
+  /* ── hover 状态 ── */
+  .refresh-btn:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+
+  .fund-card:hover {
+    background: var(--bg2);
+  }
+
+  .del-btn:hover {
+    background: #ffe2df;
+  }
+
+  .add-btn:hover {
+    opacity: .85;
+  }
+
+  .exp-btn:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+
+  .nav-btn:hover {
+    color: var(--accent);
+  }
+
+  .status-link:hover {
+    background: var(--bg3);
+  }
+
+  /* 字号微调 */
+  html {
+    font-size: 15px;
+  }
+
+  .fund-pct {
+    font-size: 22px;
+  }
+}
