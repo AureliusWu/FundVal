@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="个人基金盘中估值监控">
-<meta name="theme-color" content="#f6f8fb">
+<meta name="theme-color" content="#f5f5f7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="蜉蝣基金">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&display=swap">
 <link rel="stylesheet" href="css/style.css">
 <title>蜉蝣基金</title>
 </head>
@@ -18,7 +17,10 @@
 <div class="header">
   <div class="header-inner">
     <div class="logo">蜉蝣基金 <em id="mkt-status"></em></div>
-    <button class="refresh-btn" id="ref-btn" onclick="refresh()">↻ 刷新</button>
+    <div class="header-right">
+      <a class="home-link" href="https://aureliuswu.github.io/" title="返回主页">← Aurelius</a>
+      <button class="refresh-btn" id="ref-btn" onclick="refresh()">↻ 刷新</button>
+    </div>
   </div>
 </div>
 
@@ -141,7 +143,6 @@
         <div class="status-val status-hash" id="status-hash">--</div>
       </div>
     </div>
-    
     <div style="margin-top: 20px;">
       <a href="https://github.com/AureliusWu/FundVal/actions" target="_blank" class="status-link">
         🔗 查看 GitHub Actions 构建状态

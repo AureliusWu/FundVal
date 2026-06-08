@@ -1,21 +1,20 @@
 :root {
-  --bg: #f6f8fb;
-  --bg2: #ffffff;
-  --bg3: #eef3f8;
-  --line: #d8e0e8;
-  --text: #17202a;
-  --muted: #667085;
-  --up: #008a55;
-  --down: #d92d20;
-  --flat: #667085;
-  --accent: #b88936;
-  --danger-line: #f2bbb6;
-  --danger-bg: #fff1f0;
-  --button-text: #17130b;
-  --sans: 'Noto Sans SC', sans-serif;
+  --bg:       #f5f5f7;
+  --bg2:      #ffffff;
+  --bg3:      #f0f0f2;
+  --line:     #d2d2d7;
+  --text:     #1d1d1f;
+  --muted:    #6e6e73;
+  --up:       #1a7f4b;
+  --down:     #c9251a;
+  --flat:     #6e6e73;
+  --accent:   #0071e3;
+  --danger-line: #f5c6c3;
+  --danger-bg:   #fff5f5;
+  --sans: -apple-system, "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -29,14 +28,18 @@ html, body {
   font-size: 14px;
   min-height: 100vh;
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
   color-scheme: light;
 }
 
+/* ── header ─────────────────────────────────────── */
 .header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--bg);
+  background: rgba(245,245,247,.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--line);
   padding: env(safe-area-inset-top) 16px 0;
 }
@@ -49,10 +52,10 @@ html, body {
 }
 
 .logo {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 15px;
-  color: var(--accent);
-  letter-spacing: 2px;
+  color: var(--text);
+  letter-spacing: -.02em;
 }
 
 .logo em {
@@ -60,40 +63,49 @@ html, body {
   font-style: normal;
   font-size: 10px;
   margin-left: 6px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-link {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity .15s;
+}
+
+.home-link:hover { opacity: .75; }
 
 .refresh-btn {
   background: none;
   border: 1px solid var(--line);
   color: var(--muted);
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all .2s;
+  transition: all .15s;
   font-family: var(--sans);
 }
 
-.refresh-btn:active {
-  background: var(--bg3);
-  color: var(--text);
-}
+.refresh-btn:active { background: var(--bg3); color: var(--text); }
+.refresh-btn:disabled { cursor: default; opacity: .6; }
+.refresh-btn.loading { color: var(--accent); border-color: var(--accent); }
 
-.refresh-btn:disabled {
-  cursor: default;
-  opacity: .75;
-}
-
-.refresh-btn.loading {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
+/* ── summary bar ─────────────────────────────────── */
 .summary {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   border-bottom: 1px solid var(--line);
+  background: var(--bg2);
 }
 
 .sum-item {
@@ -102,77 +114,91 @@ html, body {
   border-right: 1px solid var(--line);
 }
 
-.sum-item:last-child {
-  border-right: none;
-}
+.sum-item:last-child { border-right: none; }
 
 .sum-label {
   font-size: 10px;
   color: var(--muted);
-  letter-spacing: 1px;
+  letter-spacing: .04em;
   margin-bottom: 4px;
 }
 
 .sum-val {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
 }
 
-.up {
-  color: var(--up);
+.up   { color: var(--up); }
+.down { color: var(--down); }
+.flat { color: var(--flat); }
+
+/* ── pages ───────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── sort bar ────────────────────────────────────── */
+.sort-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg2);
 }
 
-.down {
-  color: var(--down);
+.sort-bar::-webkit-scrollbar { display: none; }
+
+.sort-chip {
+  flex-shrink: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--sans);
+  white-space: nowrap;
+  transition: all .15s;
 }
 
-.flat {
-  color: var(--flat);
+.sort-chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
-.page {
-  display: none;
-}
-
-.page.active {
-  display: block;
-}
-
-.fund-list {
-  padding-bottom: 72px;
-}
+/* ── fund list ───────────────────────────────────── */
+.fund-list { padding-bottom: 72px; }
 
 .fund-card {
   padding: 16px;
   border-bottom: 1px solid var(--line);
+  background: var(--bg2);
   position: relative;
   overflow: hidden;
-  transition: background .15s;
+  transition: background .12s;
+  cursor: pointer;
 }
 
-.fund-card:active {
-  background: var(--bg2);
-}
+.fund-card:active { background: var(--bg3); }
 
 .fund-card::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  left: 0; top: 0; bottom: 0;
   width: 3px;
   background: var(--line);
-  transition: background .3s;
+  transition: background .2s;
 }
 
-.fund-card.up::before {
-  background: var(--up);
-}
-
-.fund-card.down::before {
-  background: var(--down);
-}
+.fund-card.up::before   { background: var(--up); }
+.fund-card.down::before { background: var(--down); }
 
 .fund-top {
   display: flex;
@@ -186,6 +212,7 @@ html, body {
   font-weight: 500;
   line-height: 1.35;
   max-width: 210px;
+  letter-spacing: -.01em;
 }
 
 .fund-code {
@@ -197,10 +224,11 @@ html, body {
 
 .fund-pct {
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
   line-height: 1;
+  letter-spacing: -.02em;
 }
 
 .fund-pct-time {
@@ -221,11 +249,13 @@ html, body {
   font-size: 10px;
   color: var(--muted);
   margin-bottom: 2px;
+  letter-spacing: .02em;
 }
 
 .stat-val {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .fund-error {
@@ -241,42 +271,42 @@ html, body {
   font-size: 10px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  background: var(--bg2);
 }
 
+/* ── skeleton ────────────────────────────────────── */
 .skeleton {
   background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
-  border-radius: 3px;
+  border-radius: 4px;
   height: 13px;
   margin-bottom: 6px;
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
+  0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
-.edit-page {
-  padding: 16px 16px 80px;
-}
+/* ── edit page ───────────────────────────────────── */
+.edit-page { padding: 16px 16px 80px; }
 
 .sec-title {
   font-size: 10px;
   color: var(--muted);
-  letter-spacing: 2px;
+  letter-spacing: .08em;
   text-transform: uppercase;
+  font-weight: 500;
   margin: 20px 0 10px;
 }
 
-.sec-title:first-child {
-  margin-top: 0;
-}
+.sec-title:first-child { margin-top: 0; }
 
 .holding-item {
   background: var(--bg2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 8px;
   display: flex;
@@ -289,6 +319,7 @@ html, body {
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 2px;
+  letter-spacing: -.01em;
 }
 
 .h-detail {
@@ -303,36 +334,34 @@ html, body {
   color: var(--down);
   width: 28px;
   height: 28px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 16px;
   cursor: pointer;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background .15s;
 }
 
-.del-btn:active {
-  background: #ffe2df;
-}
+.del-btn:active { background: #ffe0de; }
 
 .add-form {
   background: var(--bg2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 14px;
 }
 
 .f-label {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
-  letter-spacing: 1px;
+  letter-spacing: .02em;
   margin-bottom: 4px;
+  font-weight: 500;
 }
 
-.f-row {
-  margin-bottom: 12px;
-}
+.f-row { margin-bottom: 12px; }
 
 .f-grid {
   display: grid;
@@ -342,43 +371,41 @@ html, body {
 
 .f-input {
   width: 100%;
-  background: var(--bg3);
+  background: var(--bg);
   border: 1px solid var(--line);
   color: var(--text);
   padding: 8px 10px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 13px;
   outline: none;
-  transition: border-color .2s;
+  transition: border-color .15s, box-shadow .15s;
   font-family: var(--sans);
 }
 
 .f-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,113,227,.12);
 }
 
-.f-input::placeholder {
-  color: var(--muted);
-}
+.f-input::placeholder { color: var(--muted); }
 
 .add-btn {
   width: 100%;
   background: var(--accent);
-  color: var(--button-text);
+  color: #fff;
   border: none;
   padding: 10px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   margin-top: 2px;
   font-family: var(--sans);
-  letter-spacing: .5px;
+  letter-spacing: -.01em;
+  transition: opacity .15s;
 }
 
-.add-btn:active {
-  opacity: .8;
-}
+.add-btn:active { opacity: .8; }
 
 .export-row {
   display: flex;
@@ -388,28 +415,29 @@ html, body {
 
 .exp-btn {
   flex: 1;
-  background: none;
+  background: var(--bg2);
   border: 1px solid var(--line);
   color: var(--muted);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
   font-family: var(--sans);
-  transition: all .2s;
+  transition: all .15s;
 }
 
-.exp-btn:active {
-  background: var(--bg3);
-  color: var(--text);
-}
+.exp-btn:active { background: var(--bg3); color: var(--text); }
 
+/* ── bottom nav ──────────────────────────────────── */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--bg);
+  background: rgba(245,245,247,.9);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-top: 1px solid var(--line);
   display: flex;
   padding-bottom: env(safe-area-inset-bottom);
@@ -423,46 +451,43 @@ html, body {
   color: var(--muted);
   padding: 10px 0;
   font-size: 10px;
+  font-weight: 500;
   font-family: var(--sans);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  transition: color .2s;
+  transition: color .15s;
+  letter-spacing: .02em;
 }
 
-.nav-btn.active {
-  color: var(--accent);
-}
+.nav-btn.active { color: var(--accent); }
 
-.nav-icon {
-  font-size: 17px;
-  line-height: 1;
-}
+.nav-icon { font-size: 17px; line-height: 1; }
 
+/* ── toast ───────────────────────────────────────── */
 .toast {
   position: fixed;
   bottom: 76px;
   left: 50%;
   transform: translateX(-50%) translateY(10px);
-  background: var(--bg3);
-  border: 1px solid var(--line);
-  color: var(--text);
+  background: rgba(29,29,31,.85);
+  backdrop-filter: blur(12px);
+  color: #fff;
   padding: 7px 16px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
   opacity: 0;
   transition: opacity .2s, transform .2s;
   pointer-events: none;
   z-index: 200;
 }
 
-.toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ── misc ────────────────────────────────────────── */
 .empty-hint {
   padding: 48px 16px;
   text-align: center;
@@ -471,14 +496,13 @@ html, body {
   line-height: 1.8;
 }
 
-.status-page {
-  padding: 16px 16px 80px;
-}
+/* ── status page ─────────────────────────────────── */
+.status-page { padding: 16px 16px 80px; }
 
 .status-card {
   background: var(--bg2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 14px;
   margin-bottom: 16px;
 }
@@ -488,16 +512,15 @@ html, body {
   border-bottom: 1px solid var(--line);
 }
 
-.status-item:last-child {
-  border-bottom: none;
-}
+.status-item:last-child { border-bottom: none; }
 
 .status-label {
   font-size: 10px;
   color: var(--muted);
-  letter-spacing: 1px;
+  letter-spacing: .06em;
   margin-bottom: 6px;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
 .status-val {
@@ -505,33 +528,28 @@ html, body {
   color: var(--text);
   font-weight: 500;
   word-break: break-all;
-  font-family: 'Courier New', monospace;
+  font-family: "SF Mono", "Menlo", monospace;
 }
 
-.status-hash {
-  font-size: 11px;
-  color: var(--accent);
-}
+.status-hash { font-size: 11px; color: var(--accent); }
 
 .status-link {
   display: block;
   padding: 12px;
   background: var(--bg2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   color: var(--accent);
   text-decoration: none;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   text-align: center;
-  transition: all .2s;
-  cursor: pointer;
+  transition: background .15s;
 }
 
-.status-link:active {
-  background: var(--bg3);
-}
+.status-link:active { background: var(--bg3); }
 
-/* ── 新增元素 ────────────────────────────────────── */
+/* ── inline tags ─────────────────────────────────── */
 .cache-tag {
   font-size: 9px;
   color: var(--muted);
@@ -544,59 +562,8 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── 点击编辑 ────────────────────────────────────── */
-.fund-card {
-  cursor: pointer;
-}
-
-/* ── 排序栏 ──────────────────────────────────────── */
-.sort-bar {
-  display: flex;
-  gap: 6px;
-  padding: 10px 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  border-bottom: 1px solid var(--line);
-}
-
-.sort-bar::-webkit-scrollbar { display: none; }
-
-.sort-chip {
-  flex-shrink: 0;
-  background: var(--bg2);
-  border: 1px solid var(--line);
-  color: var(--muted);
-  padding: 4px 10px;
-  border-radius: 14px;
-  font-size: 11px;
-  cursor: pointer;
-  font-family: var(--sans);
-  white-space: nowrap;
-  transition: all .2s;
-}
-
-.sort-chip.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-
-.sort-chip:active {
-  opacity: .8;
-}
-
-/* ── 累计收益率 ──────────────────────────────────── */
-.profit-rate {
-  font-size: 10px;
-  margin-left: 4px;
-  font-weight: 400;
-}
-
-/* ── 重仓股展开 ──────────────────────────────────── */
-.fund-card.expanded {
-  background: var(--bg2);
-}
+/* ── expand/holdings ─────────────────────────────── */
+.fund-card.expanded { background: #fafafa; }
 
 .holdings-detail {
   margin-top: 12px;
@@ -615,16 +582,15 @@ html, body {
   border: 1px solid var(--accent);
   color: var(--accent);
   padding: 3px 10px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
   font-family: var(--sans);
+  transition: all .15s;
 }
 
-.edit-holdings-btn:active {
-  background: var(--accent);
-  color: #fff;
-}
+.edit-holdings-btn:active { background: var(--accent); color: #fff; }
 
 .holdings-loading,
 .holdings-empty {
@@ -634,9 +600,7 @@ html, body {
   padding: 8px 0;
 }
 
-.holdings-table {
-  font-size: 11px;
-}
+.holdings-table { font-size: 11px; }
 
 .holdings-header {
   display: grid;
@@ -645,6 +609,7 @@ html, body {
   padding: 4px 0;
   color: var(--muted);
   font-size: 10px;
+  font-weight: 500;
   border-bottom: 1px solid var(--line);
 }
 
@@ -653,7 +618,7 @@ html, body {
   grid-template-columns: 1fr 60px 60px;
   gap: 4px;
   padding: 5px 0;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid #ececec;
 }
 
 .stock-name {
@@ -669,32 +634,25 @@ html, body {
   margin-left: 4px;
 }
 
-/* ── 收益日历 ────────────────────────────────────── */
-.daily-log {
-  padding: 0 16px 80px;
-}
+/* ── daily log ───────────────────────────────────── */
+.daily-log { padding: 0 16px 80px; }
 
 .daily-title {
   font-size: 10px;
   color: var(--muted);
-  letter-spacing: 2px;
+  letter-spacing: .06em;
   text-transform: uppercase;
+  font-weight: 500;
   padding: 12px 0 6px;
   cursor: pointer;
   user-select: none;
+  transition: color .15s;
 }
 
-.daily-title:active {
-  color: var(--accent);
-}
+.daily-title:active { color: var(--accent); }
 
-.daily-log-list {
-  display: none;
-}
-
-.daily-log-list.show {
-  display: block;
-}
+.daily-log-list { display: none; }
+.daily-log-list.show { display: block; }
 
 .daily-empty {
   font-size: 11px;
@@ -706,86 +664,54 @@ html, body {
   display: flex;
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid #ececec;
   font-variant-numeric: tabular-nums;
   font-size: 12px;
 }
 
-.daily-date {
-  width: 55px;
-  color: var(--muted);
-  font-size: 11px;
-}
+.daily-date { width: 55px; color: var(--muted); font-size: 11px; }
+.daily-profit { flex: 1; font-weight: 500; }
+.daily-value { color: var(--muted); font-size: 11px; }
 
-.daily-profit {
-  flex: 1;
-  font-weight: 500;
-}
-
-.daily-value {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-/* ── 编辑按钮组 ──────────────────────────────────── */
-.edit-btns {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.edit-btns .add-btn {
-  flex: 1;
-  margin-top: 0;
-}
+/* ── edit btn group ──────────────────────────────── */
+.edit-btns { display: flex; gap: 8px; margin-top: 2px; }
+.edit-btns .add-btn { flex: 1; margin-top: 0; }
 
 .cancel-edit-btn {
-  background: var(--bg3);
+  background: var(--bg);
   border: 1px solid var(--line);
   color: var(--muted);
   padding: 10px 14px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 13px;
   cursor: pointer;
   font-family: var(--sans);
   white-space: nowrap;
-  transition: all .2s;
+  transition: all .15s;
 }
 
-.cancel-edit-btn:active {
-  background: var(--line);
-}
+.cancel-edit-btn:active { background: var(--line); }
 
-.cancel-edit-btn:hover {
-  background: var(--line);
-}
-
-/* ── 云同步 ──────────────────────────────────────── */
+/* ── cloud sync ──────────────────────────────────── */
 .cloud-section {
   background: var(--bg2);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 14px;
   margin-bottom: 16px;
 }
 
-.f-hint {
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 4px;
-}
+.f-hint { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
 .f-hint code {
-  background: var(--bg3);
+  background: var(--bg);
   padding: 1px 4px;
-  border-radius: 2px;
+  border-radius: 3px;
   font-size: 9px;
+  font-family: "SF Mono", "Menlo", monospace;
 }
 
-.f-hint a {
-  color: var(--accent);
-  text-decoration: none;
-}
+.f-hint a { color: var(--accent); text-decoration: none; }
 
 .cloud-status {
   font-size: 11px;
@@ -794,14 +720,8 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-.cloud-btns {
-  display: flex;
-  gap: 8px;
-}
-
-.cloud-btn {
-  flex: 1;
-}
+.cloud-btns { display: flex; gap: 8px; }
+.cloud-btn { flex: 1; }
 
 .cloud-clear {
   width: 100%;
@@ -809,11 +729,15 @@ html, body {
   color: var(--down) !important;
 }
 
-/* ── 桌面端适配 (≥768px) ─────────────────────────── */
+/* ── profit rate ─────────────────────────────────── */
+.profit-rate {
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: 400;
+}
 
+/* ── desktop ─────────────────────────────────────── */
 @media (min-width: 768px) {
-
-  /* 内容区最大宽度居中 */
   .header-inner,
   .summary,
   .page.active {
@@ -822,72 +746,27 @@ html, body {
     margin-right: auto;
   }
 
-  /* 底部导航居中并控制宽度 */
   .bottom-nav {
     left: 50%;
     right: auto;
     transform: translateX(-50%);
     width: 100%;
     max-width: 480px;
-    border-radius: 8px 8px 0 0;
+    border-radius: 12px 12px 0 0;
   }
 
-  /* ── hover 状态 ── */
-  .refresh-btn:hover {
-    background: var(--bg3);
-    color: var(--text);
-  }
+  .refresh-btn:hover { background: var(--bg3); color: var(--text); }
+  .fund-card:hover { background: #fafafa; }
+  .del-btn:hover { background: #ffe0de; }
+  .add-btn:hover { opacity: .85; }
+  .exp-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn:hover { color: var(--accent); }
+  .status-link:hover { background: var(--bg3); }
+  .sort-chip:hover { background: var(--bg3); color: var(--text); }
+  .sort-chip.active:hover { background: var(--accent); color: #fff; }
+  .edit-holdings-btn:hover { background: var(--accent); color: #fff; }
+  .daily-title:hover { color: var(--accent); }
 
-  .fund-card:hover {
-    background: var(--bg2);
-  }
-
-  .del-btn:hover {
-    background: #ffe2df;
-  }
-
-  .add-btn:hover {
-    opacity: .85;
-  }
-
-  .exp-btn:hover {
-    background: var(--bg3);
-    color: var(--text);
-  }
-
-  .nav-btn:hover {
-    color: var(--accent);
-  }
-
-  .status-link:hover {
-    background: var(--bg3);
-  }
-
-  .sort-chip:hover {
-    background: var(--bg3);
-    color: var(--text);
-  }
-
-  .sort-chip.active:hover {
-    background: var(--accent);
-    color: #fff;
-  }
-
-  .edit-holdings-btn:hover {
-    background: var(--accent);
-    color: #fff;
-  }
-
-  .daily-title:hover {
-    color: var(--accent);
-  }
-
-  /* 字号微调 */
-  html {
-    font-size: 15px;
-  }
-
-  .fund-pct {
-    font-size: 22px;
-  }
+  html { font-size: 15px; }
+  .fund-pct { font-size: 22px; }
 }
