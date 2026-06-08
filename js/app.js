@@ -117,29 +117,39 @@ async function uploadToCloud() {
   if (!holdings.length) { showToast('没有持仓数据可上传'); return; }
   setGistToken(token);
 
+  const uploadBtn = document.getElementById('cloud-upload-btn');
+  uploadBtn.textContent = '上传中...';
+  uploadBtn.disabled = true;
+
   const content = JSON.stringify(holdings, null, 2);
   const gistId = getGistId();
   const desc = 'FundVal 持仓数据 | ' + new Date().toISOString();
 
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(function() { controller.abort(); }, 15000);
+
     let resp;
     if (gistId) {
       resp = await fetch('https://api.github.com/gists/' + gistId, {
         method: 'PATCH',
         headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: desc, files: { [GIST_FILENAME]: { content } } })
+        body: JSON.stringify({ description: desc, files: { [GIST_FILENAME]: { content } } }),
+        signal: controller.signal
       });
     } else {
       resp = await fetch('https://api.github.com/gists', {
         method: 'POST',
         headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: desc, public: false, files: { [GIST_FILENAME]: { content } } })
+        body: JSON.stringify({ description: desc, public: false, files: { [GIST_FILENAME]: { content } } }),
+        signal: controller.signal
       });
     }
+    clearTimeout(timer);
 
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      if (resp.status === 401) { showToast('Token 无效，请检查'); }
+      const err = await resp.json().catch(function() { return {}; });
+      if (resp.status === 401) { showToast('Token 无效，请检查（需勾选 gist 权限）'); }
       else if (resp.status === 404) { showToast('云端存档不存在，请重新上传'); setGistId(''); renderCloudStatus(); }
       else { showToast('上传失败: ' + (err.message || resp.status)); }
       return;
@@ -151,7 +161,14 @@ async function uploadToCloud() {
     renderCloudStatus();
     showToast('已上传到云端');
   } catch (e) {
-    showToast('网络错误，上传失败');
+    if (e.name === 'AbortError') {
+      showToast('请求超时，api.github.com 可能被墙，需科学上网');
+    } else {
+      showToast('网络错误: ' + (e.message || '连接失败，检查网络'));
+    }
+  } finally {
+    uploadBtn.textContent = '上传到云端';
+    uploadBtn.disabled = false;
   }
 }
 
@@ -163,10 +180,19 @@ async function downloadFromCloud() {
   const gistId = getGistId();
   if (!gistId) { showToast('请先上传一次以创建云端存档'); return; }
 
+  const downloadBtn = document.getElementById('cloud-download-btn');
+  downloadBtn.textContent = '下载中...';
+  downloadBtn.disabled = true;
+
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(function() { controller.abort(); }, 15000);
+
     const resp = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { 'Authorization': 'token ' + token }
+      headers: { 'Authorization': 'token ' + token },
+      signal: controller.signal
     });
+    clearTimeout(timer);
 
     if (!resp.ok) {
       if (resp.status === 401) { showToast('Token 无效'); }
@@ -193,7 +219,14 @@ async function downloadFromCloud() {
     showToast('已从云端下载，共 ' + holdings.length + ' 条');
     refresh();
   } catch (e) {
-    showToast('下载失败: ' + (e.message || '未知错误'));
+    if (e.name === 'AbortError') {
+      showToast('请求超时，api.github.com 可能被墙，需科学上网');
+    } else {
+      showToast('下载失败: ' + (e.message || '连接失败，检查网络'));
+    }
+  } finally {
+    downloadBtn.textContent = '从云端下载';
+    downloadBtn.disabled = false;
   }
 }
 
