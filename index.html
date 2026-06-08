@@ -3,29 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0d0d0d">
+<meta name="theme-color" content="#f6f8fb">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="蜉蝣基金">
 <link rel="manifest" href="manifest.json">
 <title>蜉蝣基金</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0d0d0d;
-  --bg2: #141414;
-  --bg3: #1c1c1c;
-  --line: #2a2a2a;
-  --text: #e8e8e8;
-  --muted: #555;
-  --up: #00c076;
-  --down: #ff4d4d;
-  --flat: #666;
-  --accent: #c8a96e;
+  --bg: #f6f8fb;
+  --bg2: #ffffff;
+  --bg3: #eef3f8;
+  --line: #d8e0e8;
+  --text: #17202a;
+  --muted: #667085;
+  --up: #008a55;
+  --down: #d92d20;
+  --flat: #667085;
+  --accent: #b88936;
+  --danger-line: #f2bbb6;
+  --danger-bg: #fff1f0;
+  --button-text: #17130b;
   --sans: 'Noto Sans SC', sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;overscroll-behavior:none}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;overscroll-behavior:none;color-scheme:light}
 
 .header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--line);padding:env(safe-area-inset-top) 16px 0}
 .header-inner{display:flex;align-items:center;justify-content:space-between;height:52px}
@@ -72,8 +75,8 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-si
 .holding-item{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .h-name{font-size:13px;font-weight:500;margin-bottom:2px}
 .h-detail{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.del-btn{background:none;border:1px solid #3a2020;color:var(--down);width:28px;height:28px;border-radius:4px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.del-btn:active{background:#2a1515}
+.del-btn{background:var(--danger-bg);border:1px solid var(--danger-line);color:var(--down);width:28px;height:28px;border-radius:4px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.del-btn:active{background:#ffe2df}
 
 .add-form{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px}
 .f-label{font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:4px}
@@ -82,7 +85,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-si
 .f-input{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:4px;font-size:13px;outline:none;transition:border-color .2s;font-family:var(--sans)}
 .f-input:focus{border-color:var(--accent)}
 .f-input::placeholder{color:var(--muted)}
-.add-btn{width:100%;background:var(--accent);color:#0d0d0d;border:none;padding:10px;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;margin-top:2px;font-family:var(--sans);letter-spacing:.5px}
+.add-btn{width:100%;background:var(--accent);color:var(--button-text);border:none;padding:10px;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;margin-top:2px;font-family:var(--sans);letter-spacing:.5px}
 .add-btn:active{opacity:.8}
 
 .export-row{display:flex;gap:8px;margin-top:16px}
@@ -225,6 +228,11 @@ function toNonNegativeNumber(value) {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
+function isRealFundName(name, code) {
+  const value = String(name || '').trim();
+  return Boolean(value && value !== code);
+}
+
 // ── 导出 / 导入 ───────────────────────────────────────────
 function exportData() {
   const blob = new Blob([JSON.stringify(holdings, null, 2)], {type:'application/json'});
@@ -332,11 +340,27 @@ async function refresh() {
     const snapshot = holdings.map(h => ({...h}));
     const results = await Promise.all(snapshot.map(h => fetchFund(h.code)));
 
-    // 合并持仓信息
+    // 合并持仓信息，并把接口返回的基金名回填到本地持仓。
+    let holdingsChanged = false;
     fundsData = results.map((r, i) => {
       const h = snapshot[i];
-      const d = {...r, shares: h.shares || 0, cost: h.cost || 0};
-      if (r.status === 'ok' && r.name === r.code && h.name) d.name = h.name;
+      const fetchedName = r.status === 'ok' && isRealFundName(r.name, h.code) ? String(r.name).trim() : '';
+      const holdingName = String(h.name || '').trim();
+      const d = {
+        ...r,
+        name: fetchedName || holdingName || h.code,
+        shares: h.shares || 0,
+        cost: h.cost || 0
+      };
+
+      if (fetchedName) {
+        const current = holdings.find(item => item.code === h.code);
+        if (current && !isRealFundName(current.name, current.code)) {
+          current.name = fetchedName;
+          holdingsChanged = true;
+        }
+      }
+
       if (d.status === 'ok' && d.shares > 0 && isUsableNav(d.est_nav) && isUsableNav(d.last_nav)) {
         const curr = d.est_nav * d.shares;
         const costVal = d.cost * d.shares;
@@ -351,6 +375,10 @@ async function refresh() {
       }
       return d;
     });
+    if (holdingsChanged) {
+      saveHoldings();
+      renderHoldingsList();
+    }
 
     renderFundList(fundsData);
     const now = new Date();
