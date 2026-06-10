@@ -27,10 +27,7 @@ let isSyncing = false;         // 是否正在同步中
 function loadHoldings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    const data = raw ? JSON.parse(raw) : [
-      {code:'110020', name:'易方达沪深300ETF联接A', shares:1000, cost:1.50},
-      {code:'270042', name:'广发纳斯达克100ETF联接A', shares:500, cost:2.80},
-    ];
+    const data = raw ? JSON.parse(raw) : [];
     holdings = normalizeHoldings(data);
     // 给旧数据补上时间戳（没有 updated_at 的条目初始化为当前时间）
     var now = nowISO();
@@ -236,11 +233,10 @@ async function pullFromCloud(silent) {
       meta.last_pull = nowISO();
       meta.last_push_hash = newHash;
       saveSyncMeta(meta);
-      if (!silent) {
-        renderHoldingsList();
-        renderCloudStatus();
-        refresh();
-      }
+      // 数据变更后刷新界面（silent 模式也要刷，否则用户看到的是旧数据）
+      renderHoldingsList();
+      renderCloudStatus();
+      refresh();
     }
   } catch(e) {
     // 静默失败，下次自动重试
@@ -253,8 +249,15 @@ async function pullFromCloud(silent) {
 async function pushToCloud(silent) {
   if (isSyncing) return;
   var token = getGistToken();
+  if (!token) return;
+
   var gistId = getGistId();
-  if (!token || !gistId) return;
+  if (!gistId) {
+    // 尝试自动发现云端存档
+    var found = await findExistingGist(token);
+    if (found) setGistId(found);
+    else return;
+  }
 
   var hash = holdingsHash(holdings);
   var meta = loadSyncMeta();
@@ -322,9 +325,12 @@ function startAutoPull() {
 // ── 页面启动时拉取 ────────────────────────────────────────
 async function autoPullOnLoad() {
   if (!hasCloudConfig()) return;
+  var meta = loadSyncMeta();
+  var isFirstSync = !meta.last_pull;
   await pullFromCloud(true);
-  // 拉取完成后刷新行情
-  if (holdings.length > 0) {
+  // 首次同步成功：清理本地硬编码模板数据，云端为准
+  if (isFirstSync && getSyncTime() && holdings.length > 0) {
+    saveHoldings();
     renderHoldingsList();
     renderCloudStatus();
   }
