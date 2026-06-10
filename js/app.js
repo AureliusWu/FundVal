@@ -518,39 +518,49 @@ function toggleFundDetail(code) {
 
 function fetchTopHoldings(code) {
   holdingsCache[code] = undefined;
-  const cbName = 'jjcc_' + code;
-  window[cbName] = function(data) {
+  const script = document.createElement('script');
+  script.src = 'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=' + code + '&topline=10&_=' + Date.now();
+  script.onload = function() {
     try {
-      const stocks = parseHoldingsData(data);
+      const raw = window.apidata;
+      delete window.apidata;
+      const stocks = parseHoldingsData(raw);
       holdingsCache[code] = stocks || [];
     } catch(e) { holdingsCache[code] = []; }
-    delete window[cbName];
+    if (script.parentNode) script.parentNode.removeChild(script);
     if (expandedFund === code) renderFundList(fundsData);
   };
-
-  const script = document.createElement('script');
-  script.src = 'https://api.fund.eastmoney.com/f10/JJCC?callback=' + cbName + '&fundCode=' + code + '&topline=10&_=' + Date.now();
   script.onerror = function() {
     holdingsCache[code] = [];
-    delete window[cbName];
+    delete window.apidata;
+    if (script.parentNode) script.parentNode.removeChild(script);
     if (expandedFund === code) renderFundList(fundsData);
   };
   document.head.appendChild(script);
 }
 
 function parseHoldingsData(data) {
-  if (!data || !data.Data) return null;
-  var d = data.Data;
-  var stocks = d.InverstPosition || d.topStocks || d.JJCC || [];
-  if (!Array.isArray(stocks) || !stocks.length) return null;
-  return stocks.slice(0, 10).map(function(s) {
-    return {
-      code: s.stockCode || s.code || '',
-      name: s.stockName || s.name || '',
-      ratio: parseFloat(s.ratio || s.ratioInFund || 0) || 0,
-      change: parseFloat(s.change || s.priceChange || 0)
-    };
-  });
+  if (!data || !data.content) return null;
+  const div = document.createElement('div');
+  div.innerHTML = data.content;
+  const rows = div.querySelectorAll('table tbody tr');
+  if (!rows.length) return null;
+  const stocks = [];
+  for (let i = 0; i < rows.length && stocks.length < 10; i++) {
+    const cells = rows[i].children;
+    if (cells.length < 7) continue;
+    const codeEl = cells[1].querySelector('a');
+    const nameEl = cells[2].querySelector('a');
+    const ratioText = (cells[6].textContent || '').trim();
+    stocks.push({
+      code: codeEl ? codeEl.textContent.trim() : '',
+      name: nameEl ? nameEl.textContent.trim() : '',
+      ratio: parseFloat(ratioText) || 0
+      // change 字段不在该接口返回的静态 HTML 中（由页面脚本动态加载），
+      // 不设置 change，渲染层会显示为 --
+    });
+  }
+  return stocks.length ? stocks : null;
 }
 
 // ── 渲染基金列表 ─────────────────────────────────────────
