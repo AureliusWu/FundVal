@@ -1,13 +1,13 @@
-const CACHE = 'fuyu-v4';
+const CACHE = 'fuyu-v5';
 const ASSETS = [
   './',
   './index.html',
-  './js/app.js',
-  './css/style.css',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
 ];
+
+// JS/CSS 不预缓存，由 network-first 在首次请求时从网络获取最新版
 
 // 安装：预缓存核心静态资源
 self.addEventListener('install', e => {
