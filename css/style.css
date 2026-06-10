@@ -5,8 +5,8 @@
   --line:     #d2d2d7;
   --text:     #1d1d1f;
   --muted:    #6e6e73;
-  --up:       #1a7f4b;
-  --down:     #c9251a;
+  --up:       #e8392d;
+  --down:     #1caa5a;
   --flat:     #6e6e73;
   --accent:   #0071e3;
   --danger-line: #f5c6c3;
@@ -213,6 +213,7 @@ html, body {
   line-height: 1.35;
   max-width: 210px;
   letter-spacing: -.01em;
+  color: #000;
 }
 
 .fund-code {
