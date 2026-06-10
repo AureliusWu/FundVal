@@ -132,7 +132,7 @@ function holdingsHash(h) {
 }
 
 function hasCloudConfig() {
-  return !!(getGistToken() && getGistId());
+  return !!(getGistToken());  // 有 Token 即可，Gist ID 可自动发现
 }
 
 function renderCloudStatus() {
@@ -190,11 +190,16 @@ function mergeFromCloud(cloudItems) {
 // ── 从云端拉取并合并 ───────────────────────────────────────
 async function pullFromCloud(silent) {
   if (isSyncing) return;
-  if (!hasCloudConfig()) return;
-
   var token = getGistToken();
+  if (!token) return;
+
   var gistId = getGistId();
-  if (!token || !gistId) return;
+  if (!gistId) {
+    // 尝试自动发现云端存档
+    var found = await findExistingGist(token);
+    if (found) setGistId(found);
+    else return;
+  }
 
   isSyncing = true;
   try {
@@ -401,6 +406,24 @@ async function uploadToCloud() {
   }
 }
 
+// ── 搜索已存在的云端存档 ──────────────────────────────────
+async function findExistingGist(token) {
+  try {
+    // 列出用户的所有 Gist，找包含 fuyu-holdings.json 的那个
+    var resp = await fetch('https://api.github.com/gists?per_page=100', {
+      headers: { 'Authorization': 'token ' + token }
+    });
+    if (!resp.ok) return null;
+    var gists = await resp.json();
+    for (var i = 0; i < gists.length; i++) {
+      if (gists[i].files && gists[i].files[GIST_FILENAME]) {
+        return gists[i].id;
+      }
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
 // ── 手动从云端下载（完整覆盖 + 合并） ─────────────────────
 async function downloadFromCloud() {
   var token = document.getElementById('gist-token').value.trim();
@@ -408,7 +431,13 @@ async function downloadFromCloud() {
   setGistToken(token);
 
   var gistId = getGistId();
-  if (!gistId) { showToast('请先上传一次以创建云端存档'); return; }
+  if (!gistId) {
+    // 没有本地记录，尝试搜索已有云端存档
+    showToast('正在搜索云端存档...');
+    gistId = await findExistingGist(token);
+    if (!gistId) { showToast('未找到云端存档，请先在另一台设备上传'); return; }
+    setGistId(gistId);
+  }
 
   var downloadBtn = document.getElementById('cloud-download-btn');
   downloadBtn.textContent = '下载中...';
