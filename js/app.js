@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const AUTO_PUSH_DELAY = 5000;  // 数据变更后 5 秒自动推送
-const AUTO_PULL_INTERVAL = 300000;  // 每 5 分钟自动拉取
+const AUTO_PULL_INTERVAL = 60000;  // 每 60 秒自动拉取
 let holdings = [];
 let fundsData = [];
 let editingCode = null;
@@ -1173,6 +1173,13 @@ async function fetchDeploymentStatus() {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
+
+// ── 页面可见性：切回标签页立即拉取 ──────────────────────
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && hasCloudConfig()) {
+    pullFromCloud(true);
+  }
+});
 
 // ── 初始化 ───────────────────────────────────────────────
 loadHoldings();
