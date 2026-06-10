@@ -83,7 +83,7 @@ FundVal/
 ## 关键约定
 
 - **不要引入框架或构建工具** — 项目刻意保持零依赖，直接用浏览器打开 `index.html` 就能跑
-- **不要改 Service Worker 缓存策略** — 估值接口（`1234567.com.cn`）必须跳过 SW 缓存，始终走网络
+- **SW 缓存策略**：JS/CSS 用 network-first（确保最新），其他静态资源用 stale-while-revalidate，估值接口（`1234567.com.cn`）跳过 SW 始终走网络
 - **不要动 `window.jsonpgz` 全局回调** — 天天基金 JSONP 接口靠这个函数名接收数据
 - 修改基金数据接口时，要同时处理主源失败→备源降级的逻辑
 - 新增 localStorage key 时遵循现有命名规范：`fuyu_<name>_v<version>`
