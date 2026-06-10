@@ -1174,9 +1174,11 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-// ── 页面可见性：切回标签页立即拉取 ──────────────────────
+// ── 页面可见性：切回标签页立即拉取（30s 冷却） ──────────
+var lastVisibilityPull = 0;
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && hasCloudConfig()) {
+  if (!document.hidden && hasCloudConfig() && Date.now() - lastVisibilityPull > 30000) {
+    lastVisibilityPull = Date.now();
     pullFromCloud(true);
   }
 });
