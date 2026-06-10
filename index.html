@@ -89,16 +89,17 @@
       </div>
     </div>
 
-    <div class="sec-title">云同步 (GitHub Gist)</div>
+    <div class="sec-title">云同步 (GitHub Gist) <span style="font-weight:400;font-size:11px;color:var(--muted)">自动双向同步</span></div>
     <div class="cloud-section">
       <div class="f-row">
         <div class="f-label">GitHub Personal Access Token</div>
         <input class="f-input" id="gist-token" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
         <div class="f-hint">
           需要 <code>gist</code> 权限，<a href="https://github.com/settings/tokens" target="_blank">创建 Classic Token</a>
+           · 填入 Token 后首次点击「上传」即开始自动同步
         </div>
       </div>
-      <div class="cloud-status" id="cloud-status">尚未同步</div>
+      <div class="cloud-status" id="cloud-status">配置 Token 后自动同步</div>
       <div class="cloud-btns">
         <button class="exp-btn cloud-btn" id="cloud-upload-btn" onclick="uploadToCloud()">上传到云端</button>
         <button class="exp-btn cloud-btn" id="cloud-download-btn" onclick="downloadFromCloud()">从云端下载</button>

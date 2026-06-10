@@ -5,6 +5,9 @@ const GIST_ID_KEY = 'fuyu_gist_id';
 const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const GIST_FILENAME = 'fuyu-holdings.json';
 const DAILY_LOG_KEY = 'fuyu_daily_log';
+const SYNC_META_KEY = 'fuyu_sync_meta_v1';
+const AUTO_PUSH_DELAY = 5000;  // 数据变更后 5 秒自动推送
+const AUTO_PULL_INTERVAL = 300000;  // 每 5 分钟自动拉取
 let holdings = [];
 let fundsData = [];
 let editingCode = null;
@@ -15,6 +18,10 @@ const pendingRequests = new Map();
 let isRefreshing = false;
 let refreshQueued = false;
 let autoRefreshTimer = null;
+let syncPending = false;       // 是否有待推送的本地变更
+let syncDebounceTimer = null;  // 防抖定时器
+let autoPullTimer = null;      // 定时拉取
+let isSyncing = false;         // 是否正在同步中
 
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
@@ -25,6 +32,11 @@ function loadHoldings() {
       {code:'270042', name:'广发纳斯达克100ETF联接A', shares:500, cost:2.80},
     ];
     holdings = normalizeHoldings(data);
+    // 给旧数据补上时间戳（没有 updated_at 的条目初始化为当前时间）
+    var now = nowISO();
+    var needsBackfill = false;
+    holdings.forEach(function(h) { if (!h.updated_at) { h.updated_at = now; needsBackfill = true; } });
+    if (needsBackfill) saveHoldings();
   } catch(e) { holdings = []; }
 }
 
@@ -42,8 +54,9 @@ function normalizeHoldings(data) {
     const shares = toNonNegativeNumber(item.shares);
     const cost = toNonNegativeNumber(item.cost);
     const name = String(item.name || '').trim();
+    var updated_at = (typeof item.updated_at === 'string' && item.updated_at) ? item.updated_at : '';
     seen.add(code);
-    acc.push({code, name: name || code, shares, cost});
+    acc.push({code, name: name || code, shares, cost, updated_at});
     return acc;
   }, []);
 }
@@ -57,6 +70,8 @@ function isRealFundName(name, code) {
   const value = String(name || '').trim();
   return Boolean(value && value !== code);
 }
+
+function nowISO() { return new Date().toISOString(); }
 
 // ── 导出 / 导入 ───────────────────────────────────────────
 function exportData() {
@@ -78,8 +93,11 @@ function importData(e) {
       if (!Array.isArray(parsed)) throw new Error();
       const data = normalizeHoldings(parsed);
       if (parsed.length && !data.length) throw new Error();
+      // 给没有时间戳的条目加上当前时间
+      data.forEach(function(h) { if (!h.updated_at) h.updated_at = nowISO(); });
       holdings = data;
       saveHoldings();
+      scheduleAutoPush();
       renderHoldingsList();
       showToast('导入成功，共 ' + holdings.length + ' 条');
       refresh();
@@ -89,7 +107,7 @@ function importData(e) {
   e.target.value = '';
 }
 
-// ── 云同步 (GitHub Gist) ──────────────────────────────────
+// ── 云同步 (GitHub Gist) — 双向自动同步 ────────────────────
 function getGistToken() { return localStorage.getItem(GIST_TOKEN_KEY) || ''; }
 function setGistToken(t) { localStorage.setItem(GIST_TOKEN_KEY, t); }
 function getGistId() { return localStorage.getItem(GIST_ID_KEY) || ''; }
@@ -97,39 +115,242 @@ function setGistId(id) { localStorage.setItem(GIST_ID_KEY, id); }
 function getSyncTime() { return localStorage.getItem(GIST_SYNC_TIME_KEY) || ''; }
 function setSyncTime(t) { localStorage.setItem(GIST_SYNC_TIME_KEY, t); }
 
+// 同步元数据：记录上次 push 时数据的快照 hash，用于判断是否需要推送
+function loadSyncMeta() {
+  try {
+    var raw = localStorage.getItem(SYNC_META_KEY);
+    return raw ? JSON.parse(raw) : { last_push_hash: '', last_pull: '' };
+  } catch(e) { return { last_push_hash: '', last_pull: '' }; }
+}
+function saveSyncMeta(meta) {
+  localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+}
+
+// 计算本地持仓的数据指纹（只比较 code + updated_at）
+function holdingsHash(h) {
+  return h.map(function(x) { return x.code + ':' + (x.updated_at||'0'); }).sort().join(';');
+}
+
+function hasCloudConfig() {
+  return !!(getGistToken() && getGistId());
+}
+
 function renderCloudStatus() {
-  const syncTime = getSyncTime();
-  const el = document.getElementById('cloud-status');
+  var el = document.getElementById('cloud-status');
   if (!el) return;
+  var syncTime = getSyncTime();
   if (syncTime) {
-    const d = new Date(syncTime);
+    var d = new Date(syncTime);
     el.textContent = '上次同步: ' + d.toLocaleString('zh-CN');
     el.style.color = 'var(--up)';
   } else {
-    el.textContent = '尚未同步';
+    el.textContent = '配置 Token 后自动同步';
     el.style.color = 'var(--muted)';
   }
 }
 
+// ── 核心：双向合并 ─────────────────────────────────────────
+// 按 code 匹对，逐条比较 updated_at，时间戳新的胜出
+function mergeFromCloud(cloudItems) {
+  var localMap = {};
+  holdings.forEach(function(h) { localMap[h.code] = h; });
+
+  var merged = [];
+  var cloudMap = {};
+  cloudItems.forEach(function(c) { cloudMap[c.code] = c; });
+
+  // 处理云端条目 + 共有条目
+  cloudItems.forEach(function(c) {
+    var local = localMap[c.code];
+    if (!local) {
+      // 仅云端有 → 直接加入
+      merged.push(c);
+    } else {
+      // 两边都有 → 比时间戳，新的胜出
+      var localTime = local.updated_at || '';
+      var cloudTime = c.updated_at || '';
+      if (cloudTime > localTime) {
+        merged.push(c);
+      } else {
+        merged.push(local);
+      }
+    }
+  });
+
+  // 处理仅本地有的条目（未被云端删除的保留）
+  holdings.forEach(function(h) {
+    if (!cloudMap[h.code]) {
+      merged.push(h);
+    }
+  });
+
+  return merged;
+}
+
+// ── 从云端拉取并合并 ───────────────────────────────────────
+async function pullFromCloud(silent) {
+  if (isSyncing) return;
+  if (!hasCloudConfig()) return;
+
+  var token = getGistToken();
+  var gistId = getGistId();
+  if (!token || !gistId) return;
+
+  isSyncing = true;
+  try {
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, 15000);
+
+    var resp = await fetch('https://api.github.com/gists/' + gistId, {
+      headers: { 'Authorization': 'token ' + token },
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (!resp.ok) {
+      if (resp.status === 404) { setGistId(''); renderCloudStatus(); }
+      return;
+    }
+
+    var data = await resp.json();
+    var file = data.files[GIST_FILENAME];
+    if (!file || !file.content) return;
+
+    var parsed = JSON.parse(file.content);
+    var cloudItems = normalizeHoldings(parsed);
+    if (!cloudItems.length) return;
+
+    var oldHash = holdingsHash(holdings);
+    holdings = mergeFromCloud(cloudItems);
+    var newHash = holdingsHash(holdings);
+
+    if (oldHash !== newHash) {
+      saveHoldings();
+      setSyncTime(nowISO());
+      var meta = loadSyncMeta();
+      meta.last_pull = nowISO();
+      meta.last_push_hash = newHash;
+      saveSyncMeta(meta);
+      if (!silent) {
+        renderHoldingsList();
+        renderCloudStatus();
+        refresh();
+      }
+    }
+  } catch(e) {
+    // 静默失败，下次自动重试
+  } finally {
+    isSyncing = false;
+  }
+}
+
+// ── 推送本地变更到云端 ─────────────────────────────────────
+async function pushToCloud(silent) {
+  if (isSyncing) return;
+  var token = getGistToken();
+  var gistId = getGistId();
+  if (!token || !gistId) return;
+
+  var hash = holdingsHash(holdings);
+  var meta = loadSyncMeta();
+  if (hash === meta.last_push_hash) {
+    syncPending = false;
+    return;  // 没有新变更，跳过
+  }
+
+  isSyncing = true;
+  try {
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, 15000);
+
+    var payload = {
+      description: 'FundVal 持仓数据 | ' + nowISO(),
+      files: { [GIST_FILENAME]: { content: JSON.stringify(holdings, null, 2) } }
+    };
+
+    var resp = await fetch('https://api.github.com/gists/' + gistId, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (!resp.ok) {
+      if (resp.status === 401) { if (!silent) showToast('Token 无效，请检查'); }
+      else if (resp.status === 404) { setGistId(''); renderCloudStatus(); }
+      return;
+    }
+
+    await resp.json();
+    meta.last_push_hash = hash;
+    meta.last_pull = nowISO();
+    saveSyncMeta(meta);
+    setSyncTime(nowISO());
+    syncPending = false;
+    renderCloudStatus();
+  } catch(e) {
+    // 静默失败，保留 syncPending 标志以便下次重试
+  } finally {
+    isSyncing = false;
+  }
+}
+
+// ── 防抖：数据变更后延迟推送 ──────────────────────────────
+function scheduleAutoPush() {
+  if (!hasCloudConfig()) return;
+  syncPending = true;
+  if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+  syncDebounceTimer = setTimeout(function() {
+    pushToCloud(true);
+  }, AUTO_PUSH_DELAY);
+}
+
+// ── 后台定时拉取 ──────────────────────────────────────────
+function startAutoPull() {
+  if (autoPullTimer) clearInterval(autoPullTimer);
+  autoPullTimer = setInterval(function() {
+    pullFromCloud(true);
+  }, AUTO_PULL_INTERVAL);
+}
+
+// ── 页面启动时拉取 ────────────────────────────────────────
+async function autoPullOnLoad() {
+  if (!hasCloudConfig()) return;
+  await pullFromCloud(true);
+  // 拉取完成后刷新行情
+  if (holdings.length > 0) {
+    renderHoldingsList();
+    renderCloudStatus();
+  }
+}
+
+// ── 首次创建 Gist（手动触发） ──────────────────────────────
 async function uploadToCloud() {
-  const token = document.getElementById('gist-token').value.trim();
+  var token = document.getElementById('gist-token').value.trim();
   if (!token) { showToast('请输入 GitHub Token'); return; }
   if (!holdings.length) { showToast('没有持仓数据可上传'); return; }
   setGistToken(token);
 
-  const uploadBtn = document.getElementById('cloud-upload-btn');
+  var uploadBtn = document.getElementById('cloud-upload-btn');
   uploadBtn.textContent = '上传中...';
   uploadBtn.disabled = true;
 
-  const content = JSON.stringify(holdings, null, 2);
-  const gistId = getGistId();
-  const desc = 'FundVal 持仓数据 | ' + new Date().toISOString();
+  // 确保所有持仓都有时间戳
+  holdings.forEach(function(h) {
+    if (!h.updated_at) h.updated_at = nowISO();
+  });
+  saveHoldings();
+
+  var content = JSON.stringify(holdings, null, 2);
+  var gistId = getGistId();
+  var desc = 'FundVal 持仓数据 | ' + nowISO();
 
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(function() { controller.abort(); }, 15000);
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, 15000);
 
-    let resp;
+    var resp;
     if (gistId) {
       resp = await fetch('https://api.github.com/gists/' + gistId, {
         method: 'PATCH',
@@ -148,18 +369,26 @@ async function uploadToCloud() {
     clearTimeout(timer);
 
     if (!resp.ok) {
-      const err = await resp.json().catch(function() { return {}; });
+      var err = await resp.json().catch(function() { return {}; });
       if (resp.status === 401) { showToast('Token 无效，请检查（需勾选 gist 权限）'); }
       else if (resp.status === 404) { showToast('云端存档不存在，请重新上传'); setGistId(''); renderCloudStatus(); }
       else { showToast('上传失败: ' + (err.message || resp.status)); }
       return;
     }
 
-    const data = await resp.json();
+    var data = await resp.json();
     setGistId(data.id);
-    setSyncTime(new Date().toISOString());
+    var hash = holdingsHash(holdings);
+    var meta = loadSyncMeta();
+    meta.last_push_hash = hash;
+    meta.last_pull = nowISO();
+    saveSyncMeta(meta);
+    setSyncTime(nowISO());
+    syncPending = false;
     renderCloudStatus();
-    showToast('已上传到云端');
+    showToast('已上传，后续将自动同步');
+    // 启动自动拉取
+    startAutoPull();
   } catch (e) {
     if (e.name === 'AbortError') {
       showToast('请求超时，api.github.com 可能被墙，需科学上网');
@@ -172,23 +401,24 @@ async function uploadToCloud() {
   }
 }
 
+// ── 手动从云端下载（完整覆盖 + 合并） ─────────────────────
 async function downloadFromCloud() {
-  const token = document.getElementById('gist-token').value.trim();
+  var token = document.getElementById('gist-token').value.trim();
   if (!token) { showToast('请输入 GitHub Token'); return; }
   setGistToken(token);
 
-  const gistId = getGistId();
+  var gistId = getGistId();
   if (!gistId) { showToast('请先上传一次以创建云端存档'); return; }
 
-  const downloadBtn = document.getElementById('cloud-download-btn');
+  var downloadBtn = document.getElementById('cloud-download-btn');
   downloadBtn.textContent = '下载中...';
   downloadBtn.disabled = true;
 
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(function() { controller.abort(); }, 15000);
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, 15000);
 
-    const resp = await fetch('https://api.github.com/gists/' + gistId, {
+    var resp = await fetch('https://api.github.com/gists/' + gistId, {
       headers: { 'Authorization': 'token ' + token },
       signal: controller.signal
     });
@@ -201,23 +431,34 @@ async function downloadFromCloud() {
       return;
     }
 
-    const data = await resp.json();
-    const file = data.files[GIST_FILENAME];
+    var data = await resp.json();
+    var file = data.files[GIST_FILENAME];
     if (!file || !file.content) { showToast('云端存档为空'); return; }
 
-    const parsed = JSON.parse(file.content);
-    const normalized = normalizeHoldings(parsed);
-    if (!normalized.length) { showToast('云端数据格式错误'); return; }
+    var parsed = JSON.parse(file.content);
+    var cloudItems = normalizeHoldings(parsed);
+    if (!cloudItems.length) { showToast('云端数据格式错误'); return; }
 
-    if (holdings.length && !confirm('本地已有 ' + holdings.length + ' 条持仓，云端有 ' + normalized.length + ' 条。\n\n确定用云端数据覆盖本地？')) return;
-
-    holdings = normalized;
+    // 用合并算法，不是简单覆盖
+    var before = holdings.length;
+    holdings = mergeFromCloud(cloudItems);
     saveHoldings();
     renderHoldingsList();
-    setSyncTime(new Date().toISOString());
+    var hash = holdingsHash(holdings);
+    var meta = loadSyncMeta();
+    meta.last_push_hash = hash;
+    meta.last_pull = nowISO();
+    saveSyncMeta(meta);
+    setSyncTime(nowISO());
+    syncPending = false;
     renderCloudStatus();
-    showToast('已从云端下载，共 ' + holdings.length + ' 条');
+    if (holdings.length > before) {
+      showToast('已合并，新增 ' + (holdings.length - before) + ' 条，共 ' + holdings.length + ' 条');
+    } else {
+      showToast('已同步，共 ' + holdings.length + ' 条');
+    }
     refresh();
+    startAutoPull();
   } catch (e) {
     if (e.name === 'AbortError') {
       showToast('请求超时，api.github.com 可能被墙，需科学上网');
@@ -235,7 +476,11 @@ function clearCloudConfig() {
   localStorage.removeItem(GIST_TOKEN_KEY);
   localStorage.removeItem(GIST_ID_KEY);
   localStorage.removeItem(GIST_SYNC_TIME_KEY);
+  localStorage.removeItem(SYNC_META_KEY);
   document.getElementById('gist-token').value = '';
+  syncPending = false;
+  if (syncDebounceTimer) { clearTimeout(syncDebounceTimer); syncDebounceTimer = null; }
+  if (autoPullTimer) { clearInterval(autoPullTimer); autoPullTimer = null; }
   renderCloudStatus();
   showToast('已清除云端配置');
 }
@@ -430,7 +675,7 @@ async function refresh() {
       return d;
     });
 
-    if (holdingsChanged) { saveHoldings(); renderHoldingsList(); }
+    if (holdingsChanged) { saveHoldings(); scheduleAutoPush(); renderHoldingsList(); }
     if (anyOk) saveCache(fundsData);
 
     renderFundList(fundsData);
@@ -732,15 +977,18 @@ function saveFund() {
     holdings[idx].name = name || code;
     holdings[idx].shares = shares;
     holdings[idx].cost = cost;
+    holdings[idx].updated_at = nowISO();
     saveHoldings();
+    scheduleAutoPush();
     renderHoldingsList();
     cancelEdit();
     showToast('已更新 ' + (name || code));
     refresh();
   } else {
     if (holdings.find(h => h.code === code)) { showToast('该基金已在列表中'); return; }
-    holdings.push({code, name: name||code, shares, cost});
+    holdings.push({code, name: name||code, shares, cost, updated_at: nowISO()});
     saveHoldings();
+    scheduleAutoPush();
     renderHoldingsList();
     document.getElementById('i-code').value='';
     document.getElementById('i-name').value='';
@@ -756,6 +1004,7 @@ function delFund(i) {
   if (!confirm(`删除「${h.name||h.code}」？`)) return;
   holdings.splice(i,1);
   saveHoldings();
+  scheduleAutoPush();
   renderHoldingsList();
   refresh();
 }
@@ -766,7 +1015,7 @@ function switchPage(name) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('nav-'+name).classList.add('active');
-  if (name==='edit') { renderHoldingsList(); renderCloudStatus(); }
+  if (name==='edit') { renderHoldingsList(); renderCloudStatus(); pullFromCloud(true); }
   else if (editingCode) cancelEdit();
   if (name==='status') fetchDeploymentStatus();
 }
@@ -896,4 +1145,6 @@ updateMktStatus();
 setInterval(updateMktStatus, 30000);
 refresh();
 startAutoRefresh();
+autoPullOnLoad();
+startAutoPull();
 if (getGistToken()) document.getElementById('gist-token').value = getGistToken();
