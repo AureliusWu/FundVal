@@ -8,12 +8,25 @@ const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const AUTO_PUSH_DELAY = 5000;  // 数据变更后 5 秒自动推送
 const AUTO_PULL_INTERVAL = 60000;  // 每 60 秒自动拉取
+// ── 指数行情配置 ───────────────────────────────────────────
+const INDEX_CONFIG = [
+  { code: '100.IXIC', name: '纳斯达克' },
+  { code: '100.SPX',  name: '标普500' },
+  { code: '112.AU9999', name: '黄金' },
+  { code: '1.000001', name: '上证指数' },
+  { code: '1.000300', name: '沪深300' }
+];
+var indexCache = [];       // 指数数据缓存，离线时兜底
 let holdings = [];
 let fundsData = [];
 let editingCode = null;
 let sortBy = 'est_change_desc';
 let expandedFund = null;
 const holdingsCache = {};
+var managerCache = {};       // 基金经理缓存：{ code: [{name, tenureStart, tenureReturn}] }
+var fundTypeCache = {};      // 基金类型/基本信息缓存
+var fundFeeCache = {};       // 费率信息缓存
+var loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
 const pendingRequests = new Map();
 let isRefreshing = false;
 let refreshQueued = false;
@@ -688,17 +701,27 @@ async function refresh() {
       const hasEst = isUsableNav(d.est_nav);
       const hasLast = isUsableNav(d.last_nav);
 
-      if ((d.status === 'ok' || d.status === 'ok_fallback') && d.shares > 0 && (hasEst || hasLast)) {
-        if (hasEst && hasLast) {
-          const curr = d.est_nav * d.shares;
-          d.today_profit = (d.est_nav - d.last_nav) * d.shares;
-          d.total_profit = curr - d.cost * d.shares;
-          d.total_profit_rate = (d.cost > 0 && d.shares > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
-        } else if (hasLast) {
-          d.curr_value = d.last_nav * d.shares;
-          d.total_profit = d.curr_value - d.cost * d.shares;
-          d.total_profit_rate = (d.cost > 0 && d.shares > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
+      if ((d.status === 'ok' || d.status === 'ok_fallback') && (hasEst || hasLast)) {
+        if (d.shares > 0) {
+          // 有持仓 → 计算盈亏
+          if (hasEst && hasLast) {
+            var curr = d.est_nav * d.shares;
+            d.today_profit = (d.est_nav - d.last_nav) * d.shares;
+            d.total_profit = curr - d.cost * d.shares;
+            d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
+            d.curr_value = curr;
+          } else if (hasLast) {
+            d.curr_value = d.last_nav * d.shares;
+            d.total_profit = d.curr_value - d.cost * d.shares;
+            d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
+            d.today_profit = NaN;
+          }
+        } else {
+          // 仅关注（0份额）：展示净值，不计算盈亏
+          d.curr_value = 0;
           d.today_profit = NaN;
+          d.total_profit = NaN;
+          d.total_profit_rate = NaN;
         }
         anyOk = true;
       }
@@ -788,59 +811,171 @@ function updateSortBar() {
 function toggleFundDetail(code) {
   if (expandedFund === code) {
     expandedFund = null;
+    loadingDetails = null;
     renderFundList(fundsData);
     return;
   }
   expandedFund = code;
   renderFundList(fundsData);
-  if (holdingsCache[code] === undefined) fetchTopHoldings(code);
+  if (loadingDetails !== code) fetchFundDetails(code);
 }
 
-function fetchTopHoldings(code) {
-  holdingsCache[code] = undefined;
-  const script = document.createElement('script');
-  script.src = 'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=' + code + '&topline=10&_=' + Date.now();
-  script.onload = function() {
-    try {
-      const raw = window.apidata;
+// ── 通用 script 注入（Promise 化，解决 window.apidata 全局冲突） ──
+function injectFundScript(url) {
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = url;
+    script.onload = function() {
+      var data = window.apidata;
       delete window.apidata;
-      const stocks = parseHoldingsData(raw);
-      holdingsCache[code] = stocks || [];
-    } catch(e) { holdingsCache[code] = []; }
-    if (script.parentNode) script.parentNode.removeChild(script);
-    if (expandedFund === code) renderFundList(fundsData);
-  };
-  script.onerror = function() {
-    holdingsCache[code] = [];
-    delete window.apidata;
-    if (script.parentNode) script.parentNode.removeChild(script);
-    if (expandedFund === code) renderFundList(fundsData);
-  };
-  document.head.appendChild(script);
+      script.remove();
+      resolve(data || {});
+    };
+    script.onerror = function() {
+      delete window.apidata;
+      script.remove();
+      reject(new Error('script load failed'));
+    };
+    document.head.appendChild(script);
+  });
 }
 
+// ── 顺序加载基金详情（重仓股 → 基金经理 → 基金类型 → 费率） ──
+async function fetchFundDetails(code) {
+  loadingDetails = code;
+
+  // 1. 重仓股 (jjcc)
+  if (holdingsCache[code] === undefined) {
+    try {
+      var d1 = await injectFundScript(
+        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=' + code + '&topline=10&_=' + Date.now());
+      holdingsCache[code] = parseHoldingsData(d1) || [];
+    } catch(e) { holdingsCache[code] = []; }
+    if (expandedFund !== code) { loadingDetails = null; return; }
+    renderFundList(fundsData);
+  }
+
+  // 2. 基金经理 (jjjl)
+  if (managerCache[code] === undefined) {
+    try {
+      var d2 = await injectFundScript(
+        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjjl&code=' + code + '&_=' + Date.now());
+      managerCache[code] = parseManagerData(d2) || [];
+    } catch(e) { managerCache[code] = []; }
+    if (expandedFund !== code) { loadingDetails = null; return; }
+    renderFundList(fundsData);
+  }
+
+  // 3. 基金类型/基本信息 (jjxx)
+  if (fundTypeCache[code] === undefined) {
+    try {
+      var d3 = await injectFundScript(
+        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjxx&code=' + code + '&_=' + Date.now());
+      fundTypeCache[code] = parseFundTypeData(d3) || null;
+    } catch(e) { fundTypeCache[code] = null; }
+    if (expandedFund !== code) { loadingDetails = null; return; }
+    renderFundList(fundsData);
+  }
+
+  // 4. 基金费率 (jjfl)
+  if (fundFeeCache[code] === undefined) {
+    try {
+      var d4 = await injectFundScript(
+        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjfl&code=' + code + '&_=' + Date.now());
+      fundFeeCache[code] = parseFundFeeData(d4) || null;
+    } catch(e) { fundFeeCache[code] = null; }
+    if (expandedFund !== code) { loadingDetails = null; return; }
+    renderFundList(fundsData);
+  }
+
+  loadingDetails = null;
+}
+
+// ── 重仓股解析 ─────────────────────────────────────────────
 function parseHoldingsData(data) {
   if (!data || !data.content) return null;
-  const div = document.createElement('div');
+  var div = document.createElement('div');
   div.innerHTML = data.content;
-  const rows = div.querySelectorAll('table tbody tr');
+  var rows = div.querySelectorAll('table tbody tr');
   if (!rows.length) return null;
-  const stocks = [];
-  for (let i = 0; i < rows.length && stocks.length < 10; i++) {
-    const cells = rows[i].children;
+  var stocks = [];
+  for (var i = 0; i < rows.length && stocks.length < 10; i++) {
+    var cells = rows[i].children;
     if (cells.length < 7) continue;
-    const codeEl = cells[1].querySelector('a');
-    const nameEl = cells[2].querySelector('a');
-    const ratioText = (cells[6].textContent || '').trim();
+    var codeEl = cells[1].querySelector('a');
+    var nameEl = cells[2].querySelector('a');
+    var ratioText = (cells[6].textContent || '').trim();
     stocks.push({
       code: codeEl ? codeEl.textContent.trim() : '',
       name: nameEl ? nameEl.textContent.trim() : '',
       ratio: parseFloat(ratioText) || 0
-      // change 字段不在该接口返回的静态 HTML 中（由页面脚本动态加载），
-      // 不设置 change，渲染层会显示为 --
     });
   }
   return stocks.length ? stocks : null;
+}
+
+// ── 基金经理解析 ───────────────────────────────────────────
+function parseManagerData(data) {
+  if (!data || !data.content) return null;
+  var div = document.createElement('div');
+  div.innerHTML = data.content;
+  // 经理表格常见 class: jloff, w782 comm
+  var rows = div.querySelectorAll('table tbody tr');
+  var managers = [];
+  for (var i = 0; i < rows.length; i++) {
+    var cells = rows[i].children;
+    if (cells.length < 4) continue;
+    var nameEl = cells[0].querySelector('a');
+    var name = nameEl ? nameEl.textContent.trim() : (cells[0].textContent || '').trim();
+    if (!name) continue;
+    var tenureStart = (cells[1].textContent || '').trim();
+    var tenureReturn = (cells[3].textContent || '').trim();
+    managers.push({ name: name, tenureStart: tenureStart, tenureReturn: tenureReturn });
+  }
+  return managers.length ? managers : null;
+}
+
+// ── 基金基本类型解析 ──────────────────────────────────────
+function parseFundTypeData(data) {
+  if (!data || !data.content) return null;
+  var div = document.createElement('div');
+  div.innerHTML = data.content;
+  var rows = div.querySelectorAll('table tr');
+  var result = {};
+  for (var i = 0; i < rows.length; i++) {
+    var cells = rows[i].children;
+    if (cells.length < 2) continue;
+    var key = (cells[0].textContent || '').replace(/[：:\s]/g, '').trim();
+    var val = (cells[1].textContent || '').trim();
+    if (!key || !val) continue;
+    if (/基金类型/.test(key)) result.type = val;
+    if (/成立日/.test(key)) result.setupDate = val;
+    if (/规模/.test(key)) result.scale = val;
+    if (/管理人/.test(key)) result.company = val;
+    if (/跟踪标的/.test(key)) result.benchmark = val;
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+// ── 费率信息解析 ──────────────────────────────────────────
+function parseFundFeeData(data) {
+  if (!data || !data.content) return null;
+  var div = document.createElement('div');
+  div.innerHTML = data.content;
+  var rows = div.querySelectorAll('table tr');
+  var result = {};
+  for (var i = 0; i < rows.length; i++) {
+    var cells = rows[i].children;
+    if (cells.length < 2) continue;
+    var key = (cells[0].textContent || '').replace(/[：:\s]/g, '').trim();
+    var val = (cells[1].textContent || '').trim();
+    if (!key || !val) continue;
+    if (/申购费|购买费/.test(key)) result.buyFee = val;
+    if (/赎回费/.test(key)) result.sellFee = val;
+    if (/管理费/.test(key)) result.manageFee = val;
+    if (/托管费/.test(key)) result.custodyFee = val;
+  }
+  return Object.keys(result).length ? result : null;
 }
 
 // ── 渲染基金列表 ─────────────────────────────────────────
@@ -887,9 +1022,12 @@ function renderFundList(data) {
       : '';
 
     var isExpanded = expandedFund === f.code;
+    var isWatchOnly = !f.shares;
 
-    html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开重仓股">';
-    html += '<div class="fund-top"><div><div class="fund-name">' + esc(f.name) + fallbackTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
+    var watchTag = isWatchOnly ? ' <span class="watch-tag">仅关注</span>' : '';
+
+    html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + (isWatchOnly ? ' watch-only' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开详情">';
+    html += '<div class="fund-top"><div><div class="fund-name">' + esc(f.name) + fallbackTag + watchTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
     html += '<div><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + (f.est_time||'--') + '</div></div></div>';
 
     html += '<div class="fund-stats">';
@@ -906,6 +1044,8 @@ function renderFundList(data) {
     if (isExpanded) {
       html += '<div class="holdings-detail">';
       html += '<div class="holdings-actions"><button class="edit-holdings-btn" onclick="event.stopPropagation();editFund(\'' + f.code + '\')">编辑持仓</button></div>';
+
+      // 重仓股
       if (holdingsCache[f.code] === undefined) {
         html += '<div class="holdings-loading">加载重仓股...</div>';
       } else if (!holdingsCache[f.code] || !holdingsCache[f.code].length) {
@@ -918,6 +1058,67 @@ function renderFundList(data) {
         });
         html += '</div>';
       }
+
+      // 基金经理
+      html += '<div class="manager-section">';
+      html += '<div class="manager-section-title">基金经理</div>';
+      if (managerCache[f.code] === undefined) {
+        html += '<div class="manager-loading">加载中...</div>';
+      } else if (!managerCache[f.code] || !managerCache[f.code].length) {
+        html += '<div class="manager-empty">暂无数据</div>';
+      } else {
+        managerCache[f.code].forEach(function(m) {
+          var retClass = '';
+          var retNum = parseFloat(m.tenureReturn);
+          if (!isNaN(retNum)) retClass = retNum >= 0 ? 'up' : 'down';
+          html += '<div class="manager-card">';
+          html += '<div class="manager-name">' + esc(m.name) + '</div>';
+          html += '<div class="manager-info-grid">';
+          html += '<div class="manager-info-item"><span class="manager-info-label">任职起始</span><span class="manager-info-val">' + esc(m.tenureStart) + '</span></div>';
+          html += '<div class="manager-info-item"><span class="manager-info-label">任职回报</span><span class="manager-info-val ' + retClass + '">' + esc(m.tenureReturn) + '</span></div>';
+          html += '</div></div>';
+        });
+      }
+      html += '</div>';
+
+      // 基金信息 & 费率
+      var hasType = fundTypeCache[f.code] !== undefined;
+      var hasFee = fundFeeCache[f.code] !== undefined;
+      if (!hasType && !hasFee) {
+        html += '<div class="rules-section">';
+        html += '<div class="rules-section-title">基金信息</div>';
+        html += '<div class="rules-loading">加载中...</div>';
+        html += '</div>';
+      } else if (fundTypeCache[f.code] === null && fundFeeCache[f.code] === null) {
+        html += '<div class="rules-section">';
+        html += '<div class="rules-section-title">基金信息</div>';
+        html += '<div class="rules-empty">暂无数据</div>';
+        html += '</div>';
+      } else {
+        html += '<div class="rules-section">';
+        html += '<div class="rules-section-title">基金信息</div>';
+        if (fundTypeCache[f.code]) {
+          var ti = fundTypeCache[f.code];
+          html += '<div class="rules-table">';
+          if (ti.type) html += '<div class="rules-row"><span class="rules-label">基金类型</span><span class="rules-val">' + esc(ti.type) + '</span></div>';
+          if (ti.setupDate) html += '<div class="rules-row"><span class="rules-label">成立日期</span><span class="rules-val">' + esc(ti.setupDate) + '</span></div>';
+          if (ti.scale) html += '<div class="rules-row"><span class="rules-label">基金规模</span><span class="rules-val">' + esc(ti.scale) + '</span></div>';
+          if (ti.company) html += '<div class="rules-row"><span class="rules-label">管理人</span><span class="rules-val">' + esc(ti.company) + '</span></div>';
+          if (ti.benchmark) html += '<div class="rules-row"><span class="rules-label">跟踪标的</span><span class="rules-val">' + esc(ti.benchmark) + '</span></div>';
+          html += '</div>';
+        }
+        if (fundFeeCache[f.code]) {
+          var fi = fundFeeCache[f.code];
+          html += '<div class="rules-table" style="margin-top:6px">';
+          if (fi.buyFee) html += '<div class="rules-row"><span class="rules-label">申购费率</span><span class="rules-val">' + esc(fi.buyFee) + '</span></div>';
+          if (fi.sellFee) html += '<div class="rules-row"><span class="rules-label">赎回费率</span><span class="rules-val">' + esc(fi.sellFee) + '</span></div>';
+          if (fi.manageFee) html += '<div class="rules-row"><span class="rules-label">管理费率</span><span class="rules-val">' + esc(fi.manageFee) + '</span></div>';
+          if (fi.custodyFee) html += '<div class="rules-row"><span class="rules-label">托管费率</span><span class="rules-val">' + esc(fi.custodyFee) + '</span></div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
       html += '</div>';
     }
 
@@ -1055,6 +1256,56 @@ function switchPage(name) {
   if (name==='status') fetchDeploymentStatus();
 }
 
+// ── 指数行情条 ───────────────────────────────────────────
+async function fetchIndices() {
+  try {
+    var promises = INDEX_CONFIG.map(function(idx) {
+      return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=' + idx.code + '&fields=f43,f57,f58,f169,f170&_=' + Date.now())
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .catch(function() { return null; });
+    });
+    var results = await Promise.all(promises);
+    var data = INDEX_CONFIG.map(function(idx, i) {
+      var json = results[i];
+      var hasData = json && json.data;
+      return {
+        name: idx.name,
+        code: idx.code,
+        price: hasData ? parseFloat(json.data.f43) : NaN,
+        changePct: hasData ? parseFloat(json.data.f169) : NaN,
+        changeAmt: hasData ? parseFloat(json.data.f170) : NaN
+      };
+    });
+    var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
+    if (anyOk) indexCache = data;
+    renderIndexBar(anyOk ? data : indexCache);
+  } catch(e) {
+    if (indexCache.length) renderIndexBar(indexCache);
+  }
+}
+
+function renderIndexBar(data) {
+  var el = document.getElementById('index-bar-inner');
+  if (!el || !data.length) return;
+  var html = '';
+  data.forEach(function(idx) {
+    var hasData = Number.isFinite(idx.price);
+    var cc = hasData ? (idx.changePct > 0 ? 'up' : idx.changePct < 0 ? 'down' : 'flat') : '';
+    var sign = hasData && idx.changePct >= 0 ? '+' : '';
+    html += '<div class="index-item">';
+    html += '<div class="index-name">' + esc(idx.name) + '</div>';
+    html += '<div class="index-price">' + (hasData ? fmt2(idx.price) : '--') + '</div>';
+    html += '<div class="index-change ' + cc + '">' + (hasData ? sign + fmt(idx.changePct) + '%' : '--') + '</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function startIndexRefresh() {
+  fetchIndices();
+  setInterval(fetchIndices, 30000);
+}
+
 // ── 市场状态 ─────────────────────────────────────────────
 function updateMktStatus() {
   const now = new Date();
@@ -1189,6 +1440,7 @@ updateMktStatus();
 setInterval(updateMktStatus, 30000);
 refresh();
 startAutoRefresh();
+startIndexRefresh();
 autoPullOnLoad();
 startAutoPull();
 if (getGistToken()) document.getElementById('gist-token').value = getGistToken();
