@@ -22,7 +22,7 @@ const TIMING = {
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
 // ── 指数行情配置（腾讯行情 JSONP，全球可用无 CORS 限制） ──
 const INDEX_CONFIG = [
-  { code: 'us.IXIC',  name: '纳斯达克' },
+  { code: 'usIXIC',   name: '纳斯达克' },
   { code: 'usINX',    name: '标普500' },
   { code: 'usGLD',    name: '黄金' },
   { code: 'sh000001', name: '上证指数' },
@@ -1283,36 +1283,7 @@ function switchPage(name) {
   if (name==='status') fetchDeploymentStatus();
 }
 
-// ── 指数行情条（腾讯行情 JSONP，全球可用无 CORS 限制） ────
-
-// 腾讯 JSONP 设置 window.v_<code> 全局变量。
-// 多数 code 不含点号（如 sh000001 → window.v_sh000001），
-// 但 us.IXIC 含点号 → 实际变量为 window.v_us.IXIC。
-// 下面两个工具函数统一处理两种形式。
-function getTencentVar(code) {
-  var key = 'v_' + code;
-  if (key.indexOf('.') === -1) return window[key];
-  // 路径遍历：'v_us.IXIC' → window.v_us.IXIC
-  var parts = key.split('.');
-  var obj = window;
-  for (var i = 0; i < parts.length && obj != null; i++) {
-    obj = obj[parts[i]];
-  }
-  return obj;
-}
-function deleteTencentVar(code) {
-  var key = 'v_' + code;
-  var dot = key.indexOf('.');
-  if (dot === -1) { delete window[key]; return; }
-  // 只删除叶子属性，保留父对象（避免影响同域名下其他变量）
-  var parts = key.split('.');
-  var obj = window;
-  for (var i = 0; i < parts.length - 1 && obj != null; i++) {
-    obj = obj[parts[i]];
-  }
-  if (obj) delete obj[parts[parts.length - 1]];
-}
-
+// ── 指数行情条（腾讯行情 JSONP，全局可用无 CORS 限制） ────
 function parseTencentQuote(raw) {
   // 腾讯行情返回 "~" 分隔字符串。实测所有指数（sh*/us*）字段布局一致：
   //   field 3 = 当前价, field 32 = 涨跌幅(%)
@@ -1354,10 +1325,8 @@ function fetchIndices() {
 
       var data = INDEX_CONFIG.map(function(cfg) {
         try {
-          // Tencent JSONP sets window.v_<code>, but codes like 'us.IXIC'
-          // create window.v_us.IXIC — bracket notation can't traverse dots.
-          var raw = getTencentVar(cfg.code);
-          deleteTencentVar(cfg.code);
+          var raw = window['v_' + cfg.code];
+          delete window['v_' + cfg.code];  // 清理，防止下次响应缺失时残留旧值
           var parsed = parseTencentQuote(raw);
           if (parsed && Number.isFinite(parsed.price)) {
             return { name: cfg.name, price: parsed.price, changePct: parsed.changePct };
