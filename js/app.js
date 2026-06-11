@@ -8,16 +8,14 @@ const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const AUTO_PUSH_DELAY = 5000;  // 数据变更后 5 秒自动推送
 const AUTO_PULL_INTERVAL = 60000;  // 每 60 秒自动拉取
-// ── 指数行情配置（新浪财经 JSONP） ────────────────────────
-const INDEX_SINA_URL = 'https://hq.sinajs.cn/list=sh000001,sh000300,gb_ixic,gb_inx,hf_XAU';
-const INDEX_MAP = {
-  sh000001: { name: '上证指数', format: 'ashare' },
-  sh000300: { name: '沪深300', format: 'ashare' },
-  gb_ixic:   { name: '纳斯达克', format: 'us' },
-  gb_inx:    { name: '标普500', format: 'us' },
-  hf_XAU:    { name: '黄金', format: 'gold' }
-};
-const INDEX_ORDER = ['gb_ixic', 'gb_inx', 'hf_XAU', 'sh000001', 'sh000300'];
+// ── 指数行情配置（Yahoo Finance，CORS 友好全球可用） ──────
+var INDEX_CONFIG = [
+  { symbol: '%5EIXIC',  name: '纳斯达克' },
+  { symbol: '%5EGSPC',  name: '标普500' },
+  { symbol: 'GC=F',     name: '黄金' },
+  { symbol: '000001.SS', name: '上证指数' },
+  { symbol: '000300.SS', name: '沪深300' }
+];
 var indexCache = [];
 let holdings = [];
 let fundsData = [];
@@ -1258,35 +1256,28 @@ function switchPage(name) {
   if (name==='status') fetchDeploymentStatus();
 }
 
-// ── 指数行情条（东方财富 API，与基金备源同模式） ──────────
+// ── 指数行情条（Yahoo Finance API，全球 CORS 友好） ────────
 async function fetchIndices() {
-  // secid 格式: 1.000001(上证) 1.000300(沪深300) 100.IXIC(纳斯达克) 100.SPX(标普500)
-  var configs = [
-    { secid: '1.000001', name: '上证指数' },
-    { secid: '1.000300', name: '沪深300' },
-    { secid: '100.IXIC', name: '纳斯达克' },
-    { secid: '100.SPX',  name: '标普500' },
-    { secid: '112.AU9999', name: '黄金' }
-  ];
   try {
-    var results = await Promise.all(configs.map(function(cfg) {
-      return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=' + cfg.secid + '&fields=f43,f169,f170&_=' + Date.now())
-        .then(function(r) { return r.json(); })
+    var results = await Promise.all(INDEX_CONFIG.map(function(cfg) {
+      var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + cfg.symbol + '?interval=1d&range=1d';
+      return fetch(url)
+        .then(function(r) { return r.ok ? r.json() : null; })
         .catch(function() { return null; });
     }));
-    var data = configs.map(function(cfg, i) {
+    var data = INDEX_CONFIG.map(function(cfg, i) {
       var json = results[i];
-      if (json && json.data) {
-        var price = parseFloat(json.data.f43);
-        var chgPct = parseFloat(json.data.f170);
-        var chgAmt = parseFloat(json.data.f169);
-        // 指数返回的数据中 f170=涨跌幅 f169=涨跌额
-        return {
-          name: cfg.name,
-          price: Number.isFinite(price) ? price : NaN,
-          changePct: Number.isFinite(chgPct) ? chgPct : NaN
-        };
-      }
+      try {
+        var meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
+        if (meta) {
+          var price = meta.regularMarketPrice;
+          var prevClose = meta.chartPreviousClose;
+          var chg = (Number.isFinite(prevClose) && prevClose > 0)
+            ? ((price - prevClose) / prevClose * 100)
+            : NaN;
+          return { name: cfg.name, price: price, changePct: chg };
+        }
+      } catch(e) { /* parse error, fall through */ }
       return { name: cfg.name, price: NaN, changePct: NaN };
     });
     var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
@@ -1433,9 +1424,22 @@ async function fetchDeploymentStatus() {
   }
 }
 
-// ── Service Worker ───────────────────────────────────────
+// ── Service Worker（含自动更新检测） ──────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    // 监听新版本安装完成
+    reg.addEventListener('updatefound', function() {
+      var newWorker = reg.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', function() {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showToast('✨ 有新版本可用，刷新页面即可更新', 6000);
+        }
+      });
+    });
+    // 每 30 分钟主动检查更新
+    setInterval(function() { reg.update(); }, 1800000);
+  }).catch(function() {});
 }
 
 // ── 页面可见性：切回标签页立即拉取（30s 冷却） ──────────
