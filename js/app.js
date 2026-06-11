@@ -1258,50 +1258,43 @@ function switchPage(name) {
   if (name==='status') fetchDeploymentStatus();
 }
 
-// ── 指数行情条（新浪财经 JSONP，script 注入） ──────────────
-function fetchIndices() {
-  var script = document.createElement('script');
-  script.charset = 'gb2312';
-  script.src = INDEX_SINA_URL + '&_=' + Date.now();
-  script.onload = function() {
-    script.remove();
-    try {
-      var data = INDEX_ORDER.map(function(key) {
-        var raw = window['hq_str_' + key];
-        if (!raw) return { name: INDEX_MAP[key].name, price: NaN, changePct: NaN };
-        var parts = raw.split(',');
-        var fmt = INDEX_MAP[key].format;
-        if (fmt === 'ashare') {
-          // A股指数格式: name,price,yest_close,open,high,low,...
-          var price = parseFloat(parts[1]);
-          var yest = parseFloat(parts[2]);
-          var chg = (Number.isFinite(yest) && yest > 0) ? ((price - yest) / yest * 100) : NaN;
-          return { name: INDEX_MAP[key].name, price: price, changePct: chg };
-        } else if (fmt === 'us') {
-          // 美股指数格式: name,price,changePct,datetime,changeAmt,...
-          return { name: INDEX_MAP[key].name, price: parseFloat(parts[1]), changePct: parseFloat(parts[2]) };
-        } else if (fmt === 'gold') {
-          // 黄金格式: price,prev_close,open,high,low_limit,...
-          var p = parseFloat(parts[0]);
-          var prev = parseFloat(parts[1]);
-          var chg = (Number.isFinite(prev) && prev > 0) ? ((p - prev) / prev * 100) : NaN;
-          return { name: INDEX_MAP[key].name, price: p, changePct: chg };
-        }
-        return { name: INDEX_MAP[key].name, price: NaN, changePct: NaN };
-      });
-      indexCache = data;
-      renderIndexBar(data);
-      // 清理全局变量
-      INDEX_ORDER.forEach(function(k) { delete window['hq_str_' + k]; });
-    } catch(e) {
-      if (indexCache.length) renderIndexBar(indexCache);
-    }
-  };
-  script.onerror = function() {
-    script.remove();
+// ── 指数行情条（东方财富 API，与基金备源同模式） ──────────
+async function fetchIndices() {
+  // secid 格式: 1.000001(上证) 1.000300(沪深300) 100.IXIC(纳斯达克) 100.SPX(标普500)
+  var configs = [
+    { secid: '1.000001', name: '上证指数' },
+    { secid: '1.000300', name: '沪深300' },
+    { secid: '100.IXIC', name: '纳斯达克' },
+    { secid: '100.SPX',  name: '标普500' },
+    { secid: '112.AU9999', name: '黄金' }
+  ];
+  try {
+    var results = await Promise.all(configs.map(function(cfg) {
+      return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=' + cfg.secid + '&fields=f43,f169,f170&_=' + Date.now())
+        .then(function(r) { return r.json(); })
+        .catch(function() { return null; });
+    }));
+    var data = configs.map(function(cfg, i) {
+      var json = results[i];
+      if (json && json.data) {
+        var price = parseFloat(json.data.f43);
+        var chgPct = parseFloat(json.data.f170);
+        var chgAmt = parseFloat(json.data.f169);
+        // 指数返回的数据中 f170=涨跌幅 f169=涨跌额
+        return {
+          name: cfg.name,
+          price: Number.isFinite(price) ? price : NaN,
+          changePct: Number.isFinite(chgPct) ? chgPct : NaN
+        };
+      }
+      return { name: cfg.name, price: NaN, changePct: NaN };
+    });
+    var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
+    if (anyOk) indexCache = data;
+    renderIndexBar(anyOk ? data : indexCache);
+  } catch(e) {
     if (indexCache.length) renderIndexBar(indexCache);
-  };
-  document.head.appendChild(script);
+  }
 }
 
 function renderIndexBar(data) {

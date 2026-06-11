@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v5';
+const CACHE = 'fuyu-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -33,6 +33,9 @@ self.addEventListener('fetch', e => {
 
   // 估值接口不缓存，始终走网络
   if (url.hostname.includes('1234567.com.cn')) return;
+
+  // 东方财富 API 不缓存（基金备源 + 指数行情）
+  if (url.hostname.includes('eastmoney.com')) return;
 
   // 核心代码文件：network-first，确保拿到最新版
   if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
