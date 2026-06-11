@@ -6,15 +6,27 @@ const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const GIST_FILENAME = 'fuyu-holdings.json';
 const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
-const AUTO_PUSH_DELAY = 5000;  // 数据变更后 5 秒自动推送
-const AUTO_PULL_INTERVAL = 60000;  // 每 60 秒自动拉取
-// ── 指数行情配置（Yahoo Finance，CORS 友好全球可用） ──────
+// ── 时间/超时配置（集中管理，便于统一调整） ────────
+var TIMING = {
+  FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
+  INDEX_JSONP_TIMEOUT: 8000,      // 腾讯指数行情 JSONP 超时
+  CLOUD_SYNC_TIMEOUT: 15000,      // GitHub Gist API 超时
+  INDEX_REFRESH_MS: 30000,        // 指数行情刷新间隔（兜底值，动态调整）
+  MKT_STATUS_MS: 30000,           // 市场状态文字刷新间隔
+  SW_UPDATE_MS: 1800000,          // Service Worker 更新检查间隔（30min）
+  AUTO_PUSH_DELAY: 5000,          // 数据变更后自动推送延迟
+  AUTO_PULL_INTERVAL: 60000,      // 后台自动拉取间隔
+  CLOUD_COOLDOWN_MS: 30000        // 切 Tab 云端拉取冷却
+};
+// ── 缓存持久化黑名单（这些字段为瞬时 UI 状态，不写入 localStorage） ──
+var SKIP_CACHE_KEYS = ['_cached', 'message'];
+// ── 指数行情配置（腾讯行情 JSONP，全球可用无 CORS 限制） ──
 var INDEX_CONFIG = [
-  { symbol: '%5EIXIC',  name: '纳斯达克' },
-  { symbol: '%5EGSPC',  name: '标普500' },
-  { symbol: 'GC=F',     name: '黄金' },
-  { symbol: '000001.SS', name: '上证指数' },
-  { symbol: '000300.SS', name: '沪深300' }
+  { code: 'gzixic',   name: '纳斯达克' },
+  { code: 'gzspx',    name: '标普500' },
+  { code: 'gzhj',     name: '黄金' },
+  { code: 'sh000001', name: '上证指数' },
+  { code: 'sh000300', name: '沪深300' }
 ];
 var indexCache = [];
 let holdings = [];
@@ -28,6 +40,7 @@ var fundTypeCache = {};      // 基金类型/基本信息缓存
 var fundFeeCache = {};       // 费率信息缓存
 var loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
 const pendingRequests = new Map();
+var _codeGen = {};             // JSONP 请求代数计数器，防止旧回调污染新请求
 let isRefreshing = false;
 let refreshQueued = false;
 let autoRefreshTimer = null;
@@ -214,7 +227,7 @@ async function pullFromCloud(silent) {
   isSyncing = true;
   try {
     var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, 15000);
+    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
 
     var resp = await fetch('https://api.github.com/gists/' + gistId, {
       headers: { 'Authorization': 'token ' + token },
@@ -282,7 +295,7 @@ async function pushToCloud(silent) {
   isSyncing = true;
   try {
     var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, 15000);
+    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
 
     var payload = {
       description: 'FundVal 持仓数据 | ' + nowISO(),
@@ -324,7 +337,7 @@ function scheduleAutoPush() {
   if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
   syncDebounceTimer = setTimeout(function() {
     pushToCloud(true);
-  }, AUTO_PUSH_DELAY);
+  }, TIMING.AUTO_PUSH_DELAY);
 }
 
 // ── 后台定时拉取 ──────────────────────────────────────────
@@ -332,7 +345,7 @@ function startAutoPull() {
   if (autoPullTimer) clearInterval(autoPullTimer);
   autoPullTimer = setInterval(function() {
     pullFromCloud(true);
-  }, AUTO_PULL_INTERVAL);
+  }, TIMING.AUTO_PULL_INTERVAL);
 }
 
 // ── 页面启动时拉取 ────────────────────────────────────────
@@ -372,7 +385,7 @@ async function uploadToCloud() {
 
   try {
     var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, 15000);
+    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
 
     var resp;
     if (gistId) {
@@ -464,7 +477,7 @@ async function downloadFromCloud() {
 
   try {
     var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, 15000);
+    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
 
     var resp = await fetch('https://api.github.com/gists/' + gistId, {
       headers: { 'Authorization': 'token ' + token },
@@ -541,69 +554,76 @@ function loadCache() {
     const cache = JSON.parse(raw);
     if (!cache.data || !Array.isArray(cache.data) || !cache.data.length) return null;
     return cache;
-  } catch { return null; }
+  } catch(e) { return null; }
 }
 
 function saveCache(data) {
   try {
-    const slim = data.map(d => ({
-      code: d.code, name: d.name, last_nav: d.last_nav, est_nav: d.est_nav,
-      est_change: d.est_change, nav_date: d.nav_date, est_time: d.est_time,
-      yesterday_change: d.yesterday_change, ytd_change: d.ytd_change,
-      shares: d.shares, cost: d.cost, today_profit: d.today_profit,
-      total_profit: d.total_profit, total_profit_rate: d.total_profit_rate,
-      curr_value: d.curr_value, status: d.status
-    }));
+    var slim = data.map(function(d) {
+      var out = {};
+      Object.keys(d).forEach(function(k) {
+        if (SKIP_CACHE_KEYS.indexOf(k) === -1) out[k] = d[k];
+      });
+      return out;
+    });
     localStorage.setItem(CACHE_KEY, JSON.stringify({ data: slim, time: Date.now() }));
-  } catch {}
+  } catch(e) {}
 }
 
 // ── 全局回调（天天基金 JSONP 接口） ──────────────────────
 window.jsonpgz = function(data) {
   if (!data || !data.fundcode) return;
   const code = data.fundcode;
-  if (pendingRequests.has(code)) {
-    const resolve = pendingRequests.get(code);
-    pendingRequests.delete(code);
-    try {
-      resolve({
-        code: code,
-        name: data.name || code,
-        last_nav: parseNav(data.dwjz),
-        est_nav: parseNav(data.gsz),
-        est_change: parseNav(data.gszzl),
-        nav_date: data.jzrq || '',
-        est_time: data.gztime || '',
-        status: 'ok'
-      });
-    } catch(e) {
-      resolve({code, status:'error', message:'数据解析失败'});
-    }
+  const entry = pendingRequests.get(code);
+  if (!entry) return;
+  pendingRequests.delete(code);
+  clearTimeout(entry.timer);
+  try {
+    entry.resolve({
+      code: code,
+      name: data.name || code,
+      last_nav: parseNav(data.dwjz),
+      est_nav: parseNav(data.gsz),
+      est_change: parseNav(data.gszzl),
+      nav_date: data.jzrq || '',
+      est_time: data.gztime || '',
+      status: 'ok'
+    });
+  } catch(e) {
+    entry.resolve({code, status:'error', message:'数据解析失败'});
   }
 };
 
 // ── 主数据源：天天基金 JSONP ──────────────────────────────
 function fetchFund(code) {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      pendingRequests.delete(code);
-      resolve({code, status:'error', message:'主源超时'});
-    }, 7000);
-
-    pendingRequests.set(code, (result) => {
-      clearTimeout(timer);
-      resolve(result);
-    });
+    _codeGen[code] = (_codeGen[code] || 0) + 1;
+    var gen = _codeGen[code];
 
     const script = document.createElement('script');
-    script.src = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
-    script.onerror = () => {
-      clearTimeout(timer);
-      pendingRequests.delete(code);
-      script.remove();
-      resolve({code, status:'error', message:'主源请求失败'});
+    script.src = 'https://fundgz.1234567.com.cn/js/' + code + '.js?rt=' + Date.now();
+
+    const timer = setTimeout(() => {
+      var entry = pendingRequests.get(code);
+      if (entry && entry.gen === gen) {
+        pendingRequests.delete(code);
+        script.remove();
+        resolve({code, status:'error', message:'主源超时'});
+      }
+    }, TIMING.FUND_JSONP_TIMEOUT);
+
+    pendingRequests.set(code, {resolve: resolve, timer: timer, gen: gen});
+
+    script.onerror = function() {
+      var entry = pendingRequests.get(code);
+      if (entry && entry.gen === gen) {
+        clearTimeout(entry.timer);
+        pendingRequests.delete(code);
+        script.remove();
+        entry.resolve({code, status:'error', message:'主源请求失败'});
+      }
     };
-    script.onload = () => { script.remove(); };
+    script.onload = function() { script.remove(); };
     document.head.appendChild(script);
   });
 }
@@ -1035,8 +1055,8 @@ function renderFundList(data) {
     html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
     html += '<div><div class="stat-label">今日估算</div><div class="stat-val ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '">' + (f.shares>0 && hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';
     if (f.shares > 0) {
-      html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt2(f.shares) + '</div></div>';
-      html += '<div><div class="stat-label">持仓市值</div><div class="stat-val">' + fmt2(f.curr_value) + '</div></div>';
+      html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
+      html += '<div><div class="stat-label">持仓市值</div><div class="stat-val">' + fmt(f.curr_value) + '</div></div>';
       html += '<div><div class="stat-label">累计盈亏</div><div class="stat-val ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';
     }
     html += '</div>';
@@ -1142,7 +1162,6 @@ function setSumVal(id, val) {
 }
 
 function fmt(n)  { return isNaN(n) ? '--' : Number(n).toFixed(2); }
-function fmt2(n) { return isNaN(n) ? '--' : Number(n).toFixed(2); }
 function fmt4(n) { return isNaN(n) ? '--' : Number(n).toFixed(4); }
 function fmtM(n) {
   if (isNaN(n)) return '--';
@@ -1246,43 +1265,99 @@ function delFund(i) {
 }
 
 // ── 页面切换 ─────────────────────────────────────────────
+var lastEditPull = 0;
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('nav-'+name).classList.add('active');
-  if (name==='edit') { renderHoldingsList(); renderCloudStatus(); pullFromCloud(true); }
+  if (name==='edit') {
+    renderHoldingsList();
+    renderCloudStatus();
+    if (hasCloudConfig() && Date.now() - lastEditPull > TIMING.CLOUD_COOLDOWN_MS) {
+      lastEditPull = Date.now();
+      pullFromCloud(true);
+    }
+  }
   else if (editingCode) cancelEdit();
   if (name==='status') fetchDeploymentStatus();
 }
 
-// ── 指数行情条（Yahoo Finance API，全球 CORS 友好） ────────
-async function fetchIndices() {
+// ── 指数行情条（腾讯行情 JSONP，全球可用无 CORS 限制） ────
+function parseTencentQuote(raw, code) {
+  // 腾讯行情返回 "~" 分隔的字符串，国内外指数字段布局不同
+  if (!raw || typeof raw !== 'string') return null;
+  var fields = raw.split('~');
+  if (fields.length < 4) return null;
+  var price = parseFloat(fields[3]);
+  if (!Number.isFinite(price) || price <= 0) return null;
+
+  var changePct;
+  if (code && code.indexOf('gz') === 0) {
+    // 海外指数（纳斯达克/标普500/黄金）：涨跌幅在 field 5
+    changePct = parseFloat(fields[5]);
+  } else {
+    // 国内指数（上证/沪深300）：涨跌幅在 field 32
+    changePct = parseFloat(fields[32]);
+    if (!Number.isFinite(changePct)) {
+      // 兜底：用昨收价（field 4）自行计算
+      var prevClose = parseFloat(fields[4]);
+      if (Number.isFinite(prevClose) && prevClose > 0) {
+        changePct = (price - prevClose) / prevClose * 100;
+      }
+    }
+  }
+  return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
+}
+
+function fetchIndices() {
   try {
-    var results = await Promise.all(INDEX_CONFIG.map(function(cfg) {
-      var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + cfg.symbol + '?interval=1d&range=1d';
-      return fetch(url)
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .catch(function() { return null; });
-    }));
-    var data = INDEX_CONFIG.map(function(cfg, i) {
-      var json = results[i];
-      try {
-        var meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
-        if (meta) {
-          var price = meta.regularMarketPrice;
-          var prevClose = meta.chartPreviousClose;
-          var chg = (Number.isFinite(prevClose) && prevClose > 0)
-            ? ((price - prevClose) / prevClose * 100)
-            : NaN;
-          return { name: cfg.name, price: price, changePct: chg };
-        }
-      } catch(e) { /* parse error, fall through */ }
-      return { name: cfg.name, price: NaN, changePct: NaN };
-    });
-    var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
-    if (anyOk) indexCache = data;
-    renderIndexBar(anyOk ? data : indexCache);
+    var codes = INDEX_CONFIG.map(function(cfg) { return cfg.code; }).join(',');
+    var script = document.createElement('script');
+    var called = false;
+
+    var timeout = setTimeout(function() {
+      if (!called) {
+        called = true;
+        script.remove();
+        if (indexCache.length) renderIndexBar(indexCache);
+      }
+    }, TIMING.INDEX_JSONP_TIMEOUT);
+
+    script.src = 'https://qt.gtimg.cn/q=' + codes + '&_t=' + Date.now();
+    script.onload = function() {
+      clearTimeout(timeout);
+      script.remove();
+      if (called) return;
+      called = true;
+
+      var data = INDEX_CONFIG.map(function(cfg) {
+        try {
+          var key = 'v_' + cfg.code;
+          var raw = window[key];
+          delete window[key];  // 清理，防止下次响应缺失时残留旧值
+          var parsed = parseTencentQuote(raw, cfg.code);
+          if (parsed && Number.isFinite(parsed.price)) {
+            return { name: cfg.name, price: parsed.price, changePct: parsed.changePct };
+          }
+        } catch(e) {}
+        return { name: cfg.name, price: NaN, changePct: NaN };
+      });
+
+      var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
+      if (anyOk) indexCache = data;
+      renderIndexBar(anyOk ? data : indexCache);
+    };
+
+    script.onerror = function() {
+      clearTimeout(timeout);
+      script.remove();
+      if (called) return;
+      called = true;
+      if (indexCache.length) renderIndexBar(indexCache);
+    };
+
+    document.head.appendChild(script);
   } catch(e) {
     if (indexCache.length) renderIndexBar(indexCache);
   }
@@ -1298,7 +1373,7 @@ function renderIndexBar(data) {
     var sign = hasData && idx.changePct >= 0 ? '+' : '';
     html += '<div class="index-item">';
     html += '<div class="index-name">' + esc(idx.name) + '</div>';
-    html += '<div class="index-price">' + (hasData ? fmt2(idx.price) : '--') + '</div>';
+    html += '<div class="index-price">' + (hasData ? fmt(idx.price) : '--') + '</div>';
     html += '<div class="index-change ' + cc + '">' + (hasData ? sign + fmt(idx.changePct) + '%' : '--') + '</div>';
     html += '</div>';
   });
@@ -1307,7 +1382,23 @@ function renderIndexBar(data) {
 
 function startIndexRefresh() {
   fetchIndices();
-  setInterval(fetchIndices, 30000);
+  // 指数行情跟随市场状态动态调整刷新间隔
+  function scheduleNext() {
+    var interval = getRefreshInterval();
+    if (interval > 0) {
+      setTimeout(function() {
+        fetchIndices();
+        scheduleNext();
+      }, interval);
+    } else {
+      // 非交易时段降低频率，每 120s 刷新一次
+      setTimeout(function() {
+        fetchIndices();
+        scheduleNext();
+      }, 120000);
+    }
+  }
+  scheduleNext();
 }
 
 // ── 市场状态 ─────────────────────────────────────────────
@@ -1438,14 +1529,14 @@ if ('serviceWorker' in navigator) {
       });
     });
     // 每 30 分钟主动检查更新
-    setInterval(function() { reg.update(); }, 1800000);
+    setInterval(function() { reg.update(); }, TIMING.SW_UPDATE_MS);
   }).catch(function() {});
 }
 
 // ── 页面可见性：切回标签页立即拉取（30s 冷却） ──────────
 var lastVisibilityPull = 0;
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && hasCloudConfig() && Date.now() - lastVisibilityPull > 30000) {
+  if (!document.hidden && hasCloudConfig() && Date.now() - lastVisibilityPull > TIMING.CLOUD_COOLDOWN_MS) {
     lastVisibilityPull = Date.now();
     pullFromCloud(true);
   }
@@ -1454,7 +1545,7 @@ document.addEventListener('visibilitychange', function() {
 // ── 初始化 ───────────────────────────────────────────────
 loadHoldings();
 updateMktStatus();
-setInterval(updateMktStatus, 30000);
+setInterval(updateMktStatus, TIMING.MKT_STATUS_MS);
 refresh();
 startAutoRefresh();
 startIndexRefresh();

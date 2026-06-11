@@ -25,7 +25,7 @@
 
 数据源：
 - 基金净值：天天基金 JSONP（主源）+ 东方财富 fetch（备源），双源并行自动降级
-- 指数行情：Yahoo Finance API（CORS 友好，全球可用）
+- 指数行情：腾讯行情 JSONP（全球可用，无 CORS 限制）
 - 基金详情：东方财富 `FundArchivesDatas.aspx`（script 注入，顺序加载）
 
 ## 部署

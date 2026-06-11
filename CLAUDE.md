@@ -58,7 +58,7 @@ FundVal/
 
 | 接口 | 方式 | 覆盖 |
 |------|------|------|
-| `query1.finance.yahoo.com/v8/finance/chart/{symbol}` | fetch (CORS) | 纳斯达克/标普500/黄金/上证/沪深300 |
+| `qt.gtimg.cn/q={codes}` | JSONP（动态 `<script>` 注入，`window.v_*` 全局变量） | 纳斯达克/标普500/黄金/上证/沪深300 |
 
 - 每 30s 刷新，离线时回退 indexCache
 - A股休市时段指数显示上一交易日收盘价
