@@ -8,15 +8,17 @@ const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const AUTO_PUSH_DELAY = 5000;  // 数据变更后 5 秒自动推送
 const AUTO_PULL_INTERVAL = 60000;  // 每 60 秒自动拉取
-// ── 指数行情配置 ───────────────────────────────────────────
-const INDEX_CONFIG = [
-  { code: '100.IXIC', name: '纳斯达克' },
-  { code: '100.SPX',  name: '标普500' },
-  { code: '112.AU9999', name: '黄金' },
-  { code: '1.000001', name: '上证指数' },
-  { code: '1.000300', name: '沪深300' }
-];
-var indexCache = [];       // 指数数据缓存，离线时兜底
+// ── 指数行情配置（新浪财经 JSONP） ────────────────────────
+const INDEX_SINA_URL = 'https://hq.sinajs.cn/list=sh000001,sh000300,gb_ixic,gb_inx,hf_XAU';
+const INDEX_MAP = {
+  sh000001: { name: '上证指数', format: 'ashare' },
+  sh000300: { name: '沪深300', format: 'ashare' },
+  gb_ixic:   { name: '纳斯达克', format: 'us' },
+  gb_inx:    { name: '标普500', format: 'us' },
+  hf_XAU:    { name: '黄金', format: 'gold' }
+};
+const INDEX_ORDER = ['gb_ixic', 'gb_inx', 'hf_XAU', 'sh000001', 'sh000300'];
+var indexCache = [];
 let holdings = [];
 let fundsData = [];
 let editingCode = null;
@@ -1256,32 +1258,50 @@ function switchPage(name) {
   if (name==='status') fetchDeploymentStatus();
 }
 
-// ── 指数行情条 ───────────────────────────────────────────
-async function fetchIndices() {
-  try {
-    var promises = INDEX_CONFIG.map(function(idx) {
-      return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=' + idx.code + '&fields=f43,f57,f58,f169,f170&_=' + Date.now())
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .catch(function() { return null; });
-    });
-    var results = await Promise.all(promises);
-    var data = INDEX_CONFIG.map(function(idx, i) {
-      var json = results[i];
-      var hasData = json && json.data;
-      return {
-        name: idx.name,
-        code: idx.code,
-        price: hasData ? parseFloat(json.data.f43) : NaN,
-        changePct: hasData ? parseFloat(json.data.f169) : NaN,
-        changeAmt: hasData ? parseFloat(json.data.f170) : NaN
-      };
-    });
-    var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
-    if (anyOk) indexCache = data;
-    renderIndexBar(anyOk ? data : indexCache);
-  } catch(e) {
+// ── 指数行情条（新浪财经 JSONP，script 注入） ──────────────
+function fetchIndices() {
+  var script = document.createElement('script');
+  script.charset = 'gb2312';
+  script.src = INDEX_SINA_URL + '&_=' + Date.now();
+  script.onload = function() {
+    script.remove();
+    try {
+      var data = INDEX_ORDER.map(function(key) {
+        var raw = window['hq_str_' + key];
+        if (!raw) return { name: INDEX_MAP[key].name, price: NaN, changePct: NaN };
+        var parts = raw.split(',');
+        var fmt = INDEX_MAP[key].format;
+        if (fmt === 'ashare') {
+          // A股指数格式: name,price,yest_close,open,high,low,...
+          var price = parseFloat(parts[1]);
+          var yest = parseFloat(parts[2]);
+          var chg = (Number.isFinite(yest) && yest > 0) ? ((price - yest) / yest * 100) : NaN;
+          return { name: INDEX_MAP[key].name, price: price, changePct: chg };
+        } else if (fmt === 'us') {
+          // 美股指数格式: name,price,changePct,datetime,changeAmt,...
+          return { name: INDEX_MAP[key].name, price: parseFloat(parts[1]), changePct: parseFloat(parts[2]) };
+        } else if (fmt === 'gold') {
+          // 黄金格式: price,prev_close,open,high,low_limit,...
+          var p = parseFloat(parts[0]);
+          var prev = parseFloat(parts[1]);
+          var chg = (Number.isFinite(prev) && prev > 0) ? ((p - prev) / prev * 100) : NaN;
+          return { name: INDEX_MAP[key].name, price: p, changePct: chg };
+        }
+        return { name: INDEX_MAP[key].name, price: NaN, changePct: NaN };
+      });
+      indexCache = data;
+      renderIndexBar(data);
+      // 清理全局变量
+      INDEX_ORDER.forEach(function(k) { delete window['hq_str_' + k]; });
+    } catch(e) {
+      if (indexCache.length) renderIndexBar(indexCache);
+    }
+  };
+  script.onerror = function() {
+    script.remove();
     if (indexCache.length) renderIndexBar(indexCache);
-  }
+  };
+  document.head.appendChild(script);
 }
 
 function renderIndexBar(data) {
