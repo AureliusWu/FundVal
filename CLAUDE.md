@@ -91,7 +91,7 @@ FundVal/
 ## 代码风格
 
 - 中文注释和 UI 文案，`esc()` 做 HTML 转义
-- `var` 声明为主，函数表达式用 `function` 关键字（非箭头函数，保持老浏览器兼容）
+- 模块级用 `const`/`let`，函数内用 `var`；函数表达式用 `function` 关键字
 - 格式化：`fmt(n)` 保留两位小数，`fmtM(n)` 带正负号+万单位，`fmtM2(n)` 无符号+万单位
 - 状态码：`ok` / `ok_fallback` / `error`
 - CSS：CSS Custom Properties 做设计 token，毛玻璃效果（`backdrop-filter`），`env(safe-area-inset-*)` 适配刘海屏

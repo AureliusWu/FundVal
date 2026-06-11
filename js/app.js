@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
-var TIMING = {
+const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
   INDEX_JSONP_TIMEOUT: 8000,      // 腾讯指数行情 JSONP 超时
   CLOUD_SYNC_TIMEOUT: 15000,      // GitHub Gist API 超时
@@ -19,28 +19,28 @@ var TIMING = {
   CLOUD_COOLDOWN_MS: 30000        // 切 Tab 云端拉取冷却
 };
 // ── 缓存持久化黑名单（这些字段为瞬时 UI 状态，不写入 localStorage） ──
-var SKIP_CACHE_KEYS = ['_cached', 'message'];
+const SKIP_CACHE_KEYS = ['_cached', 'message'];
 // ── 指数行情配置（腾讯行情 JSONP，全球可用无 CORS 限制） ──
-var INDEX_CONFIG = [
-  { code: 'gzixic',   name: '纳斯达克' },
-  { code: 'gzspx',    name: '标普500' },
-  { code: 'gzhj',     name: '黄金' },
+const INDEX_CONFIG = [
+  { code: 'us.IXIC',  name: '纳斯达克' },
+  { code: 'usINX',    name: '标普500' },
+  { code: 'usGLD',    name: '黄金' },
   { code: 'sh000001', name: '上证指数' },
   { code: 'sh000300', name: '沪深300' }
 ];
-var indexCache = [];
+let indexCache = [];
 let holdings = [];
 let fundsData = [];
 let editingCode = null;
 let sortBy = 'est_change_desc';
 let expandedFund = null;
 const holdingsCache = {};
-var managerCache = {};       // 基金经理缓存：{ code: [{name, tenureStart, tenureReturn}] }
-var fundTypeCache = {};      // 基金类型/基本信息缓存
-var fundFeeCache = {};       // 费率信息缓存
-var loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
+let managerCache = {};       // 基金经理缓存：{ code: [{name, tenureStart, tenureReturn}] }
+let fundTypeCache = {};      // 基金类型/基本信息缓存
+let fundFeeCache = {};       // 费率信息缓存
+let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
 const pendingRequests = new Map();
-var _codeGen = {};             // JSONP 请求代数计数器，防止旧回调污染新请求
+let _codeGen = {};             // JSONP 请求代数计数器，防止旧回调污染新请求
 let isRefreshing = false;
 let refreshQueued = false;
 let autoRefreshTimer = null;
@@ -1265,7 +1265,7 @@ function delFund(i) {
 }
 
 // ── 页面切换 ─────────────────────────────────────────────
-var lastEditPull = 0;
+let lastEditPull = 0;
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
@@ -1284,27 +1284,48 @@ function switchPage(name) {
 }
 
 // ── 指数行情条（腾讯行情 JSONP，全球可用无 CORS 限制） ────
-function parseTencentQuote(raw, code) {
-  // 腾讯行情返回 "~" 分隔的字符串，国内外指数字段布局不同
+
+// 腾讯 JSONP 设置 window.v_<code> 全局变量。
+// 多数 code 不含点号（如 sh000001 → window.v_sh000001），
+// 但 us.IXIC 含点号 → 实际变量为 window.v_us.IXIC。
+// 下面两个工具函数统一处理两种形式。
+function getTencentVar(code) {
+  var key = 'v_' + code;
+  if (key.indexOf('.') === -1) return window[key];
+  // 路径遍历：'v_us.IXIC' → window.v_us.IXIC
+  var parts = key.split('.');
+  var obj = window;
+  for (var i = 0; i < parts.length && obj != null; i++) {
+    obj = obj[parts[i]];
+  }
+  return obj;
+}
+function deleteTencentVar(code) {
+  var key = 'v_' + code;
+  var dot = key.indexOf('.');
+  if (dot === -1) { delete window[key]; return; }
+  // 只删除叶子属性，保留父对象（避免影响同域名下其他变量）
+  var parts = key.split('.');
+  var obj = window;
+  for (var i = 0; i < parts.length - 1 && obj != null; i++) {
+    obj = obj[parts[i]];
+  }
+  if (obj) delete obj[parts[parts.length - 1]];
+}
+
+function parseTencentQuote(raw) {
+  // 腾讯行情返回 "~" 分隔字符串。实测所有指数（sh*/us*）字段布局一致：
+  //   field 3 = 当前价, field 32 = 涨跌幅(%)
   if (!raw || typeof raw !== 'string') return null;
   var fields = raw.split('~');
   if (fields.length < 4) return null;
   var price = parseFloat(fields[3]);
   if (!Number.isFinite(price) || price <= 0) return null;
-
-  var changePct;
-  if (code && code.indexOf('gz') === 0) {
-    // 海外指数（纳斯达克/标普500/黄金）：涨跌幅在 field 5
-    changePct = parseFloat(fields[5]);
-  } else {
-    // 国内指数（上证/沪深300）：涨跌幅在 field 32
-    changePct = parseFloat(fields[32]);
-    if (!Number.isFinite(changePct)) {
-      // 兜底：用昨收价（field 4）自行计算
-      var prevClose = parseFloat(fields[4]);
-      if (Number.isFinite(prevClose) && prevClose > 0) {
-        changePct = (price - prevClose) / prevClose * 100;
-      }
+  var changePct = parseFloat(fields[32]);
+  if (!Number.isFinite(changePct)) {
+    var prevClose = parseFloat(fields[4]);
+    if (Number.isFinite(prevClose) && prevClose > 0) {
+      changePct = (price - prevClose) / prevClose * 100;
     }
   }
   return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
@@ -1333,10 +1354,11 @@ function fetchIndices() {
 
       var data = INDEX_CONFIG.map(function(cfg) {
         try {
-          var key = 'v_' + cfg.code;
-          var raw = window[key];
-          delete window[key];  // 清理，防止下次响应缺失时残留旧值
-          var parsed = parseTencentQuote(raw, cfg.code);
+          // Tencent JSONP sets window.v_<code>, but codes like 'us.IXIC'
+          // create window.v_us.IXIC — bracket notation can't traverse dots.
+          var raw = getTencentVar(cfg.code);
+          deleteTencentVar(cfg.code);
+          var parsed = parseTencentQuote(raw);
           if (parsed && Number.isFinite(parsed.price)) {
             return { name: cfg.name, price: parsed.price, changePct: parsed.changePct };
           }
@@ -1391,11 +1413,8 @@ function startIndexRefresh() {
         scheduleNext();
       }, interval);
     } else {
-      // 非交易时段降低频率，每 120s 刷新一次
-      setTimeout(function() {
-        fetchIndices();
-        scheduleNext();
-      }, 120000);
+      // 非交易时段：每 5 分钟检查一次是否进入交易时段，不浪费请求
+      setTimeout(scheduleNext, 300000);
     }
   }
   scheduleNext();
@@ -1534,7 +1553,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── 页面可见性：切回标签页立即拉取（30s 冷却） ──────────
-var lastVisibilityPull = 0;
+let lastVisibilityPull = 0;
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden && hasCloudConfig() && Date.now() - lastVisibilityPull > TIMING.CLOUD_COOLDOWN_MS) {
     lastVisibilityPull = Date.now();
