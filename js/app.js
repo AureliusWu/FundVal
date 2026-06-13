@@ -24,7 +24,7 @@ const SKIP_CACHE_KEYS = ['_cached', 'message'];
 const INDEX_CONFIG = [
   { code: 'usIXIC',   name: '纳斯达克' },
   { code: 'usINX',    name: '标普500' },
-  { code: 'au9999',   name: '黄金', source: 'eastmoney' },
+  { code: 'au9999',   name: '黄金', source: 'sina' },
   { code: 'sh000001', name: '上证指数' },
   { code: 'sh000300', name: '沪深300' }
 ];
@@ -1247,38 +1247,90 @@ function parseTencentQuote(raw) {
   return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
 }
 
-// ── 黄金 AU9999 实时金价（东方财富 API） ────────────────────
-async function fetchGoldPrice() {
-  try {
-    // 东方财富 SGE 上海金交所行情，secid=113 为 SGE 市场代码
-    var resp = await fetch(
-      'https://push2.eastmoney.com/api/qt/stock/get?secid=113.au9999&fields=f43,f169,f170,f57,f58&_=' + Date.now()
-    );
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    var json = await resp.json();
-    if (!json || !json.data || json.data.f43 === undefined) throw new Error('无数据');
-    var price = parseFloat(json.data.f43);
-    if (!Number.isFinite(price) || price <= 0) throw new Error('价格无效');
-    // f169 = 涨跌额, f170 = 涨跌幅(%)
-    var changePct = parseFloat(json.data.f170);
-    return { name: '黄金', price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
-  } catch(e) {
-    return { name: '黄金', price: NaN, changePct: NaN };
-  }
+// ── 黄金 AU9999 实时金价（新浪财经 JSONP） ──────────────────
+function fetchGoldPrice() {
+  return new Promise(function(resolve) {
+    var script = document.createElement('script');
+    script.setAttribute('referrerpolicy', 'no-referrer');
+    var called = false;
+
+    var timeout = setTimeout(function() {
+      if (!called) {
+        called = true;
+        script.remove();
+        try { delete window.hq_str_au9999; } catch(e) {}
+        resolve({ name: '黄金', price: NaN, changePct: NaN });
+      }
+    }, TIMING.INDEX_JSONP_TIMEOUT);
+
+    script.src = 'https://hq.sinajs.cn/list=au9999&_=' + Date.now();
+
+    script.onload = function() {
+      clearTimeout(timeout);
+      script.remove();
+      if (called) return;
+      called = true;
+
+      try {
+        var raw = window.hq_str_au9999;
+        try { delete window.hq_str_au9999; } catch(e) {}
+        if (!raw || typeof raw !== 'string') throw new Error('无数据');
+
+        var fields = raw.split(',');
+        if (fields.length < 4) throw new Error('字段不足');
+
+        // 新浪商品/期货行情格式（逗号分隔）：
+        //   field 0=名称, field 1=今开, field 2=昨收, field 3=最新价
+        var f1 = parseFloat(fields[1]);
+        var f2 = parseFloat(fields[2]);
+        var f3 = parseFloat(fields[3]);
+
+        var price, prevClose;
+        // 先按 field[3]=最新价 解析
+        if (Number.isFinite(f3) && f3 > 10) {
+          price = f3;
+          prevClose = Number.isFinite(f2) && f2 > 10 ? f2 : NaN;
+        // field[1] 也可能是最新价（少数商品格式）
+        } else if (Number.isFinite(f1) && f1 > 10) {
+          price = f1;
+          prevClose = Number.isFinite(f2) && f2 > 10 ? f2 : NaN;
+        } else {
+          throw new Error('价格解析失败 fields=' + fields.slice(0,4).join(','));
+        }
+
+        var changePct = Number.isFinite(prevClose) && prevClose > 0
+          ? ((price - prevClose) / prevClose * 100) : NaN;
+
+        resolve({ name: '黄金', price: price, changePct: changePct });
+      } catch(e) {
+        resolve({ name: '黄金', price: NaN, changePct: NaN });
+      }
+    };
+
+    script.onerror = function() {
+      clearTimeout(timeout);
+      script.remove();
+      if (called) return;
+      called = true;
+      resolve({ name: '黄金', price: NaN, changePct: NaN });
+    };
+
+    document.head.appendChild(script);
+  });
 }
 
 function fetchIndices() {
   try {
-    var tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'eastmoney'; });
-    var eastmoneyItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source === 'eastmoney'; });
+    var tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'sina'; });
+    var externalItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source === 'sina'; });
 
-    // 并发获取东方财富数据（黄金等）
-    var emPromises = eastmoneyItems.map(function(cfg) {
-      return fetchGoldPrice(); // 目前只有黄金走 Eastmoney
+    // 并发获取外部数据源（黄金 AU9999 → 新浪财经 JSONP）
+    var extPromises = externalItems.map(function(cfg) {
+      return fetchGoldPrice();
     });
 
     var codes = tencentItems.map(function(cfg) { return cfg.code; }).join(',');
-    if (!codes && !emPromises.length) {
+    if (!codes && !extPromises.length) {
       if (indexCache.length) renderIndexBar(indexCache);
       return;
     }
@@ -1290,8 +1342,8 @@ function fetchIndices() {
       if (!called) {
         called = true;
         script.remove();
-        Promise.all(emPromises).then(function(emResults) {
-          var data = buildIndexData(tencentItems, [], emResults, eastmoneyItems);
+        Promise.all(extPromises).then(function(extResults) {
+          var data = buildIndexData(tencentItems, [], extResults);
           resolveIndexData(data);
         });
       }
@@ -1315,8 +1367,8 @@ function fetchIndices() {
         return { name: cfg.name, price: NaN, changePct: NaN };
       });
 
-      Promise.all(emPromises).then(function(emResults) {
-        var data = buildIndexData(tencentItems, tencentData, emResults, eastmoneyItems);
+      Promise.all(extPromises).then(function(extResults) {
+        var data = buildIndexData(tencentItems, tencentData, extResults);
         resolveIndexData(data);
       });
     };
@@ -1326,8 +1378,8 @@ function fetchIndices() {
       script.remove();
       if (called) return;
       called = true;
-      Promise.all(emPromises).then(function(emResults) {
-        var data = buildIndexData(tencentItems, [], emResults, eastmoneyItems);
+      Promise.all(extPromises).then(function(extResults) {
+        var data = buildIndexData(tencentItems, [], extResults);
         resolveIndexData(data);
       });
     };
@@ -1337,8 +1389,8 @@ function fetchIndices() {
       document.head.appendChild(script);
     } else {
       // 没有需要走腾讯的指数，直接等东方财富结果
-      Promise.all(emPromises).then(function(emResults) {
-        var data = buildIndexData(tencentItems, [], emResults, eastmoneyItems);
+      Promise.all(extPromises).then(function(extResults) {
+        var data = buildIndexData(tencentItems, [], extResults);
         resolveIndexData(data);
       });
     }
@@ -1348,11 +1400,11 @@ function fetchIndices() {
 }
 
 // 按 INDEX_CONFIG 原始顺序重建数据数组
-function buildIndexData(tencentItems, tencentData, emResults, eastmoneyItems) {
+function buildIndexData(tencentItems, tencentData, extResults) {
   var ti = 0, ei = 0;
   return INDEX_CONFIG.map(function(cfg) {
-    if (cfg.source === 'eastmoney') {
-      return emResults[ei++] || { name: cfg.name, price: NaN, changePct: NaN };
+    if (cfg.source === 'sina') {
+      return extResults[ei++] || { name: cfg.name, price: NaN, changePct: NaN };
     } else {
       return (tencentData[ti] && tencentData[ti].name === cfg.name)
         ? tencentData[ti++] : { name: cfg.name, price: NaN, changePct: NaN };

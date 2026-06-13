@@ -58,10 +58,10 @@ FundVal/
 
 | 接口 | 方式 | 覆盖 |
 |------|------|------|
-| `qt.gtimg.cn/q={codes}` | JSONP（动态 `<script>` 注入，`window.v_*` 全局变量） | 纳斯达克/标普500/上证/沪深300 |
-| `push2.eastmoney.com/api/qt/stock/get?secid=113.au9999` | fetch (CORS) | AU9999 上海金交所实时金价（元/克） |
+| `qt.gtimg.cn/q={codes}` | JSONP（`<script>` 注入，`window.v_*`） | 纳斯达克/标普500/上证/沪深300 |
+| `hq.sinajs.cn/list=au9999` | JSONP（`<script>` 注入，`window.hq_str_au9999`） | AU9999 上海金交所实时金价（元/克） |
 
-- 两种数据源并行获取，`buildIndexData()` 按 INDEX_CONFIG 原始顺序合并
+- `INDEX_CONFIG` 中用 `source: 'sina'` 标记外部数据源项，`fetchIndices()` 自动分流
 - 每 30s 刷新，离线时回退 indexCache
 - A 股休市时段指数显示上一交易日收盘价
 
@@ -103,7 +103,7 @@ FundVal/
 - **SW 缓存策略（v6）**：JS/CSS 用 network-first（确保最新），API 域名（`1234567.com.cn` + `eastmoney.com`）跳过 SW 始终走网络，其他静态资源用 stale-while-revalidate
 - **SW 自动更新**：每 30 分钟 `reg.update()`，检测到新版本时弹 toast 提示用户刷新
 - **不要动 `window.jsonpgz` 全局回调** — 天天基金 JSONP 接口靠这个函数名接收数据
-- **不要动 `window.apidata` 全局变量** — 基金详情 4 个 type 共用此变量，必须顺序加载（`injectFundScript` + `fetchFundDetails`）
+- **不要动 `window.apidata` 全局变量** — 基金详情 3 个 type 共用此变量，必须顺序加载（`injectFundScript` + `fetchFundDetails`）
 - 修改基金数据接口时，要同时处理主源失败→备源降级的逻辑
 - 新增 localStorage key 时遵循现有命名规范：`fuyu_<name>_v<version>`
 
