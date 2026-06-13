@@ -59,7 +59,7 @@ FundVal/
 | 接口 | 方式 | 覆盖 |
 |------|------|------|
 | `qt.gtimg.cn/q={codes}` | JSONP（`<script>` 注入，`window.v_*`） | 纳斯达克/标普500/上证/沪深300 |
-| `hq.sinajs.cn/list=au9999` | JSONP（`<script>` 注入，`window.hq_str_au9999`） | AU9999 上海金交所实时金价（元/克） |
+| `hq.sinajs.cn/list=AU0` | JSONP（`<script>` 注入，`window.hq_str_AU0`，`referrerpolicy=no-referrer`） | 沪金连续合约，与 AU9999 现货高度同步（元/克） |
 
 - `INDEX_CONFIG` 中用 `source: 'sina'` 标记外部数据源项，`fetchIndices()` 自动分流
 - 每 30s 刷新，离线时回退 indexCache
