@@ -29,7 +29,7 @@ FundVal/
 
 | 区域 | DOM id | 功能 |
 |------|--------|------|
-| 指数条 | `#index-bar` | 横向滚动：纳斯达克/标普500/黄金/上证/沪深300 实时数值 |
+| 指数条 | `#index-bar` | 横向滚动：纳斯达克/标普500/AU9999金价/上证/沪深300 实时数值 |
 | 行情 | `#page-market` | 基金卡片列表、排序、重仓股/经理/费率展开、收益日历 |
 | 持仓 | `#page-edit` | 增删改持仓（支持0份额仅关注）、云同步、导入导出 JSON |
 | 状态 | `#page-status` | GitHub 最近提交信息 |
@@ -58,23 +58,24 @@ FundVal/
 
 | 接口 | 方式 | 覆盖 |
 |------|------|------|
-| `qt.gtimg.cn/q={codes}` | JSONP（动态 `<script>` 注入，`window.v_*` 全局变量） | 纳斯达克/标普500/黄金/上证/沪深300 |
+| `qt.gtimg.cn/q={codes}` | JSONP（动态 `<script>` 注入，`window.v_*` 全局变量） | 纳斯达克/标普500/上证/沪深300 |
+| `push2.eastmoney.com/api/qt/stock/get?secid=113.au9999` | fetch (CORS) | AU9999 上海金交所实时金价（元/克） |
 
+- 两种数据源并行获取，`buildIndexData()` 按 INDEX_CONFIG 原始顺序合并
 - 每 30s 刷新，离线时回退 indexCache
-- A股休市时段指数显示上一交易日收盘价
+- A 股休市时段指数显示上一交易日收盘价
 
 **基金详情（顺序 script 注入，共用 window.apidata 管线）**
 
 | type | 内容 | 缓存变量 |
 |------|------|----------|
 | `jjcc` | 十大重仓股 | `holdingsCache` |
-| `jjjl` | 基金经理（姓名/任职日期/任职回报） | `managerCache` |
 | `jjxx` | 基金类型、成立日期、规模 | `fundTypeCache` |
 | `jjfl` | 申购/赎回/管理/托管费率 | `fundFeeCache` |
 
 - 接口：`fundf10.eastmoney.com/FundArchivesDatas.aspx?type={type}&code={code}`
 - 方式：`<script>` 标签注入 → `injectFundScript()` Promise 化
-- **顺序加载**：`fetchFundDetails()` 逐一加载 4 个 type，避免 `window.apidata` 覆盖冲突
+- **顺序加载**：`fetchFundDetails()` 逐一加载 3 个 type，避免 `window.apidata` 覆盖冲突
 - 用户收起卡片时中断后续加载（`expandedFund !== code` 检查）
 
 ### localStorage 键名

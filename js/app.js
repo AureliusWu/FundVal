@@ -24,7 +24,7 @@ const SKIP_CACHE_KEYS = ['_cached', 'message'];
 const INDEX_CONFIG = [
   { code: 'usIXIC',   name: '纳斯达克' },
   { code: 'usINX',    name: '标普500' },
-  { code: 'usGLD',    name: '黄金' },
+  { code: 'au9999',   name: '黄金', source: 'eastmoney' },
   { code: 'sh000001', name: '上证指数' },
   { code: 'sh000300', name: '沪深300' }
 ];
@@ -35,7 +35,6 @@ let editingCode = null;
 let sortBy = 'est_change_desc';
 let expandedFund = null;
 const holdingsCache = {};
-let managerCache = {};       // 基金经理缓存：{ code: [{name, tenureStart, tenureReturn}] }
 let fundTypeCache = {};      // 基金类型/基本信息缓存
 let fundFeeCache = {};       // 费率信息缓存
 let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
@@ -860,7 +859,7 @@ function injectFundScript(url) {
   });
 }
 
-// ── 顺序加载基金详情（重仓股 → 基金经理 → 基金类型 → 费率） ──
+// ── 顺序加载基金详情（重仓股 → 基金类型 → 费率） ──
 async function fetchFundDetails(code) {
   loadingDetails = code;
 
@@ -875,18 +874,7 @@ async function fetchFundDetails(code) {
     renderFundList(fundsData);
   }
 
-  // 2. 基金经理 (jjjl)
-  if (managerCache[code] === undefined) {
-    try {
-      var d2 = await injectFundScript(
-        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjjl&code=' + code + '&_=' + Date.now());
-      managerCache[code] = parseManagerData(d2) || [];
-    } catch(e) { managerCache[code] = []; }
-    if (expandedFund !== code) { loadingDetails = null; return; }
-    renderFundList(fundsData);
-  }
-
-  // 3. 基金类型/基本信息 (jjxx)
+  // 2. 基金类型/基本信息 (jjxx)
   if (fundTypeCache[code] === undefined) {
     try {
       var d3 = await injectFundScript(
@@ -897,7 +885,7 @@ async function fetchFundDetails(code) {
     renderFundList(fundsData);
   }
 
-  // 4. 基金费率 (jjfl)
+  // 3. 基金费率 (jjfl)
   if (fundFeeCache[code] === undefined) {
     try {
       var d4 = await injectFundScript(
@@ -932,27 +920,6 @@ function parseHoldingsData(data) {
     });
   }
   return stocks.length ? stocks : null;
-}
-
-// ── 基金经理解析 ───────────────────────────────────────────
-function parseManagerData(data) {
-  if (!data || !data.content) return null;
-  var div = document.createElement('div');
-  div.innerHTML = data.content;
-  // 经理表格常见 class: jloff, w782 comm
-  var rows = div.querySelectorAll('table tbody tr');
-  var managers = [];
-  for (var i = 0; i < rows.length; i++) {
-    var cells = rows[i].children;
-    if (cells.length < 4) continue;
-    var nameEl = cells[0].querySelector('a');
-    var name = nameEl ? nameEl.textContent.trim() : (cells[0].textContent || '').trim();
-    if (!name) continue;
-    var tenureStart = (cells[1].textContent || '').trim();
-    var tenureReturn = (cells[3].textContent || '').trim();
-    managers.push({ name: name, tenureStart: tenureStart, tenureReturn: tenureReturn });
-  }
-  return managers.length ? managers : null;
 }
 
 // ── 基金基本类型解析 ──────────────────────────────────────
@@ -1079,28 +1046,6 @@ function renderFundList(data) {
         html += '</div>';
       }
 
-      // 基金经理
-      html += '<div class="manager-section">';
-      html += '<div class="manager-section-title">基金经理</div>';
-      if (managerCache[f.code] === undefined) {
-        html += '<div class="manager-loading">加载中...</div>';
-      } else if (!managerCache[f.code] || !managerCache[f.code].length) {
-        html += '<div class="manager-empty">暂无数据</div>';
-      } else {
-        managerCache[f.code].forEach(function(m) {
-          var retClass = '';
-          var retNum = parseFloat(m.tenureReturn);
-          if (!isNaN(retNum)) retClass = retNum >= 0 ? 'up' : 'down';
-          html += '<div class="manager-card">';
-          html += '<div class="manager-name">' + esc(m.name) + '</div>';
-          html += '<div class="manager-info-grid">';
-          html += '<div class="manager-info-item"><span class="manager-info-label">任职起始</span><span class="manager-info-val">' + esc(m.tenureStart) + '</span></div>';
-          html += '<div class="manager-info-item"><span class="manager-info-label">任职回报</span><span class="manager-info-val ' + retClass + '">' + esc(m.tenureReturn) + '</span></div>';
-          html += '</div></div>';
-        });
-      }
-      html += '</div>';
-
       // 基金信息 & 费率
       var hasType = fundTypeCache[f.code] !== undefined;
       var hasFee = fundFeeCache[f.code] !== undefined;
@@ -1185,12 +1130,12 @@ function renderHoldingsList() {
     return;
   }
   list.innerHTML = holdings.map((h,i) => `
-    <div class="holding-item">
+    <div class="holding-item" onclick="editFund('${h.code}')" style="cursor:pointer">
       <div>
         <div class="h-name">${esc(h.name||h.code)}</div>
         <div class="h-detail">${h.code} · ${h.shares}份 · 成本${h.cost}</div>
       </div>
-      <button class="del-btn" onclick="delFund(${i})">×</button>
+      <button class="del-btn" onclick="event.stopPropagation();delFund(${i})">×</button>
     </div>`).join('');
 }
 
@@ -1302,9 +1247,42 @@ function parseTencentQuote(raw) {
   return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
 }
 
+// ── 黄金 AU9999 实时金价（东方财富 API） ────────────────────
+async function fetchGoldPrice() {
+  try {
+    // 东方财富 SGE 上海金交所行情，secid=113 为 SGE 市场代码
+    var resp = await fetch(
+      'https://push2.eastmoney.com/api/qt/stock/get?secid=113.au9999&fields=f43,f169,f170,f57,f58&_=' + Date.now()
+    );
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var json = await resp.json();
+    if (!json || !json.data || json.data.f43 === undefined) throw new Error('无数据');
+    var price = parseFloat(json.data.f43);
+    if (!Number.isFinite(price) || price <= 0) throw new Error('价格无效');
+    // f169 = 涨跌额, f170 = 涨跌幅(%)
+    var changePct = parseFloat(json.data.f170);
+    return { name: '黄金', price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
+  } catch(e) {
+    return { name: '黄金', price: NaN, changePct: NaN };
+  }
+}
+
 function fetchIndices() {
   try {
-    var codes = INDEX_CONFIG.map(function(cfg) { return cfg.code; }).join(',');
+    var tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'eastmoney'; });
+    var eastmoneyItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source === 'eastmoney'; });
+
+    // 并发获取东方财富数据（黄金等）
+    var emPromises = eastmoneyItems.map(function(cfg) {
+      return fetchGoldPrice(); // 目前只有黄金走 Eastmoney
+    });
+
+    var codes = tencentItems.map(function(cfg) { return cfg.code; }).join(',');
+    if (!codes && !emPromises.length) {
+      if (indexCache.length) renderIndexBar(indexCache);
+      return;
+    }
+
     var script = document.createElement('script');
     var called = false;
 
@@ -1312,21 +1290,23 @@ function fetchIndices() {
       if (!called) {
         called = true;
         script.remove();
-        if (indexCache.length) renderIndexBar(indexCache);
+        Promise.all(emPromises).then(function(emResults) {
+          var data = buildIndexData(tencentItems, [], emResults, eastmoneyItems);
+          resolveIndexData(data);
+        });
       }
     }, TIMING.INDEX_JSONP_TIMEOUT);
 
-    script.src = 'https://qt.gtimg.cn/q=' + codes + '&_t=' + Date.now();
     script.onload = function() {
       clearTimeout(timeout);
       script.remove();
       if (called) return;
       called = true;
 
-      var data = INDEX_CONFIG.map(function(cfg) {
+      var tencentData = tencentItems.map(function(cfg) {
         try {
           var raw = window['v_' + cfg.code];
-          delete window['v_' + cfg.code];  // 清理，防止下次响应缺失时残留旧值
+          delete window['v_' + cfg.code];
           var parsed = parseTencentQuote(raw);
           if (parsed && Number.isFinite(parsed.price)) {
             return { name: cfg.name, price: parsed.price, changePct: parsed.changePct };
@@ -1335,9 +1315,10 @@ function fetchIndices() {
         return { name: cfg.name, price: NaN, changePct: NaN };
       });
 
-      var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
-      if (anyOk) indexCache = data;
-      renderIndexBar(anyOk ? data : indexCache);
+      Promise.all(emPromises).then(function(emResults) {
+        var data = buildIndexData(tencentItems, tencentData, emResults, eastmoneyItems);
+        resolveIndexData(data);
+      });
     };
 
     script.onerror = function() {
@@ -1345,13 +1326,44 @@ function fetchIndices() {
       script.remove();
       if (called) return;
       called = true;
-      if (indexCache.length) renderIndexBar(indexCache);
+      Promise.all(emPromises).then(function(emResults) {
+        var data = buildIndexData(tencentItems, [], emResults, eastmoneyItems);
+        resolveIndexData(data);
+      });
     };
 
-    document.head.appendChild(script);
+    if (codes) {
+      script.src = 'https://qt.gtimg.cn/q=' + codes + '&_t=' + Date.now();
+      document.head.appendChild(script);
+    } else {
+      // 没有需要走腾讯的指数，直接等东方财富结果
+      Promise.all(emPromises).then(function(emResults) {
+        var data = buildIndexData(tencentItems, [], emResults, eastmoneyItems);
+        resolveIndexData(data);
+      });
+    }
   } catch(e) {
     if (indexCache.length) renderIndexBar(indexCache);
   }
+}
+
+// 按 INDEX_CONFIG 原始顺序重建数据数组
+function buildIndexData(tencentItems, tencentData, emResults, eastmoneyItems) {
+  var ti = 0, ei = 0;
+  return INDEX_CONFIG.map(function(cfg) {
+    if (cfg.source === 'eastmoney') {
+      return emResults[ei++] || { name: cfg.name, price: NaN, changePct: NaN };
+    } else {
+      return (tencentData[ti] && tencentData[ti].name === cfg.name)
+        ? tencentData[ti++] : { name: cfg.name, price: NaN, changePct: NaN };
+    }
+  });
+}
+
+function resolveIndexData(data) {
+  var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
+  if (anyOk) indexCache = data;
+  renderIndexBar(anyOk ? data : indexCache);
 }
 
 function renderIndexBar(data) {

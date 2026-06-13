@@ -683,61 +683,6 @@ html, body {
 .fund-card.watch-only { opacity: .85; }
 .fund-card.watch-only::before { background: var(--muted); opacity: .5; }
 
-/* ── manager section ─────────────────────────────── */
-.manager-section {
-  margin-top: 10px;
-}
-.manager-section-title {
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  font-weight: 500;
-  margin-bottom: 6px;
-}
-.manager-card {
-  background: var(--bg);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 11px;
-  margin-bottom: 6px;
-}
-.manager-card:last-child { margin-bottom: 0; }
-.manager-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-.manager-info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 12px;
-}
-.manager-info-item {
-  display: flex;
-  flex-direction: column;
-}
-.manager-info-label {
-  color: var(--muted);
-  font-size: 10px;
-}
-.manager-info-val {
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  font-size: 12px;
-}
-.manager-info-val.up { color: var(--up); }
-.manager-info-val.down { color: var(--down); }
-.manager-loading,
-.manager-empty {
-  text-align: center;
-  color: var(--muted);
-  font-size: 11px;
-  padding: 8px 0;
-}
-
 /* ── fund rules / fees ───────────────────────────── */
 .rules-section {
   margin-top: 10px;
@@ -891,6 +836,13 @@ html, body {
     max-width: 480px;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .index-bar-inner {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
   }
 
   .bottom-nav {
