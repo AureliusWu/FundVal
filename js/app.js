@@ -24,11 +24,13 @@ const SKIP_CACHE_KEYS = ['_cached', 'message'];
 const INDEX_CONFIG = [
   { code: 'usIXIC',   name: '纳斯达克' },
   { code: 'usINX',    name: '标普500' },
-  { code: 'AU0',      name: '黄金', source: 'sina' },
+  { code: 'AU9999',   name: '黄金9999', source: 'gold' },
   { code: 'sh000001', name: '上证指数' },
   { code: 'sh000300', name: '沪深300' }
 ];
-let indexCache = [];
+let indexCache = INDEX_CONFIG.map(function(cfg) {
+  return { name: cfg.name, price: NaN, changePct: NaN };
+});
 let holdings = [];
 let fundsData = [];
 let editingCode = null;
@@ -1247,83 +1249,52 @@ function parseTencentQuote(raw) {
   return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
 }
 
-// ── 黄金 AU9999 实时金价（新浪财经 JSONP，代码 AU0=沪金连续） ──
+// ── 黄金 AU9999 实时金价（东方财富 push2 API，secid=118.AU9999，CORS 友好） ──
 function fetchGoldPrice() {
   return new Promise(function(resolve) {
-    var script = document.createElement('script');
-    script.setAttribute('referrerpolicy', 'no-referrer');
-    var called = false;
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, TIMING.INDEX_JSONP_TIMEOUT);
 
-    var timeout = setTimeout(function() {
-      if (!called) {
-        called = true;
-        script.remove();
-        try { delete window.hq_str_AU0; } catch(e) {}
-        resolve({ name: '黄金', price: NaN, changePct: NaN });
+    fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=118.AU9999&fields=f43,f60,f170&fltt=2&_=' + Date.now(), {
+      signal: controller.signal
+    }).then(function(resp) {
+      clearTimeout(timer);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    }).then(function(json) {
+      var d = json && json.data;
+      var price = d ? parseNav(d.f43) : NaN;
+      if (!isUsableNav(price)) throw new Error('无数据');
+
+      var changePct = d ? parseNav(d.f170) : NaN;
+      if (!Number.isFinite(changePct)) {
+        var prevClose = parseNav(d.f60);
+        changePct = (Number.isFinite(prevClose) && prevClose > 0)
+          ? (price - prevClose) / prevClose * 100 : NaN;
       }
-    }, TIMING.INDEX_JSONP_TIMEOUT);
-
-    // AU0 = 上海期货交易所黄金连续合约，价格 CNY/克，与 AU9999 现货高度同步
-    script.src = 'https://hq.sinajs.cn/list=AU0&_=' + Date.now();
-
-    script.onload = function() {
-      clearTimeout(timeout);
-      script.remove();
-      if (called) return;
-      called = true;
-
-      try {
-        var raw = window.hq_str_AU0;
-        try { delete window.hq_str_AU0; } catch(e) {}
-        if (!raw || typeof raw !== 'string') throw new Error('无数据');
-
-        var fields = raw.split(',');
-        if (fields.length < 8) throw new Error('字段不足');
-
-        // 新浪期货行情格式 (AU0)：
-        //   0=名称, 1=今开, 2=最高, 3=最低, 4=昨结算,
-        //   5=买价, 6=卖价, 7=最新价, 8=结算价, 9=昨收…
-        // 策略：扫描所有字段，在合理金价区间(100~3000)内找最新价
-        var candidates = [];
-        for (var i = 1; i < fields.length; i++) {
-          var v = parseFloat(fields[i]);
-          if (Number.isFinite(v) && v > 100 && v < 3000) candidates.push({ idx: i, val: v });
-        }
-
-        if (!candidates.length) throw new Error('无有效价格');
-
-        // 最新价通常靠后（field 7 附近），取最后一个在合理区间的值
-        var price = candidates[candidates.length - 1].val;
-
-        // 昨结/昨收通常在 field 4 或前面某个候选值
-        var prevClose = candidates.length >= 2
-          ? candidates[candidates.length - 2].val
-          : NaN;
-
-        var changePct = Number.isFinite(prevClose) && prevClose > 0
-          ? ((price - prevClose) / prevClose * 100) : NaN;
-
-        resolve({ name: '黄金', price: price, changePct: changePct });
-      } catch(e) {
-        resolve({ name: '黄金', price: NaN, changePct: NaN });
-      }
-    };
-
-    script.onerror = function() {
-      clearTimeout(timeout);
-      script.remove();
-      if (called) return;
-      called = true;
-      resolve({ name: '黄金', price: NaN, changePct: NaN });
-    };
-
-    document.head.appendChild(script);
+      resolve({ name: '黄金9999', price: price, changePct: changePct });
+    }).catch(function() {
+      clearTimeout(timer);
+      resolve({ name: '黄金9999', price: NaN, changePct: NaN });
+    });
   });
 }
 
 function fetchIndices() {
+  // 黄金9999：独立 fetch，与下方腾讯指数行情并行，互不阻塞
+  fetchGoldPrice().then(function(gold) {
+    if (!Number.isFinite(gold.price)) return;
+    for (var i = 0; i < INDEX_CONFIG.length; i++) {
+      if (INDEX_CONFIG[i].source === 'gold') {
+        indexCache[i] = gold;
+        renderIndexBar(indexCache);
+        break;
+      }
+    }
+  });
+
   try {
-    var tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'sina'; });
+    var tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'gold'; });
 
     var codes = tencentItems.map(function(cfg) { return cfg.code; }).join(',');
     if (!codes) {
@@ -1348,11 +1319,8 @@ function fetchIndices() {
       if (called) return;
       called = true;
 
-      var data = INDEX_CONFIG.map(function(cfg) {
-        if (cfg.source === 'sina') {
-          // 新浪数据异步补位：先占位，后续更新
-          return { name: cfg.name, price: NaN, changePct: NaN };
-        }
+      var data = INDEX_CONFIG.map(function(cfg, i) {
+        if (cfg.source === 'gold') return indexCache[i];
         try {
           var raw = window['v_' + cfg.code];
           delete window['v_' + cfg.code];
@@ -1367,19 +1335,6 @@ function fetchIndices() {
       var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
       if (anyOk) indexCache = data;
       renderIndexBar(anyOk ? data : indexCache);
-
-      // 异步获取黄金金价并更新指数栏
-      fetchGoldPrice().then(function(gold) {
-        if (!Number.isFinite(gold.price)) return;
-        // 找到黄金位置并更新
-        for (var i = 0; i < indexCache.length; i++) {
-          if (INDEX_CONFIG[i].source === 'sina') {
-            indexCache[i] = gold;
-            break;
-          }
-        }
-        renderIndexBar(indexCache);
-      });
     };
 
     script.onerror = function() {
