@@ -49,6 +49,7 @@ let syncPending = false;       // 是否有待推送的本地变更
 let syncDebounceTimer = null;  // 防抖定时器
 let autoPullTimer = null;      // 定时拉取
 let isSyncing = false;         // 是否正在同步中
+let goldCache = { price: NaN, changePct: NaN, time: 0 };  // 金价缓存，API 全部失败时兜底
 
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
@@ -1249,12 +1250,26 @@ function parseTencentQuote(raw) {
   return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
 }
 
-// ── 黄金 AU9999 实时金价（东方财富 push2 API，secid=118.AU9999，CORS 友好） ──
-function fetchGoldPrice() {
+// ── 黄金 AU9999 实时金价（主源：新浪 JSONP；备源：东方财富 push2；最终兜底：本地缓存） ──
+function parseSinaGoldQuote(raw) {
+  // 新浪 AU9999 返回逗号分隔: field[0]=名称, field[1]=今开, field[2]=昨收, field[3]=最新价
+  if (!raw || typeof raw !== 'string') return null;
+  var fields = raw.split(',');
+  if (fields.length < 4) return null;
+  var price = parseFloat(fields[3]);
+  if (!isUsableNav(price)) return null;
+  var prevClose = parseFloat(fields[2]);
+  var changePct = NaN;
+  if (Number.isFinite(prevClose) && prevClose > 0) {
+    changePct = (price - prevClose) / prevClose * 100;
+  }
+  return { name: '黄金9999', price: price, changePct: changePct };
+}
+
+function fetchGoldFromEastmoney() {
   return new Promise(function(resolve) {
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, TIMING.INDEX_JSONP_TIMEOUT);
-
     fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=118.AU9999&fields=f43,f57,f60,f170&fltt=2&_=' + Date.now(), {
       signal: controller.signal
     }).then(function(resp) {
@@ -1268,7 +1283,6 @@ function fetchGoldPrice() {
       if (!isUsableNav(price)) price = d ? parseNav(d.f57) : NaN;
       if (!isUsableNav(price)) price = d ? parseNav(d.f60) : NaN;
       if (!isUsableNav(price)) throw new Error('无数据');
-
       var changePct = d ? parseNav(d.f170) : NaN;
       if (!Number.isFinite(changePct)) {
         var prevClose = parseNav(d.f60);
@@ -1278,8 +1292,81 @@ function fetchGoldPrice() {
       resolve({ name: '黄金9999', price: price, changePct: changePct });
     }).catch(function() {
       clearTimeout(timer);
-      resolve({ name: '黄金9999', price: NaN, changePct: NaN });
+      resolve(null);
     });
+  });
+}
+
+function fetchGoldPrice() {
+  return new Promise(function(resolve) {
+    var done = false;
+    function finish(result) {
+      if (done) return;
+      done = true;
+      if (result && Number.isFinite(result.price)) {
+        goldCache = { price: result.price, changePct: result.changePct, time: Date.now() };
+      }
+      resolve(result || { name: '黄金9999', price: NaN, changePct: NaN });
+    }
+
+    // ── 主源：新浪 JSONP（盘后也稳定返回数据） ──
+    var sinaTimer = setTimeout(function() {
+      if (done) return;
+      try { delete window.hq_str_au9999; } catch(e) {}
+      // 新浪超时 → 走备源
+      fetchGoldFromEastmoney().then(function(em) {
+        if (em && Number.isFinite(em.price)) { finish(em); return; }
+        // 备源也失败 → 兜底缓存
+        if (Number.isFinite(goldCache.price)) {
+          finish({ name: '黄金9999', price: goldCache.price, changePct: goldCache.changePct });
+        } else {
+          finish(null);
+        }
+      });
+    }, TIMING.INDEX_JSONP_TIMEOUT);
+
+    var script = document.createElement('script');
+    script.setAttribute('referrerpolicy', 'no-referrer');
+    script.src = 'https://hq.sinajs.cn/list=au9999&_=' + Date.now();
+
+    script.onload = function() {
+      clearTimeout(sinaTimer);
+      script.remove();
+      if (done) return;
+      try {
+        var raw = window.hq_str_au9999;
+        delete window.hq_str_au9999;
+        var parsed = parseSinaGoldQuote(raw);
+        if (parsed) { finish(parsed); return; }
+      } catch(e) {}
+      // 新浪数据无效 → 走备源
+      fetchGoldFromEastmoney().then(function(em) {
+        if (em && Number.isFinite(em.price)) { finish(em); return; }
+        if (Number.isFinite(goldCache.price)) {
+          finish({ name: '黄金9999', price: goldCache.price, changePct: goldCache.changePct });
+        } else {
+          finish(null);
+        }
+      });
+    };
+
+    script.onerror = function() {
+      clearTimeout(sinaTimer);
+      script.remove();
+      if (done) return;
+      try { delete window.hq_str_au9999; } catch(e) {}
+      // 新浪加载失败 → 走备源
+      fetchGoldFromEastmoney().then(function(em) {
+        if (em && Number.isFinite(em.price)) { finish(em); return; }
+        if (Number.isFinite(goldCache.price)) {
+          finish({ name: '黄金9999', price: goldCache.price, changePct: goldCache.changePct });
+        } else {
+          finish(null);
+        }
+      });
+    };
+
+    document.head.appendChild(script);
   });
 }
 
