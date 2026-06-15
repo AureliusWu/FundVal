@@ -1255,7 +1255,7 @@ function fetchGoldPrice() {
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, TIMING.INDEX_JSONP_TIMEOUT);
 
-    fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=118.AU9999&fields=f43,f60,f170&fltt=2&_=' + Date.now(), {
+    fetch('https://push2.eastmoney.com/api/qt/stock/get?secid=118.AU9999&fields=f43,f57,f60,f170&fltt=2&_=' + Date.now(), {
       signal: controller.signal
     }).then(function(resp) {
       clearTimeout(timer);
@@ -1263,7 +1263,10 @@ function fetchGoldPrice() {
       return resp.json();
     }).then(function(json) {
       var d = json && json.data;
+      // f43=最新价(盘中), f57=收盘价(盘后), f60=昨收
       var price = d ? parseNav(d.f43) : NaN;
+      if (!isUsableNav(price)) price = d ? parseNav(d.f57) : NaN;
+      if (!isUsableNav(price)) price = d ? parseNav(d.f60) : NaN;
       if (!isUsableNav(price)) throw new Error('无数据');
 
       var changePct = d ? parseNav(d.f170) : NaN;
