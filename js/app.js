@@ -875,6 +875,12 @@ async function fetchFundDetails(code) {
     } catch(e) { holdingsCache[code] = []; }
     if (expandedFund !== code) { loadingDetails = null; return; }
     renderFundList(fundsData);
+
+    if (holdingsCache[code].length) {
+      await fetchHoldingsQuotes(code, holdingsCache[code]);
+      if (expandedFund !== code) { loadingDetails = null; return; }
+      renderFundList(fundsData);
+    }
   }
 
   // 2. 基金类型/基本信息 (jjxx)
@@ -923,6 +929,35 @@ function parseHoldingsData(data) {
     });
   }
   return stocks.length ? stocks : null;
+}
+
+// ── 重仓股实时涨跌幅（jjcc 接口本身只有「占净值比例」，不含涨跌幅，需额外查一次行情） ──
+function secidFor(stockCode) {
+  // 沪市（6/9 开头）→ 1.code；深市（0/2/3 开头）→ 0.code
+  return (/^[69]/.test(stockCode) ? '1.' : '0.') + stockCode;
+}
+
+async function fetchHoldingsQuotes(code, stocks) {
+  var secids = stocks
+    .filter(function(s) { return /^\d{6}$/.test(s.code); })
+    .map(function(s) { return secidFor(s.code); });
+  if (!secids.length) return;
+  try {
+    var resp = await fetch(
+      'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f3&secids=' + secids.join(',') + '&_=' + Date.now());
+    if (!resp.ok) return;
+    var json = await resp.json();
+    var diff = json && json.data && json.data.diff;
+    if (!diff) return;
+    var list = Array.isArray(diff) ? diff : Object.keys(diff).map(function(k) { return diff[k]; });
+    var changeMap = {};
+    list.forEach(function(item) { changeMap[item.f12] = parseNav(item.f3); });
+    stocks.forEach(function(s) {
+      if (Number.isFinite(changeMap[s.code])) s.change = changeMap[s.code];
+    });
+  } catch(e) {
+    // 静默失败，涨跌幅列保持 '--'
+  }
 }
 
 // ── 基金基本类型解析 ──────────────────────────────────────
@@ -990,7 +1025,7 @@ function renderFundList(data) {
       html += '<div class="fund-card"><div class="fund-top"><div><div class="fund-name">' + esc(f.name||f.code) + '</div><div class="fund-code">' + f.code + '</div></div></div><div class="fund-error">获取失败 · ' + esc(f.message||'') + '</div></div>';
       return;
     }
-    var hasEst = isUsableNav(f.est_change);
+    var hasEst = Number.isFinite(f.est_change);
     var cc = hasEst ? (f.est_change > 0 ? 'up' : f.est_change < 0 ? 'down' : 'flat') : '';
     var sign = hasEst && f.est_change >= 0 ? '+' : '';
     var hasToday = Number.isFinite(f.today_profit);
@@ -1000,7 +1035,7 @@ function renderFundList(data) {
     totalVal += f.curr_value || 0;
     profitSum += hasProfit ? f.total_profit : 0;
 
-    var yesterdayHtml = isUsableNav(f.yesterday_change)
+    var yesterdayHtml = Number.isFinite(f.yesterday_change)
       ? ' · <span class="yest-chg ' + (f.yesterday_change >= 0 ? 'up' : 'down') + '">昨' + (f.yesterday_change >= 0 ? '+' : '') + fmt(f.yesterday_change) + '%</span>'
       : '';
 

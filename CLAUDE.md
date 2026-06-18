@@ -77,6 +77,7 @@ FundVal/
 - 方式：`<script>` 标签注入 → `injectFundScript()` Promise 化
 - **顺序加载**：`fetchFundDetails()` 逐一加载 3 个 type，避免 `window.apidata` 覆盖冲突
 - 用户收起卡片时中断后续加载（`expandedFund !== code` 检查）
+- **`jjcc` 不含涨跌幅**：返回的只有占净值比例，重仓股表格的「涨跌幅」列需要 `fetchHoldingsQuotes()` 额外查一次 `push2.eastmoney.com/api/qt/ulist.np/get`（`fields=f12,f3`，secid 按沪/深规则用 `secidFor()` 拼出），结果合并进 `s.change`，紧跟在 jjcc 成功后只查一次并缓存
 
 ### localStorage 键名
 
@@ -110,6 +111,7 @@ FundVal/
 ## 注意事项
 
 - **重仓股接口已变更**（2026-06）：旧接口 `api.fund.eastmoney.com/f10/JJCC` 已下线(404)，当前使用 `fundf10.eastmoney.com/FundArchivesDatas.aspx`，返回 `var apidata={content:"HTML..."}` 格式而非 JSON
+- **`isUsableNav()` 只能用于净值/价格**（要求 `n > 0`），不能用于涨跌幅类字段（`est_change`/`yesterday_change` 等百分比可以为负或 0）。这两类字段历史上混用过 `isUsableNav()`，导致基金下跌时百分比误判为「无数据」显示 `--`（2026-06 修复）；涨跌幅字段统一用 `Number.isFinite()` 判断
 - **JSONP 并发安全**：`pendingRequests` Map 确保同只基金的 JSONP 回调不会错乱
 - **自动刷新节奏**：交易时段 60s，收盘后 120s，周末/午休不刷新（见 `getRefreshInterval()`）
 - **移动端优先**：768px 断点，桌面端居中 max-width 480px
