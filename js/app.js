@@ -6,7 +6,7 @@ const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const GIST_FILENAME = 'fuyu-holdings.json';
 const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
-const GOLD_CACHE_KEY = 'fuyu_gold_cache_v1';
+const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -21,11 +21,11 @@ const TIMING = {
 };
 // ── 缓存持久化黑名单（这些字段为瞬时 UI 状态，不写入 localStorage） ──
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
-// ── 指数行情配置（腾讯 JSONP + 新浪 JSONP 混合数据源） ──
+// ── 指数行情配置（腾讯 JSONP + 黄金独立源） ──
 const INDEX_CONFIG = [
   { code: 'usIXIC',   name: '纳斯达克' },
   { code: 'usINX',    name: '标普500' },
-  { code: 'AU9999',   name: '黄金9999', source: 'gold' },
+  { code: 'hf_XAU',   name: '伦敦金', source: 'gold' },
   { code: 'sh000001', name: '上证指数' },
   { code: 'sh000300', name: '沪深300' }
 ];
@@ -1358,6 +1358,26 @@ function parseSinaGoldQuote(raw) {
   return { name: '黄金9999', price: price, changePct: changePct };
 }
 
+function parseTencentGoldQuote(raw) {
+  // 腾讯国际贵金属行情逗号分隔：
+  // field[0]=最新价(美元/盎司), field[1]=涨跌幅(%), field[12]=日期, field[13]=名称
+  if (!raw || typeof raw !== 'string') return null;
+  var fields = raw.split(',');
+  if (fields.length < 14) return null;
+  var price = parseNav(fields[0]);
+  if (!isUsableNav(price)) return null;
+  var changePct = parseNav(fields[1]);
+  var quoteDate = fields[12] || '';
+  if (quoteDate) {
+    var d = new Date(quoteDate + 'T00:00:00');
+    if (!isNaN(d.getTime()) && Date.now() - d.getTime() > 7 * 24 * 60 * 60 * 1000) return null;
+  }
+  var name = (fields[13] || '伦敦金').replace(/[（）]/g, function(ch) {
+    return ch === '（' ? '(' : ')';
+  });
+  return { name: name, price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
+}
+
 function parseSinaGoldFutureQuote(raw) {
   if (!raw || typeof raw !== 'string') return null;
   var fields = raw.split(',');
@@ -1423,6 +1443,34 @@ function fetchSinaGold(symbol, globalName, parser) {
   });
 }
 
+function fetchTencentGold(symbol, globalName) {
+  return new Promise(function(resolve) {
+    var script = document.createElement('script');
+    var done = false;
+    var timer = setTimeout(function() {
+      finish(null);
+    }, TIMING.INDEX_JSONP_TIMEOUT);
+
+    function finish(result) {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      script.remove();
+      try { delete window[globalName]; } catch(e) {}
+      resolve(result);
+    }
+
+    script.onload = function() {
+      var parsed = null;
+      try { parsed = parseTencentGoldQuote(window[globalName]); } catch(e) {}
+      finish(parsed);
+    };
+    script.onerror = function() { finish(null); };
+    script.src = 'https://qt.gtimg.cn/q=' + symbol + '&_t=' + Date.now();
+    document.head.appendChild(script);
+  });
+}
+
 function fetchGoldFromEastmoneySecid(secid) {
   return new Promise(function(resolve) {
     var controller = new AbortController();
@@ -1467,6 +1515,8 @@ async function fetchGoldFromEastmoney() {
 
 async function fetchGoldPrice() {
   var sources = [
+    function() { return fetchTencentGold('hf_XAU', 'v_hf_XAU'); },
+    function() { return fetchTencentGold('hf_GC', 'v_hf_GC'); },
     function() { return fetchSinaGold('au9999', 'hq_str_au9999', parseSinaGoldQuote); },
     function() { return fetchSinaGold('AU0', 'hq_str_AU0', parseSinaGoldFutureQuote); },
     fetchGoldFromEastmoney
@@ -1491,7 +1541,7 @@ async function fetchGoldPrice() {
 }
 
 function fetchIndices() {
-  // 黄金9999：独立 fetch，与下方腾讯指数行情并行，互不阻塞
+  // 金价：独立 fetch，与下方腾讯指数行情并行，互不阻塞
   fetchGoldPrice().then(function(gold) {
     if (!Number.isFinite(gold.price)) return;
     for (var i = 0; i < INDEX_CONFIG.length; i++) {
