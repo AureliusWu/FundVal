@@ -931,8 +931,8 @@ function parseHoldingsData(data) {
     var nameEl = cells[2].querySelector('a');
     var ratioText = (cells[6].textContent || '').trim();
     stocks.push({
-      code: codeEl ? codeEl.textContent.trim() : '',
-      name: nameEl ? nameEl.textContent.trim() : '',
+      code: (codeEl ? codeEl.textContent : cells[1].textContent || '').trim(),
+      name: (nameEl ? nameEl.textContent : cells[2].textContent || '').trim(),
       ratio: parseFloat(ratioText) || 0
     });
   }
