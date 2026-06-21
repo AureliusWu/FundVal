@@ -649,8 +649,8 @@ async function fetchFromEastmoney(code) {
       nav_date: '',
       est_time: '',
       status: 'ok_fallback',
-      yesterday_change: parseNav(json.data.f169),
-      ytd_change: parseNav(json.data.f170)
+      yesterday_change: parseNav(json.data.f170),   // f170=涨跌幅(%)，原来误用f169当百分比显示
+      nav_change_amt: parseNav(json.data.f169)       // f169=涨跌额(元/份)，用于推算今日盈亏
     };
   } catch(e) {
     return {code, status:'error', message:'备选源不可用'};
@@ -673,7 +673,7 @@ async function fetchFundFull(code) {
 
   if (em.status === 'ok_fallback') {
     primary.yesterday_change = em.yesterday_change;
-    primary.ytd_change = em.ytd_change;
+    primary.nav_change_amt = em.nav_change_amt;
   }
   return primary;
 }
@@ -737,7 +737,14 @@ async function refresh() {
             d.curr_value = d.last_nav * d.shares;
             d.total_profit = d.curr_value - d.cost * d.shares;
             d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
-            d.today_profit = NaN;
+            // 没有盘中估算净值时（QDII常见、或主源失败降级），
+            // 用备源的「净值日增长值」直接推算最近一次盈亏，避免一直显示 --
+            if (Number.isFinite(d.nav_change_amt)) {
+              d.today_profit = d.nav_change_amt * d.shares;
+              d.today_is_latest_nav = true;  // 标记：非盘中实时估算，是最近一次已公布净值的涨跌
+            } else {
+              d.today_profit = NaN;
+            }
           }
         } else {
           // 仅关注（0份额）：展示净值，不计算盈亏
@@ -1112,14 +1119,24 @@ function renderFundList(data) {
     html += '<div class="fund-top"><div><div class="fund-name">' + esc(f.name) + fallbackTag + watchTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
     html += '<div><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + (f.est_time||'--') + '</div></div></div>';
 
+    var todayTag = f.today_is_latest_nav ? ' <span class="cache-tag">最新净值</span>' : '';
+    var refCols = f.shares > 0 ? 3 : 2;
+
     html += '<div class="fund-stats">';
+    html += '<div class="stats-row stats-ref" style="grid-template-columns:repeat(' + refCols + ',1fr)">';
     html += '<div><div class="stat-label">盘中估值</div><div class="stat-val">' + fmt4(f.est_nav) + '</div></div>';
     html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
-    html += '<div><div class="stat-label">今日估算</div><div class="stat-val ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '">' + (f.shares>0 && hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';
     if (f.shares > 0) {
       html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
-      html += '<div><div class="stat-label">持仓市值</div><div class="stat-val">' + fmt(f.curr_value) + '</div></div>';
-      html += '<div><div class="stat-label">累计盈亏</div><div class="stat-val ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';
+    }
+    html += '</div>';
+
+    if (f.shares > 0) {
+      html += '<div class="stats-row stats-money">';
+      html += '<div><div class="stat-label">今日估算' + todayTag + '</div><div class="stat-val money ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '">' + (hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';
+      html += '<div><div class="stat-label">持仓市值</div><div class="stat-val money">' + fmt(f.curr_value) + '</div></div>';
+      html += '<div><div class="stat-label">累计盈亏</div><div class="stat-val money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';
+      html += '</div>';
     }
     html += '</div>';
 

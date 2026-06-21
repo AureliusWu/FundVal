@@ -48,10 +48,11 @@ FundVal/
 | 角色 | 接口 | 方式 | 字段 |
 |------|------|------|------|
 | **主源** | `fundgz.1234567.com.cn/js/{code}.js` | JSONP (`jsonpgz` 全局回调) | 估算净值、涨跌幅、净值日期 |
-| **备源** | `push2.eastmoney.com/api/qt/stock/get?secid=0.{code}` | fetch (CORS) | 最新净值、昨日涨幅、YTD |
+| **备源** | `push2.eastmoney.com/api/qt/stock/get?secid=0.{code}` | fetch (CORS) | 最新净值(f43)、净值日涨跌幅%(f170)、净值日涨跌额元(f169) |
 
-- 主源成功 → 用主源，补上备源的 `yesterday_change` / `ytd_change`
+- 主源成功 → 用主源，补上备源的 `yesterday_change`（f170，%）/ `nav_change_amt`（f169，元）
 - 主源失败 → 降级到备源，status 标记为 `ok_fallback`
+- 主源成功但 `gsz` 为空（常见于 QDII 无盘中估值）时，`refresh()` 会用 `nav_change_amt * shares` 推算「今日估算」，并标记 `today_is_latest_nav`（该数据是最新净值的日涨跌，不是盘中实时估算）
 - 两者都失败 → status 标记为 `error`
 
 **指数行情**
@@ -112,6 +113,7 @@ FundVal/
 
 - **重仓股接口已变更**（2026-06）：旧接口 `api.fund.eastmoney.com/f10/JJCC` 已下线(404)，当前使用 `fundf10.eastmoney.com/FundArchivesDatas.aspx`，返回 `var apidata={content:"HTML..."}` 格式而非 JSON
 - **`isUsableNav()` 只能用于净值/价格**（要求 `n > 0`），不能用于涨跌幅类字段（`est_change`/`yesterday_change` 等百分比可以为负或 0）。这两类字段历史上混用过 `isUsableNav()`，导致基金下跌时百分比误判为「无数据」显示 `--`（2026-06 修复）；涨跌幅字段统一用 `Number.isFinite()` 判断
+- **备源 push2 字段语义**（2026-06-21 修复）：f169=涨跌额（元）、f170=涨跌幅（%），之前代码把这两个字段用反了（`yesterday_change` 取了 f169 却当百分比显示，「昨」标签数值奇小）。现在 `yesterday_change` 正确取 f170，新增 `nav_change_amt` 取 f169 用于推算「今日估算」（见上文「数据源」节）。QDII 等无盘中估值的基金之前会因为 `gsz` 为空而「今日估算」永远显示 `--`，修复后用净值日增长值填补
 - **JSONP 并发安全**：`pendingRequests` Map 确保同只基金的 JSONP 回调不会错乱
 - **自动刷新节奏**：交易时段 60s，收盘后 120s，周末/午休不刷新（见 `getRefreshInterval()`）
 - **移动端优先**：768px 断点，桌面端居中 max-width 480px

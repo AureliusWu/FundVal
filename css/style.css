@@ -277,10 +277,22 @@ html, body {
 }
 
 .fund-stats {
+  margin-top: 6px;
+}
+
+.stats-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
-  margin-top: 2px;
+}
+
+.stats-ref {
+  opacity: .68;
+}
+
+.stats-money {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
 }
 
 .stat-label {
@@ -294,6 +306,12 @@ html, body {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
+}
+
+.stat-val.money {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.01em;
 }
 
 .fund-error {
