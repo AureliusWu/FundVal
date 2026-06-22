@@ -52,6 +52,16 @@ let autoPullTimer = null;      // 定时拉取
 let isSyncing = false;         // 是否正在同步中
 let goldCache = { price: NaN, changePct: NaN, time: 0 };  // 金价缓存，API 全部失败时兜底
 
+// ── 清理过期 tombstone（删除标记保留30天，供多设备同步消费后自动清理） ──
+function pruneOldTombstones() {
+  var cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+  var before = holdings.length;
+  holdings = holdings.filter(function(h) {
+    return !h.deleted || (h.updated_at && h.updated_at > cutoff);
+  });
+  if (holdings.length !== before) saveHoldings();
+}
+
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
   try {
@@ -64,6 +74,7 @@ function loadHoldings() {
     holdings.forEach(function(h) { if (!h.updated_at) { h.updated_at = now; needsBackfill = true; } });
     if (needsBackfill) saveHoldings();
   } catch(e) { holdings = []; }
+  pruneOldTombstones();
 }
 
 function saveHoldings() {
@@ -82,7 +93,8 @@ function normalizeHoldings(data) {
     const name = String(item.name || '').trim();
     var updated_at = (typeof item.updated_at === 'string' && item.updated_at) ? item.updated_at : '';
     seen.add(code);
-    acc.push({code, name: name || code, shares, cost, updated_at});
+    var deleted = item.deleted === true;
+    acc.push({code, name: name || code, shares, cost, updated_at, deleted});
     return acc;
   }, []);
 }
@@ -98,6 +110,12 @@ function isRealFundName(name, code) {
 }
 
 function nowISO() { return new Date().toISOString(); }
+// 返回"UTC值等于北京时间"的 Date，用于所有市场时段判断
+// 防止非 CST 时区设备（如 JST）导致刷新策略、市场状态、日志保存偏移1小时
+function getChinaDate() {
+  const now = new Date();
+  return new Date(now.getTime() + (now.getTimezoneOffset() + 480) * 60000);
+}
 
 // ── 导出 / 导入 ───────────────────────────────────────────
 function exportData() {
@@ -444,16 +462,19 @@ async function uploadToCloud() {
 // ── 搜索已存在的云端存档 ──────────────────────────────────
 async function findExistingGist(token) {
   try {
-    // 列出用户的所有 Gist，找包含 fuyu-holdings.json 的那个
-    var resp = await fetch('https://api.github.com/gists?per_page=100', {
-      headers: { 'Authorization': 'token ' + token }
-    });
-    if (!resp.ok) return null;
-    var gists = await resp.json();
-    for (var i = 0; i < gists.length; i++) {
-      if (gists[i].files && gists[i].files[GIST_FILENAME]) {
-        return gists[i].id;
+    for (var page = 1; page <= 5; page++) {
+      var resp = await fetch('https://api.github.com/gists?per_page=100&page=' + page, {
+        headers: { 'Authorization': 'token ' + token }
+      });
+      if (!resp.ok) return null;
+      var gists = await resp.json();
+      if (!gists.length) return null;  // 无更多数据
+      for (var i = 0; i < gists.length; i++) {
+        if (gists[i].files && gists[i].files[GIST_FILENAME]) {
+          return gists[i].id;
+        }
       }
+      if (gists.length < 100) return null;  // 最后一页，没找到
     }
     return null;
   } catch(e) { return null; }
@@ -692,12 +713,12 @@ async function refresh() {
   btn.textContent = '↻ 获取中';
 
   try {
-    if (holdings.length === 0) {
+    if (holdings.filter(h => !h.deleted).length === 0) {
       renderFundList([]);
       return;
     }
 
-    const snapshot = holdings.map(h => ({...h}));
+    const snapshot = holdings.filter(h => !h.deleted).map(h => ({...h}));
     const results = await Promise.all(snapshot.map(h => fetchFundFull(h.code)));
 
     let holdingsChanged = false;
@@ -770,7 +791,7 @@ async function refresh() {
     const now = new Date();
     document.getElementById('last-upd').textContent =
       `估算时间 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    if (now.getHours() >= 15) saveTodayLog();
+    if (getChinaDate().getHours() >= 15) saveTodayLog();
   } catch(e) {
     if (!tryShowCache()) renderFundList([]);
   } finally {
@@ -801,6 +822,8 @@ function parseNav(value) {
 }
 
 // ── 排序 ─────────────────────────────────────────────────
+function safeN(v, fallback) { return Number.isFinite(v) ? v : fallback; }
+
 function sortFunds(data) {
   const sorted = [...data];
   sorted.sort((a, b) => {
@@ -810,16 +833,16 @@ function sortFunds(data) {
     if (!va && vb) return 1;
     if (!va && !vb) return 0;
     switch (sortBy) {
-      case 'est_change_desc': return (b.est_change || -Infinity) - (a.est_change || -Infinity);
-      case 'est_change_asc':  return (a.est_change || Infinity) - (b.est_change || Infinity);
-      case 'today_profit_desc': return (b.today_profit || -Infinity) - (a.today_profit || -Infinity);
-      case 'today_profit_asc':  return (a.today_profit || Infinity) - (b.today_profit || Infinity);
-      case 'curr_value_desc': return (b.curr_value || 0) - (a.curr_value || 0);
-      case 'curr_value_asc':  return (a.curr_value || 0) - (b.curr_value || 0);
-      case 'total_profit_desc': return (b.total_profit || -Infinity) - (a.total_profit || -Infinity);
-      case 'total_profit_asc':  return (a.total_profit || Infinity) - (b.total_profit || Infinity);
-      case 'profit_rate_desc': return (b.total_profit_rate || -Infinity) - (a.total_profit_rate || -Infinity);
-      case 'profit_rate_asc':  return (a.total_profit_rate || Infinity) - (b.total_profit_rate || Infinity);
+      case 'est_change_desc': return safeN(b.est_change, -Infinity) - safeN(a.est_change, -Infinity);
+      case 'est_change_asc':  return safeN(a.est_change,  Infinity) - safeN(b.est_change,  Infinity);
+      case 'today_profit_desc': return safeN(b.today_profit, -Infinity) - safeN(a.today_profit, -Infinity);
+      case 'today_profit_asc':  return safeN(a.today_profit,  Infinity) - safeN(b.today_profit,  Infinity);
+      case 'curr_value_desc': return safeN(b.curr_value, 0) - safeN(a.curr_value, 0);
+      case 'curr_value_asc':  return safeN(a.curr_value, 0) - safeN(b.curr_value, 0);
+      case 'total_profit_desc': return safeN(b.total_profit, -Infinity) - safeN(a.total_profit, -Infinity);
+      case 'total_profit_asc':  return safeN(a.total_profit,  Infinity) - safeN(b.total_profit,  Infinity);
+      case 'profit_rate_desc': return safeN(b.total_profit_rate, -Infinity) - safeN(a.total_profit_rate, -Infinity);
+      case 'profit_rate_asc':  return safeN(a.total_profit_rate,  Infinity) - safeN(b.total_profit_rate,  Infinity);
       default: return 0;
     }
   });
@@ -1237,17 +1260,17 @@ function esc(s) {
 // ── 持仓编辑 ─────────────────────────────────────────────
 function renderHoldingsList() {
   const list = document.getElementById('holdings-list');
-  if (!holdings.length) {
+  if (!holdings.filter(h => !h.deleted).length) {
     list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:4px 0">暂无持仓</div>';
     return;
   }
-  list.innerHTML = holdings.map((h,i) => `
+  list.innerHTML = holdings.filter(h => !h.deleted).map(h => `
     <div class="holding-item" onclick="editFund('${h.code}')" style="cursor:pointer">
       <div>
         <div class="h-name">${esc(h.name||h.code)}</div>
         <div class="h-detail">${h.code} · ${h.shares}份 · 成本${h.cost}</div>
       </div>
-      <button class="del-btn" onclick="event.stopPropagation();delFund(${i})">×</button>
+      <button class="del-btn" onclick="event.stopPropagation();delFund('${h.code}')">×</button>
     </div>`).join('');
 }
 
@@ -1311,10 +1334,12 @@ function saveFund() {
   }
 }
 
-function delFund(i) {
-  const h = holdings[i];
+function delFund(code) {
+  const h = holdings.find(item => item.code === code);
+  if (!h || h.deleted) return;
   if (!confirm(`删除「${h.name||h.code}」？`)) return;
-  holdings.splice(i,1);
+  h.deleted = true;
+  h.updated_at = nowISO();
   saveHoldings();
   scheduleAutoPush();
   renderHoldingsList();
@@ -1666,7 +1691,7 @@ function startIndexRefresh() {
 
 // ── 市场状态 ─────────────────────────────────────────────
 function updateMktStatus() {
-  const now = new Date();
+  const now = getChinaDate();
   const d = now.getDay();
   const t = now.getHours()*60 + now.getMinutes();
   let s = '';
@@ -1680,7 +1705,7 @@ function updateMktStatus() {
 
 // ── 智能自动刷新 ─────────────────────────────────────────
 function getRefreshInterval() {
-  const now = new Date();
+  const now = getChinaDate();
   const d = now.getDay();
   const t = now.getHours() * 60 + now.getMinutes();
   if (d === 0 || d === 6) return 0;           // 周末不刷新
@@ -1707,7 +1732,7 @@ function loadDailyLog() {
 }
 
 function saveTodayLog() {
-  var today = new Date().toISOString().slice(0, 10);
+  var today = getChinaDate().toISOString().slice(0, 10);
   var totalVal = 0, todayProfit = 0;
   fundsData.forEach(function(d) {
     if (d.status === 'ok' || d.status === 'ok_fallback') {
@@ -1744,6 +1769,16 @@ function renderDailyLog() {
     html += '<div class="daily-row"><span class="daily-date">' + d.date.slice(5) + '</span><span class="daily-profit ' + pc + '">' + sign + fmtM(d.todayProfit) + '</span><span class="daily-value">' + fmtM2(d.totalValue) + '</span></div>';
   });
   container.innerHTML = html;
+}
+
+// 收益日历展开/折叠：仅在首次展开时渲染，避免重复读取和重绘
+function toggleDailyLog() {
+  var el = document.getElementById('daily-log-list');
+  if (!el) return;
+  if (!el.classList.contains('show') && !el.innerHTML.trim()) {
+    renderDailyLog();
+  }
+  el.classList.toggle('show');
 }
 
 // ── Toast ────────────────────────────────────────────────
