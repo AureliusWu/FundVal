@@ -1099,7 +1099,7 @@ function renderFundList(data) {
       document.getElementById(id).textContent = '--';
       document.getElementById(id).className = 'sum-val';
     });
-    ['s-today-pct','s-profit-pct'].forEach(function(id) {
+    ['s-today-pct','s-total-pct','s-profit-pct'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) { el.textContent = ''; el.className = 'sum-pct'; }
     });
@@ -1108,6 +1108,7 @@ function renderFundList(data) {
 
   var sorted = sortFunds(data);
   var todaySum = 0, totalVal = 0, profitSum = 0, totalCost = 0;
+  var weightedEstSum = 0, weightedEstBase = 0;
   var html = '';
 
   sorted.forEach(function(f) {
@@ -1126,6 +1127,10 @@ function renderFundList(data) {
     totalVal += f.curr_value || 0;
     profitSum += hasProfit ? f.total_profit : 0;
     if (f.shares > 0 && f.cost > 0) totalCost += f.shares * f.cost;
+    if (hasEst && f.curr_value > 0 && f.shares > 0) {
+      weightedEstSum += f.est_change * f.curr_value;
+      weightedEstBase += f.curr_value;
+    }
 
     var yesterdayHtml = Number.isFinite(f.yesterday_change)
       ? ' · <span class="yest-chg ' + (f.yesterday_change >= 0 ? 'up' : 'down') + '">昨' + (f.yesterday_change >= 0 ? '+' : '') + fmt(f.yesterday_change) + '%</span>'
@@ -1238,6 +1243,7 @@ function renderFundList(data) {
 
   document.getElementById('s-total').textContent = fmtM2(totalVal);
   document.getElementById('s-total').className = 'sum-val';
+  setSumPct('s-total-pct', weightedEstBase > 0 ? weightedEstSum / weightedEstBase : NaN);
 
   setSumVal('s-profit', profitSum);
   setSumPct('s-profit-pct', (totalCost > 0) ? profitSum / totalCost * 100 : NaN);
