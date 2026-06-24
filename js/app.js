@@ -1127,9 +1127,10 @@ function renderFundList(data) {
     totalVal += f.curr_value || 0;
     profitSum += hasProfit ? f.total_profit : 0;
     if (f.shares > 0 && f.cost > 0) totalCost += f.shares * f.cost;
-    if (hasEst && f.curr_value > 0 && f.shares > 0) {
-      weightedEstSum += f.est_change * f.curr_value;
-      weightedEstBase += f.curr_value;
+    if (hasEst) {
+      var w = f.curr_value > 0 ? f.curr_value : 1;
+      weightedEstSum += f.est_change * w;
+      weightedEstBase += w;
     }
 
     var yesterdayHtml = Number.isFinite(f.yesterday_change)
