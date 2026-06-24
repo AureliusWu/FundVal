@@ -1734,19 +1734,17 @@ function getRefreshInterval() {
   const now = getChinaDate();
   const d = now.getDay();
   const t = now.getHours() * 60 + now.getMinutes();
-  if (d === 0 || d === 6) return 0;           // 周末不刷新
+  if (d === 0 || d === 6) return 300000;       // 周末 5min
   if (t >= 565 && t < 690) return 60000;       // 上午盘 9:25-11:30 每60s
-  if (t >= 690 && t < 780) return 0;           // 午休 11:30-13:00 不刷新
+  if (t >= 690 && t < 780) return 180000;      // 午休 11:30-13:00 每3min
   if (t >= 780 && t < 900) return 60000;       // 下午盘 13:00-15:00 每60s
-  if (t >= 900 && t < 930) return 120000;      // 收盘后 15:00-15:30 每120s
-  return 0;                                     // 其余时段不自动刷新
+  if (t >= 900 && t < 930) return 120000;      // 收盘后 15:00-15:30 每2min
+  return 300000;                                // 其余时段 5min
 }
 
 function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-  autoRefreshTimer = setInterval(() => {
-    if (getRefreshInterval() > 0) refresh();
-  }, 60000);
+  autoRefreshTimer = setInterval(() => { refresh(); }, 60000);
 }
 
 // ── 收益日历 ─────────────────────────────────────────────
