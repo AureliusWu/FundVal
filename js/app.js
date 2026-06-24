@@ -1101,7 +1101,7 @@ function renderFundList(data) {
   }
 
   var sorted = sortFunds(data);
-  var totalVal = 0;
+  var todaySum = 0, totalVal = 0, profitSum = 0, totalCost = 0;
   var weightedEstSum = 0, weightedEstBase = 0;
   var html = '';
 
