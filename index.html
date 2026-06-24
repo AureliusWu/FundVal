@@ -34,18 +34,15 @@
   </div>
 </div>
 
+<div class="last-upd" id="last-upd"></div>
+
 <div class="summary">
-  <div class="sum-item"><div class="sum-label">今日估算</div><div class="sum-val" id="s-today">--</div><div class="sum-pct" id="s-today-pct"></div></div>
   <div class="sum-item"><div class="sum-label">持仓市值</div><div class="sum-val" id="s-total">--</div><div class="sum-pct" id="s-total-pct"></div></div>
-  <div class="sum-item"><div class="sum-label">累计盈亏</div><div class="sum-val" id="s-profit">--</div><div class="sum-pct" id="s-profit-pct"></div></div>
 </div>
 
 <div class="page active" id="page-market">
   <div class="sort-bar" id="sort-bar">
-    <button class="sort-chip active" data-sort="est_change_desc" onclick="setSort('est_change_desc')">估值涨跌↓</button>
-    <button class="sort-chip" data-sort="today_profit_desc" onclick="setSort('today_profit_desc')">今日盈亏↓</button>
-    <button class="sort-chip" data-sort="curr_value_desc" onclick="setSort('curr_value_desc')">市值↓</button>
-    <button class="sort-chip" data-sort="profit_rate_desc" onclick="setSort('profit_rate_desc')">收益率↓</button>
+    <button class="sort-chip active" id="sort-est-btn" onclick="toggleEstSort()">估值涨跌 ↓</button>
   </div>
   <div class="fund-list" id="fund-list">
     <div class="fund-card" style="pointer-events:none">
@@ -60,11 +57,6 @@
       <div class="skeleton" style="width:48%;height:15px"></div>
       <div class="skeleton" style="width:28%;height:11px"></div>
     </div>
-  </div>
-  <div class="last-upd" id="last-upd"></div>
-  <div class="daily-log">
-    <div class="daily-title" onclick="toggleDailyLog()">收益日历 ▾</div>
-    <div class="daily-log-list" id="daily-log-list"></div>
   </div>
 </div>
 

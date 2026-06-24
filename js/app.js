@@ -4,7 +4,6 @@ const GIST_TOKEN_KEY = 'fuyu_gist_token';
 const GIST_ID_KEY = 'fuyu_gist_id';
 const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const GIST_FILENAME = 'fuyu-holdings.json';
-const DAILY_LOG_KEY = 'fuyu_daily_log';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
@@ -849,15 +848,14 @@ function sortFunds(data) {
   return sorted;
 }
 
-function setSort(by) {
-  sortBy = by;
+function toggleEstSort() {
+  sortBy = (sortBy === 'est_change_desc') ? 'est_change_asc' : 'est_change_desc';
   renderFundList(fundsData);
 }
 
 function updateSortBar() {
-  document.querySelectorAll('.sort-chip').forEach(chip => {
-    chip.classList.toggle('active', chip.dataset.sort === sortBy);
-  });
+  var btn = document.getElementById('sort-est-btn');
+  if (btn) btn.textContent = '估值涨跌 ' + (sortBy === 'est_change_desc' ? '↓' : '↑');
 }
 
 // ── 重仓股 ───────────────────────────────────────────────
@@ -1095,19 +1093,15 @@ function renderFundList(data) {
   var list = document.getElementById('fund-list');
   if (!data || data.length === 0) {
     list.innerHTML = '<div class="empty-hint">暂无持仓<br>在「持仓」页添加基金代码</div>';
-    ['s-today','s-total','s-profit'].forEach(function(id) {
-      document.getElementById(id).textContent = '--';
-      document.getElementById(id).className = 'sum-val';
-    });
-    ['s-today-pct','s-total-pct','s-profit-pct'].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) { el.textContent = ''; el.className = 'sum-pct'; }
-    });
+    document.getElementById('s-total').textContent = '--';
+    document.getElementById('s-total').className = 'sum-val';
+    var ep = document.getElementById('s-total-pct');
+    if (ep) { ep.textContent = ''; ep.className = 'sum-pct'; }
     return;
   }
 
   var sorted = sortFunds(data);
-  var todaySum = 0, totalVal = 0, profitSum = 0, totalCost = 0;
+  var totalVal = 0;
   var weightedEstSum = 0, weightedEstBase = 0;
   var html = '';
 
@@ -1132,7 +1126,6 @@ function renderFundList(data) {
       weightedEstSum += f.est_change * w;
       weightedEstBase += w;
     }
-
     var yesterdayHtml = Number.isFinite(f.yesterday_change)
       ? ' · <span class="yest-chg ' + (f.yesterday_change >= 0 ? 'up' : 'down') + '">昨' + (f.yesterday_change >= 0 ? '+' : '') + fmt(f.yesterday_change) + '%</span>'
       : '';
@@ -1238,16 +1231,9 @@ function renderFundList(data) {
 
   list.innerHTML = html;
 
-  setSumVal('s-today', todaySum);
-  var prevVal = totalVal - todaySum;
-  setSumPct('s-today-pct', (Number.isFinite(todaySum) && prevVal > 0) ? todaySum / prevVal * 100 : NaN);
-
   document.getElementById('s-total').textContent = fmtM2(totalVal);
   document.getElementById('s-total').className = 'sum-val';
   setSumPct('s-total-pct', weightedEstBase > 0 ? weightedEstSum / weightedEstBase : NaN);
-
-  setSumVal('s-profit', profitSum);
-  setSumPct('s-profit-pct', (totalCost > 0) ? profitSum / totalCost * 100 : NaN);
 
   updateSortBar();
 }
@@ -1748,62 +1734,9 @@ function startAutoRefresh() {
 }
 
 // ── 收益日历 ─────────────────────────────────────────────
-function loadDailyLog() {
-  try {
-    var raw = localStorage.getItem(DAILY_LOG_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch(e) { return []; }
-}
 
-function saveTodayLog() {
-  var today = getChinaDate().toISOString().slice(0, 10);
-  var totalVal = 0, todayProfit = 0;
-  fundsData.forEach(function(d) {
-    if (d.status === 'ok' || d.status === 'ok_fallback') {
-      if (Number.isFinite(d.curr_value)) totalVal += d.curr_value;
-      if (Number.isFinite(d.today_profit)) todayProfit += d.today_profit;
-    }
-  });
-  if (!totalVal && !todayProfit) return;
 
-  var log = loadDailyLog();
-  var entry = { date: today, todayProfit: Math.round(todayProfit * 100) / 100, totalValue: Math.round(totalVal * 100) / 100 };
-  if (log.length && log[log.length - 1].date === today) {
-    log[log.length - 1] = entry;
-  } else {
-    log.push(entry);
-  }
-  if (log.length > 90) log = log.slice(-90);
-  localStorage.setItem(DAILY_LOG_KEY, JSON.stringify(log));
-}
 
-function renderDailyLog() {
-  var container = document.getElementById('daily-log-list');
-  if (!container) return;
-  var log = loadDailyLog();
-  if (!log.length) {
-    container.innerHTML = '<div class="daily-empty">暂无历史记录，收盘后自动保存</div>';
-    return;
-  }
-  var recent = log.slice(-30).reverse();
-  var html = '';
-  recent.forEach(function(d) {
-    var pc = d.todayProfit >= 0 ? 'up' : 'down';
-    var sign = d.todayProfit >= 0 ? '+' : '';
-    html += '<div class="daily-row"><span class="daily-date">' + d.date.slice(5) + '</span><span class="daily-profit ' + pc + '">' + sign + fmtM(d.todayProfit) + '</span><span class="daily-value">' + fmtM2(d.totalValue) + '</span></div>';
-  });
-  container.innerHTML = html;
-}
-
-// 收益日历展开/折叠：仅在首次展开时渲染，避免重复读取和重绘
-function toggleDailyLog() {
-  var el = document.getElementById('daily-log-list');
-  if (!el) return;
-  if (!el.classList.contains('show') && !el.innerHTML.trim()) {
-    renderDailyLog();
-  }
-  el.classList.toggle('show');
-}
 
 // ── Toast ────────────────────────────────────────────────
 function showToast(msg, ms=2200) {

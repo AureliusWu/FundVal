@@ -139,23 +139,16 @@ html, body {
 
 /* ── summary bar ─────────────────────────────────── */
 .summary {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
   border-bottom: 1px solid var(--line);
   background: var(--bg2);
-}
-
-.sum-item {
-  padding: 10px 12px 12px;
-  text-align: center;
-  border-right: 1px solid var(--line);
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
 }
 
-.sum-item:last-child { border-right: none; }
+.sum-item {
+  padding: 14px 32px;
+  text-align: center;
+}
 
 .sum-label {
   font-size: 10px;
@@ -338,11 +331,13 @@ html, body {
 
 .last-upd {
   text-align: center;
-  padding: 12px;
+  padding: 5px 16px;
   font-size: 10px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
-  background: var(--bg2);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  letter-spacing: .02em;
 }
 
 /* ── skeleton ────────────────────────────────────── */
@@ -759,45 +754,6 @@ html, body {
   padding: 8px 0;
 }
 
-/* ── daily log ───────────────────────────────────── */
-.daily-log { padding: 0 16px 80px; }
-
-.daily-title {
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  font-weight: 500;
-  padding: 12px 0 6px;
-  cursor: pointer;
-  user-select: none;
-  transition: color .15s;
-}
-
-.daily-title:active { color: var(--accent); }
-
-.daily-log-list { display: none; }
-.daily-log-list.show { display: block; }
-
-.daily-empty {
-  font-size: 11px;
-  color: var(--muted);
-  padding: 8px 0;
-}
-
-.daily-row {
-  display: flex;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid #ececec;
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-}
-
-.daily-date { width: 55px; color: var(--muted); font-size: 11px; }
-.daily-profit { flex: 1; font-weight: 500; }
-.daily-value { color: var(--muted); font-size: 11px; }
-
 /* ── edit btn group ──────────────────────────────── */
 .edit-btns { display: flex; gap: 8px; margin-top: 2px; }
 .edit-btns .add-btn { flex: 1; margin-top: 0; }
@@ -863,29 +819,33 @@ html, body {
 
 /* ── desktop ─────────────────────────────────────── */
 @media (min-width: 768px) {
-  .header-inner,
+  body { background: #e0e0e5; }
+
+  .header-inner { max-width: 480px; margin-left: auto; margin-right: auto; }
+
+  .index-bar-inner,
+  .last-upd,
   .summary,
-  .page.active {
+  .sort-bar,
+  .fund-list,
+  .empty-hint {
     max-width: 480px;
     margin-left: auto;
     margin-right: auto;
   }
 
-  .index-bar-inner {
-    max-width: 480px;
-    margin-left: auto;
-    margin-right: auto;
-    justify-content: center;
-  }
+  .edit-page,
+  .status-page { max-width: 480px; margin-left: auto; margin-right: auto; }
 
   .bottom-nav {
     left: 50%;
     right: auto;
     transform: translateX(-50%);
-    width: 100%;
-    max-width: 480px;
-    border-radius: 12px 12px 0 0;
+    width: 480px;
+    border-radius: 14px 14px 0 0;
   }
+
+  .toast { bottom: 90px; }
 
   .refresh-btn:hover { background: var(--bg3); color: var(--text); }
   .fund-card:hover { background: #fafafa; }
@@ -897,8 +857,4 @@ html, body {
   .sort-chip:hover { background: var(--bg3); color: var(--text); }
   .sort-chip.active:hover { background: var(--accent); color: #fff; }
   .edit-holdings-btn:hover { background: var(--accent); color: #fff; }
-  .daily-title:hover { color: var(--accent); }
-
-  html { font-size: 15px; }
-  .fund-pct { font-size: 22px; }
 }
