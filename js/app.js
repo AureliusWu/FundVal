@@ -1099,11 +1099,15 @@ function renderFundList(data) {
       document.getElementById(id).textContent = '--';
       document.getElementById(id).className = 'sum-val';
     });
+    ['s-today-pct','s-profit-pct'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = ''; el.className = 'sum-pct'; }
+    });
     return;
   }
 
   var sorted = sortFunds(data);
-  var todaySum = 0, totalVal = 0, profitSum = 0;
+  var todaySum = 0, totalVal = 0, profitSum = 0, totalCost = 0;
   var html = '';
 
   sorted.forEach(function(f) {
@@ -1121,6 +1125,7 @@ function renderFundList(data) {
     if (hasToday) todaySum += f.today_profit;
     totalVal += f.curr_value || 0;
     profitSum += hasProfit ? f.total_profit : 0;
+    if (f.shares > 0 && f.cost > 0) totalCost += f.shares * f.cost;
 
     var yesterdayHtml = Number.isFinite(f.yesterday_change)
       ? ' · <span class="yest-chg ' + (f.yesterday_change >= 0 ? 'up' : 'down') + '">昨' + (f.yesterday_change >= 0 ? '+' : '') + fmt(f.yesterday_change) + '%</span>'
@@ -1228,9 +1233,14 @@ function renderFundList(data) {
   list.innerHTML = html;
 
   setSumVal('s-today', todaySum);
+  var prevVal = totalVal - todaySum;
+  setSumPct('s-today-pct', (Number.isFinite(todaySum) && prevVal > 0) ? todaySum / prevVal * 100 : NaN);
+
   document.getElementById('s-total').textContent = fmtM2(totalVal);
   document.getElementById('s-total').className = 'sum-val';
+
   setSumVal('s-profit', profitSum);
+  setSumPct('s-profit-pct', (totalCost > 0) ? profitSum / totalCost * 100 : NaN);
 
   updateSortBar();
 }
@@ -1239,6 +1249,15 @@ function setSumVal(id, val) {
   const el = document.getElementById(id);
   el.textContent = fmtM(val);
   el.className = 'sum-val ' + (val > 0 ? 'up' : val < 0 ? 'down' : 'flat');
+}
+
+function setSumPct(id, pct) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!Number.isFinite(pct)) { el.textContent = ''; el.className = 'sum-pct'; return; }
+  var sign = pct >= 0 ? '+' : '';
+  el.textContent = sign + fmt(pct) + '%';
+  el.className = 'sum-pct ' + (pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat');
 }
 
 function fmt(n)  { return isNaN(n) ? '--' : Number(n).toFixed(2); }

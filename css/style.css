@@ -167,6 +167,17 @@ html, body {
   letter-spacing: -.01em;
 }
 
+.sum-pct {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+  font-weight: 500;
+  min-height: 14px;
+}
+.sum-pct.up   { color: var(--up); }
+.sum-pct.down { color: var(--down); }
+.sum-pct.flat { color: var(--muted); }
+
 .up   { color: var(--up); }
 .down { color: var(--down); }
 .flat { color: var(--flat); }
