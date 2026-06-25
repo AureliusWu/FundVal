@@ -6,7 +6,7 @@
 
 - **零框架**：HTML5 + CSS3 + 原生 JavaScript (ES6+)，无构建工具，无 npm 依赖
 - **PWA**：Service Worker 离线缓存 + Web App Manifest（图标 192/512）
-- **数据存储**：`localStorage`（持仓、缓存、收益日历、云同步配置）
+- **数据存储**：`localStorage`（持仓、缓存、云同步配置）
 - **云同步**：GitHub Gist API（`api.github.com/gists`）
 - **CI/CD**：GitHub Actions（`.github/workflows/deploy.yml`），push main 自动触发
 
@@ -30,7 +30,7 @@ FundVal/
 | 区域 | DOM id | 功能 |
 |------|--------|------|
 | 指数条 | `#index-bar` | 横向滚动：纳斯达克/标普500/AU9999金价/上证/沪深300 实时数值 |
-| 行情 | `#page-market` | 基金卡片列表、排序、重仓股/经理/费率展开、收益日历 |
+| 行情 | `#page-market` | 基金卡片列表、排序、重仓股/经理/费率展开 |
 | 持仓 | `#page-edit` | 增删改持仓（支持0份额仅关注）、云同步、导入导出 JSON |
 | 状态 | `#page-status` | GitHub 最近提交信息 |
 
@@ -89,7 +89,8 @@ FundVal/
 | `fuyu_gist_token` | GitHub Personal Access Token |
 | `fuyu_gist_id` | GitHub Gist ID |
 | `fuyu_gist_sync_time` | 上次同步时间 ISO 字符串 |
-| `fuyu_daily_log` | 收益日历 `[{date, todayProfit, totalValue}]`（最多 90 天） |
+| `fuyu_sync_meta_v1` | 云同步元数据 `{last_push_hash, last_pull}`，判断是否需要推送 |
+| `fuyu_gold_cache_v2` | 金价缓存 `{price, changePct, time}`，金价接口全失败时兜底 |
 
 ## 代码风格
 

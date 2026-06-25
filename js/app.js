@@ -790,7 +790,6 @@ async function refresh() {
     const now = new Date();
     document.getElementById('last-upd').textContent =
       `估算时间 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    if (getChinaDate().getHours() >= 15) saveTodayLog();
   } catch(e) {
     if (!tryShowCache()) renderFundList([]);
   } finally {
@@ -1130,8 +1129,10 @@ function renderFundList(data) {
       ? ' · <span class="yest-chg ' + (f.yesterday_change >= 0 ? 'up' : 'down') + '">昨' + (f.yesterday_change >= 0 ? '+' : '') + fmt(f.yesterday_change) + '%</span>'
       : '';
 
-    var fallbackTag = isFallback || f._cached
-      ? ' <span class="cache-tag">备选</span>' : '';
+    // 「缓存」= 离线旧数据（整批来自 localStorage 兜底）；「备选」= 实时拉取但主源失败、降级到东财备源
+    var sourceTag = f._cached
+      ? ' <span class="cache-tag">缓存</span>'
+      : (isFallback ? ' <span class="cache-tag">备选</span>' : '');
 
     var profitRateHtml = hasRate
       ? ' <span class="profit-rate ' + (f.total_profit_rate >= 0 ? 'up' : 'down') + '">' + (f.total_profit_rate >= 0 ? '+' : '') + fmt(f.total_profit_rate) + '%</span>'
@@ -1143,7 +1144,7 @@ function renderFundList(data) {
     var watchTag = isWatchOnly ? ' <span class="watch-tag">仅关注</span>' : '';
 
     html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + (isWatchOnly ? ' watch-only' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开详情">';
-    html += '<div class="fund-top"><div><div class="fund-name">' + esc(f.name) + fallbackTag + watchTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
+    html += '<div class="fund-top"><div><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
     html += '<div><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + (f.est_time||'--') + '</div></div></div>';
 
     var todayTag = f.today_is_latest_nav ? ' <span class="cache-tag">最新净值</span>' : '';
@@ -1236,12 +1237,6 @@ function renderFundList(data) {
   setSumPct('s-total-pct', weightedEstBase > 0 ? weightedEstSum / weightedEstBase : NaN);
 
   updateSortBar();
-}
-
-function setSumVal(id, val) {
-  const el = document.getElementById(id);
-  el.textContent = fmtM(val);
-  el.className = 'sum-val ' + (val > 0 ? 'up' : val < 0 ? 'down' : 'flat');
 }
 
 function setSumPct(id, pct) {
@@ -1732,11 +1727,6 @@ function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
   autoRefreshTimer = setInterval(() => { refresh(); }, 60000);
 }
-
-// ── 收益日历 ─────────────────────────────────────────────
-
-
-
 
 // ── Toast ────────────────────────────────────────────────
 function showToast(msg, ms=2200) {
