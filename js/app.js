@@ -1107,7 +1107,7 @@ function renderFundList(data) {
   sorted.forEach(function(f) {
     var isFallback = f.status === 'ok_fallback';
     if (f.status !== 'ok' && !isFallback) {
-      html += '<div class="fund-card"><div class="fund-top"><div><div class="fund-name">' + esc(f.name||f.code) + '</div><div class="fund-code">' + f.code + '</div></div></div><div class="fund-error">获取失败 · ' + esc(f.message||'') + '</div></div>';
+      html += '<div class="fund-card"><div class="fund-main"><div class="fund-id"><div class="fund-name">' + esc(f.name||f.code) + '</div><div class="fund-code">' + f.code + '</div></div></div><div class="fund-error">获取失败 · ' + esc(f.message||'') + '</div></div>';
       return;
     }
     var hasEst = Number.isFinite(f.est_change);
@@ -1144,32 +1144,35 @@ function renderFundList(data) {
     var watchTag = isWatchOnly ? ' <span class="watch-tag">仅关注</span>' : '';
 
     html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + (isWatchOnly ? ' watch-only' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开详情">';
-    html += '<div class="fund-top"><div><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
-    html += '<div><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + (f.est_time||'--') + '</div></div></div>';
-
-    var todayTag = f.today_is_latest_nav ? ' <span class="cache-tag">最新净值</span>' : '';
-    var refCols = f.shares > 0 ? 3 : 2;
-
-    html += '<div class="fund-stats">';
-    html += '<div class="stats-row stats-ref" style="grid-template-columns:repeat(' + refCols + ',1fr)">';
-    html += '<div><div class="stat-label">盘中估值</div><div class="stat-val">' + fmt4(f.est_nav) + '</div></div>';
-    html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
-    if (f.shares > 0) {
-      html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
-    }
-    html += '</div>';
-
-    if (f.shares > 0) {
-      html += '<div class="stats-row stats-money">';
-      html += '<div><div class="stat-label">今日估算' + todayTag + '</div><div class="stat-val money ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '">' + (hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';
-      html += '<div><div class="stat-label">持仓市值</div><div class="stat-val money">' + fmt(f.curr_value) + '</div></div>';
-      html += '<div><div class="stat-label">累计盈亏</div><div class="stat-val money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';
-      html += '</div>';
-    }
+    html += '<div class="fund-main">';
+    html += '<div class="fund-id"><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
+    html += '<div class="fund-est"><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + (f.est_time||'--') + '</div></div>';
+    html += '<div class="fund-nav"><div class="nav-cur">' + fmt4(f.est_nav) + '</div><div class="nav-prev">' + fmt4(f.last_nav) + '</div></div>';
     html += '</div>';
 
     if (isExpanded) {
+      var todayTag = f.today_is_latest_nav ? ' <span class="cache-tag">最新净值</span>' : '';
+      var refCols = f.shares > 0 ? 3 : 2;
       html += '<div class="holdings-detail">';
+
+      // 折叠的次要数据：盘中/上一净值（手机端，PC 已在行内列显示故隐藏）+ 持仓金额
+      html += '<div class="detail-stats">';
+      html += '<div class="detail-nav stats-grid" style="grid-template-columns:repeat(' + refCols + ',1fr)">';
+      html += '<div><div class="stat-label">盘中估值</div><div class="stat-val">' + fmt4(f.est_nav) + '</div></div>';
+      html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
+      if (f.shares > 0) {
+        html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
+      }
+      html += '</div>';
+      if (f.shares > 0) {
+        html += '<div class="detail-money stats-grid">';
+        html += '<div><div class="stat-label">今日估算' + todayTag + '</div><div class="stat-val money ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '">' + (hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';
+        html += '<div><div class="stat-label">持仓市值</div><div class="stat-val money">' + fmt(f.curr_value) + '</div></div>';
+        html += '<div><div class="stat-label">累计盈亏</div><div class="stat-val money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';
+        html += '</div>';
+      }
+      html += '</div>';
+
       html += '<div class="holdings-actions"><button class="edit-holdings-btn" onclick="event.stopPropagation();editFund(\'' + f.code + '\')">编辑持仓</button></div>';
 
       // 重仓股

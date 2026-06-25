@@ -221,6 +221,8 @@ html, body {
 /* ── fund list ───────────────────────────────────── */
 .fund-list { padding-bottom: 72px; }
 
+.fund-list-head { display: none; }
+
 .fund-card {
   padding: 16px;
   border-bottom: 1px solid var(--line);
@@ -245,12 +247,15 @@ html, body {
 .fund-card.up::before   { background: var(--up); }
 .fund-card.down::before { background: var(--down); }
 
-.fund-top {
+.fund-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 10px;
+  gap: 12px;
 }
+.fund-id { flex: 1; min-width: 0; }
+.fund-est { flex-shrink: 0; text-align: right; }
+.fund-nav { display: none; }
 
 .fund-name {
   font-size: 14px;
@@ -284,23 +289,32 @@ html, body {
   margin-top: 4px;
 }
 
-.fund-stats {
-  margin-top: 6px;
-}
+.detail-stats { margin-bottom: 2px; }
 
-.stats-row {
+.stats-grid {
   display: grid;
   gap: 8px;
 }
 
-.stats-ref {
-  opacity: .68;
-}
-
-.stats-money {
+.detail-money {
+  grid-template-columns: repeat(3, 1fr);
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px dashed var(--line);
+}
+
+.fund-nav .nav-cur {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+}
+
+.fund-nav .nav-prev {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
 }
 
 .stat-label {
@@ -821,18 +835,46 @@ html, body {
 @media (min-width: 768px) {
   body { background: #e0e0e5; }
 
-  .header-inner { max-width: 480px; margin-left: auto; margin-right: auto; }
+  .header-inner { max-width: 800px; margin-left: auto; margin-right: auto; }
 
   .index-bar-inner,
   .last-upd,
   .summary,
   .sort-bar,
   .fund-list,
+  .fund-list-head,
   .empty-hint {
-    max-width: 480px;
+    max-width: 800px;
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* 行情列表：桌面横向表格化（名称 | 估值涨跌 | 盘中/上一净值） */
+  .fund-main {
+    display: grid;
+    grid-template-columns: 1fr 150px 160px;
+    align-items: center;
+    gap: 16px;
+  }
+  .fund-est { text-align: right; }
+  .fund-nav { display: block; text-align: right; }
+  .detail-nav { display: none; }
+  .fund-name { max-width: none; }
+  .fund-pct { font-size: 18px; }
+
+  .fund-list-head {
+    display: grid;
+    grid-template-columns: 1fr 150px 160px;
+    gap: 16px;
+    padding: 8px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .02em;
+  }
+  .fund-list-head span:nth-child(2),
+  .fund-list-head span:nth-child(3) { text-align: right; }
 
   .edit-page,
   .status-page { max-width: 480px; margin-left: auto; margin-right: auto; }
