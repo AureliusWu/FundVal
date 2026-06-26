@@ -6,6 +6,7 @@ const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
+const APP_VERSION = 'v8';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -1742,6 +1743,8 @@ function showToast(msg, ms=2200) {
 // ── 获取部署状态 ─────────────────────────────────────────
 async function fetchDeploymentStatus() {
   const REPO = 'AureliusWu/FundVal';
+  var _v = document.getElementById('app-version');
+  if (_v) _v.textContent = APP_VERSION;
   try {
     const response = await fetch(`https://api.github.com/repos/${REPO}/commits?per_page=1`);
     if (!response.ok) throw new Error('请求失败');

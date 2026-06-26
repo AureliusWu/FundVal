@@ -872,7 +872,11 @@ html, body {
   .fund-list-head span:nth-child(3) { text-align: right; }
 
   .edit-page,
-  .status-page { max-width: 480px; margin-left: auto; margin-right: auto; }
+  .status-page { max-width: 800px; margin-left: auto; margin-right: auto; }
+
+  /* 持仓列表桌面双列填满 */
+  #holdings-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #holdings-list .holding-item { margin-bottom: 0; }
 
   .bottom-nav {
     left: 50%;
