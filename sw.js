@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v8';
+const CACHE = 'fuyu-v8.0.0';
 const ASSETS = [
   './',
   './index.html',
@@ -48,6 +48,35 @@ self.addEventListener('fetch', e => {
 
   // 其他静态资源：stale-while-revalidate（先给缓存，后台更新）
   e.respondWith(staleWhileRevalidate(e.request));
+});
+
+self.addEventListener('message', e => {
+  const data = e.data || {};
+  if (data.type !== 'notify') return;
+  e.waitUntil(
+    self.registration.showNotification(data.title || '蜉蝣基金', {
+      body: data.body || '',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || 'fuyu-notify',
+      renotify: true,
+      data: { url: data.url || './' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const targetUrl = e.notification.data && e.notification.data.url ? e.notification.data.url : './';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return null;
+    })
+  );
 });
 
 // network-first：先走网络，失败才用缓存

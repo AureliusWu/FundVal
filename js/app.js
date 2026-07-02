@@ -6,7 +6,8 @@ const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
-const APP_VERSION = 'v8';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
+const APP_VERSION = 'V8.0.0';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -17,16 +18,17 @@ const TIMING = {
   SW_UPDATE_MS: 1800000,          // Service Worker 更新检查间隔（30min）
   AUTO_PUSH_DELAY: 5000,          // 数据变更后自动推送延迟
   AUTO_PULL_INTERVAL: 60000,      // 后台自动拉取间隔
-  CLOUD_COOLDOWN_MS: 30000        // 切 Tab 云端拉取冷却
+  CLOUD_COOLDOWN_MS: 30000,       // 切 Tab 云端拉取冷却
+  DAILY_NOTIFY_CHECK_MS: 30000    // 14:30 通知检查间隔
 };
 // ── 缓存持久化黑名单（这些字段为瞬时 UI 状态，不写入 localStorage） ──
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
 // ── 指数行情配置（腾讯 JSONP + 黄金独立源） ──
 const INDEX_CONFIG = [
-  { code: 'usIXIC',   name: '纳斯达克' },
-  { code: 'usINX',    name: '标普500' },
-  { code: 'hf_XAU',   name: '伦敦金', source: 'gold' },
-  { code: 'sh000001', name: '上证指数' },
+  { code: 'usIXIC',   name: 'NASDAQ' },
+  { code: 'usINX',    name: 'S&P' },
+  { code: 'hf_XAU',   name: 'AU', source: 'gold' },
+  { code: 'sh000001', name: 'SH' },
   { code: 'sh000300', name: '沪深300' }
 ];
 let indexCache = INDEX_CONFIG.map(function(cfg) {
@@ -51,6 +53,7 @@ let syncDebounceTimer = null;  // 防抖定时器
 let autoPullTimer = null;      // 定时拉取
 let isSyncing = false;         // 是否正在同步中
 let goldCache = { price: NaN, changePct: NaN, time: 0 };  // 金价缓存，API 全部失败时兜底
+let notificationPrompted = false;
 
 // ── 清理过期 tombstone（删除标记保留30天，供多设备同步消费后自动清理） ──
 function pruneOldTombstones() {
@@ -707,10 +710,6 @@ async function refresh() {
   }
   isRefreshing = true;
   refreshQueued = false;
-  const btn = document.getElementById('ref-btn');
-  btn.classList.add('loading');
-  btn.disabled = true;
-  btn.textContent = '↻ 获取中';
 
   try {
     if (holdings.filter(h => !h.deleted).length === 0) {
@@ -794,9 +793,6 @@ async function refresh() {
   } catch(e) {
     if (!tryShowCache()) renderFundList([]);
   } finally {
-    btn.classList.remove('loading');
-    btn.disabled = false;
-    btn.textContent = '↻ 刷新';
     isRefreshing = false;
     if (refreshQueued) refresh();
   }
@@ -1093,16 +1089,10 @@ function renderFundList(data) {
   var list = document.getElementById('fund-list');
   if (!data || data.length === 0) {
     list.innerHTML = '<div class="empty-hint">暂无持仓<br>在「持仓」页添加基金代码</div>';
-    document.getElementById('s-total').textContent = '--';
-    document.getElementById('s-total').className = 'sum-val';
-    var ep = document.getElementById('s-total-pct');
-    if (ep) { ep.textContent = ''; ep.className = 'sum-pct'; }
     return;
   }
 
   var sorted = sortFunds(data);
-  var todaySum = 0, totalVal = 0, profitSum = 0, totalCost = 0;
-  var weightedEstSum = 0, weightedEstBase = 0;
   var html = '';
 
   sorted.forEach(function(f) {
@@ -1117,15 +1107,6 @@ function renderFundList(data) {
     var hasToday = Number.isFinite(f.today_profit);
     var hasProfit = Number.isFinite(f.total_profit);
     var hasRate = Number.isFinite(f.total_profit_rate);
-    if (hasToday) todaySum += f.today_profit;
-    totalVal += f.curr_value || 0;
-    profitSum += hasProfit ? f.total_profit : 0;
-    if (f.shares > 0 && f.cost > 0) totalCost += f.shares * f.cost;
-    if (hasEst) {
-      var w = f.curr_value > 0 ? f.curr_value : 1;
-      weightedEstSum += f.est_change * w;
-      weightedEstBase += w;
-    }
     var yesterdayHtml = Number.isFinite(f.yesterday_change)
       ? ' · <span class="yest-chg ' + (f.yesterday_change >= 0 ? 'up' : 'down') + '">昨' + (f.yesterday_change >= 0 ? '+' : '') + fmt(f.yesterday_change) + '%</span>'
       : '';
@@ -1168,7 +1149,6 @@ function renderFundList(data) {
       if (f.shares > 0) {
         html += '<div class="detail-money stats-grid">';
         html += '<div><div class="stat-label">今日估算' + todayTag + '</div><div class="stat-val money ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '">' + (hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';
-        html += '<div><div class="stat-label">持仓市值</div><div class="stat-val money">' + fmt(f.curr_value) + '</div></div>';
         html += '<div><div class="stat-label">累计盈亏</div><div class="stat-val money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';
         html += '</div>';
       }
@@ -1236,20 +1216,7 @@ function renderFundList(data) {
 
   list.innerHTML = html;
 
-  document.getElementById('s-total').textContent = fmtM2(totalVal);
-  document.getElementById('s-total').className = 'sum-val';
-  setSumPct('s-total-pct', weightedEstBase > 0 ? weightedEstSum / weightedEstBase : NaN);
-
   updateSortBar();
-}
-
-function setSumPct(id, pct) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  if (!Number.isFinite(pct)) { el.textContent = ''; el.className = 'sum-pct'; return; }
-  var sign = pct >= 0 ? '+' : '';
-  el.textContent = sign + fmt(pct) + '%';
-  el.className = 'sum-pct ' + (pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat');
 }
 
 function fmt(n)  { return isNaN(n) ? '--' : Number(n).toFixed(2); }
@@ -1259,10 +1226,6 @@ function fmtM(n) {
   const s = n >= 0 ? '+' : '';
   const a = Math.abs(n);
   return s + (a >= 10000 ? (n/10000).toFixed(2)+'万' : n.toFixed(2));
-}
-function fmtM2(n) {
-  if (isNaN(n)) return '--';
-  return n >= 10000 ? (n/10000).toFixed(2)+'万' : n.toFixed(2);
 }
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1360,10 +1323,13 @@ function delFund(code) {
 // ── 页面切换 ─────────────────────────────────────────────
 let lastEditPull = 0;
 function switchPage(name) {
+  var page = document.getElementById('page-' + name);
+  var nav = document.getElementById('nav-' + name);
+  if (!page || !nav) return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.getElementById('nav-'+name).classList.add('active');
+  page.classList.add('active');
+  nav.classList.add('active');
   if (name==='edit') {
     renderHoldingsList();
     renderCloudStatus();
@@ -1373,7 +1339,6 @@ function switchPage(name) {
     }
   }
   else if (editingCode) cancelEdit();
-  if (name==='status') fetchDeploymentStatus();
 }
 
 // ── 指数行情条（腾讯行情 JSONP，全局可用无 CORS 限制） ────
@@ -1675,11 +1640,16 @@ function renderIndexBar(data) {
     var sign = hasData && idx.changePct >= 0 ? '+' : '';
     html += '<div class="index-item">';
     html += '<div class="index-name">' + esc(idx.name) + '</div>';
-    html += '<div class="index-price">' + (hasData ? fmt(idx.price) : '--') + '</div>';
+    html += '<div class="index-price">' + (hasData ? fmtIndexPrice(idx.price) : '--') + '</div>';
     html += '<div class="index-change ' + cc + '">' + (hasData ? sign + fmt(idx.changePct) + '%' : '--') + '</div>';
     html += '</div>';
   });
   el.innerHTML = html;
+}
+
+function fmtIndexPrice(n) {
+  if (!Number.isFinite(n)) return '--';
+  return Math.round(n).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
 }
 
 function startIndexRefresh() {
@@ -1732,38 +1702,139 @@ function startAutoRefresh() {
   autoRefreshTimer = setInterval(() => { refresh(); }, 60000);
 }
 
+// ── 下拉刷新 ─────────────────────────────────────────────
+function initPullToRefresh() {
+  var tip = document.getElementById('pull-refresh');
+  if (!tip) return;
+  var startY = 0;
+  var pulling = false;
+  var threshold = 72;
+
+  window.addEventListener('touchstart', function(e) {
+    if (window.scrollY > 0 || isRefreshing || !e.touches.length) return;
+    startY = e.touches[0].clientY;
+    pulling = true;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!pulling || !e.touches.length) return;
+    var distance = e.touches[0].clientY - startY;
+    if (distance <= 0) return;
+    var height = Math.min(48, distance * 0.45);
+    tip.style.height = height + 'px';
+    tip.textContent = distance >= threshold ? '松开刷新' : '下拉刷新';
+    tip.classList.toggle('ready', distance >= threshold);
+    tip.classList.add('visible');
+  }, { passive: true });
+
+  window.addEventListener('touchend', function(e) {
+    if (!pulling) return;
+    pulling = false;
+    var endY = e.changedTouches && e.changedTouches.length ? e.changedTouches[0].clientY : startY;
+    var shouldRefresh = endY - startY >= threshold;
+    if (shouldRefresh) {
+      tip.style.height = '34px';
+      tip.textContent = '刷新中...';
+      refresh().finally(function() {
+        tip.style.height = '0px';
+        tip.classList.remove('ready', 'visible');
+        tip.textContent = '下拉刷新';
+      });
+    } else {
+      tip.style.height = '0px';
+      tip.classList.remove('ready', 'visible');
+      tip.textContent = '下拉刷新';
+    }
+  }, { passive: true });
+}
+
+// ── 交易日 14:30 本地通知 ────────────────────────────────
+function setupNotificationPermissionPrompt() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'default') return;
+  var ask = function() {
+    if (notificationPrompted || Notification.permission !== 'default') return;
+    notificationPrompted = true;
+    Notification.requestPermission().catch(function() {});
+  };
+  ['click', 'touchstart', 'keydown'].forEach(function(evt) {
+    window.addEventListener(evt, ask, { once: true, passive: true });
+  });
+}
+
+function isWeekdayTradingDate(d) {
+  var day = d.getDay();
+  return day !== 0 && day !== 6;
+}
+
+function chinaDateKey(d) {
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+function buildDailyChangeBody() {
+  var activeCodes = holdings.filter(function(h) { return !h.deleted; }).map(function(h) { return h.code; });
+  var lines = activeCodes.map(function(code) {
+    var f = fundsData.find(function(item) { return item.code === code; });
+    if (!f || !Number.isFinite(f.est_change)) return null;
+    var sign = f.est_change >= 0 ? '+' : '';
+    var name = String(f.name || f.code).replace(/\s+/g, '').slice(0, 8);
+    return name + ' ' + sign + fmt(f.est_change) + '%';
+  }).filter(Boolean);
+  if (!lines.length) return '当前自选暂无可用估值数据';
+  return lines.slice(0, 8).join('\n') + (lines.length > 8 ? '\n...' : '');
+}
+
+async function showDailyNotification() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  var body = buildDailyChangeBody();
+  var title = '蜉蝣基金 14:30 自选涨跌幅';
+  try {
+    if ('serviceWorker' in navigator) {
+      var reg = await navigator.serviceWorker.ready;
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, {
+          body: body,
+          icon: 'icon-192.png',
+          badge: 'icon-192.png',
+          tag: 'fuyu-daily-1430',
+          renotify: true,
+          data: { url: location.href }
+        });
+        return true;
+      }
+    }
+    new Notification(title, { body: body, icon: 'icon-192.png', tag: 'fuyu-daily-1430' });
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+async function checkDailyNotification() {
+  var now = getChinaDate();
+  if (!isWeekdayTradingDate(now)) return;
+  var minute = now.getHours() * 60 + now.getMinutes();
+  if (minute < 14 * 60 + 30) return;
+  var today = chinaDateKey(now);
+  if (localStorage.getItem(NOTIFY_DATE_KEY) === today) return;
+  if (!holdings.filter(function(h) { return !h.deleted; }).length) return;
+  await refresh();
+  var sent = await showDailyNotification();
+  if (sent) localStorage.setItem(NOTIFY_DATE_KEY, today);
+}
+
+function startDailyNotifications() {
+  setupNotificationPermissionPrompt();
+  checkDailyNotification();
+  setInterval(checkDailyNotification, TIMING.DAILY_NOTIFY_CHECK_MS);
+}
+
 // ── Toast ────────────────────────────────────────────────
 function showToast(msg, ms=2200) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), ms);
-}
-
-// ── 获取部署状态 ─────────────────────────────────────────
-async function fetchDeploymentStatus() {
-  const REPO = 'AureliusWu/FundVal';
-  var _v = document.getElementById('app-version');
-  if (_v) _v.textContent = APP_VERSION;
-  try {
-    const response = await fetch(`https://api.github.com/repos/${REPO}/commits?per_page=1`);
-    if (!response.ok) throw new Error('请求失败');
-    const commits = await response.json();
-    if (!commits || commits.length === 0) {
-      document.getElementById('status-time').textContent = '未找到提交';
-      return;
-    }
-    const commit = commits[0];
-    const date = new Date(commit.commit.author.date);
-    const timeStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-    document.getElementById('status-time').textContent = timeStr;
-    document.getElementById('status-commit').textContent = commit.commit.message.split('\n')[0];
-    document.getElementById('status-hash').textContent = commit.sha.substring(0, 7);
-  } catch(err) {
-    document.getElementById('status-time').textContent = '获取失败（检查网络）';
-    document.getElementById('status-commit').textContent = '--';
-    document.getElementById('status-hash').textContent = '--';
-  }
 }
 
 // ── Service Worker（含自动更新检测） ──────────────────────
@@ -1795,11 +1866,15 @@ document.addEventListener('visibilitychange', function() {
 
 // ── 初始化 ───────────────────────────────────────────────
 loadHoldings();
+var appVersionLabel = document.getElementById('app-version-label');
+if (appVersionLabel) appVersionLabel.textContent = APP_VERSION;
 updateMktStatus();
 setInterval(updateMktStatus, TIMING.MKT_STATUS_MS);
 refresh();
 startAutoRefresh();
 startIndexRefresh();
+initPullToRefresh();
+startDailyNotifications();
 autoPullOnLoad();
 startAutoPull();
 if (getGistToken()) document.getElementById('gist-token').value = getGistToken();

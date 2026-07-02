@@ -19,29 +19,26 @@
 
 <div class="header">
   <div class="header-inner">
-    <div class="logo">蜉蝣基金 <em id="mkt-status"></em></div>
-    <div class="header-right">
-      <a class="home-link" href="https://aureliuswu.github.io/" title="返回主页">← Aurelius</a>
-      <button class="refresh-btn" id="ref-btn" onclick="refresh()">↻ 刷新</button>
+    <div class="logo">
+      <div class="logo-title">蜉蝣基金</div>
+      <div class="logo-sub"><span id="app-version-label">V8.0.0</span><em id="mkt-status"></em></div>
     </div>
   </div>
 </div>
 
+<div class="pull-refresh" id="pull-refresh">下拉刷新</div>
+
 <div class="index-bar" id="index-bar">
   <div class="index-bar-inner" id="index-bar-inner">
-    <div class="index-item"><div class="index-name">纳斯达克</div><div class="index-price">--</div><div class="index-change">--</div></div>
-    <div class="index-item"><div class="index-name">标普500</div><div class="index-price">--</div><div class="index-change">--</div></div>
-    <div class="index-item"><div class="index-name">黄金</div><div class="index-price">--</div><div class="index-change">--</div></div>
-    <div class="index-item"><div class="index-name">上证指数</div><div class="index-price">--</div><div class="index-change">--</div></div>
+    <div class="index-item"><div class="index-name">NASDAQ</div><div class="index-price">--</div><div class="index-change">--</div></div>
+    <div class="index-item"><div class="index-name">S&P</div><div class="index-price">--</div><div class="index-change">--</div></div>
+    <div class="index-item"><div class="index-name">AU</div><div class="index-price">--</div><div class="index-change">--</div></div>
+    <div class="index-item"><div class="index-name">SH</div><div class="index-price">--</div><div class="index-change">--</div></div>
     <div class="index-item"><div class="index-name">沪深300</div><div class="index-price">--</div><div class="index-change">--</div></div>
   </div>
 </div>
 
 <div class="last-upd" id="last-upd"></div>
-
-<div class="summary">
-  <div class="sum-item"><div class="sum-label">持仓市值</div><div class="sum-val" id="s-total">--</div><div class="sum-pct" id="s-total-pct"></div></div>
-</div>
 
 <div class="page active" id="page-market">
   <div class="sort-bar" id="sort-bar">
@@ -132,43 +129,6 @@
   <button class="nav-btn" id="nav-edit" onclick="switchPage('edit')">
     <span class="nav-icon">⚙️</span>持仓
   </button>
-  <button class="nav-btn" id="nav-status" onclick="switchPage('status')">
-    <span class="nav-icon">🔄</span>状态
-  </button>
-</div>
-
-<div class="page" id="page-status">
-  <div class="status-page">
-    <div class="sec-title">部署状态</div>
-    <div class="status-card">
-      <div class="status-item">
-        <div class="status-label">当前版本</div>
-        <div class="status-val status-hash" id="app-version">--</div>
-      </div>
-      <div class="status-item">
-        <div class="status-label">最后更新</div>
-        <div class="status-val" id="status-time">--</div>
-      </div>
-      <div class="status-item">
-        <div class="status-label">提交信息</div>
-        <div class="status-val" id="status-commit">--</div>
-      </div>
-      <div class="status-item">
-        <div class="status-label">提交哈希</div>
-        <div class="status-val status-hash" id="status-hash">--</div>
-      </div>
-    </div>
-    <div style="margin-top: 20px;">
-      <a href="https://github.com/AureliusWu/FundVal/actions" target="_blank" class="status-link">
-        🔗 查看 GitHub Actions 构建状态
-      </a>
-    </div>
-    <div style="margin-top: 12px;">
-      <a href="https://github.com/AureliusWu/FundVal" target="_blank" class="status-link">
-        🔗 查看仓库代码
-      </a>
-    </div>
-  </div>
 </div>
 
 <div class="toast" id="toast"></div>
