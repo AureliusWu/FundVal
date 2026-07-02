@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.0';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.2';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -23,12 +23,12 @@ const TIMING = {
 };
 // ── 缓存持久化黑名单（这些字段为瞬时 UI 状态，不写入 localStorage） ──
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
-// ── 指数行情配置（腾讯 JSONP + 黄金独立源） ──
+// ── 指数行情配置（腾讯 JSONP + 黄金 AU9999 独立源） ──
 const INDEX_CONFIG = [
-  { code: 'usIXIC',   name: 'NASDAQ' },
-  { code: 'usINX',    name: 'S&P' },
-  { code: 'hf_XAU',   name: 'AU', source: 'gold' },
-  { code: 'sh000001', name: 'SH' },
+  { code: 'usIXIC',   name: '纳指' },
+  { code: 'usINX',    name: '标普500' },
+  { code: 'AU9999',   name: '黄金9999', source: 'gold' },
+  { code: 'sh000001', name: '上证' },
   { code: 'sh000300', name: '沪深300' }
 ];
 let indexCache = INDEX_CONFIG.map(function(cfg) {
@@ -1360,60 +1360,7 @@ function parseTencentQuote(raw) {
   return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
 }
 
-// ── 黄金 AU9999 实时金价（新浪 JSONP + 东方财富 push2 + 持久缓存兜底） ──
-function parseSinaGoldQuote(raw) {
-  // 新浪 AU9999 返回逗号分隔: field[0]=名称, field[1]=今开, field[2]=昨收, field[3]=最新价
-  if (!raw || typeof raw !== 'string') return null;
-  var fields = raw.split(',');
-  if (fields.length < 4) return null;
-  var price = parseFloat(fields[3]);
-  if (!isUsableNav(price)) return null;
-  var prevClose = parseFloat(fields[2]);
-  var changePct = NaN;
-  if (Number.isFinite(prevClose) && prevClose > 0) {
-    changePct = (price - prevClose) / prevClose * 100;
-  }
-  return { name: '黄金9999', price: price, changePct: changePct };
-}
-
-function parseTencentGoldQuote(raw) {
-  // 腾讯国际贵金属行情逗号分隔：
-  // field[0]=最新价(美元/盎司), field[1]=涨跌幅(%), field[12]=日期, field[13]=名称
-  if (!raw || typeof raw !== 'string') return null;
-  var fields = raw.split(',');
-  if (fields.length < 14) return null;
-  var price = parseNav(fields[0]);
-  if (!isUsableNav(price)) return null;
-  var changePct = parseNav(fields[1]);
-  var quoteDate = fields[12] || '';
-  if (quoteDate) {
-    var d = new Date(quoteDate + 'T00:00:00');
-    if (!isNaN(d.getTime()) && Date.now() - d.getTime() > 7 * 24 * 60 * 60 * 1000) return null;
-  }
-  var name = (fields[13] || '伦敦金').replace(/[（）]/g, function(ch) {
-    return ch === '（' ? '(' : ')';
-  });
-  return { name: name, price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
-}
-
-function parseSinaGoldFutureQuote(raw) {
-  if (!raw || typeof raw !== 'string') return null;
-  var fields = raw.split(',');
-  if (fields.length < 18) return null;
-  var dateText = fields[17] || '';
-  var quoteDate = dateText ? new Date(dateText + 'T00:00:00') : null;
-  if (!quoteDate || isNaN(quoteDate.getTime())) return null;
-  // AU0 偶尔会返回很旧的冻结数据，超过 7 天就不用，避免误导。
-  if (Date.now() - quoteDate.getTime() > 7 * 24 * 60 * 60 * 1000) return null;
-  var price = parseNav(fields[5]);
-  if (!isUsableNav(price)) price = parseNav(fields[3]);
-  if (!isUsableNav(price)) return null;
-  var prevClose = parseNav(fields[10]);
-  var changePct = (Number.isFinite(prevClose) && prevClose > 0)
-    ? (price - prevClose) / prevClose * 100 : NaN;
-  return { name: '黄金9999', price: price, changePct: changePct };
-}
-
+// ── 黄金 AU9999 实时金价（复刻司南基金：东方财富 push2 + 持久缓存兜底） ──
 function loadGoldCache() {
   try {
     var raw = localStorage.getItem(GOLD_CACHE_KEY);
@@ -1430,63 +1377,6 @@ function saveGoldCache(result) {
   try {
     localStorage.setItem(GOLD_CACHE_KEY, JSON.stringify(goldCache));
   } catch(e) {}
-}
-
-function fetchSinaGold(symbol, globalName, parser) {
-  return new Promise(function(resolve) {
-    var script = document.createElement('script');
-    var done = false;
-    var timer = setTimeout(function() {
-      finish(null);
-    }, TIMING.INDEX_JSONP_TIMEOUT);
-
-    function finish(result) {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      script.remove();
-      try { delete window[globalName]; } catch(e) {}
-      resolve(result);
-    }
-
-    script.setAttribute('referrerpolicy', 'no-referrer');
-    script.onload = function() {
-      var parsed = null;
-      try { parsed = parser(window[globalName]); } catch(e) {}
-      finish(parsed);
-    };
-    script.onerror = function() { finish(null); };
-    script.src = 'https://hq.sinajs.cn/list=' + symbol + '&_=' + Date.now();
-    document.head.appendChild(script);
-  });
-}
-
-function fetchTencentGold(symbol, globalName) {
-  return new Promise(function(resolve) {
-    var script = document.createElement('script');
-    var done = false;
-    var timer = setTimeout(function() {
-      finish(null);
-    }, TIMING.INDEX_JSONP_TIMEOUT);
-
-    function finish(result) {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      script.remove();
-      try { delete window[globalName]; } catch(e) {}
-      resolve(result);
-    }
-
-    script.onload = function() {
-      var parsed = null;
-      try { parsed = parseTencentGoldQuote(window[globalName]); } catch(e) {}
-      finish(parsed);
-    };
-    script.onerror = function() { finish(null); };
-    script.src = 'https://qt.gtimg.cn/q=' + symbol + '&_t=' + Date.now();
-    document.head.appendChild(script);
-  });
 }
 
 function fetchGoldFromEastmoneySecid(secid) {
@@ -1521,33 +1411,19 @@ function fetchGoldFromEastmoneySecid(secid) {
 }
 
 async function fetchGoldFromEastmoney() {
-  var secids = ['118.AU9999', '113.AU9999', '114.AU9999', '113.AU0', '114.AU0'];
-  var results = await Promise.all(secids.map(function(secid) {
-    return fetchGoldFromEastmoneySecid(secid);
-  }));
-  for (var i = 0; i < results.length; i++) {
-    if (results[i] && Number.isFinite(results[i].price)) return results[i];
+  var secids = ['118.AU9999', '113.AU9999', '114.AU9999'];
+  for (var i = 0; i < secids.length; i++) {
+    var result = await fetchGoldFromEastmoneySecid(secids[i]);
+    if (result && Number.isFinite(result.price)) return result;
   }
   return null;
 }
 
 async function fetchGoldPrice() {
-  var sources = [
-    function() { return fetchTencentGold('hf_XAU', 'v_hf_XAU'); },
-    function() { return fetchTencentGold('hf_GC', 'v_hf_GC'); },
-    function() { return fetchSinaGold('au9999', 'hq_str_au9999', parseSinaGoldQuote); },
-    function() { return fetchSinaGold('AU0', 'hq_str_AU0', parseSinaGoldFutureQuote); },
-    fetchGoldFromEastmoney
-  ];
-
-  for (var i = 0; i < sources.length; i++) {
-    try {
-      var result = await sources[i]();
-      if (result && Number.isFinite(result.price)) {
-        saveGoldCache(result);
-        return result;
-      }
-    } catch(e) {}
+  var result = await fetchGoldFromEastmoney();
+  if (result && Number.isFinite(result.price)) {
+    saveGoldCache(result);
+    return result;
   }
 
   var cached = loadGoldCache();
