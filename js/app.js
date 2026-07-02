@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.2';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.3';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -606,14 +606,17 @@ window.jsonpgz = function(data) {
   pendingRequests.delete(code);
   clearTimeout(entry.timer);
   try {
+    var normalized = normalizeFundEstimate(data);
     entry.resolve({
       code: code,
       name: data.name || code,
-      last_nav: parseNav(data.dwjz),
-      est_nav: parseNav(data.gsz),
-      est_change: parseNav(data.gszzl),
+      last_nav: normalized.last_nav,
+      est_nav: normalized.est_nav,
+      est_change: normalized.est_change,
       nav_date: data.jzrq || '',
       est_time: data.gztime || '',
+      est_label: normalized.est_label,
+      est_kind: normalized.est_kind,
       status: 'ok'
     });
   } catch(e) {
@@ -741,10 +744,14 @@ async function refresh() {
         }
       }
 
-      const hasEst = isUsableNav(d.est_nav);
+      const hasEstNav = isUsableNav(d.est_nav);
+      const hasEstChange = Number.isFinite(d.est_change);
       const hasLast = isUsableNav(d.last_nav);
+      const canDeriveEstNav = !hasEstNav && hasLast && hasEstChange;
+      if (canDeriveEstNav) d.est_nav = d.last_nav * (1 + d.est_change / 100);
+      const hasEst = isUsableNav(d.est_nav);
 
-      if ((d.status === 'ok' || d.status === 'ok_fallback') && (hasEst || hasLast)) {
+      if ((d.status === 'ok' || d.status === 'ok_fallback') && (hasEst || hasLast || hasEstChange)) {
         if (d.shares > 0) {
           // 有持仓 → 计算盈亏
           if (hasEst && hasLast) {
@@ -776,7 +783,7 @@ async function refresh() {
         anyOk = true;
       }
 
-      if ((d.status === 'ok' || d.status === 'ok_fallback') && !hasLast && !hasEst) {
+      if ((d.status === 'ok' || d.status === 'ok_fallback') && !hasLast && !hasEst && !hasEstChange) {
         d.status = 'error';
         d.message = '净值数据无效';
       }
@@ -814,6 +821,36 @@ function isUsableNav(n) { return Number.isFinite(n) && n > 0; }
 function parseNav(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : NaN;
+}
+
+function isOverseasFundEstimate(name, estTime) {
+  var text = String(name || '');
+  var isOverseasFund = /QDII|全球|海外|新兴市场|纳斯达克|标普|恒生|港股|美元|国际|日经|德国|越南|印度|香港/i.test(text);
+  var m = String(estTime || '').match(/\s(\d{1,2}):(\d{2})$/);
+  var hour = m ? Number(m[1]) : NaN;
+  return isOverseasFund && Number.isFinite(hour) && (hour < 9 || hour >= 15);
+}
+
+function normalizeFundEstimate(data) {
+  var lastNav = parseNav(data.dwjz);
+  var estNav = parseNav(data.gsz);
+  var estChange = parseNav(data.gszzl);
+
+  if (!Number.isFinite(estChange) && isUsableNav(lastNav) && isUsableNav(estNav)) {
+    estChange = (estNav - lastNav) / lastNav * 100;
+  }
+  if (!isUsableNav(estNav) && isUsableNav(lastNav) && Number.isFinite(estChange)) {
+    estNav = lastNav * (1 + estChange / 100);
+  }
+
+  var overseas = isOverseasFundEstimate(data.name, data.gztime);
+  return {
+    last_nav: lastNav,
+    est_nav: estNav,
+    est_change: estChange,
+    est_kind: overseas ? 'overseas' : 'intraday',
+    est_label: overseas ? '海外估值' : '盘中估值'
+  };
 }
 
 // ── 排序 ─────────────────────────────────────────────────
@@ -1115,6 +1152,9 @@ function renderFundList(data) {
     var sourceTag = f._cached
       ? ' <span class="cache-tag">缓存</span>'
       : (isFallback ? ' <span class="cache-tag">备选</span>' : '');
+    var estimateTag = f.est_kind === 'overseas' ? ' <span class="cache-tag">海外估值</span>' : '';
+    var estimateLabel = f.est_label || '盘中估值';
+    var estimateTime = f.est_kind === 'overseas' && f.est_time ? '海外 · ' + f.est_time : (f.est_time || '--');
 
     var profitRateHtml = hasRate
       ? ' <span class="profit-rate ' + (f.total_profit_rate >= 0 ? 'up' : 'down') + '">' + (f.total_profit_rate >= 0 ? '+' : '') + fmt(f.total_profit_rate) + '%</span>'
@@ -1127,8 +1167,8 @@ function renderFundList(data) {
 
     html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + (isWatchOnly ? ' watch-only' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开详情">';
     html += '<div class="fund-main">';
-    html += '<div class="fund-id"><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
-    html += '<div class="fund-est"><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + (f.est_time||'--') + '</div></div>';
+    html += '<div class="fund-id"><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + estimateTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
+    html += '<div class="fund-est"><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + estimateTime + '</div></div>';
     html += '<div class="fund-nav"><div class="nav-cur">' + fmt4(f.est_nav) + '</div><div class="nav-prev">' + fmt4(f.last_nav) + '</div></div>';
     html += '</div>';
 
@@ -1140,7 +1180,7 @@ function renderFundList(data) {
       // 折叠的次要数据：盘中/上一净值（手机端，PC 已在行内列显示故隐藏）+ 持仓金额
       html += '<div class="detail-stats">';
       html += '<div class="detail-nav stats-grid" style="grid-template-columns:repeat(' + refCols + ',1fr)">';
-      html += '<div><div class="stat-label">盘中估值</div><div class="stat-val">' + fmt4(f.est_nav) + '</div></div>';
+      html += '<div><div class="stat-label">' + estimateLabel + '</div><div class="stat-val">' + fmt4(f.est_nav) + '</div></div>';
       html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
       if (f.shares > 0) {
         html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
