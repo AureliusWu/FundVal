@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v8.0.3';
+const CACHE = 'fuyu-v8.0.4';
 const ASSETS = [
   './',
   './index.html',

@@ -287,6 +287,13 @@ html, body {
   letter-spacing: -.01em;
 }
 
+.cache-note {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
 .fund-error {
   font-size: 12px;
   color: var(--muted);

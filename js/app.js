@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.3';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.4';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -617,6 +617,8 @@ window.jsonpgz = function(data) {
       est_time: data.gztime || '',
       est_label: normalized.est_label,
       est_kind: normalized.est_kind,
+      est_realtime: normalized.est_realtime,
+      est_note: normalized.est_note,
       status: 'ok'
     });
   } catch(e) {
@@ -849,7 +851,11 @@ function normalizeFundEstimate(data) {
     est_nav: estNav,
     est_change: estChange,
     est_kind: overseas ? 'overseas' : 'intraday',
-    est_label: overseas ? '海外估值' : '盘中估值'
+    est_label: overseas ? '海外估值' : '盘中估值',
+    est_realtime: !overseas,
+    est_note: overseas
+      ? '天天基金当前仅返回海外基金收盘后/延迟估值，未提供实时盘中估值'
+      : '天天基金盘中估值'
   };
 }
 
@@ -1152,9 +1158,9 @@ function renderFundList(data) {
     var sourceTag = f._cached
       ? ' <span class="cache-tag">缓存</span>'
       : (isFallback ? ' <span class="cache-tag">备选</span>' : '');
-    var estimateTag = f.est_kind === 'overseas' ? ' <span class="cache-tag">海外估值</span>' : '';
-    var estimateLabel = f.est_label || '盘中估值';
-    var estimateTime = f.est_kind === 'overseas' && f.est_time ? '海外 · ' + f.est_time : (f.est_time || '--');
+    var estimateTag = f.est_realtime === false ? ' <span class="cache-tag">海外非实时</span>' : '';
+    var estimateLabel = f.est_realtime === false ? '海外非实时估值' : (f.est_label || '盘中估值');
+    var estimateTime = f.est_realtime === false && f.est_time ? '非实时 · ' + f.est_time : (f.est_time || '--');
 
     var profitRateHtml = hasRate
       ? ' <span class="profit-rate ' + (f.total_profit_rate >= 0 ? 'up' : 'down') + '">' + (f.total_profit_rate >= 0 ? '+' : '') + fmt(f.total_profit_rate) + '%</span>'
@@ -1174,13 +1180,14 @@ function renderFundList(data) {
 
     if (isExpanded) {
       var todayTag = f.today_is_latest_nav ? ' <span class="cache-tag">最新净值</span>' : '';
+      var estimateNote = f.est_note ? '<div class="cache-note">' + esc(f.est_note) + '</div>' : '';
       var refCols = f.shares > 0 ? 3 : 2;
       html += '<div class="holdings-detail">';
 
       // 折叠的次要数据：盘中/上一净值（手机端，PC 已在行内列显示故隐藏）+ 持仓金额
       html += '<div class="detail-stats">';
       html += '<div class="detail-nav stats-grid" style="grid-template-columns:repeat(' + refCols + ',1fr)">';
-      html += '<div><div class="stat-label">' + estimateLabel + '</div><div class="stat-val">' + fmt4(f.est_nav) + '</div></div>';
+      html += '<div><div class="stat-label">' + estimateLabel + '</div><div class="stat-val">' + fmt4(f.est_nav) + '</div>' + estimateNote + '</div>';
       html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
       if (f.shares > 0) {
         html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
