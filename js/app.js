@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.8';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.9';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -25,17 +25,11 @@ const TIMING = {
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
 // ── 指数行情配置（腾讯 JSONP + 黄金 AU9999 独立源） ──
 const INDEX_CONFIG = [
-  { code: 'usEEM',    name: '新兴市场' },
-  { code: 'usQQQ',    name: '纳指100ETF' },
-  { code: 'usSPY',    name: '标普500ETF' },
-  { code: 'usNDX',    name: '纳指100' },
-  { code: 'usIXIC',   name: '纳指' },
-  { code: 'usINX',    name: '标普500' },
-  { code: 'r_hkHSTECH', name: '恒生科技' },
-  { code: 'r_hkHSI',  name: '恒生' },
   { code: 'AU9999',   name: '黄金9999', source: 'gold' },
   { code: 'sh000001', name: '上证' },
-  { code: 'sh000300', name: '沪深300' }
+  { code: 'sh000300', name: '沪深300' },
+  { code: 'usNDX',    name: '纳指100' },
+  { code: 'usINX',    name: '标普500' }
 ];
 
 const OVERSEAS_MODEL_BY_CODE = {
