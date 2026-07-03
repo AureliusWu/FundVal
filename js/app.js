@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.7';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.8';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -39,8 +39,42 @@ const INDEX_CONFIG = [
 ];
 
 const OVERSEAS_MODEL_BY_CODE = {
-  '539002': { legs: [{ code: 'usEEM', weight: 1 }], label: '新兴市场EEM模型' },
-  '012920': { legs: [{ code: 'usQQQ', weight: 0.7 }, { code: 'usSPY', weight: 0.3 }], label: '全球成长模型' }
+  // 2026Q1 public holdings from EastMoney jjcc. Use live constituent quotes when
+  // available, then normalize by the usable weight. KR names fall back to EWY.
+  '539002': {
+    label: '2026Q1重仓穿透模型',
+    minWeight: 30,
+    fallback: { legs: [{ code: 'usSMH', weight: 70 }, { code: 'usEWY', weight: 20 }, { code: 'usEEM', weight: 10 }], label: '半导体+韩国兜底模型' },
+    legs: [
+      { code: 'usTSM', weight: 10.26 },
+      { code: 'usNVDA', weight: 10.14 },
+      { code: 'usEWY', weight: 8.65, note: 'SK海力士代理' },
+      { code: 'usAVGO', weight: 8.52 },
+      { code: 'usEWY', weight: 6.76, note: '三星电子代理' },
+      { code: 'usSNDK', weight: 4.91 },
+      { code: 'usGLW', weight: 4.29 },
+      { code: 'usWDC', weight: 3.73 },
+      { code: 'usLITE', weight: 3.58 },
+      { code: 'usMPWR', weight: 3.49 }
+    ]
+  },
+  '012920': {
+    label: '2026Q1重仓穿透模型',
+    minWeight: 25,
+    fallback: { legs: [{ code: 'usQQQ', weight: 45 }, { code: 'usSOXX', weight: 30 }, { code: 'sh000300', weight: 25 }], label: '成长+半导体+A股兜底模型' },
+    legs: [
+      { code: 'usTSM', weight: 8.88 },
+      { code: 'usLITE', weight: 8.68 },
+      { code: 'sz300502', weight: 6.02 },
+      { code: 'usGLW', weight: 4.67 },
+      { code: 'usAXTI', weight: 4.67 },
+      { code: 'sz300308', weight: 4.67 },
+      { code: 'sh688498', weight: 4.49 },
+      { code: 'usTSEM', weight: 3.72 },
+      { code: 'usGOOGL', weight: 3.36 },
+      { code: 'sz002384', weight: 2.67 }
+    ]
+  }
 };
 
 const OVERSEAS_MODEL_RULES = [
@@ -918,7 +952,9 @@ function fetchTencentQuotes(codes) {
 }
 
 async function fetchOverseasModelQuotes() {
-  var tencentCodes = ['usEEM', 'usQQQ', 'usSPY', 'usNDX', 'usIXIC', 'usINX', 'r_hkHSTECH', 'r_hkHSI'];
+  var tencentCodes = ['usEEM', 'usQQQ', 'usSPY', 'usNDX', 'usIXIC', 'usINX', 'usSMH', 'usSOXX', 'usEWY', 'r_hkHSTECH', 'r_hkHSI'];
+  collectOverseasModelCodes(OVERSEAS_MODEL_BY_CODE, tencentCodes);
+  collectOverseasModelCodes(OVERSEAS_MODEL_RULES, tencentCodes);
   var results = await Promise.all([fetchTencentQuotes(tencentCodes), fetchGoldPrice()]);
   var q = results[0] || {};
   var gold = results[1];
@@ -926,6 +962,23 @@ async function fetchOverseasModelQuotes() {
     q.AU9999 = { price: gold.price, changePct: gold.changePct };
   }
   return q;
+}
+
+function collectOverseasModelCodes(models, out) {
+  var seen = {};
+  out.forEach(function(code) { seen[code] = true; });
+  var list = Array.isArray(models) ? models : Object.keys(models || {}).map(function(k) { return models[k]; });
+  list.forEach(function(model) {
+    var legs = [];
+    if (model && Array.isArray(model.legs)) legs = legs.concat(model.legs);
+    if (model && model.fallback && Array.isArray(model.fallback.legs)) legs = legs.concat(model.fallback.legs);
+    legs.forEach(function(leg) {
+      if (leg && leg.code && !seen[leg.code]) {
+        seen[leg.code] = true;
+        out.push(leg.code);
+      }
+    });
+  });
 }
 
 function chooseOverseasModel(fund) {
@@ -941,21 +994,30 @@ function chooseOverseasModel(fund) {
 function calcModelChange(model, quotes) {
   var sum = 0;
   var weight = 0;
+  var usable = [];
   for (var i = 0; i < model.legs.length; i++) {
     var leg = model.legs[i];
     var quote = quotes && quotes[leg.code];
     if (!quote || !Number.isFinite(quote.changePct)) continue;
     sum += quote.changePct * leg.weight;
     weight += leg.weight;
+    usable.push(leg);
   }
-  return weight > 0 ? sum / weight : NaN;
+  var minWeight = Number.isFinite(model.minWeight) ? model.minWeight : 0;
+  if (weight <= 0 || weight < minWeight) return { changePct: NaN, weight: weight, legs: usable };
+  return { changePct: sum / weight, weight: weight, legs: usable };
 }
 
 function applyOverseasModelEstimate(fund, quotes) {
   if (!fund || fund.est_realtime !== false) return;
   var model = chooseOverseasModel(fund);
   if (!model) return;
-  var changePct = calcModelChange(model, quotes);
+  var result = calcModelChange(model, quotes);
+  if ((!result || !Number.isFinite(result.changePct)) && model.fallback) {
+    result = calcModelChange(model.fallback, quotes);
+    if (result && Number.isFinite(result.changePct)) model = model.fallback;
+  }
+  var changePct = result && result.changePct;
   if (!Number.isFinite(changePct)) return;
 
   fund.est_change = changePct;
@@ -968,7 +1030,8 @@ function applyOverseasModelEstimate(fund, quotes) {
   fund.est_model = true;
   fund.est_model_code = model.legs.map(function(leg) { return leg.code + ':' + leg.weight; }).join(',');
   fund.est_model_label = model.label;
-  fund.est_note = model.label + ' · 基于实时市场行情自建估算，不是基金官方实时净值';
+  fund.est_model_weight = result.weight;
+  fund.est_note = model.label + ' · 可用权重' + fmt(result.weight) + '% · 基于实时市场行情自建估算，不是基金官方实时净值';
 }
 
 // ── 排序 ─────────────────────────────────────────────────
