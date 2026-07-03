@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.4';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.5';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -25,8 +25,11 @@ const TIMING = {
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
 // ── 指数行情配置（腾讯 JSONP + 黄金 AU9999 独立源） ──
 const INDEX_CONFIG = [
+  { code: 'usNDX',    name: '纳指100' },
   { code: 'usIXIC',   name: '纳指' },
   { code: 'usINX',    name: '标普500' },
+  { code: 'r_hkHSTECH', name: '恒生科技' },
+  { code: 'r_hkHSI',  name: '恒生' },
   { code: 'AU9999',   name: '黄金9999', source: 'gold' },
   { code: 'sh000001', name: '上证' },
   { code: 'sh000300', name: '沪深300' }
@@ -723,7 +726,10 @@ async function refresh() {
     }
 
     const snapshot = holdings.filter(h => !h.deleted).map(h => ({...h}));
-    const results = await Promise.all(snapshot.map(h => fetchFundFull(h.code)));
+    const [results, modelQuotes] = await Promise.all([
+      Promise.all(snapshot.map(h => fetchFundFull(h.code))),
+      fetchOverseasModelQuotes()
+    ]);
 
     let holdingsChanged = false;
     let anyOk = false;
@@ -745,6 +751,8 @@ async function refresh() {
           holdingsChanged = true;
         }
       }
+
+      applyOverseasModelEstimate(d, modelQuotes);
 
       const hasEstNav = isUsableNav(d.est_nav);
       const hasEstChange = Number.isFinite(d.est_change);
@@ -857,6 +865,78 @@ function normalizeFundEstimate(data) {
       ? '天天基金当前仅返回海外基金收盘后/延迟估值，未提供实时盘中估值'
       : '天天基金盘中估值'
   };
+}
+
+function fetchTencentQuotes(codes) {
+  return new Promise(function(resolve) {
+    var script = document.createElement('script');
+    var done = false;
+    var timer = setTimeout(function() { finish(false); }, TIMING.INDEX_JSONP_TIMEOUT);
+
+    function finish(ok) {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      script.remove();
+      var out = {};
+      codes.forEach(function(code) {
+        var parsed = null;
+        try {
+          parsed = ok ? parseTencentQuote(window['v_' + code]) : null;
+          delete window['v_' + code];
+        } catch(e) {}
+        out[code] = parsed;
+      });
+      resolve(out);
+    }
+
+    script.onload = function() { finish(true); };
+    script.onerror = function() { finish(false); };
+    script.src = 'https://qt.gtimg.cn/q=' + codes.join(',') + '&_t=' + Date.now();
+    document.head.appendChild(script);
+  });
+}
+
+async function fetchOverseasModelQuotes() {
+  var tencentCodes = ['usNDX', 'usIXIC', 'usINX', 'r_hkHSTECH', 'r_hkHSI'];
+  var results = await Promise.all([fetchTencentQuotes(tencentCodes), fetchGoldPrice()]);
+  var q = results[0] || {};
+  var gold = results[1];
+  if (gold && Number.isFinite(gold.changePct)) {
+    q.AU9999 = { price: gold.price, changePct: gold.changePct };
+  }
+  return q;
+}
+
+function chooseOverseasModel(name) {
+  var text = String(name || '');
+  if (/黄金|金价|贵金属|Gold/i.test(text)) return { code: 'AU9999', label: '黄金模型' };
+  if (/恒生科技|港股科技|中概|中国互联网|互联网/i.test(text)) return { code: 'r_hkHSTECH', label: '恒生科技模型' };
+  if (/恒生|港股|香港/i.test(text)) return { code: 'r_hkHSI', label: '恒生模型' };
+  if (/纳斯达克100|纳指100|NASDAQ\s*100|Nasdaq\s*100|纳斯达克/i.test(text)) return { code: 'usNDX', label: '纳指100模型' };
+  if (/标普|S&P|SP500|500/i.test(text)) return { code: 'usINX', label: '标普500模型' };
+  if (/全球|海外|美国|美元|QDII/i.test(text)) return { code: 'usINX', label: '标普500模型' };
+  return null;
+}
+
+function applyOverseasModelEstimate(fund, quotes) {
+  if (!fund || fund.est_realtime !== false) return;
+  var model = chooseOverseasModel(fund.name);
+  if (!model) return;
+  var quote = quotes && quotes[model.code];
+  if (!quote || !Number.isFinite(quote.changePct)) return;
+
+  fund.est_change = quote.changePct;
+  if (isUsableNav(fund.last_nav)) {
+    fund.est_nav = fund.last_nav * (1 + quote.changePct / 100);
+  }
+  fund.est_kind = 'overseas_model';
+  fund.est_label = '海外模型估算';
+  fund.est_realtime = true;
+  fund.est_model = true;
+  fund.est_model_code = model.code;
+  fund.est_model_label = model.label;
+  fund.est_note = model.label + ' · 基于实时市场行情自建估算，不是基金官方实时净值';
 }
 
 // ── 排序 ─────────────────────────────────────────────────
@@ -1158,9 +1238,13 @@ function renderFundList(data) {
     var sourceTag = f._cached
       ? ' <span class="cache-tag">缓存</span>'
       : (isFallback ? ' <span class="cache-tag">备选</span>' : '');
-    var estimateTag = f.est_realtime === false ? ' <span class="cache-tag">海外非实时</span>' : '';
-    var estimateLabel = f.est_realtime === false ? '海外非实时估值' : (f.est_label || '盘中估值');
-    var estimateTime = f.est_realtime === false && f.est_time ? '非实时 · ' + f.est_time : (f.est_time || '--');
+    var estimateTag = f.est_model
+      ? ' <span class="cache-tag">模型估算</span>'
+      : (f.est_realtime === false ? ' <span class="cache-tag">海外非实时</span>' : '');
+    var estimateLabel = f.est_model ? '海外模型估算' : (f.est_realtime === false ? '海外非实时估值' : (f.est_label || '盘中估值'));
+    var estimateTime = f.est_model
+      ? (f.est_model_label || '模型估算')
+      : (f.est_realtime === false && f.est_time ? '非实时 · ' + f.est_time : (f.est_time || '--'));
 
     var profitRateHtml = hasRate
       ? ' <span class="profit-rate ' + (f.total_profit_rate >= 0 ? 'up' : 'down') + '">' + (f.total_profit_rate >= 0 ? '+' : '') + fmt(f.total_profit_rate) + '%</span>'
