@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.5';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.6';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -25,6 +25,8 @@ const TIMING = {
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
 // ── 指数行情配置（腾讯 JSONP + 黄金 AU9999 独立源） ──
 const INDEX_CONFIG = [
+  { code: 'usEEM',    name: '新兴市场' },
+  { code: 'usQQQ',    name: '纳指100ETF' },
   { code: 'usNDX',    name: '纳指100' },
   { code: 'usIXIC',   name: '纳指' },
   { code: 'usINX',    name: '标普500' },
@@ -898,7 +900,7 @@ function fetchTencentQuotes(codes) {
 }
 
 async function fetchOverseasModelQuotes() {
-  var tencentCodes = ['usNDX', 'usIXIC', 'usINX', 'r_hkHSTECH', 'r_hkHSI'];
+  var tencentCodes = ['usEEM', 'usQQQ', 'usNDX', 'usIXIC', 'usINX', 'r_hkHSTECH', 'r_hkHSI'];
   var results = await Promise.all([fetchTencentQuotes(tencentCodes), fetchGoldPrice()]);
   var q = results[0] || {};
   var gold = results[1];
@@ -908,8 +910,11 @@ async function fetchOverseasModelQuotes() {
   return q;
 }
 
-function chooseOverseasModel(name) {
-  var text = String(name || '');
+function chooseOverseasModel(fund) {
+  var code = String(fund && fund.code || '');
+  var text = String(fund && fund.name || '');
+  if (code === '539002') return { code: 'usEEM', label: '新兴市场EEM模型' };
+  if (code === '012920') return { code: 'usQQQ', label: '纳指100成长模型' };
   if (/黄金|金价|贵金属|Gold/i.test(text)) return { code: 'AU9999', label: '黄金模型' };
   if (/恒生科技|港股科技|中概|中国互联网|互联网/i.test(text)) return { code: 'r_hkHSTECH', label: '恒生科技模型' };
   if (/恒生|港股|香港/i.test(text)) return { code: 'r_hkHSI', label: '恒生模型' };
@@ -921,7 +926,7 @@ function chooseOverseasModel(name) {
 
 function applyOverseasModelEstimate(fund, quotes) {
   if (!fund || fund.est_realtime !== false) return;
-  var model = chooseOverseasModel(fund.name);
+  var model = chooseOverseasModel(fund);
   if (!model) return;
   var quote = quotes && quotes[model.code];
   if (!quote || !Number.isFinite(quote.changePct)) return;
