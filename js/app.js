@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.6';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.7';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -27,6 +27,7 @@ const SKIP_CACHE_KEYS = ['_cached', 'message'];
 const INDEX_CONFIG = [
   { code: 'usEEM',    name: '新兴市场' },
   { code: 'usQQQ',    name: '纳指100ETF' },
+  { code: 'usSPY',    name: '标普500ETF' },
   { code: 'usNDX',    name: '纳指100' },
   { code: 'usIXIC',   name: '纳指' },
   { code: 'usINX',    name: '标普500' },
@@ -35,6 +36,23 @@ const INDEX_CONFIG = [
   { code: 'AU9999',   name: '黄金9999', source: 'gold' },
   { code: 'sh000001', name: '上证' },
   { code: 'sh000300', name: '沪深300' }
+];
+
+const OVERSEAS_MODEL_BY_CODE = {
+  '539002': { legs: [{ code: 'usEEM', weight: 1 }], label: '新兴市场EEM模型' },
+  '012920': { legs: [{ code: 'usQQQ', weight: 0.7 }, { code: 'usSPY', weight: 0.3 }], label: '全球成长模型' }
+};
+
+const OVERSEAS_MODEL_RULES = [
+  { re: /新兴市场|新兴|印度|越南|东盟|亚洲/i, legs: [{ code: 'usEEM', weight: 1 }], label: '新兴市场EEM模型' },
+  { re: /中国互联网|中概|海外互联网|互联网/i, legs: [{ code: 'r_hkHSTECH', weight: 0.5 }, { code: 'usQQQ', weight: 0.5 }], label: '中概互联网模型' },
+  { re: /恒生科技|港股科技/i, legs: [{ code: 'r_hkHSTECH', weight: 1 }], label: '恒生科技模型' },
+  { re: /恒生|港股|香港/i, legs: [{ code: 'r_hkHSI', weight: 1 }], label: '恒生模型' },
+  { re: /纳斯达克100|纳指100|NASDAQ\s*100|Nasdaq\s*100|纳斯达克/i, legs: [{ code: 'usQQQ', weight: 1 }], label: '纳指100ETF模型' },
+  { re: /科技|成长|创新|互联网|AI|人工智能|半导体|信息技术/i, legs: [{ code: 'usQQQ', weight: 0.75 }, { code: 'usSPY', weight: 0.25 }], label: '全球成长模型' },
+  { re: /标普|S&P|SP500|500/i, legs: [{ code: 'usSPY', weight: 1 }], label: '标普500ETF模型' },
+  { re: /黄金|金价|贵金属|Gold/i, legs: [{ code: 'AU9999', weight: 1 }], label: '黄金模型' },
+  { re: /全球|海外|美国|美元|QDII/i, legs: [{ code: 'usSPY', weight: 0.6 }, { code: 'usQQQ', weight: 0.4 }], label: '全球股市模型' }
 ];
 let indexCache = INDEX_CONFIG.map(function(cfg) {
   return { name: cfg.name, price: NaN, changePct: NaN };
@@ -900,7 +918,7 @@ function fetchTencentQuotes(codes) {
 }
 
 async function fetchOverseasModelQuotes() {
-  var tencentCodes = ['usEEM', 'usQQQ', 'usNDX', 'usIXIC', 'usINX', 'r_hkHSTECH', 'r_hkHSI'];
+  var tencentCodes = ['usEEM', 'usQQQ', 'usSPY', 'usNDX', 'usIXIC', 'usINX', 'r_hkHSTECH', 'r_hkHSI'];
   var results = await Promise.all([fetchTencentQuotes(tencentCodes), fetchGoldPrice()]);
   var q = results[0] || {};
   var gold = results[1];
@@ -913,33 +931,42 @@ async function fetchOverseasModelQuotes() {
 function chooseOverseasModel(fund) {
   var code = String(fund && fund.code || '');
   var text = String(fund && fund.name || '');
-  if (code === '539002') return { code: 'usEEM', label: '新兴市场EEM模型' };
-  if (code === '012920') return { code: 'usQQQ', label: '纳指100成长模型' };
-  if (/黄金|金价|贵金属|Gold/i.test(text)) return { code: 'AU9999', label: '黄金模型' };
-  if (/恒生科技|港股科技|中概|中国互联网|互联网/i.test(text)) return { code: 'r_hkHSTECH', label: '恒生科技模型' };
-  if (/恒生|港股|香港/i.test(text)) return { code: 'r_hkHSI', label: '恒生模型' };
-  if (/纳斯达克100|纳指100|NASDAQ\s*100|Nasdaq\s*100|纳斯达克/i.test(text)) return { code: 'usNDX', label: '纳指100模型' };
-  if (/标普|S&P|SP500|500/i.test(text)) return { code: 'usINX', label: '标普500模型' };
-  if (/全球|海外|美国|美元|QDII/i.test(text)) return { code: 'usINX', label: '标普500模型' };
+  if (OVERSEAS_MODEL_BY_CODE[code]) return OVERSEAS_MODEL_BY_CODE[code];
+  for (var i = 0; i < OVERSEAS_MODEL_RULES.length; i++) {
+    if (OVERSEAS_MODEL_RULES[i].re.test(text)) return OVERSEAS_MODEL_RULES[i];
+  }
   return null;
+}
+
+function calcModelChange(model, quotes) {
+  var sum = 0;
+  var weight = 0;
+  for (var i = 0; i < model.legs.length; i++) {
+    var leg = model.legs[i];
+    var quote = quotes && quotes[leg.code];
+    if (!quote || !Number.isFinite(quote.changePct)) continue;
+    sum += quote.changePct * leg.weight;
+    weight += leg.weight;
+  }
+  return weight > 0 ? sum / weight : NaN;
 }
 
 function applyOverseasModelEstimate(fund, quotes) {
   if (!fund || fund.est_realtime !== false) return;
   var model = chooseOverseasModel(fund);
   if (!model) return;
-  var quote = quotes && quotes[model.code];
-  if (!quote || !Number.isFinite(quote.changePct)) return;
+  var changePct = calcModelChange(model, quotes);
+  if (!Number.isFinite(changePct)) return;
 
-  fund.est_change = quote.changePct;
+  fund.est_change = changePct;
   if (isUsableNav(fund.last_nav)) {
-    fund.est_nav = fund.last_nav * (1 + quote.changePct / 100);
+    fund.est_nav = fund.last_nav * (1 + changePct / 100);
   }
   fund.est_kind = 'overseas_model';
   fund.est_label = '海外模型估算';
   fund.est_realtime = true;
   fund.est_model = true;
-  fund.est_model_code = model.code;
+  fund.est_model_code = model.legs.map(function(leg) { return leg.code + ':' + leg.weight; }).join(',');
   fund.est_model_label = model.label;
   fund.est_note = model.label + ' · 基于实时市场行情自建估算，不是基金官方实时净值';
 }
