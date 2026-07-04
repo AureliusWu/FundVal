@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.9';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.10';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -53,20 +53,46 @@ const OVERSEAS_MODEL_BY_CODE = {
     ]
   },
   '012920': {
-    label: '2026Q1重仓穿透模型',
-    minWeight: 25,
-    fallback: { legs: [{ code: 'usQQQ', weight: 45 }, { code: 'usSOXX', weight: 30 }, { code: 'sh000300', weight: 25 }], label: '成长+半导体+A股兜底模型' },
+    label: '2026Q1风格因子模型',
+    minWeight: 100,
+    adjustment: { scale: 1.4 },
+    fallback: {
+      label: '2026Q1重仓穿透模型',
+      minWeight: 25,
+      legs: [
+        { code: 'usTSM', weight: 8.88 },
+        { code: 'usLITE', weight: 8.68 },
+        { code: 'sz300502', weight: 6.02 },
+        { code: 'usGLW', weight: 4.67 },
+        { code: 'usAXTI', weight: 4.67 },
+        { code: 'sz300308', weight: 4.67 },
+        { code: 'sh688498', weight: 4.49 },
+        { code: 'usTSEM', weight: 3.72 },
+        { code: 'usGOOGL', weight: 3.36 },
+        { code: 'sz002384', weight: 2.67 }
+      ]
+    },
     legs: [
-      { code: 'usTSM', weight: 8.88 },
-      { code: 'usLITE', weight: 8.68 },
-      { code: 'sz300502', weight: 6.02 },
-      { code: 'usGLW', weight: 4.67 },
-      { code: 'usAXTI', weight: 4.67 },
-      { code: 'sz300308', weight: 4.67 },
-      { code: 'sh688498', weight: 4.49 },
-      { code: 'usTSEM', weight: 3.72 },
-      { code: 'usGOOGL', weight: 3.36 },
-      { code: 'sz002384', weight: 2.67 }
+      { code: 'usQQQ', weight: 45 },
+      { code: 'usSOXX', weight: 30 },
+      { code: 'sh000300', weight: 25 }
+    ]
+  },
+  '018147': {
+    label: '2026Q1重仓穿透模型',
+    minWeight: 30,
+    fallback: { legs: [{ code: 'usSMH', weight: 70 }, { code: 'usEWY', weight: 20 }, { code: 'usEEM', weight: 10 }], label: '半导体+韩国兜底模型' },
+    legs: [
+      { code: 'usTSM', weight: 10.26 },
+      { code: 'usNVDA', weight: 10.14 },
+      { code: 'usEWY', weight: 8.65, note: 'SK海力士代理' },
+      { code: 'usAVGO', weight: 8.52 },
+      { code: 'usEWY', weight: 6.76, note: '三星电子代理' },
+      { code: 'usSNDK', weight: 4.91 },
+      { code: 'usGLW', weight: 4.29 },
+      { code: 'usWDC', weight: 3.73 },
+      { code: 'usLITE', weight: 3.58 },
+      { code: 'usMPWR', weight: 3.49 }
     ]
   }
 };
@@ -96,6 +122,7 @@ let fundFeeCache = {};       // 费率信息缓存
 let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
 const pendingRequests = new Map();
 let _codeGen = {};             // JSONP 请求代数计数器，防止旧回调污染新请求
+let navMoveQueue = Promise.resolve(); // pingzhongdata 共用 Data_netWorthTrend，全局变量需串行读取
 let isRefreshing = false;
 let refreshQueued = false;
 let autoRefreshTimer = null;
@@ -737,16 +764,71 @@ async function fetchFromEastmoney(code) {
   }
 }
 
+function formatChinaDateFromMs(ms) {
+  var d = new Date(Number(ms) + 8 * 3600 * 1000);
+  if (!Number.isFinite(d.getTime())) return '';
+  return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+}
+
+function fetchLatestNavMove(code) {
+  var task = navMoveQueue.then(function() { return fetchLatestNavMoveRaw(code); });
+  navMoveQueue = task.catch(function() {});
+  return task;
+}
+
+function fetchLatestNavMoveRaw(code) {
+  return new Promise(function(resolve) {
+    var script = document.createElement('script');
+    var done = false;
+    var timer = setTimeout(function() { finish(null); }, TIMING.FUND_JSONP_TIMEOUT);
+
+    function finish(move) {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      script.remove();
+      try { window.Data_netWorthTrend = undefined; } catch(e) {}
+      resolve(move);
+    }
+
+    script.onload = function() {
+      try {
+        var arr = window.Data_netWorthTrend;
+        if (!Array.isArray(arr) || arr.length < 2) { finish(null); return; }
+        var cur = arr[arr.length - 1];
+        var prev = arr[arr.length - 2];
+        var nav = parseNav(cur && cur.y);
+        var prevNav = parseNav(prev && prev.y);
+        if (!isUsableNav(nav) || !isUsableNav(prevNav)) { finish(null); return; }
+        finish({
+          date: formatChinaDateFromMs(cur.x),
+          prevDate: formatChinaDateFromMs(prev.x),
+          nav: nav,
+          prevNav: prevNav,
+          change: (nav - prevNav) / prevNav * 100,
+          changeAmt: nav - prevNav
+        });
+      } catch(e) {
+        finish(null);
+      }
+    };
+    script.onerror = function() { finish(null); };
+    script.src = 'https://fund.eastmoney.com/pingzhongdata/' + code + '.js?v=' + Date.now();
+    document.head.appendChild(script);
+  });
+}
+
 // ── 合并获取：主源 + 备选源并行 ──────────────────────────
 async function fetchFundFull(code) {
-  const [primary, em] = await Promise.all([
+  const [primary, em, navMove] = await Promise.all([
     fetchFund(code),
-    fetchFromEastmoney(code)
+    fetchFromEastmoney(code),
+    fetchLatestNavMove(code)
   ]);
 
   if (primary.status !== 'ok') {
     if (em.status === 'ok_fallback') {
-      return { ...em, name: primary.name || code, status: 'ok_fallback' };
+      return { ...em, name: primary.name || code, status: 'ok_fallback', latest_nav_move: navMove };
     }
     return primary;
   }
@@ -755,6 +837,7 @@ async function fetchFundFull(code) {
     primary.yesterday_change = em.yesterday_change;
     primary.nav_change_amt = em.nav_change_amt;
   }
+  primary.latest_nav_move = navMove;
   return primary;
 }
 
@@ -808,16 +891,29 @@ async function refresh() {
       const canDeriveEstNav = !hasEstNav && hasLast && hasEstChange;
       if (canDeriveEstNav) d.est_nav = d.last_nav * (1 + d.est_change / 100);
       const hasEst = isUsableNav(d.est_nav);
+      const dailyMove = preferredDailyMove(d);
+      d.primary_change = dailyMove ? dailyMove.change : d.est_change;
+      d.primary_nav = dailyMove && isUsableNav(dailyMove.nav) ? dailyMove.nav : d.est_nav;
+      d.primary_base_nav = dailyMove && isUsableNav(dailyMove.baseNav) ? dailyMove.baseNav : d.last_nav;
+      d.primary_label = dailyMove ? dailyMove.label : '';
+      d.primary_note = dailyMove ? dailyMove.sourceNote : '';
+      d.today_is_latest_nav = Boolean(dailyMove && dailyMove.isLatestNav);
 
       if ((d.status === 'ok' || d.status === 'ok_fallback') && (hasEst || hasLast || hasEstChange)) {
         if (d.shares > 0) {
           // 有持仓 → 计算盈亏
-          if (hasEst && hasLast) {
-            var curr = d.est_nav * d.shares;
-            d.today_profit = (d.est_nav - d.last_nav) * d.shares;
+          if (dailyMove && isUsableNav(dailyMove.nav) && isUsableNav(dailyMove.baseNav)) {
+            var curr = dailyMove.nav * d.shares;
+            d.today_profit = (dailyMove.nav - dailyMove.baseNav) * d.shares;
             d.total_profit = curr - d.cost * d.shares;
             d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
             d.curr_value = curr;
+          } else if (hasEst && hasLast) {
+            var currEst = d.est_nav * d.shares;
+            d.today_profit = (d.est_nav - d.last_nav) * d.shares;
+            d.total_profit = currEst - d.cost * d.shares;
+            d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
+            d.curr_value = currEst;
           } else if (hasLast) {
             d.curr_value = d.last_nav * d.shares;
             d.total_profit = d.curr_value - d.cost * d.shares;
@@ -887,6 +983,59 @@ function isOverseasFundEstimate(name, estTime) {
   var m = String(estTime || '').match(/\s(\d{1,2}):(\d{2})$/);
   var hour = m ? Number(m[1]) : NaN;
   return isOverseasFund && Number.isFinite(hour) && (hour < 9 || hour >= 15);
+}
+
+function isOverseasLikeFund(fund) {
+  if (fund && (fund.est_kind === 'overseas' || fund.est_kind === 'overseas_model')) return true;
+  var text = String((fund && (fund.name || fund.type)) || '');
+  return /QDII|全球|海外|新兴市场|纳斯达克|标普|恒生|港股|美元|国际|日经|德国|越南|印度|香港/i.test(text);
+}
+
+function navMoveFromEastmoneyFields(fund) {
+  if (!fund || !Number.isFinite(fund.yesterday_change) || !isUsableNav(fund.last_nav)) return null;
+  var changeAmt = Number.isFinite(fund.nav_change_amt)
+    ? fund.nav_change_amt
+    : fund.last_nav * fund.yesterday_change / (100 + fund.yesterday_change);
+  var prevNav = fund.last_nav - changeAmt;
+  if (!isUsableNav(prevNav)) return null;
+  return {
+    date: fund.nav_date || '',
+    prevDate: '',
+    nav: fund.last_nav,
+    prevNav: prevNav,
+    change: fund.yesterday_change,
+    changeAmt: changeAmt
+  };
+}
+
+function latestNavMoveOf(fund) {
+  if (fund && fund.latest_nav_move && Number.isFinite(fund.latest_nav_move.change)) return fund.latest_nav_move;
+  return navMoveFromEastmoneyFields(fund);
+}
+
+function preferredDailyMove(fund) {
+  var move = latestNavMoveOf(fund);
+  if (move && isOverseasLikeFund(fund)) {
+    return {
+      change: move.change,
+      baseNav: move.prevNav,
+      nav: move.nav,
+      label: '净',
+      sourceNote: '最新公布净值涨跌' + (move.prevDate || move.date ? '：' + [move.prevDate, move.date].filter(Boolean).join(' → ') : ''),
+      isLatestNav: true
+    };
+  }
+  if (fund && Number.isFinite(fund.est_change) && isUsableNav(fund.last_nav)) {
+    return {
+      change: fund.est_change,
+      baseNav: fund.last_nav,
+      nav: isUsableNav(fund.est_nav) ? fund.est_nav : fund.last_nav * (1 + fund.est_change / 100),
+      label: fund.est_realtime === false ? '海外非实时' : '估',
+      sourceNote: fund.est_note || '',
+      isLatestNav: false
+    };
+  }
+  return null;
 }
 
 function normalizeFundEstimate(data) {
@@ -999,7 +1148,10 @@ function calcModelChange(model, quotes) {
   }
   var minWeight = Number.isFinite(model.minWeight) ? model.minWeight : 0;
   if (weight <= 0 || weight < minWeight) return { changePct: NaN, weight: weight, legs: usable };
-  return { changePct: sum / weight, weight: weight, legs: usable };
+  var rawChange = sum / weight;
+  var scale = model.adjustment && Number.isFinite(model.adjustment.scale) ? model.adjustment.scale : 1;
+  var bias = model.adjustment && Number.isFinite(model.adjustment.bias) ? model.adjustment.bias : 0;
+  return { changePct: rawChange * scale + bias, weight: weight, legs: usable };
 }
 
 function applyOverseasModelEstimate(fund, quotes) {
@@ -1030,6 +1182,11 @@ function applyOverseasModelEstimate(fund, quotes) {
 
 // ── 排序 ─────────────────────────────────────────────────
 function safeN(v, fallback) { return Number.isFinite(v) ? v : fallback; }
+function displayChangeOf(fund) {
+  if (fund && Number.isFinite(fund.primary_change)) return fund.primary_change;
+  var move = preferredDailyMove(fund);
+  return move ? move.change : NaN;
+}
 
 function sortFunds(data) {
   const sorted = [...data];
@@ -1040,8 +1197,8 @@ function sortFunds(data) {
     if (!va && vb) return 1;
     if (!va && !vb) return 0;
     switch (sortBy) {
-      case 'est_change_desc': return safeN(b.est_change, -Infinity) - safeN(a.est_change, -Infinity);
-      case 'est_change_asc':  return safeN(a.est_change,  Infinity) - safeN(b.est_change,  Infinity);
+      case 'est_change_desc': return safeN(displayChangeOf(b), -Infinity) - safeN(displayChangeOf(a), -Infinity);
+      case 'est_change_asc':  return safeN(displayChangeOf(a),  Infinity) - safeN(displayChangeOf(b),  Infinity);
       case 'today_profit_desc': return safeN(b.today_profit, -Infinity) - safeN(a.today_profit, -Infinity);
       case 'today_profit_asc':  return safeN(a.today_profit,  Infinity) - safeN(b.today_profit,  Infinity);
       case 'curr_value_desc': return safeN(b.curr_value, 0) - safeN(a.curr_value, 0);
@@ -1313,9 +1470,10 @@ function renderFundList(data) {
       html += '<div class="fund-card"><div class="fund-main"><div class="fund-id"><div class="fund-name">' + esc(f.name||f.code) + '</div><div class="fund-code">' + f.code + '</div></div></div><div class="fund-error">获取失败 · ' + esc(f.message||'') + '</div></div>';
       return;
     }
-    var hasEst = Number.isFinite(f.est_change);
-    var cc = hasEst ? (f.est_change > 0 ? 'up' : f.est_change < 0 ? 'down' : 'flat') : '';
-    var sign = hasEst && f.est_change >= 0 ? '+' : '';
+    var displayChange = displayChangeOf(f);
+    var hasEst = Number.isFinite(displayChange);
+    var cc = hasEst ? (displayChange > 0 ? 'up' : displayChange < 0 ? 'down' : 'flat') : '';
+    var sign = hasEst && displayChange >= 0 ? '+' : '';
     var hasToday = Number.isFinite(f.today_profit);
     var hasProfit = Number.isFinite(f.total_profit);
     var hasRate = Number.isFinite(f.total_profit_rate);
@@ -1330,10 +1488,15 @@ function renderFundList(data) {
     var estimateTag = f.est_model
       ? ' <span class="cache-tag">模型估算</span>'
       : (f.est_realtime === false ? ' <span class="cache-tag">海外非实时</span>' : '');
+    if (f.today_is_latest_nav) estimateTag += ' <span class="cache-tag">最新净值</span>';
     var estimateLabel = f.est_model ? '海外模型估算' : (f.est_realtime === false ? '海外非实时估值' : (f.est_label || '盘中估值'));
     var estimateTime = f.est_model
       ? (f.est_model_label || '模型估算')
       : (f.est_realtime === false && f.est_time ? '非实时 · ' + f.est_time : (f.est_time || '--'));
+    if (f.today_is_latest_nav) {
+      estimateLabel = '最新净值涨跌';
+      estimateTime = f.primary_note || f.nav_date || estimateTime;
+    }
 
     var profitRateHtml = hasRate
       ? ' <span class="profit-rate ' + (f.total_profit_rate >= 0 ? 'up' : 'down') + '">' + (f.total_profit_rate >= 0 ? '+' : '') + fmt(f.total_profit_rate) + '%</span>'
@@ -1347,21 +1510,25 @@ function renderFundList(data) {
     html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + (isWatchOnly ? ' watch-only' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开详情">';
     html += '<div class="fund-main">';
     html += '<div class="fund-id"><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + estimateTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
-    html += '<div class="fund-est"><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(f.est_change) + '%' : '--') + '</div><div class="fund-pct-time">' + estimateTime + '</div></div>';
-    html += '<div class="fund-nav"><div class="nav-cur">' + fmt4(f.est_nav) + '</div><div class="nav-prev">' + fmt4(f.last_nav) + '</div></div>';
+    html += '<div class="fund-est"><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(displayChange) + '%' : '--') + '</div><div class="fund-pct-time">' + estimateTime + '</div></div>';
+    html += '<div class="fund-nav"><div class="nav-cur">' + fmt4(f.primary_nav || f.est_nav) + '</div><div class="nav-prev">' + fmt4(f.primary_base_nav || f.last_nav) + '</div></div>';
     html += '</div>';
 
     if (isExpanded) {
       var todayTag = f.today_is_latest_nav ? ' <span class="cache-tag">最新净值</span>' : '';
-      var estimateNote = f.est_note ? '<div class="cache-note">' + esc(f.est_note) + '</div>' : '';
+      var estimateNote = f.est_note && !f.today_is_latest_nav ? '<div class="cache-note">' + esc(f.est_note) + '</div>' : '';
+      var primaryNote = f.primary_note && f.primary_note !== f.est_note ? '<div class="cache-note">' + esc(f.primary_note) + '</div>' : '';
+      var modelNote = f.today_is_latest_nav && f.est_model && Number.isFinite(f.est_change)
+        ? '<div class="cache-note">下一净值模型：' + (f.est_change >= 0 ? '+' : '') + fmt(f.est_change) + '%，估算净值 ' + fmt4(f.est_nav) + '。' + esc(f.est_note || '') + '</div>'
+        : '';
       var refCols = f.shares > 0 ? 3 : 2;
       html += '<div class="holdings-detail">';
 
       // 折叠的次要数据：盘中/上一净值（手机端，PC 已在行内列显示故隐藏）+ 持仓金额
       html += '<div class="detail-stats">';
       html += '<div class="detail-nav stats-grid" style="grid-template-columns:repeat(' + refCols + ',1fr)">';
-      html += '<div><div class="stat-label">' + estimateLabel + '</div><div class="stat-val">' + fmt4(f.est_nav) + '</div>' + estimateNote + '</div>';
-      html += '<div><div class="stat-label">上一净值</div><div class="stat-val">' + fmt4(f.last_nav) + '</div></div>';
+      html += '<div><div class="stat-label">' + estimateLabel + '</div><div class="stat-val">' + fmt4(f.primary_nav || f.est_nav) + '</div>' + primaryNote + estimateNote + modelNote + '</div>';
+      html += '<div><div class="stat-label">基准净值</div><div class="stat-val">' + fmt4(f.primary_base_nav || f.last_nav) + '</div></div>';
       if (f.shares > 0) {
         html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
       }
@@ -1871,10 +2038,11 @@ function buildDailyChangeBody() {
   var activeCodes = holdings.filter(function(h) { return !h.deleted; }).map(function(h) { return h.code; });
   var lines = activeCodes.map(function(code) {
     var f = fundsData.find(function(item) { return item.code === code; });
-    if (!f || !Number.isFinite(f.est_change)) return null;
-    var sign = f.est_change >= 0 ? '+' : '';
+    var chg = displayChangeOf(f);
+    if (!f || !Number.isFinite(chg)) return null;
+    var sign = chg >= 0 ? '+' : '';
     var name = String(f.name || f.code).replace(/\s+/g, '').slice(0, 8);
-    return name + ' ' + sign + fmt(f.est_change) + '%';
+    return name + ' ' + sign + fmt(chg) + '%';
   }).filter(Boolean);
   if (!lines.length) return '当前自选暂无可用估值数据';
   return lines.slice(0, 8).join('\n') + (lines.length > 8 ? '\n...' : '');
