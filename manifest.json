@@ -1,6 +1,6 @@
 {
   "name": "蜉蝣基金",
-  "short_name": "蜉蝣",
+  "short_name": "蜉蝣基金",
   "description": "个人基金盘中估值监控",
   "start_url": ".",
   "display": "standalone",
