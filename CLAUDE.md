@@ -1,122 +1,44 @@
-# 蜉蝣基金 (FundVal)
+# 蜉蝣基金 · AI 协作指南
 
-个人基金盘中估值监控 PWA，纯前端单页应用，托管在 GitHub Pages（`AureliusWu/FundVal`）。
+## 项目锚点
 
-## 技术栈
+- 中文名：蜉蝣基金
+- 目录名：`FundVal`
+- 类型：纯前端基金盘中估值 PWA
+- 部署：GitHub Pages
 
-- **零框架**：HTML5 + CSS3 + 原生 JavaScript (ES6+)，无构建工具，无 npm 依赖
-- **PWA**：Service Worker 离线缓存 + Web App Manifest（图标 192/512）
-- **数据存储**：`localStorage`（持仓、缓存、云同步配置）
-- **云同步**：GitHub Gist API（`api.github.com/gists`）
-- **CI/CD**：GitHub Actions（`.github/workflows/deploy.yml`），push main 自动触发
+用户说「蜉蝣基金」时，优先定位到本仓库。
 
-## 目录结构
+## 不可违背
 
+1. 保持零框架、零构建、零 npm 依赖。
+2. 不把本项目与 `pan`（盘中宝）或 `fund-compass`（司南基金）混改。
+3. 不硬编码、不输出任何 GitHub Token 或 Gist 私密信息。
+4. 涨跌幅字段可为负或 0，判断时使用 `Number.isFinite()`。
+5. QDII/海外基金展示要区分：
+   - 最新公布净值涨跌：用于主涨跌、排序、今日盈亏。
+   - 下一净值模型估算：作为辅助说明，不冒充官方净值。
+
+## 关键文件
+
+- `index.html`：页面结构、PWA meta、版本展示。
+- `js/app.js`：核心逻辑，改动后必须做 JS 语法检查。
+- `css/style.css`：样式。
+- `manifest.json`：PWA 名称与图标。
+- `sw.js`：缓存版本、通知、离线策略。
+
+## 数据源注意
+
+- 天天基金估值接口依赖 `window.jsonpgz`。
+- 东方财富 `FundArchivesDatas.aspx` 依赖 `window.apidata`，多 type 顺序加载。
+- 东方财富 `pingzhongdata` 依赖 `Data_netWorthTrend`，多基金并发时必须串行读取。
+- Service Worker 不缓存基金/行情 API，避免估值过期。
+
+## 自检
+
+```bash
+node --check js/app.js
+git status --short
 ```
-FundVal/
-├── index.html          # 单页三 Tab：行情(行情)、持仓(编辑)、状态
-├── js/app.js           # 全部应用逻辑 (~1450 行)
-├── css/style.css       # 全部样式 (~920 行)，Apple 风格设计
-├── sw.js               # Service Worker v6，离线缓存 + 自动更新检测
-├── manifest.json       # PWA 清单，"蜉蝣基金"
-├── icon-192.png / icon-512.png
-└── .github/workflows/deploy.yml
-```
 
-## 架构概览
-
-### 页面结构（单页三 Tab + 指数行情条，底部导航切换）
-
-| 区域 | DOM id | 功能 |
-|------|--------|------|
-| 指数条 | `#index-bar` | 横向滚动：纳斯达克/标普500/AU9999金价/上证/沪深300 实时数值 |
-| 行情 | `#page-market` | 基金卡片列表、排序、重仓股/经理/费率展开 |
-| 持仓 | `#page-edit` | 增删改持仓（支持0份额仅关注）、云同步、导入导出 JSON |
-| 状态 | `#page-status` | GitHub 最近提交信息 |
-
-### 数据流
-
-1. **`loadHoldings()`** → 从 localStorage 读取持仓列表 `[{code, name, shares, cost}]`
-2. **`refresh()`** → 并行获取每只基金数据（主源 + 备源），合并后渲染
-3. **`renderFundList(data)`** → 动态生成 `.fund-card` HTML，写入 `#fund-list`
-4. 成功后 **`saveCache()`** 写 localStorage，失败时 **`tryShowCache()`** 兜底
-
-### 数据源
-
-**基金净值（双源并行，取最优）**
-
-| 角色 | 接口 | 方式 | 字段 |
-|------|------|------|------|
-| **主源** | `fundgz.1234567.com.cn/js/{code}.js` | JSONP (`jsonpgz` 全局回调) | 估算净值、涨跌幅、净值日期 |
-| **备源** | `push2.eastmoney.com/api/qt/stock/get?secid=0.{code}` | fetch (CORS) | 最新净值(f43)、净值日涨跌幅%(f170)、净值日涨跌额元(f169) |
-
-- 主源成功 → 用主源，补上备源的 `yesterday_change`（f170，%）/ `nav_change_amt`（f169，元）
-- 主源失败 → 降级到备源，status 标记为 `ok_fallback`
-- 主源成功但 `gsz` 为空（常见于 QDII 无盘中估值）时，`refresh()` 会用 `nav_change_amt * shares` 推算「今日估算」，并标记 `today_is_latest_nav`（该数据是最新净值的日涨跌，不是盘中实时估算）
-- 两者都失败 → status 标记为 `error`
-
-**指数行情**
-
-| 接口 | 方式 | 覆盖 |
-|------|------|------|
-| `qt.gtimg.cn/q={codes}` | JSONP（`<script>` 注入，`window.v_*`） | 纳斯达克/标普500/上证/沪深300 |
-| `hq.sinajs.cn/list=AU0` | JSONP（`<script>` 注入，`window.hq_str_AU0`，`referrerpolicy=no-referrer`） | 沪金连续合约，与 AU9999 现货高度同步（元/克） |
-
-- `INDEX_CONFIG` 中用 `source: 'sina'` 标记外部数据源项，`fetchIndices()` 自动分流
-- 每 30s 刷新，离线时回退 indexCache
-- A 股休市时段指数显示上一交易日收盘价
-
-**基金详情（顺序 script 注入，共用 window.apidata 管线）**
-
-| type | 内容 | 缓存变量 |
-|------|------|----------|
-| `jjcc` | 十大重仓股 | `holdingsCache` |
-| `jjxx` | 基金类型、成立日期、规模 | `fundTypeCache` |
-| `jjfl` | 申购/赎回/管理/托管费率 | `fundFeeCache` |
-
-- 接口：`fundf10.eastmoney.com/FundArchivesDatas.aspx?type={type}&code={code}`
-- 方式：`<script>` 标签注入 → `injectFundScript()` Promise 化
-- **顺序加载**：`fetchFundDetails()` 逐一加载 3 个 type，避免 `window.apidata` 覆盖冲突
-- 用户收起卡片时中断后续加载（`expandedFund !== code` 检查）
-- **`jjcc` 不含涨跌幅**：返回的只有占净值比例，重仓股表格的「涨跌幅」列需要 `fetchHoldingsQuotes()` 额外查一次 `push2.eastmoney.com/api/qt/ulist.np/get`（`fields=f12,f3`，secid 按沪/深规则用 `secidFor()` 拼出），结果合并进 `s.change`，紧跟在 jjcc 成功后只查一次并缓存
-
-### localStorage 键名
-
-| 键 | 内容 |
-|----|------|
-| `fuyu_holdings_v1` | 持仓列表 JSON |
-| `fuyu_funds_cache_v1` | 上次成功刷新的数据缓存 `{data, time}` |
-| `fuyu_gist_token` | GitHub Personal Access Token |
-| `fuyu_gist_id` | GitHub Gist ID |
-| `fuyu_gist_sync_time` | 上次同步时间 ISO 字符串 |
-| `fuyu_sync_meta_v1` | 云同步元数据 `{last_push_hash, last_pull}`，判断是否需要推送 |
-| `fuyu_gold_cache_v2` | 金价缓存 `{price, changePct, time}`，金价接口全失败时兜底 |
-
-## 代码风格
-
-- 中文注释和 UI 文案，`esc()` 做 HTML 转义
-- 模块级用 `const`/`let`，函数内用 `var`；函数表达式用 `function` 关键字
-- 格式化：`fmt(n)` 保留两位小数，`fmtM(n)` 带正负号+万单位，`fmtM2(n)` 无符号+万单位
-- 状态码：`ok` / `ok_fallback` / `error`
-- CSS：CSS Custom Properties 做设计 token，毛玻璃效果（`backdrop-filter`），`env(safe-area-inset-*)` 适配刘海屏
-
-## 关键约定
-
-- **不要引入框架或构建工具** — 项目刻意保持零依赖，直接用浏览器打开 `index.html` 就能跑
-- **SW 缓存策略（v6）**：JS/CSS 用 network-first（确保最新），API 域名（`1234567.com.cn` + `eastmoney.com`）跳过 SW 始终走网络，其他静态资源用 stale-while-revalidate
-- **SW 自动更新**：每 30 分钟 `reg.update()`，检测到新版本时弹 toast 提示用户刷新
-- **不要动 `window.jsonpgz` 全局回调** — 天天基金 JSONP 接口靠这个函数名接收数据
-- **不要动 `window.apidata` 全局变量** — 基金详情 3 个 type 共用此变量，必须顺序加载（`injectFundScript` + `fetchFundDetails`）
-- 修改基金数据接口时，要同时处理主源失败→备源降级的逻辑
-- 新增 localStorage key 时遵循现有命名规范：`fuyu_<name>_v<version>`
-
-## 注意事项
-
-- **重仓股接口已变更**（2026-06）：旧接口 `api.fund.eastmoney.com/f10/JJCC` 已下线(404)，当前使用 `fundf10.eastmoney.com/FundArchivesDatas.aspx`，返回 `var apidata={content:"HTML..."}` 格式而非 JSON
-- **`isUsableNav()` 只能用于净值/价格**（要求 `n > 0`），不能用于涨跌幅类字段（`est_change`/`yesterday_change` 等百分比可以为负或 0）。这两类字段历史上混用过 `isUsableNav()`，导致基金下跌时百分比误判为「无数据」显示 `--`（2026-06 修复）；涨跌幅字段统一用 `Number.isFinite()` 判断
-- **备源 push2 字段语义**（2026-06-21 修复）：f169=涨跌额（元）、f170=涨跌幅（%），之前代码把这两个字段用反了（`yesterday_change` 取了 f169 却当百分比显示，「昨」标签数值奇小）。现在 `yesterday_change` 正确取 f170，新增 `nav_change_amt` 取 f169 用于推算「今日估算」（见上文「数据源」节）。QDII 等无盘中估值的基金之前会因为 `gsz` 为空而「今日估算」永远显示 `--`，修复后用净值日增长值填补
-- **JSONP 并发安全**：`pendingRequests` Map 确保同只基金的 JSONP 回调不会错乱
-- **自动刷新节奏**：交易时段 60s，收盘后 120s，周末/午休不刷新（见 `getRefreshInterval()`）
-- **移动端优先**：768px 断点，桌面端居中 max-width 480px
-- **GitHub API 可能被墙**：云同步超时 15s，网络错误提示用户科学上网
-- 编辑基金时 `i-code` input 会被 disable，防止改代码导致重复
+静态项目无构建流程。修改图标、manifest、SW 或主 JS 时，记得同步 bump `APP_VERSION` 和 `CACHE`。

@@ -4,39 +4,39 @@
 
 - 目录名：`FundVal`
 - 中文名：蜉蝣基金
-- 当用户说「蜉蝣基金」时，指的就是本项目：`FundVal`
-- 线上形态：GitHub Pages 托管的个人基金盘中估值监控 PWA
+- 用户说「蜉蝣基金」时，指本项目。
+- 线上形态：GitHub Pages 托管的个人基金盘中估值监控 PWA。
 
 ## 项目定位
 
-蜉蝣基金是一个纯前端、零框架、移动端优先的基金盘中估值与持仓监控工具。核心目标是快速查看自选基金估值、持仓市值、今日盈亏、主要指数与黄金行情，并通过 GitHub Gist 在多设备同步持仓。
+蜉蝣基金是纯前端、零框架、移动端优先的基金盘中估值与持仓监控工具。它用于快速查看基金估值、持仓市值、今日盈亏、指数/黄金行情，并通过 GitHub Gist 同步持仓。
 
-## 技术与结构
+## 技术结构
 
-- 技术栈：原生 HTML/CSS/JavaScript，无构建工具、无 npm 依赖。
-- 入口文件：`index.html`
-- 业务逻辑：`js/app.js`
-- 样式：`css/style.css`
-- PWA：`manifest.json`、`sw.js`
-- 部署：推送 `main` 后由 GitHub Pages/Actions 发布。
+- `index.html`：单页入口、PWA meta、行情/持仓页面结构。
+- `js/app.js`：估值抓取、持仓管理、Gist 同步、海外模型、通知、渲染逻辑。
+- `css/style.css`：移动端优先样式。
+- `manifest.json`：PWA 名称、图标、启动配置。
+- `sw.js`：Service Worker 缓存与通知点击。
 
 ## 数据源与关键约定
 
-- 基金估值主源：天天基金 `fundgz.1234567.com.cn/js/{code}.js`，依赖全局 `window.jsonpgz` 回调。
-- 基金净值备源：东方财富 `push2.eastmoney.com/api/qt/stock/get`。
-- 基金详情：东方财富 `FundArchivesDatas.aspx`，通过 script 注入读取 `window.apidata`，不同 type 必须顺序加载，避免全局变量互相覆盖。
-- 指数行情：腾讯行情 JSONP；黄金行情有独立缓存兜底。
-- 本地存储 key 使用 `fuyu_` 前缀，例如 `fuyu_holdings_v1`。
-- 涨跌幅字段可以为负或 0，不能用只适合净值/价格的 `isUsableNav()` 判空。
+- 天天基金 JSONP：`fundgz.1234567.com.cn/js/{code}.js`，依赖全局 `window.jsonpgz`。
+- 东方财富备源：`push2.eastmoney.com`，用于最新净值、净值日涨跌幅、涨跌额。
+- 东方财富净值趋势：`fund.eastmoney.com/pingzhongdata/{code}.js`，写入全局 `Data_netWorthTrend`，必须串行读取。
+- 基金详情：`fundf10.eastmoney.com/FundArchivesDatas.aspx`，写入全局 `window.apidata`，不同 type 必须顺序加载。
+- 本地存储统一使用 `fuyu_` 前缀。
+- QDII/海外基金要区分「最新公布净值涨跌」和「下一净值模型估算」。
 
 ## 开发规则
 
-- 保持零依赖和纯前端形态，不引入 Vue/React/Vite/打包流程。
-- 修改估值、持仓、同步逻辑时，同时考虑缓存、失败降级、离线兜底和移动端展示。
-- 修改 Service Worker 或静态资源缓存时，同步检查版本更新提示是否仍然有效。
-- 涉及 GitHub Token/Gist 的改动不得输出、记录或硬编码任何密钥。
+- 保持零依赖，不引入框架、构建工具或 npm 流程。
+- 涨跌幅允许为负数或 0，不能用只适合净值/价格的可用性判断。
+- 修改估值、持仓、同步、SW 缓存时，必须同时考虑失败降级、旧缓存、离线和移动端展示。
+- 涉及 GitHub Token/Gist 的代码或文档不得硬编码真实密钥。
+- 修改 `js/app.js` 后至少运行 `node --check js/app.js`。
 
 ## 项目边界
 
-- 不要把本项目与 `pan`（盘中宝）混淆：两者功能相近，但存储 key、视觉主题和仓库独立。
-- 不要把本项目与 `fund-compass`（司南基金）混淆：司南基金是 Vue/FastAPI 的选基、择时、资产分析系统。
+- `FundVal` 是蜉蝣基金，不是 `pan`（盘中宝）。
+- `fund-compass`（司南基金）是 Vue/FastAPI 选基择时系统，不能在本仓库里改它的功能。
