@@ -7,7 +7,7 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.11';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
+const APP_VERSION = 'V8.0.12';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
 // ── 时间/超时配置（集中管理，便于统一调整） ────────
 const TIMING = {
   FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
@@ -1509,7 +1509,7 @@ function renderFundList(data) {
 
     html += '<div class="fund-card ' + cc + (isExpanded ? ' expanded' : '') + (isWatchOnly ? ' watch-only' : '') + '" onclick="toggleFundDetail(\'' + f.code + '\')" title="点击展开详情">';
     html += '<div class="fund-main">';
-    html += '<div class="fund-id"><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + estimateTag + '</div><div class="fund-code">' + f.code + ' · ' + (f.nav_date||'') + yesterdayHtml + '</div></div>';
+    html += '<div class="fund-id"><div class="fund-name">' + esc(f.name) + sourceTag + watchTag + estimateTag + '</div><div class="fund-code">' + f.code + ' · 基准净值 ' + (f.nav_date || '待更新') + yesterdayHtml + '</div></div>';
     html += '<div class="fund-est"><div class="fund-pct ' + cc + '">' + (hasEst ? sign + fmt(displayChange) + '%' : '--') + '</div><div class="fund-pct-time">' + estimateTime + '</div></div>';
     html += '<div class="fund-nav"><div class="nav-cur">' + fmt4(f.primary_nav || f.est_nav) + '</div><div class="nav-prev">' + fmt4(f.primary_base_nav || f.last_nav) + '</div></div>';
     html += '</div>';
