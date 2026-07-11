@@ -1,5 +1,24 @@
 # 蜉蝣基金 (FundVal)
 
+当前版本：`10.0.0`。
+
+## V10 架构
+
+- 页面先读本地缓存，再按基金逐只刷新；单只失败不会阻塞或清空其他基金。
+- 刷新使用交易时段感知的递归定时器，页面隐藏时暂停网络刷新。
+- 海外估值模型位于 `data/overseas-models.json`，结果保留模型版本、置信度和准确度台账。
+- 展示来源统一为：`估`（盘中估值）、`净`（官方净值）、`模`（海外模型）、`旧`（旧缓存）。
+- Gist 使用 Schema 2；兼容旧数组数据，覆盖和导入前自动生成本地备份。
+- `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate。
+- 使用 ES Modules 和 Node 内置测试，无第三方运行时依赖。
+
+运行检查：
+
+```bash
+npm test
+node --check js/app.js
+```
+
 个人基金盘中估值监控 PWA，托管于 [aureliuswu.github.io/FundVal](https://aureliuswu.github.io/FundVal/)。
 
 ## 定位

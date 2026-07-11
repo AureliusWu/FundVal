@@ -1,5 +1,16 @@
 # AGENTS.md
 
+## 当前架构（V10.0.0）
+
+- `js/app.js` 负责页面编排和第三方 JSONP 适配。
+- `js/config.js` 负责 TTL、超时和交易时段刷新间隔。
+- `js/calculator.js` 只放纯计算与显示来源优先级。
+- `js/storage.js` 负责带时间戳缓存、Gist Schema 2 和本地备份。
+- `js/overseas-model.js` 读取 `data/overseas-models.json`，不得回填硬编码基金规则。
+- `js/accuracy.js` 记录海外模型预测、官方净值结算和 MAE/方向准确率。
+- 变更后必须运行 `npm test`、`node --check js/app.js`，并保持 `js/version.js` 与 `sw.js` 缓存版本一致。
+- 缺失值必须保持缺失，禁止以 `0` 代替；旧缓存必须显示 `旧`。
+
 ## 项目识别
 
 - 目录名：`FundVal`

@@ -1,3 +1,10 @@
+import { APP_VERSION } from './version.js';
+import { TIMING, TTL, refreshInterval } from './config.js';
+import { backupHoldings, getCached, makeCloudPayload, parseCloudPayload, setCached } from './storage.js';
+import { calculateHolding, chooseDisplayValue } from './calculator.js';
+import { getOverseasConfig, loadOverseasModels, selectOverseasModel, calculateOverseasEstimate } from './overseas-model.js';
+import { accuracyStats, loadAccuracy, recordPrediction, saveAccuracy, settlePredictions } from './accuracy.js';
+
 const STORAGE_KEY = 'fuyu_holdings_v1';
 const CACHE_KEY = 'fuyu_funds_cache_v1';
 const GIST_TOKEN_KEY = 'fuyu_gist_token';
@@ -7,20 +14,6 @@ const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
-const APP_VERSION = 'V8.0.12';   // 应用版本号，与 sw.js 的 CACHE 版本保持一致，每次发布同步 bump
-// ── 时间/超时配置（集中管理，便于统一调整） ────────
-const TIMING = {
-  FUND_JSONP_TIMEOUT: 7000,       // 天天基金 JSONP 超时
-  INDEX_JSONP_TIMEOUT: 8000,      // 腾讯指数行情 JSONP 超时
-  CLOUD_SYNC_TIMEOUT: 15000,      // GitHub Gist API 超时
-  INDEX_REFRESH_MS: 30000,        // 指数行情刷新间隔（兜底值，动态调整）
-  MKT_STATUS_MS: 30000,           // 市场状态文字刷新间隔
-  SW_UPDATE_MS: 1800000,          // Service Worker 更新检查间隔（30min）
-  AUTO_PUSH_DELAY: 5000,          // 数据变更后自动推送延迟
-  AUTO_PULL_INTERVAL: 60000,      // 后台自动拉取间隔
-  CLOUD_COOLDOWN_MS: 30000,       // 切 Tab 云端拉取冷却
-  DAILY_NOTIFY_CHECK_MS: 30000    // 14:30 通知检查间隔
-};
 // ── 缓存持久化黑名单（这些字段为瞬时 UI 状态，不写入 localStorage） ──
 const SKIP_CACHE_KEYS = ['_cached', 'message'];
 // ── 指数行情配置（腾讯 JSONP + 黄金 AU9999 独立源） ──
@@ -32,82 +25,6 @@ const INDEX_CONFIG = [
   { code: 'usINX',    name: '标普500' }
 ];
 
-const OVERSEAS_MODEL_BY_CODE = {
-  // 2026Q1 public holdings from EastMoney jjcc. Use live constituent quotes when
-  // available, then normalize by the usable weight. KR names fall back to EWY.
-  '539002': {
-    label: '2026Q1重仓穿透模型',
-    minWeight: 30,
-    fallback: { legs: [{ code: 'usSMH', weight: 70 }, { code: 'usEWY', weight: 20 }, { code: 'usEEM', weight: 10 }], label: '半导体+韩国兜底模型' },
-    legs: [
-      { code: 'usTSM', weight: 10.26 },
-      { code: 'usNVDA', weight: 10.14 },
-      { code: 'usEWY', weight: 8.65, note: 'SK海力士代理' },
-      { code: 'usAVGO', weight: 8.52 },
-      { code: 'usEWY', weight: 6.76, note: '三星电子代理' },
-      { code: 'usSNDK', weight: 4.91 },
-      { code: 'usGLW', weight: 4.29 },
-      { code: 'usWDC', weight: 3.73 },
-      { code: 'usLITE', weight: 3.58 },
-      { code: 'usMPWR', weight: 3.49 }
-    ]
-  },
-  '012920': {
-    label: '2026Q1风格因子模型',
-    minWeight: 100,
-    adjustment: { scale: 1.4 },
-    fallback: {
-      label: '2026Q1重仓穿透模型',
-      minWeight: 25,
-      legs: [
-        { code: 'usTSM', weight: 8.88 },
-        { code: 'usLITE', weight: 8.68 },
-        { code: 'sz300502', weight: 6.02 },
-        { code: 'usGLW', weight: 4.67 },
-        { code: 'usAXTI', weight: 4.67 },
-        { code: 'sz300308', weight: 4.67 },
-        { code: 'sh688498', weight: 4.49 },
-        { code: 'usTSEM', weight: 3.72 },
-        { code: 'usGOOGL', weight: 3.36 },
-        { code: 'sz002384', weight: 2.67 }
-      ]
-    },
-    legs: [
-      { code: 'usQQQ', weight: 45 },
-      { code: 'usSOXX', weight: 30 },
-      { code: 'sh000300', weight: 25 }
-    ]
-  },
-  '018147': {
-    label: '2026Q1重仓穿透模型',
-    minWeight: 30,
-    fallback: { legs: [{ code: 'usSMH', weight: 70 }, { code: 'usEWY', weight: 20 }, { code: 'usEEM', weight: 10 }], label: '半导体+韩国兜底模型' },
-    legs: [
-      { code: 'usTSM', weight: 10.26 },
-      { code: 'usNVDA', weight: 10.14 },
-      { code: 'usEWY', weight: 8.65, note: 'SK海力士代理' },
-      { code: 'usAVGO', weight: 8.52 },
-      { code: 'usEWY', weight: 6.76, note: '三星电子代理' },
-      { code: 'usSNDK', weight: 4.91 },
-      { code: 'usGLW', weight: 4.29 },
-      { code: 'usWDC', weight: 3.73 },
-      { code: 'usLITE', weight: 3.58 },
-      { code: 'usMPWR', weight: 3.49 }
-    ]
-  }
-};
-
-const OVERSEAS_MODEL_RULES = [
-  { re: /新兴市场|新兴|印度|越南|东盟|亚洲/i, legs: [{ code: 'usEEM', weight: 1 }], label: '新兴市场EEM模型' },
-  { re: /中国互联网|中概|海外互联网|互联网/i, legs: [{ code: 'r_hkHSTECH', weight: 0.5 }, { code: 'usQQQ', weight: 0.5 }], label: '中概互联网模型' },
-  { re: /恒生科技|港股科技/i, legs: [{ code: 'r_hkHSTECH', weight: 1 }], label: '恒生科技模型' },
-  { re: /恒生|港股|香港/i, legs: [{ code: 'r_hkHSI', weight: 1 }], label: '恒生模型' },
-  { re: /纳斯达克100|纳指100|NASDAQ\s*100|Nasdaq\s*100|纳斯达克/i, legs: [{ code: 'usQQQ', weight: 1 }], label: '纳指100ETF模型' },
-  { re: /科技|成长|创新|互联网|AI|人工智能|半导体|信息技术/i, legs: [{ code: 'usQQQ', weight: 0.75 }, { code: 'usSPY', weight: 0.25 }], label: '全球成长模型' },
-  { re: /标普|S&P|SP500|500/i, legs: [{ code: 'usSPY', weight: 1 }], label: '标普500ETF模型' },
-  { re: /黄金|金价|贵金属|Gold/i, legs: [{ code: 'AU9999', weight: 1 }], label: '黄金模型' },
-  { re: /全球|海外|美国|美元|QDII/i, legs: [{ code: 'usSPY', weight: 0.6 }, { code: 'usQQQ', weight: 0.4 }], label: '全球股市模型' }
-];
 let indexCache = INDEX_CONFIG.map(function(cfg) {
   return { name: cfg.name, price: NaN, changePct: NaN };
 });
@@ -121,6 +38,7 @@ let fundTypeCache = {};      // 基金类型/基本信息缓存
 let fundFeeCache = {};       // 费率信息缓存
 let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
 const pendingRequests = new Map();
+const fundFullRequests = new Map();
 let _codeGen = {};             // JSONP 请求代数计数器，防止旧回调污染新请求
 let navMoveQueue = Promise.resolve(); // pingzhongdata 共用 Data_netWorthTrend，全局变量需串行读取
 let isRefreshing = false;
@@ -200,7 +118,10 @@ function getChinaDate() {
 
 // ── 导出 / 导入 ───────────────────────────────────────────
 function exportData() {
-  const blob = new Blob([JSON.stringify(holdings, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify({
+    ...makeCloudPayload(holdings),
+    overseas_accuracy: loadAccuracy()
+  }, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'fuyu-holdings.json';
@@ -215,9 +136,10 @@ function importData(e) {
   reader.onload = ev => {
     try {
       const parsed = JSON.parse(ev.target.result);
-      if (!Array.isArray(parsed)) throw new Error();
-      const data = normalizeHoldings(parsed);
-      if (parsed.length && !data.length) throw new Error();
+      const payload = parseCloudPayload(parsed);
+      const data = normalizeHoldings(payload.holdings);
+      if (payload.holdings.length && !data.length) throw new Error();
+      backupHoldings(holdings);
       // 给没有时间戳的条目加上当前时间
       data.forEach(function(h) { if (!h.updated_at) h.updated_at = nowISO(); });
       holdings = data;
@@ -346,8 +268,8 @@ async function pullFromCloud(silent) {
     var file = data.files[GIST_FILENAME];
     if (!file || !file.content) return;
 
-    var parsed = JSON.parse(file.content);
-    var cloudItems = normalizeHoldings(parsed);
+    var parsed = parseCloudPayload(JSON.parse(file.content));
+    var cloudItems = normalizeHoldings(parsed.holdings);
     if (!cloudItems.length) return;
 
     var oldHash = holdingsHash(holdings);
@@ -401,7 +323,7 @@ async function pushToCloud(silent) {
 
     var payload = {
       description: 'FundVal 持仓数据 | ' + nowISO(),
-      files: { [GIST_FILENAME]: { content: JSON.stringify(holdings, null, 2) } }
+      files: { [GIST_FILENAME]: { content: JSON.stringify(makeCloudPayload(holdings), null, 2) } }
     };
 
     var resp = await fetch('https://api.github.com/gists/' + gistId, {
@@ -481,7 +403,7 @@ async function uploadToCloud() {
   });
   saveHoldings();
 
-  var content = JSON.stringify(holdings, null, 2);
+  var content = JSON.stringify(makeCloudPayload(holdings), null, 2);
   var gistId = getGistId();
   var desc = 'FundVal 持仓数据 | ' + nowISO();
 
@@ -601,12 +523,13 @@ async function downloadFromCloud() {
     var file = data.files[GIST_FILENAME];
     if (!file || !file.content) { showToast('云端存档为空'); return; }
 
-    var parsed = JSON.parse(file.content);
-    var cloudItems = normalizeHoldings(parsed);
+    var parsed = parseCloudPayload(JSON.parse(file.content));
+    var cloudItems = normalizeHoldings(parsed.holdings);
     if (!cloudItems.length) { showToast('云端数据格式错误'); return; }
 
     // 用合并算法，不是简单覆盖
     var before = holdings.length;
+    backupHoldings(holdings);
     holdings = mergeFromCloud(cloudItems);
     saveHoldings();
     renderHoldingsList();
@@ -658,7 +581,7 @@ function loadCache() {
     if (!raw) return null;
     const cache = JSON.parse(raw);
     if (!cache.data || !Array.isArray(cache.data) || !cache.data.length) return null;
-    return cache;
+    return { data: cache.data, time: cache.fetchedAt || cache.time || 0, fresh: Date.now() < (cache.expiresAt || 0) };
   } catch(e) { return null; }
 }
 
@@ -671,7 +594,7 @@ function saveCache(data) {
       });
       return out;
     });
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ data: slim, time: Date.now() }));
+    setCached(CACHE_KEY, slim, TTL.INTRADAY, 'fund-estimate');
   } catch(e) {}
 }
 
@@ -764,6 +687,21 @@ async function fetchFromEastmoney(code) {
   }
 }
 
+function restoreLatestBackup() {
+  try {
+    var backup = JSON.parse(localStorage.getItem('fuyu_backup_latest') || 'null');
+    if (!backup || !Array.isArray(backup.holdings)) throw new Error();
+    backupHoldings(holdings);
+    holdings = normalizeHoldings(backup.holdings);
+    saveHoldings();
+    renderHoldingsList();
+    refresh();
+    showToast('已恢复最近备份');
+  } catch (_) {
+    showToast('暂无可恢复备份');
+  }
+}
+
 function formatChinaDateFromMs(ms) {
   var d = new Date(Number(ms) + 8 * 3600 * 1000);
   if (!Number.isFinite(d.getTime())) return '';
@@ -771,7 +709,12 @@ function formatChinaDateFromMs(ms) {
 }
 
 function fetchLatestNavMove(code) {
-  var task = navMoveQueue.then(function() { return fetchLatestNavMoveRaw(code); });
+  var cached = getCached('fuyu_nav_move_' + code, TTL.OFFICIAL_NAV);
+  if (cached && cached.fresh) return Promise.resolve(cached.data);
+  var task = navMoveQueue.then(function() { return fetchLatestNavMoveRaw(code); }).then(function(move) {
+    if (move) setCached('fuyu_nav_move_' + code, move, TTL.OFFICIAL_NAV, 'official-nav');
+    return move || (cached && cached.data) || null;
+  });
   navMoveQueue = task.catch(function() {});
   return task;
 }
@@ -820,6 +763,13 @@ function fetchLatestNavMoveRaw(code) {
 
 // ── 合并获取：主源 + 备选源并行 ──────────────────────────
 async function fetchFundFull(code) {
+  if (fundFullRequests.has(code)) return fundFullRequests.get(code);
+  var request = fetchFundFullRaw(code).finally(function() { fundFullRequests.delete(code); });
+  fundFullRequests.set(code, request);
+  return request;
+}
+
+async function fetchFundFullRaw(code) {
   const [primary, em, navMove] = await Promise.all([
     fetchFund(code),
     fetchFromEastmoney(code),
@@ -841,6 +791,76 @@ async function fetchFundFull(code) {
   return primary;
 }
 
+function buildFundData(r, h, modelQuotes) {
+  const fetchedName = (r.status === 'ok' || r.status === 'ok_fallback') && isRealFundName(r.name, h.code) ? String(r.name).trim() : '';
+  const d = { ...r, name: fetchedName || String(h.name || '').trim() || h.code, shares: h.shares || 0, cost: h.cost || 0 };
+  applyOverseasModelEstimate(d, modelQuotes || {});
+  if (!isUsableNav(d.est_nav) && isUsableNav(d.last_nav) && Number.isFinite(d.est_change)) d.est_nav = d.last_nav * (1 + d.est_change / 100);
+  const dailyMove = preferredDailyMove(d);
+  d.primary_change = dailyMove ? dailyMove.change : d.est_change;
+  d.primary_nav = dailyMove && isUsableNav(dailyMove.nav) ? dailyMove.nav : d.est_nav;
+  d.primary_base_nav = dailyMove && isUsableNav(dailyMove.baseNav) ? dailyMove.baseNav : d.last_nav;
+  d.primary_label = dailyMove ? dailyMove.label : '';
+  d.primary_note = dailyMove ? dailyMove.sourceNote : '';
+  d.today_is_latest_nav = Boolean(dailyMove && dailyMove.isLatestNav);
+  var nav = isUsableNav(d.primary_nav) ? d.primary_nav : (isUsableNav(d.est_nav) ? d.est_nav : d.last_nav);
+  var base = isUsableNav(d.primary_base_nav) ? d.primary_base_nav : d.last_nav;
+  var calculated = calculateHolding(d.shares, d.cost, nav, base);
+  d.curr_value = calculated.value == null ? NaN : calculated.value;
+  d.today_profit = calculated.todayProfit == null ? NaN : calculated.todayProfit;
+  d.total_profit = calculated.totalProfit == null ? NaN : calculated.totalProfit;
+  d.total_profit_rate = calculated.totalProfitRate == null ? NaN : calculated.totalProfitRate;
+  if (!Number.isFinite(d.today_profit) && d.shares > 0 && Number.isFinite(d.nav_change_amt)) {
+    d.today_profit = d.nav_change_amt * d.shares;
+    d.today_is_latest_nav = true;
+  }
+  d.display = chooseDisplayValue({
+    official: d.latest_nav_move ? { nav: d.latest_nav_move.nav, change: d.latest_nav_move.change } : null,
+    estimate: Number.isFinite(d.est_change) ? { nav: d.est_nav, change: d.est_change, kind: d.est_kind } : null,
+    overseas: isOverseasLikeFund(d)
+  });
+  updateAccuracyLedger(d);
+  d.loading = false; d.stale = false; d.error = null; d.updatedAt = Date.now(); d._cached = false;
+  return { data: d, fetchedName };
+}
+
+function updateAccuracyLedger(fund) {
+  if (!fund || !isOverseasLikeFund(fund)) return;
+  var rows = loadAccuracy();
+  if (fund.latest_nav_move && fund.latest_nav_move.date && Number.isFinite(fund.latest_nav_move.change)) {
+    rows = settlePredictions(rows, fund.code, fund.latest_nav_move.date, fund.latest_nav_move.change);
+  }
+  var now = getChinaDate();
+  var minute = now.getHours() * 60 + now.getMinutes();
+  if (fund.est_model && Number.isFinite(fund.est_change) && minute >= 14 * 60 + 30) {
+    rows = recordPrediction(rows, {
+      code: fund.code,
+      prediction_date: chinaDateKey(now),
+      target_nav_date: 'next',
+      model_version: fund.est_model_version || 'unknown',
+      model_label: fund.est_model_label || '',
+      predicted_change: fund.est_change,
+      confidence: fund.est_confidence || 'unknown',
+      recorded_at: new Date().toISOString()
+    });
+  }
+  saveAccuracy(rows);
+  fund.accuracy = accuracyStats(rows.filter(function(row) { return row.code === fund.code; }));
+}
+
+function upsertFundData(code, data) {
+  var index = fundsData.findIndex(function(item) { return item.code === code; });
+  if (index >= 0) fundsData[index] = data; else fundsData.push(data);
+  renderFundList(fundsData);
+}
+
+function updateFundStatus(code, status) {
+  var old = fundsData.find(function(item) { return item.code === code; });
+  if (!old) return;
+  Object.assign(old, status);
+  renderFundList(fundsData);
+}
+
 // ── 刷新所有持仓数据 ─────────────────────────────────────
 async function refresh() {
   if (isRefreshing) {
@@ -857,102 +877,31 @@ async function refresh() {
     }
 
     const snapshot = holdings.filter(h => !h.deleted).map(h => ({...h}));
-    const [results, modelQuotes] = await Promise.all([
-      Promise.all(snapshot.map(h => fetchFundFull(h.code))),
-      fetchOverseasModelQuotes()
-    ]);
-
-    let holdingsChanged = false;
-    let anyOk = false;
-    fundsData = results.map((r, i) => {
-      const h = snapshot[i];
-      const fetchedName = (r.status === 'ok' || r.status === 'ok_fallback') && isRealFundName(r.name, h.code) ? String(r.name).trim() : '';
-      const holdingName = String(h.name || '').trim();
-      const d = {
-        ...r,
-        name: fetchedName || holdingName || h.code,
-        shares: h.shares || 0,
-        cost: h.cost || 0
-      };
-
-      if (fetchedName) {
-        const current = holdings.find(item => item.code === h.code);
-        if (current && !isRealFundName(current.name, current.code)) {
-          current.name = fetchedName;
-          holdingsChanged = true;
+    var modelQuotesPromise = fetchOverseasModelQuotes().catch(function() { return {}; });
+    snapshot.forEach(function(h) { updateFundStatus(h.code, { loading: true, error: null }); });
+    var tasks = snapshot.map(async function(h) {
+      try {
+        var r = await fetchFundFull(h.code);
+        if (r.status !== 'ok' && r.status !== 'ok_fallback') throw new Error(r.message || '更新失败');
+        var quotes = isOverseasFundEstimate(r.name || h.name, r.est_time) ? await modelQuotesPromise : {};
+        var built = buildFundData(r, h, quotes);
+        upsertFundData(h.code, built.data);
+        if (built.fetchedName) {
+          var current = holdings.find(function(item) { return item.code === h.code; });
+          if (current && !isRealFundName(current.name, current.code)) { current.name = built.fetchedName; saveHoldings(); scheduleAutoPush(); }
         }
+        saveCache(fundsData);
+      } catch (error) {
+        var old = fundsData.find(function(item) { return item.code === h.code; });
+        if (old) updateFundStatus(h.code, { loading: false, stale: true, error: error.message || '更新失败', _cached: true });
       }
-
-      applyOverseasModelEstimate(d, modelQuotes);
-
-      const hasEstNav = isUsableNav(d.est_nav);
-      const hasEstChange = Number.isFinite(d.est_change);
-      const hasLast = isUsableNav(d.last_nav);
-      const canDeriveEstNav = !hasEstNav && hasLast && hasEstChange;
-      if (canDeriveEstNav) d.est_nav = d.last_nav * (1 + d.est_change / 100);
-      const hasEst = isUsableNav(d.est_nav);
-      const dailyMove = preferredDailyMove(d);
-      d.primary_change = dailyMove ? dailyMove.change : d.est_change;
-      d.primary_nav = dailyMove && isUsableNav(dailyMove.nav) ? dailyMove.nav : d.est_nav;
-      d.primary_base_nav = dailyMove && isUsableNav(dailyMove.baseNav) ? dailyMove.baseNav : d.last_nav;
-      d.primary_label = dailyMove ? dailyMove.label : '';
-      d.primary_note = dailyMove ? dailyMove.sourceNote : '';
-      d.today_is_latest_nav = Boolean(dailyMove && dailyMove.isLatestNav);
-
-      if ((d.status === 'ok' || d.status === 'ok_fallback') && (hasEst || hasLast || hasEstChange)) {
-        if (d.shares > 0) {
-          // 有持仓 → 计算盈亏
-          if (dailyMove && isUsableNav(dailyMove.nav) && isUsableNav(dailyMove.baseNav)) {
-            var curr = dailyMove.nav * d.shares;
-            d.today_profit = (dailyMove.nav - dailyMove.baseNav) * d.shares;
-            d.total_profit = curr - d.cost * d.shares;
-            d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
-            d.curr_value = curr;
-          } else if (hasEst && hasLast) {
-            var currEst = d.est_nav * d.shares;
-            d.today_profit = (d.est_nav - d.last_nav) * d.shares;
-            d.total_profit = currEst - d.cost * d.shares;
-            d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
-            d.curr_value = currEst;
-          } else if (hasLast) {
-            d.curr_value = d.last_nav * d.shares;
-            d.total_profit = d.curr_value - d.cost * d.shares;
-            d.total_profit_rate = (d.cost > 0) ? (d.total_profit / (d.cost * d.shares) * 100) : NaN;
-            // 没有盘中估算净值时（QDII常见、或主源失败降级），
-            // 用备源的「净值日增长值」直接推算最近一次盈亏，避免一直显示 --
-            if (Number.isFinite(d.nav_change_amt)) {
-              d.today_profit = d.nav_change_amt * d.shares;
-              d.today_is_latest_nav = true;  // 标记：非盘中实时估算，是最近一次已公布净值的涨跌
-            } else {
-              d.today_profit = NaN;
-            }
-          }
-        } else {
-          // 仅关注（0份额）：展示净值，不计算盈亏
-          d.curr_value = 0;
-          d.today_profit = NaN;
-          d.total_profit = NaN;
-          d.total_profit_rate = NaN;
-        }
-        anyOk = true;
-      }
-
-      if ((d.status === 'ok' || d.status === 'ok_fallback') && !hasLast && !hasEst && !hasEstChange) {
-        d.status = 'error';
-        d.message = '净值数据无效';
-      }
-      return d;
     });
-
-    if (holdingsChanged) { saveHoldings(); scheduleAutoPush(); renderHoldingsList(); }
-    if (anyOk) saveCache(fundsData);
-
-    renderFundList(fundsData);
+    await Promise.allSettled(tasks);
     const now = new Date();
     document.getElementById('last-upd').textContent =
       `估算时间 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   } catch(e) {
-    if (!tryShowCache()) renderFundList([]);
+    if (!fundsData.length && !tryShowCache()) renderFundList([]);
   } finally {
     isRefreshing = false;
     if (refreshQueued) refresh();
@@ -1096,8 +1045,9 @@ function fetchTencentQuotes(codes) {
 
 async function fetchOverseasModelQuotes() {
   var tencentCodes = ['usEEM', 'usQQQ', 'usSPY', 'usNDX', 'usIXIC', 'usINX', 'usSMH', 'usSOXX', 'usEWY', 'r_hkHSTECH', 'r_hkHSI'];
-  collectOverseasModelCodes(OVERSEAS_MODEL_BY_CODE, tencentCodes);
-  collectOverseasModelCodes(OVERSEAS_MODEL_RULES, tencentCodes);
+  var modelConfig = getOverseasConfig();
+  collectOverseasModelCodes(modelConfig.models, tencentCodes);
+  collectOverseasModelCodes(modelConfig.rules, tencentCodes);
   var results = await Promise.all([fetchTencentQuotes(tencentCodes), fetchGoldPrice()]);
   var q = results[0] || {};
   var gold = results[1];
@@ -1125,45 +1075,20 @@ function collectOverseasModelCodes(models, out) {
 }
 
 function chooseOverseasModel(fund) {
-  var code = String(fund && fund.code || '');
-  var text = String(fund && fund.name || '');
-  if (OVERSEAS_MODEL_BY_CODE[code]) return OVERSEAS_MODEL_BY_CODE[code];
-  for (var i = 0; i < OVERSEAS_MODEL_RULES.length; i++) {
-    if (OVERSEAS_MODEL_RULES[i].re.test(text)) return OVERSEAS_MODEL_RULES[i];
-  }
-  return null;
-}
-
-function calcModelChange(model, quotes) {
-  var sum = 0;
-  var weight = 0;
-  var usable = [];
-  for (var i = 0; i < model.legs.length; i++) {
-    var leg = model.legs[i];
-    var quote = quotes && quotes[leg.code];
-    if (!quote || !Number.isFinite(quote.changePct)) continue;
-    sum += quote.changePct * leg.weight;
-    weight += leg.weight;
-    usable.push(leg);
-  }
-  var minWeight = Number.isFinite(model.minWeight) ? model.minWeight : 0;
-  if (weight <= 0 || weight < minWeight) return { changePct: NaN, weight: weight, legs: usable };
-  var rawChange = sum / weight;
-  var scale = model.adjustment && Number.isFinite(model.adjustment.scale) ? model.adjustment.scale : 1;
-  var bias = model.adjustment && Number.isFinite(model.adjustment.bias) ? model.adjustment.bias : 0;
-  return { changePct: rawChange * scale + bias, weight: weight, legs: usable };
+  return selectOverseasModel(String(fund && fund.code || ''), String(fund && fund.name || ''));
 }
 
 function applyOverseasModelEstimate(fund, quotes) {
   if (!fund || fund.est_realtime !== false) return;
   var model = chooseOverseasModel(fund);
   if (!model) return;
-  var result = calcModelChange(model, quotes);
-  if ((!result || !Number.isFinite(result.changePct)) && model.fallback) {
-    result = calcModelChange(model.fallback, quotes);
-    if (result && Number.isFinite(result.changePct)) model = model.fallback;
-  }
-  var changePct = result && result.changePct;
+  var normalizedQuotes = {};
+  Object.keys(quotes || {}).forEach(function(code) {
+    var quote = quotes[code];
+    if (quote) normalizedQuotes[code] = { change: quote.changePct, time: quote.time };
+  });
+  var result = calculateOverseasEstimate(model, normalizedQuotes);
+  var changePct = result && result.change;
   if (!Number.isFinite(changePct)) return;
 
   fund.est_change = changePct;
@@ -1175,9 +1100,12 @@ function applyOverseasModelEstimate(fund, quotes) {
   fund.est_realtime = true;
   fund.est_model = true;
   fund.est_model_code = model.legs.map(function(leg) { return leg.code + ':' + leg.weight; }).join(',');
-  fund.est_model_label = model.label;
-  fund.est_model_weight = result.weight;
-  fund.est_note = model.label + ' · 可用权重' + fmt(result.weight) + '% · 基于实时市场行情自建估算，不是基金官方实时净值';
+  fund.est_model_label = result.modelLabel || model.label;
+  fund.est_model_weight = result.usableWeight;
+  fund.est_model_version = result.modelVersion || model.version || '';
+  fund.est_model_quarter = model.quarter || '';
+  fund.est_confidence = result.confidence;
+  fund.est_note = fund.est_model_label + ' · ' + fund.est_model_version + ' · 可用权重' + fmt(result.usableWeight) + '% · 基于实时市场行情自建估算，不是基金官方实时净值';
 }
 
 // ── 排序 ─────────────────────────────────────────────────
@@ -1485,7 +1413,9 @@ function renderFundList(data) {
     var sourceTag = f._cached
       ? ' <span class="cache-tag">缓存</span>'
       : (isFallback ? ' <span class="cache-tag">备选</span>' : '');
-    var estimateTag = f.est_model
+    var displayLabel = f._cached || f.stale ? '旧' : (f.display && f.display.label) || (f.est_model ? '模' : (f.today_is_latest_nav ? '净' : '估'));
+    var estimateTag = ' <span class="cache-tag source-kind">' + displayLabel + '</span>';
+    estimateTag += f.est_model
       ? ' <span class="cache-tag">模型估算</span>'
       : (f.est_realtime === false ? ' <span class="cache-tag">海外非实时</span>' : '');
     if (f.today_is_latest_nav) estimateTag += ' <span class="cache-tag">最新净值</span>';
@@ -1949,20 +1879,15 @@ function updateMktStatus() {
 
 // ── 智能自动刷新 ─────────────────────────────────────────
 function getRefreshInterval() {
-  const now = getChinaDate();
-  const d = now.getDay();
-  const t = now.getHours() * 60 + now.getMinutes();
-  if (d === 0 || d === 6) return 300000;       // 周末 5min
-  if (t >= 565 && t < 690) return 60000;       // 上午盘 9:25-11:30 每60s
-  if (t >= 690 && t < 780) return 180000;      // 午休 11:30-13:00 每3min
-  if (t >= 780 && t < 900) return 60000;       // 下午盘 13:00-15:00 每60s
-  if (t >= 900 && t < 930) return 120000;      // 收盘后 15:00-15:30 每2min
-  return 300000;                                // 其余时段 5min
+  return refreshInterval(getChinaDate());
 }
 
 function startAutoRefresh() {
-  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-  autoRefreshTimer = setInterval(() => { refresh(); }, 60000);
+  if (autoRefreshTimer) clearTimeout(autoRefreshTimer);
+  autoRefreshTimer = setTimeout(function() {
+    if (!document.hidden) refresh();
+    startAutoRefresh();
+  }, refreshInterval(getChinaDate()));
 }
 
 // ── 下拉刷新 ─────────────────────────────────────────────
@@ -2110,18 +2035,35 @@ if ('serviceWorker' in navigator) {
       if (!newWorker) return;
       newWorker.addEventListener('statechange', function() {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          showToast('✨ 有新版本可用，刷新页面即可更新', 6000);
+          showToast('有新版本可用，点击提示立即更新', 10000);
+          var toast = document.getElementById('toast');
+          toast.onclick = function() {
+            toast.onclick = null;
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+          };
         }
       });
     });
     // 每 30 分钟主动检查更新
     setInterval(function() { reg.update(); }, TIMING.SW_UPDATE_MS);
   }).catch(function() {});
+  var reloadingForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (reloadingForUpdate) return;
+    reloadingForUpdate = true;
+    location.reload();
+  });
 }
 
 // ── 页面可见性：切回标签页立即拉取（30s 冷却） ──────────
 let lastVisibilityPull = 0;
 document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    clearTimeout(autoRefreshTimer);
+    return;
+  }
+  startAutoRefresh();
+  refresh();
   if (!document.hidden && hasCloudConfig() && Date.now() - lastVisibilityPull > TIMING.CLOUD_COOLDOWN_MS) {
     lastVisibilityPull = Date.now();
     pullFromCloud(true);
@@ -2129,12 +2071,18 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // ── 初始化 ───────────────────────────────────────────────
+Object.assign(window, {
+  toggleEstSort, toggleFundDetail, editFund, delFund, cancelEdit, saveFund,
+  switchPage, uploadToCloud, downloadFromCloud, clearCloudConfig, restoreLatestBackup, exportData, importData
+});
+
 loadHoldings();
 var appVersionLabel = document.getElementById('app-version-label');
 if (appVersionLabel) appVersionLabel.textContent = APP_VERSION;
 updateMktStatus();
 setInterval(updateMktStatus, TIMING.MKT_STATUS_MS);
-refresh();
+tryShowCache();
+loadOverseasModels().catch(function() {}).finally(function() { refresh(); });
 startAutoRefresh();
 startIndexRefresh();
 initPullToRefresh();

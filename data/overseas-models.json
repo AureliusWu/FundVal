@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "updated_at": "2026-07-11T00:00:00+08:00",
+  "models": {
+    "539002": {
+      "name": "建信新兴市场混合(QDII)A",
+      "version": "2026q1-v1",
+      "quarter": "2026Q1",
+      "label": "重仓穿透模型",
+      "min_weight": 30,
+      "legs": [
+        { "code": "usTSM", "weight": 10.26 }, { "code": "usNVDA", "weight": 10.14 },
+        { "code": "usEWY", "weight": 15.41 }, { "code": "usAVGO", "weight": 8.52 },
+        { "code": "usSNDK", "weight": 4.91 }, { "code": "usGLW", "weight": 4.29 },
+        { "code": "usWDC", "weight": 3.73 }, { "code": "usLITE", "weight": 3.58 },
+        { "code": "usMPWR", "weight": 3.49 }
+      ]
+    },
+    "012920": {
+      "name": "易方达全球成长精选混合(QDII)人民币A",
+      "version": "2026q1-v1",
+      "quarter": "2026Q1",
+      "label": "风格因子模型",
+      "min_weight": 100,
+      "scale": 1.4,
+      "bias": 0,
+      "legs": [
+        { "code": "usQQQ", "weight": 45 }, { "code": "usSOXX", "weight": 30 },
+        { "code": "sh000300", "weight": 25 }
+      ]
+    },
+    "018147": {
+      "name": "建信新兴市场优选混合(QDII)A",
+      "version": "2026q1-v1",
+      "quarter": "2026Q1",
+      "label": "重仓穿透模型",
+      "min_weight": 30,
+      "legs": [
+        { "code": "usTSM", "weight": 10.26 }, { "code": "usNVDA", "weight": 10.14 },
+        { "code": "usEWY", "weight": 15.41 }, { "code": "usAVGO", "weight": 8.52 },
+        { "code": "usSNDK", "weight": 4.91 }, { "code": "usGLW", "weight": 4.29 },
+        { "code": "usWDC", "weight": 3.73 }, { "code": "usLITE", "weight": 3.58 },
+        { "code": "usMPWR", "weight": 3.49 }
+      ]
+    }
+  },
+  "rules": [
+    { "pattern": "新兴市场|印度|越南|东盟|亚洲", "label": "新兴市场代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "usEEM", "weight": 100 }] },
+    { "pattern": "恒生科技|港股科技", "label": "恒生科技代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "r_hkHSTECH", "weight": 100 }] },
+    { "pattern": "纳斯达克|纳指", "label": "纳指100代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "usQQQ", "weight": 100 }] },
+    { "pattern": "标普|S&P|SP500", "label": "标普500代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "usSPY", "weight": 100 }] },
+    { "pattern": "全球|海外|美国|美元|QDII", "label": "全球股市代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "usSPY", "weight": 60 }, { "code": "usQQQ", "weight": 40 }] }
+  ]
+}

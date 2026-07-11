@@ -1,108 +1,79 @@
-const CACHE = 'fuyu-v8.0.12';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+const CACHE = 'fuyu-v10.0.0';
+const CORE = [
+  './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  './js/app.js', './js/version.js', './js/config.js', './js/storage.js',
+  './js/calculator.js', './js/overseas-model.js', './js/accuracy.js',
+  './css/style.css', './data/overseas-models.json'
 ];
 
-// JS/CSS 不预缓存，由 network-first 在首次请求时从网络获取最新版
-
-// 安装：预缓存核心静态资源
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {}))
-  );
-  self.skipWaiting(); // 新 SW 立即接管，不等待旧 SW 释放
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE).catch(() => {})));
 });
 
-// 激活：清理旧版本缓存
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim(); // 立即控制所有页面
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))));
+  self.clients.claim();
 });
 
-// 请求拦截
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-
-  // 估值接口不缓存，始终走网络
-  if (url.hostname.includes('1234567.com.cn')) return;
-
-  // 东方财富 API 不缓存（基金备源）
-  if (url.hostname.includes('eastmoney.com')) return;
-
-  // 腾讯行情 JSONP 不缓存
-  if (url.hostname.includes('gtimg.cn')) return;
-
-  // 核心代码文件：network-first，确保拿到最新版
-  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
-    e.respondWith(networkFirst(e.request));
-    return;
+self.addEventListener('message', event => {
+  const data = event.data || {};
+  if (data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (data.type === 'notify') {
+    event.waitUntil(self.registration.showNotification(data.title || '蜉蝣基金', {
+      body: data.body || '', icon: './icon-192.png', badge: './icon-192.png',
+      tag: data.tag || 'fuyu-notify', renotify: true, data: { url: data.url || './' }
+    }));
   }
-
-  // 其他静态资源：stale-while-revalidate（先给缓存，后台更新）
-  e.respondWith(staleWhileRevalidate(e.request));
 });
 
-self.addEventListener('message', e => {
-  const data = e.data || {};
-  if (data.type !== 'notify') return;
-  e.waitUntil(
-    self.registration.showNotification(data.title || '蜉蝣基金', {
-      body: data.body || '',
-      icon: './icon-192.png',
-      badge: './icon-192.png',
-      tag: data.tag || 'fuyu-notify',
-      renotify: true,
-      data: { url: data.url || './' }
-    })
-  );
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.endsWith('/data/overseas-models.json')) {
+    event.respondWith(staleWhileRevalidate(event.request));
+  } else if (event.request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
+    event.respondWith(networkFirst(event.request));
+  } else if (/\.(?:png|json|webmanifest)$/.test(url.pathname)) {
+    event.respondWith(cacheFirst(event.request));
+  } else {
+    event.respondWith(networkFirst(event.request));
+  }
 });
 
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  const targetUrl = e.notification.data && e.notification.data.url ? e.notification.data.url : './';
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      for (const client of clientList) {
-        if ('focus' in client) return client.focus();
-      }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
-      return null;
-    })
-  );
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = event.notification.data && event.notification.data.url || './';
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const client = list[0];
+    return client ? client.focus() : clients.openWindow(target);
+  }));
 });
 
-// network-first：先走网络，失败才用缓存
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    if (response && response.ok && request.method === 'GET') {
-      const cache = await caches.open(CACHE);
-      cache.put(request, response.clone());
-    }
+    if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
     return response;
-  } catch (err) {
-    const cached = await caches.match(request);
-    return cached || caches.match('./index.html');
+  } catch (_) {
+    return (await caches.match(request)) || caches.match('./index.html');
   }
 }
 
-// stale-while-revalidate：立即返回缓存，后台拉取最新版
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
+  return response;
+}
+
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request);
-  const fetchPromise = fetch(request).then(response => {
-    if (response && response.ok && request.method === 'GET') {
-      cache.put(request, response.clone());
-    }
+  const update = fetch(request).then(response => {
+    if (response.ok) cache.put(request, response.clone());
     return response;
   }).catch(() => cached);
-  return cached || fetchPromise;
+  return cached || update;
 }
