@@ -41,6 +41,7 @@ const pendingRequests = new Map();
 const fundFullRequests = new Map();
 let _codeGen = {};             // JSONP 请求代数计数器，防止旧回调污染新请求
 let navMoveQueue = Promise.resolve(); // pingzhongdata 共用 Data_netWorthTrend，全局变量需串行读取
+let fundDetailQueue = Promise.resolve(); // FundArchivesDatas 共用 window.apidata，必须全局串行
 let isRefreshing = false;
 let refreshQueued = false;
 let autoRefreshTimer = null;
@@ -1166,19 +1167,35 @@ function toggleFundDetail(code) {
 
 // ── 通用 script 注入（Promise 化，解决 window.apidata 全局冲突） ──
 function injectFundScript(url) {
+  var task = fundDetailQueue.then(function() { return injectFundScriptRaw(url); });
+  fundDetailQueue = task.catch(function() {});
+  return task;
+}
+
+function injectFundScriptRaw(url) {
   return new Promise(function(resolve, reject) {
     var script = document.createElement('script');
+    var finished = false;
+    var timer = setTimeout(function() {
+      finish(new Error('script timeout'));
+    }, TIMING.INDEX_JSONP_TIMEOUT);
+
+    function finish(error, data) {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      delete window.apidata;
+      script.remove();
+      if (error) reject(error); else resolve(data || {});
+    }
+
     script.src = url;
     script.onload = function() {
       var data = window.apidata;
-      delete window.apidata;
-      script.remove();
-      resolve(data || {});
+      finish(null, data);
     };
     script.onerror = function() {
-      delete window.apidata;
-      script.remove();
-      reject(new Error('script load failed'));
+      finish(new Error('script load failed'));
     };
     document.head.appendChild(script);
   });
@@ -1187,47 +1204,48 @@ function injectFundScript(url) {
 // ── 顺序加载基金详情（重仓股 → 基金类型 → 费率） ──
 async function fetchFundDetails(code) {
   loadingDetails = code;
+  try {
+    // 1. 重仓股 (jjcc)
+    if (holdingsCache[code] === undefined) {
+      try {
+        var d1 = await injectFundScript(
+          'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=' + code + '&topline=10&_=' + Date.now());
+        holdingsCache[code] = parseHoldingsData(d1) || [];
+      } catch(e) { holdingsCache[code] = []; }
+      if (expandedFund !== code) return;
+      renderFundList(fundsData);
 
-  // 1. 重仓股 (jjcc)
-  if (holdingsCache[code] === undefined) {
-    try {
-      var d1 = await injectFundScript(
-        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=' + code + '&topline=10&_=' + Date.now());
-      holdingsCache[code] = parseHoldingsData(d1) || [];
-    } catch(e) { holdingsCache[code] = []; }
-    if (expandedFund !== code) { loadingDetails = null; return; }
-    renderFundList(fundsData);
+      if (holdingsCache[code].length) {
+        await fetchHoldingsQuotes(code, holdingsCache[code]);
+        if (expandedFund !== code) return;
+        renderFundList(fundsData);
+      }
+    }
 
-    if (holdingsCache[code].length) {
-      await fetchHoldingsQuotes(code, holdingsCache[code]);
-      if (expandedFund !== code) { loadingDetails = null; return; }
+    // 2. 基金类型/基本信息 (jjxx)
+    if (fundTypeCache[code] === undefined) {
+      try {
+        var d3 = await injectFundScript(
+          'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjxx&code=' + code + '&_=' + Date.now());
+        fundTypeCache[code] = parseFundTypeData(d3) || null;
+      } catch(e) { fundTypeCache[code] = null; }
+      if (expandedFund !== code) return;
       renderFundList(fundsData);
     }
-  }
 
-  // 2. 基金类型/基本信息 (jjxx)
-  if (fundTypeCache[code] === undefined) {
-    try {
-      var d3 = await injectFundScript(
-        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjxx&code=' + code + '&_=' + Date.now());
-      fundTypeCache[code] = parseFundTypeData(d3) || null;
-    } catch(e) { fundTypeCache[code] = null; }
-    if (expandedFund !== code) { loadingDetails = null; return; }
-    renderFundList(fundsData);
+    // 3. 基金费率 (jjfl)
+    if (fundFeeCache[code] === undefined) {
+      try {
+        var d4 = await injectFundScript(
+          'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjfl&code=' + code + '&_=' + Date.now());
+        fundFeeCache[code] = parseFundFeeData(d4) || null;
+      } catch(e) { fundFeeCache[code] = null; }
+      if (expandedFund !== code) return;
+      renderFundList(fundsData);
+    }
+  } finally {
+    if (loadingDetails === code) loadingDetails = null;
   }
-
-  // 3. 基金费率 (jjfl)
-  if (fundFeeCache[code] === undefined) {
-    try {
-      var d4 = await injectFundScript(
-        'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjfl&code=' + code + '&_=' + Date.now());
-      fundFeeCache[code] = parseFundFeeData(d4) || null;
-    } catch(e) { fundFeeCache[code] = null; }
-    if (expandedFund !== code) { loadingDetails = null; return; }
-    renderFundList(fundsData);
-  }
-
-  loadingDetails = null;
 }
 
 // ── 重仓股解析 ─────────────────────────────────────────────
@@ -1270,9 +1288,12 @@ async function fetchAStockHoldingQuotes(stocks) {
   var aStocks = stocks.filter(function(s) { return /^\d{6}$/.test(s.code); });
   if (!aStocks.length) return;
   var secids = aStocks.map(function(s) { return secidFor(s.code); });
+  var controller = new AbortController();
+  var timeout = setTimeout(function() { controller.abort(); }, TIMING.INDEX_JSONP_TIMEOUT);
   try {
     var resp = await fetch(
-      'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f3&secids=' + secids.join(',') + '&_=' + Date.now());
+      'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f3&secids=' + secids.join(',') + '&_=' + Date.now(),
+      { signal: controller.signal });
     if (!resp.ok) return;
     var json = await resp.json();
     var diff = json && json.data && json.data.diff;
@@ -1285,6 +1306,8 @@ async function fetchAStockHoldingQuotes(stocks) {
     });
   } catch(e) {
     // 静默失败，涨跌幅列保持 '--'
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
