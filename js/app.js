@@ -711,7 +711,7 @@ function formatChinaDateFromMs(ms) {
 
 function fetchLatestNavMove(code) {
   var cached = getCached('fuyu_nav_move_' + code, TTL.OFFICIAL_NAV);
-  if (cached && cached.fresh) return Promise.resolve(cached.data);
+  if (cached && cached.fresh && cached.data && cached.data.meta) return Promise.resolve(cached.data);
   var task = navMoveQueue.then(function() { return fetchLatestNavMoveRaw(code); }).then(function(move) {
     if (move) setCached('fuyu_nav_move_' + code, move, TTL.OFFICIAL_NAV, 'official-nav');
     return move || (cached && cached.data) || null;
@@ -724,6 +724,8 @@ function fetchLatestNavMoveRaw(code) {
   return new Promise(function(resolve) {
     var script = document.createElement('script');
     var done = false;
+    var globalKeys = ['Data_netWorthTrend', 'Data_fluctuationScale', 'Data_currentFundManager', 'fund_sourceRate', 'fund_Rate'];
+    globalKeys.forEach(function(key) { window[key] = undefined; });
     var timer = setTimeout(function() { finish(null); }, TIMING.FUND_JSONP_TIMEOUT);
 
     function finish(move) {
@@ -731,7 +733,7 @@ function fetchLatestNavMoveRaw(code) {
       done = true;
       clearTimeout(timer);
       script.remove();
-      try { window.Data_netWorthTrend = undefined; } catch(e) {}
+      globalKeys.forEach(function(key) { window[key] = undefined; });
       resolve(move);
     }
 
@@ -744,13 +746,26 @@ function fetchLatestNavMoveRaw(code) {
         var nav = parseNav(cur && cur.y);
         var prevNav = parseNav(prev && prev.y);
         if (!isUsableNav(nav) || !isUsableNav(prevNav)) { finish(null); return; }
+        var scaleData = window.Data_fluctuationScale;
+        var scaleSeries = scaleData && Array.isArray(scaleData.series) ? scaleData.series : [];
+        var latestScale = scaleSeries.length ? scaleSeries[scaleSeries.length - 1] : null;
+        var managers = Array.isArray(window.Data_currentFundManager) ? window.Data_currentFundManager : [];
+        var manager = managers.length ? managers[0] : null;
         finish({
           date: formatChinaDateFromMs(cur.x),
           prevDate: formatChinaDateFromMs(prev.x),
           nav: nav,
           prevNav: prevNav,
           change: (nav - prevNav) / prevNav * 100,
-          changeAmt: nav - prevNav
+          changeAmt: nav - prevNav,
+          meta: {
+            scale: latestScale && Number.isFinite(Number(latestScale.y)) ? Number(latestScale.y) + ' 亿' : '',
+            manager: manager && manager.name || '',
+            managerWorkTime: manager && manager.workTime || '',
+            managerId: manager && manager.id || '',
+            sourceRate: window.fund_sourceRate || '',
+            currentRate: window.fund_Rate || ''
+          }
         });
       } catch(e) {
         finish(null);
@@ -1176,6 +1191,9 @@ function injectFundScriptRaw(url) {
   return new Promise(function(resolve, reject) {
     var script = document.createElement('script');
     var finished = false;
+    // The third-party response declares `var apidata`, which creates a
+    // non-configurable Window property. Assigning clears it; deleting throws.
+    window.apidata = undefined;
     var timer = setTimeout(function() {
       finish(new Error('script timeout'));
     }, TIMING.INDEX_JSONP_TIMEOUT);
@@ -1184,7 +1202,7 @@ function injectFundScriptRaw(url) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
-      delete window.apidata;
+      window.apidata = undefined;
       script.remove();
       if (error) reject(error); else resolve(data || {});
     }
@@ -1222,30 +1240,46 @@ async function fetchFundDetails(code) {
       }
     }
 
-    // 2. 基金类型/基本信息 (jjxx)
+    // 2. 基金信息：来自已加载的 pingzhongdata。旧 jjxx 接口目前返回残缺脚本。
     if (fundTypeCache[code] === undefined) {
-      try {
-        var d3 = await injectFundScript(
-          'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjxx&code=' + code + '&_=' + Date.now());
-        fundTypeCache[code] = parseFundTypeData(d3) || null;
-      } catch(e) { fundTypeCache[code] = null; }
+      var currentFund = fundsData.find(function(item) { return item.code === code; });
+      var meta = currentFund && currentFund.latest_nav_move && currentFund.latest_nav_move.meta || {};
+      fundTypeCache[code] = {
+        type: inferFundType(currentFund && currentFund.name),
+        scale: meta.scale || '',
+        manager: meta.manager || '',
+        managerWorkTime: meta.managerWorkTime || '',
+        managerId: meta.managerId || ''
+      };
       if (expandedFund !== code) return;
       renderFundList(fundsData);
     }
 
-    // 3. 基金费率 (jjfl)
+    // 3. 申购费率同样来自 pingzhongdata，避免已失效的 jjfl 入口。
     if (fundFeeCache[code] === undefined) {
-      try {
-        var d4 = await injectFundScript(
-          'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjfl&code=' + code + '&_=' + Date.now());
-        fundFeeCache[code] = parseFundFeeData(d4) || null;
-      } catch(e) { fundFeeCache[code] = null; }
+      var fundForFee = fundsData.find(function(item) { return item.code === code; });
+      var feeMeta = fundForFee && fundForFee.latest_nav_move && fundForFee.latest_nav_move.meta || {};
+      fundFeeCache[code] = feeMeta.currentRate || feeMeta.sourceRate ? {
+        buyFee: feeMeta.currentRate ? feeMeta.currentRate + '%' : '',
+        sourceBuyFee: feeMeta.sourceRate ? feeMeta.sourceRate + '%' : ''
+      } : null;
       if (expandedFund !== code) return;
       renderFundList(fundsData);
     }
   } finally {
     if (loadingDetails === code) loadingDetails = null;
   }
+}
+
+function inferFundType(name) {
+  var text = String(name || '');
+  if (/QDII|全球|海外|美国|香港|恒生|纳斯达克|标普/i.test(text)) return 'QDII';
+  if (/指数|ETF|联接/.test(text)) return '指数型';
+  if (/债券|纯债|可转债/.test(text)) return '债券型';
+  if (/货币/.test(text)) return '货币型';
+  if (/股票/.test(text)) return '股票型';
+  if (/混合/.test(text)) return '混合型';
+  return '基金';
 }
 
 // ── 重仓股解析 ─────────────────────────────────────────────
@@ -1532,6 +1566,7 @@ function renderFundList(data) {
           if (ti.type) html += '<div class="rules-row"><span class="rules-label">基金类型</span><span class="rules-val">' + esc(ti.type) + '</span></div>';
           if (ti.setupDate) html += '<div class="rules-row"><span class="rules-label">成立日期</span><span class="rules-val">' + esc(ti.setupDate) + '</span></div>';
           if (ti.scale) html += '<div class="rules-row"><span class="rules-label">基金规模</span><span class="rules-val">' + esc(ti.scale) + '</span></div>';
+          if (ti.manager) html += '<div class="rules-row"><span class="rules-label">基金经理</span><span class="rules-val">' + esc(ti.manager + (ti.managerWorkTime ? ' · ' + ti.managerWorkTime : '')) + '</span></div>';
           if (ti.company) html += '<div class="rules-row"><span class="rules-label">管理人</span><span class="rules-val">' + esc(ti.company) + '</span></div>';
           if (ti.benchmark) html += '<div class="rules-row"><span class="rules-label">跟踪标的</span><span class="rules-val">' + esc(ti.benchmark) + '</span></div>';
           html += '</div>';
@@ -1540,6 +1575,7 @@ function renderFundList(data) {
           var fi = fundFeeCache[f.code];
           html += '<div class="rules-table" style="margin-top:6px">';
           if (fi.buyFee) html += '<div class="rules-row"><span class="rules-label">申购费率</span><span class="rules-val">' + esc(fi.buyFee) + '</span></div>';
+          if (fi.sourceBuyFee && fi.sourceBuyFee !== fi.buyFee) html += '<div class="rules-row"><span class="rules-label">原申购费率</span><span class="rules-val">' + esc(fi.sourceBuyFee) + '</span></div>';
           if (fi.sellFee) html += '<div class="rules-row"><span class="rules-label">赎回费率</span><span class="rules-val">' + esc(fi.sellFee) + '</span></div>';
           if (fi.manageFee) html += '<div class="rules-row"><span class="rules-label">管理费率</span><span class="rules-val">' + esc(fi.manageFee) + '</span></div>';
           if (fi.custodyFee) html += '<div class="rules-row"><span class="rules-label">托管费率</span><span class="rules-val">' + esc(fi.custodyFee) + '</span></div>';
