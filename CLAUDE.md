@@ -2,7 +2,7 @@
 
 ## V10 维护约定
 
-本项目当前版本为 `10.0.3`。保持纯前端和零第三方运行时依赖。业务逻辑应按职责进入 `config`、`calculator`、`storage`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。海外模型配置只允许在 `data/overseas-models.json` 维护。
+本项目当前版本为 `10.0.4`。保持纯前端和零第三方运行时依赖。业务逻辑应按职责进入 `config`、`calculator`、`storage`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。海外模型配置只允许在 `data/overseas-models.json` 维护。
 
 数据展示优先级与标签固定为：海外基金官方净值 `净` 优先，其次盘中估值 `估` 或海外模型 `模`，网络失败保留旧值并标记 `旧`。任何导入或云端覆盖前都要备份；Gist 新写入使用 Schema 2，但必须继续读取旧数组格式。
 
