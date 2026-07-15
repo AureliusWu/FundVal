@@ -1,7 +1,7 @@
-const CACHE = 'fuyu-v10.0.3';
+const CACHE = 'fuyu-v10.0.4';
 const CORE = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
-  './js/app.js', './js/version.js', './js/config.js', './js/storage.js',
+  './js/migrations.js', './js/app.js', './js/version.js', './js/config.js', './js/storage.js',
   './js/calculator.js', './js/overseas-model.js', './js/accuracy.js',
   './css/style.css', './data/overseas-models.json'
 ];
