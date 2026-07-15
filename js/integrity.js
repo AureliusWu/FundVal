@@ -50,7 +50,7 @@ export function normalizeHoldings(value, nowISO = new Date().toISOString()) {
     const current = byCode.get(normalized.code);
     if (shouldReplaceHolding(current, normalized)) byCode.set(normalized.code, normalized);
   }
-  return [...byCode.values()].sort((a, b) => a.code.localeCompare(b.code));
+  return [...byCode.values()];
 }
 
 function parseBackup(raw, nowISO) {
