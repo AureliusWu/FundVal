@@ -1,14 +1,19 @@
 # 蜉蝣基金 (FundVal)
 
-当前版本：`10.0.4`。
+当前版本：`10.1.0`。
 
 ## V10 架构
 
 - 页面先读本地缓存，再按基金逐只刷新；单只失败不会阻塞或清空其他基金。
+- 启动前执行持仓与缓存一致性检查；主数据损坏时自动尝试从最近两份备份恢复。
+- 重复持仓按更新时间合并，同时间戳下删除标记优先，避免旧设备把已删除基金恢复回来。
+- 旧行情缓存只保留当前有效基金，并自动清理孤立的单基金净值缓存。
+- 浏览器存储写入失败时降级处理，不让配额、隐私模式或权限异常中断主程序。
+- 运行时错误与未处理 Promise 会记录到本地诊断日志，并自动脱敏 GitHub Token。
 - 刷新使用交易时段感知的递归定时器，页面隐藏时暂停网络刷新。
 - 海外估值模型位于 `data/overseas-models.json`，结果保留模型版本、置信度和准确度台账。
 - 展示来源统一为：`估`（盘中估值）、`净`（官方净值）、`模`（海外模型）、`旧`（旧缓存）。
-- Gist 使用 Schema 2；兼容旧数组数据，覆盖和导入前自动生成本地备份。
+- Gist 使用 Schema 2；兼容旧数组数据和更高版本 Schema，覆盖和导入前自动生成本地备份。
 - `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate。
 - 使用 ES Modules 和 Node 内置测试，无第三方运行时依赖。
 
@@ -17,6 +22,8 @@
 ```bash
 npm test
 node --check js/app.js
+node --check js/bootstrap.js
+node --check js/resilience.js
 ```
 
 个人基金盘中估值监控 PWA，托管于 [aureliuswu.github.io/FundVal](https://aureliuswu.github.io/FundVal/)。
@@ -41,6 +48,9 @@ node --check js/app.js
 零框架单页应用，无构建流程：
 
 - `index.html`：页面结构与 PWA 入口。
+- `js/bootstrap.js`：启动顺序与启动前完整性检查。
+- `js/resilience.js`：自动恢复、缓存清理、错误日志和网络状态保护。
+- `js/integrity.js`：可测试的持仓、缓存与诊断纯函数。
 - `js/app.js`：全部业务逻辑。
 - `css/style.css`：样式与响应式布局。
 - `manifest.json`：PWA 名称、图标、启动配置。
@@ -59,7 +69,10 @@ node --check js/app.js
 本项目没有 npm 依赖。常用检查：
 
 ```bash
+npm test
 node --check js/app.js
+node --check js/bootstrap.js
+node --check js/resilience.js
 ```
 
 推送 `main` 分支后由 GitHub Pages 发布。
