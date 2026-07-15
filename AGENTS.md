@@ -1,14 +1,17 @@
 # AGENTS.md
 
-## 当前架构（V10.0.4）
+## 当前架构（V10.1.0）
 
+- `js/bootstrap.js` 负责启动顺序，必须先执行迁移与完整性检查，再加载 `app.js`。
+- `js/resilience.js` 负责本地数据恢复、缓存清理、错误日志和跨标签页提示。
+- `js/integrity.js` 只放可测试的持仓、缓存、诊断纯函数。
 - `js/app.js` 负责页面编排和第三方 JSONP 适配。
 - `js/config.js` 负责 TTL、超时和交易时段刷新间隔。
 - `js/calculator.js` 只放纯计算与显示来源优先级。
-- `js/storage.js` 负责带时间戳缓存、Gist Schema 2 和本地备份。
+- `js/storage.js` 负责带时间戳缓存、Gist Schema 和本地备份；所有读写失败必须可降级。
 - `js/overseas-model.js` 读取 `data/overseas-models.json`，不得回填硬编码基金规则。
 - `js/accuracy.js` 记录海外模型预测、官方净值结算和 MAE/方向准确率。
-- 变更后必须运行 `npm test`、`node --check js/app.js`，并保持 `js/version.js` 与 `sw.js` 缓存版本一致。
+- 变更后必须运行 `npm test`、`node --check js/app.js`、`node --check js/bootstrap.js`，并保持 `js/version.js` 与 `sw.js` 缓存版本一致。
 - 缺失值必须保持缺失，禁止以 `0` 代替；旧缓存必须显示 `旧`。
 
 ## 项目识别
@@ -25,6 +28,9 @@
 ## 技术结构
 
 - `index.html`：单页入口、PWA meta、行情/持仓页面结构。
+- `js/bootstrap.js`：启动前迁移、自检和主程序加载。
+- `js/resilience.js`：损坏恢复、缓存一致性、运行时保护。
+- `js/integrity.js`：可测试的状态修复规则。
 - `js/app.js`：估值抓取、持仓管理、Gist 同步、海外模型、通知、渲染逻辑。
 - `css/style.css`：移动端优先样式。
 - `manifest.json`：PWA 名称、图标、启动配置。
@@ -41,11 +47,12 @@
 
 ## 开发规则
 
-- 保持零依赖，不引入框架、构建工具或 npm 流程。
+- 保持零依赖，不引入框架、构建工具或 npm 运行时依赖。
 - 涨跌幅允许为负数或 0，不能用只适合净值/价格的可用性判断。
 - 修改估值、持仓、同步、SW 缓存时，必须同时考虑失败降级、旧缓存、离线和移动端展示。
+- 持仓修复不得改变用户原有顺序；重复记录按更新时间择新，同时间戳删除标记优先。
+- 任何诊断日志必须脱敏 Token，不得记录或提交真实密钥。
 - 涉及 GitHub Token/Gist 的代码或文档不得硬编码真实密钥。
-- 修改 `js/app.js` 后至少运行 `node --check js/app.js`。
 
 ## 项目边界
 
