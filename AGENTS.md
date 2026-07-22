@@ -1,11 +1,11 @@
 # AGENTS.md
 
-## 当前架构（V11.0.0）
+## 当前架构（V11.0.1）
 
 - `js/bootstrap.js` 负责启动顺序，必须先执行迁移与完整性检查，再加载 `app.js`。
 - `js/resilience.js` 负责本地数据恢复、缓存清理、错误日志和跨标签页提示。
 - `js/integrity.js` 只放可测试的持仓、缓存、诊断纯函数。
-- `js/app.js` 负责页面编排和刷新队列；`js/eastmoney-estimate.js` 负责现行估值表 JSONP 分页定位。
+- `js/app.js` 负责页面编排和刷新队列；`js/eastmoney-estimate.js` 负责调用司南服务端估值代理并保留部分结果。
 - `js/freshness.js` 负责行情时间解析、市场分类和统一数据状态。
 - `js/config.js` 负责 TTL、超时和交易时段刷新间隔。
 - `js/calculator.js` 只放纯计算与显示来源优先级。

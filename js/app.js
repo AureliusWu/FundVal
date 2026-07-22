@@ -737,8 +737,9 @@ async function fetchFundFullRaw(code, force, tableEstimate) {
     }
     if (navMove) {
       return {
-        code, name: '', status: 'ok_official', last_nav: navMove.prevNav,
+        code, name: '', status: 'ok_official', last_nav: navMove.nav,
         est_nav: NaN, est_change: NaN, nav_date: navMove.date, est_time: navMove.date,
+        est_realtime: false,
         latest_nav_move: navMove,
       };
     }
@@ -855,7 +856,10 @@ async function runRefresh(requestId, options) {
     }
 
     const snapshot = holdings.filter(h => !h.deleted).map(h => ({...h}));
-    var estimateTablePromise = fetchEstimateRows(snapshot.map(function(h) { return h.code; })).catch(function() { return new Map(); });
+    var estimateTablePromise = fetchEstimateRows(
+      snapshot.map(function(h) { return h.code; }),
+      { force: options.force !== false }
+    ).catch(function() { return new Map(); });
     var modelQuotesPromise = fetchOverseasModelQuotes().catch(function() { return {}; });
     snapshot.forEach(function(h) {
       var old = fundsData.find(function(item) { return item.code === h.code; });
@@ -867,7 +871,7 @@ async function runRefresh(requestId, options) {
         var estimateMap = await estimateTablePromise;
         var r = await fetchFundFull(h.code, options.force !== false, estimateMap.get(h.code));
         if (r.status !== 'ok' && r.status !== 'ok_fallback' && r.status !== 'ok_official') throw new Error(r.message || '更新失败');
-        var quotes = isOverseasFundEstimate(r.name || h.name, r.est_time) ? await modelQuotesPromise : {};
+        var quotes = selectOverseasModel(h.code, r.name || h.name) ? await modelQuotesPromise : {};
         var built = buildFundData(r, h, quotes);
         upsertFundData(h.code, built.data);
         if (built.fetchedName) {

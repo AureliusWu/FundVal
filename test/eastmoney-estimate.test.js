@@ -19,33 +19,48 @@ test('keeps missing estimate values missing', () => {
   assert.equal(Number.isNaN(result.est_change), true);
 });
 
-test('finds multiple fund codes through fresh paged JSONP requests', async () => {
-  const originalWindow = globalThis.window;
-  const originalDocument = globalThis.document;
+test('loads multiple fund codes through the server-side estimate proxy', async () => {
+  const originalFetch = globalThis.fetch;
   let requests = 0;
-  globalThis.window = {};
-  globalThis.document = {
-    createElement: () => ({ remove() {} }),
-    head: {
-      appendChild(script) {
-        requests += 1;
-        const url = new URL(script.src);
-        const callback = url.searchParams.get('callback');
-        const page = Number(url.searchParams.get('pageIndex'));
-        const list = page === 1
-          ? [{ bzdm: '000001', jjjc: 'A', gsz: '1', gszzl: '1%', gxrq: '2026-07-22' }]
-          : [{ bzdm: '110011', jjjc: 'B', gsz: '2', gszzl: '-1%', gxrq: '2026-07-22' }];
-        setTimeout(() => globalThis.window[callback]({ ErrCode: 0, TotalCount: 101, Data: { list } }), 0);
-      },
-    },
+  globalThis.fetch = async (input) => {
+    requests += 1;
+    const url = new URL(input);
+    assert.equal(url.searchParams.get('codes'), '110011,000001');
+    return new Response(JSON.stringify({ items: [
+      { code: '000001', name: 'A', est_nav: 1, est_change: 1, est_time: '2026-07-22' },
+      { code: '110011', name: 'B', est_nav: 2, est_change: -1, est_time: '2026-07-22' },
+    ] }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
   try {
     const result = await fetchEstimateRows(['110011', '000001']);
     assert.equal(result.get('000001').est_change, 1);
     assert.equal(result.get('110011').est_change, -1);
-    assert.equal(requests, 2);
+    assert.equal(requests, 1);
   } finally {
-    globalThis.window = originalWindow;
-    globalThis.document = originalDocument;
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('keeps requested codes missing when the proxy returns a partial batch', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ items: [
+    { code: '000001', est_nav: 1, est_change: 0, est_time: '2026-07-22' },
+  ] }), { status: 200 });
+  try {
+    const result = await fetchEstimateRows(['000001', '000002']);
+    assert.equal(result.get('000001').est_change, 0);
+    assert.equal(result.get('000002'), null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('fails explicitly when the estimate proxy is unavailable', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('upstream unavailable', { status: 502 });
+  try {
+    await assert.rejects(fetchEstimateRows(['000001']), /HTTP 502/);
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

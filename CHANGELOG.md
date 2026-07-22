@@ -1,5 +1,11 @@
 # Changelog
 
+## 11.0.1 - 2026-07-22
+
+- Route browser valuation requests through the server-side estimate proxy so the upstream-required Referer is supplied reliably.
+- Preserve partial results and missing values, and fall back to cached or model estimates without converting missing data to zero.
+- Add proxy, partial-response, and model-rule regression coverage.
+
 ## 11.0.0 - 2026-07-22
 
 - 将已下线的单基金估值 JSONP 替换为东方财富现行估值表 JSONP，并保留上游行情日期。

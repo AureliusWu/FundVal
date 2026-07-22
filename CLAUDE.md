@@ -2,7 +2,7 @@
 
 ## V10 维护约定
 
-本项目当前版本为 `11.0.0`。保持纯前端和零第三方运行时依赖。启动必须经过 `bootstrap.js`，先执行迁移、状态完整性检查和运行时保护，再加载 `app.js`。业务逻辑应按职责进入 `config`、`calculator`、`storage`、`freshness`、`eastmoney-estimate`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。可测试的修复规则放在 `integrity.js`，浏览器侧恢复与提示放在 `resilience.js`。
+本项目当前版本为 `11.0.1`。保持纯前端和零第三方运行时依赖。启动必须经过 `bootstrap.js`，先执行迁移、状态完整性检查和运行时保护，再加载 `app.js`。业务逻辑应按职责进入 `config`、`calculator`、`storage`、`freshness`、`eastmoney-estimate`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。可测试的修复规则放在 `integrity.js`，浏览器侧恢复与提示放在 `resilience.js`。
 
 数据展示优先级固定为：海外基金官方净值 `净` 优先，其次盘中估值 `估` 或海外模型 `模`，网络失败保留旧值并标记 `旧`。任何导入或云端覆盖前都要备份；Gist 新写入使用 Schema 2，但继续读取旧数组格式和可兼容的更高版本 Schema。
 

@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v11.0.0';
+const CACHE = 'fuyu-v11.0.1';
 const CORE = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './js/bootstrap.js', './js/migrations.js', './js/resilience.js', './js/integrity.js',

@@ -45,6 +45,7 @@
     }
   },
   "rules": [
+    { "pattern": "沪深300", "label": "跟踪指数代理", "confidence": "medium", "min_weight": 100, "legs": [{ "code": "sh000300", "weight": 100 }] },
     { "pattern": "新兴市场|印度|越南|东盟|亚洲", "label": "新兴市场代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "usEEM", "weight": 100 }] },
     { "pattern": "恒生科技|港股科技", "label": "恒生科技代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "r_hkHSTECH", "weight": 100 }] },
     { "pattern": "纳斯达克|纳指", "label": "纳指100代理", "confidence": "low", "min_weight": 100, "legs": [{ "code": "usQQQ", "weight": 100 }] },
