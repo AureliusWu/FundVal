@@ -1,11 +1,11 @@
 # AGENTS.md
 
-## 当前架构（V11.0.2）
+## 当前架构（V11.0.3）
 
 - `js/bootstrap.js` 负责启动顺序，必须先执行迁移与完整性检查，再加载 `app.js`。
 - `js/resilience.js` 负责本地数据恢复、缓存清理、错误日志和跨标签页提示。
 - `js/integrity.js` 只放可测试的持仓、缓存、诊断纯函数。
-- `js/app.js` 负责页面编排和刷新队列；`js/eastmoney-estimate.js` 负责调用司南服务端估值代理并保留部分结果。
+- `js/app.js` 负责页面编排和刷新队列；`js/eastmoney-estimate.js` 负责调用司南服务端估值代理并保留部分结果；`js/fund-holdings.js` 负责通过同一只读代理获取带披露日期的十大重仓。
 - `js/freshness.js` 负责行情时间解析、市场分类和统一数据状态。
 - `js/config.js` 负责 TTL、超时和交易时段刷新间隔。
 - `js/calculator.js` 只放纯计算与显示来源优先级。
@@ -42,7 +42,7 @@
 - 东方财富 FundGuZhi 估值表 JSONP：盘中估算主源；仅提供更新日期时必须标为延迟。
 - 东方财富备源：`push2.eastmoney.com`，用于最新净值、净值日涨跌幅、涨跌额。
 - 东方财富净值趋势：`fund.eastmoney.com/pingzhongdata/{code}.js`，写入全局 `Data_netWorthTrend`，必须串行读取。
-- 基金详情：`fundf10.eastmoney.com/FundArchivesDatas.aspx`，写入全局 `window.apidata`，不同 type 必须顺序加载。
+- 基金重仓：浏览器不得直连要求来源标头的 `FundArchivesDatas.aspx`；统一调用司南 Worker `/holdings` 只读代理，并保留披露截止日期。
 - 本地存储统一使用 `fuyu_` 前缀。
 - QDII/海外基金要区分「最新公布净值涨跌」和「下一净值模型估算」。
 

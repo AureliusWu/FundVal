@@ -6,6 +6,7 @@ import { getOverseasConfig, loadOverseasModels, selectOverseasModel, calculateOv
 import { accuracyStats, loadAccuracy, recordPrediction, saveAccuracy, settlePredictions } from './accuracy.js';
 import { buildFreshness, classifyFundMarket, refreshDelayForMarkets } from './freshness.js';
 import { fetchEstimateRows } from './eastmoney-estimate.js';
+import { fetchFundHoldings } from './fund-holdings.js';
 
 const STORAGE_KEY = 'fuyu_holdings_v1';
 const CACHE_KEY = 'fuyu_funds_cache_v1';
@@ -36,12 +37,12 @@ let editingCode = null;
 let sortBy = 'est_change_desc';
 let expandedFund = null;
 const holdingsCache = {};
+const holdingsMetaCache = {};
 let fundTypeCache = {};      // 基金类型/基本信息缓存
 let fundFeeCache = {};       // 费率信息缓存
 let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
 const fundFullRequests = new Map();
 let navMoveQueue = Promise.resolve(); // pingzhongdata 共用 Data_netWorthTrend，全局变量需串行读取
-let fundDetailQueue = Promise.resolve(); // FundArchivesDatas 共用 window.apidata，必须全局串行
 let isRefreshing = false;
 let refreshChain = Promise.resolve();
 let refreshRequestId = 0;
@@ -1161,61 +1162,33 @@ function toggleFundDetail(code) {
     renderFundList(fundsData);
     return;
   }
+  if (holdingsMetaCache[code]?.status === 'error') {
+    delete holdingsCache[code];
+    delete holdingsMetaCache[code];
+  }
   expandedFund = code;
   renderFundList(fundsData);
   if (loadingDetails !== code) fetchFundDetails(code);
-}
-
-// ── 通用 script 注入（Promise 化，解决 window.apidata 全局冲突） ──
-function injectFundScript(url) {
-  var task = fundDetailQueue.then(function() { return injectFundScriptRaw(url); });
-  fundDetailQueue = task.catch(function() {});
-  return task;
-}
-
-function injectFundScriptRaw(url) {
-  return new Promise(function(resolve, reject) {
-    var script = document.createElement('script');
-    var finished = false;
-    // The third-party response declares `var apidata`, which creates a
-    // non-configurable Window property. Assigning clears it; deleting throws.
-    window.apidata = undefined;
-    var timer = setTimeout(function() {
-      finish(new Error('script timeout'));
-    }, TIMING.INDEX_JSONP_TIMEOUT);
-
-    function finish(error, data) {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      window.apidata = undefined;
-      script.remove();
-      if (error) reject(error); else resolve(data || {});
-    }
-
-    script.src = url;
-    script.onload = function() {
-      var data = window.apidata;
-      finish(null, data);
-    };
-    script.onerror = function() {
-      finish(new Error('script load failed'));
-    };
-    document.head.appendChild(script);
-  });
 }
 
 // ── 顺序加载基金详情（重仓股 → 基金类型 → 费率） ──
 async function fetchFundDetails(code) {
   loadingDetails = code;
   try {
-    // 1. 重仓股 (jjcc)
+    // 1. 重仓股：通过服务端代理补齐东方财富要求的 Referer。
     if (holdingsCache[code] === undefined) {
       try {
-        var d1 = await injectFundScript(
-          'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=' + code + '&topline=10&_=' + Date.now());
-        holdingsCache[code] = parseHoldingsData(d1) || [];
-      } catch(e) { holdingsCache[code] = []; }
+        var holdingsResult = await fetchFundHoldings(code);
+        holdingsCache[code] = holdingsResult.items;
+        holdingsMetaCache[code] = {
+          status: holdingsResult.status,
+          reportDate: holdingsResult.reportDate,
+          source: holdingsResult.source
+        };
+      } catch(e) {
+        holdingsCache[code] = [];
+        holdingsMetaCache[code] = { status: 'error', reportDate: '', source: '' };
+      }
       if (expandedFund !== code) return;
       renderFundList(fundsData);
 
@@ -1266,29 +1239,6 @@ function inferFundType(name) {
   if (/股票/.test(text)) return '股票型';
   if (/混合/.test(text)) return '混合型';
   return '基金';
-}
-
-// ── 重仓股解析 ─────────────────────────────────────────────
-function parseHoldingsData(data) {
-  if (!data || !data.content) return null;
-  var div = document.createElement('div');
-  div.innerHTML = data.content;
-  var rows = div.querySelectorAll('table tbody tr');
-  if (!rows.length) return null;
-  var stocks = [];
-  for (var i = 0; i < rows.length && stocks.length < 10; i++) {
-    var cells = rows[i].children;
-    if (cells.length < 7) continue;
-    var codeEl = cells[1].querySelector('a');
-    var nameEl = cells[2].querySelector('a');
-    var ratioText = (cells[6].textContent || '').trim();
-    stocks.push({
-      code: (codeEl ? codeEl.textContent : cells[1].textContent || '').trim(),
-      name: (nameEl ? nameEl.textContent : cells[2].textContent || '').trim(),
-      ratio: parseFloat(ratioText) || 0
-    });
-  }
-  return stocks.length ? stocks : null;
 }
 
 // ── 重仓股实时涨跌幅（jjcc 接口本身只有「占净值比例」，不含涨跌幅，需额外查一次行情） ──
@@ -1512,10 +1462,15 @@ function renderFundList(data) {
       // 重仓股
       if (holdingsCache[f.code] === undefined) {
         html += '<div class="holdings-loading">加载重仓股...</div>';
+      } else if (holdingsMetaCache[f.code]?.status === 'error') {
+        html += '<div class="holdings-empty">重仓数据获取失败，重新展开可重试</div>';
       } else if (!holdingsCache[f.code] || !holdingsCache[f.code].length) {
-        html += '<div class="holdings-empty">暂无重仓股数据</div>';
+        html += '<div class="holdings-empty">暂无公开重仓数据</div>';
       } else {
-        html += '<div class="holdings-table"><div class="holdings-header"><span>股票名称</span><span>占比</span><span>涨跌幅</span></div>';
+        var reportDate = holdingsMetaCache[f.code]?.reportDate || '';
+        html += '<div class="holdings-table">';
+        if (reportDate) html += '<div class="holdings-report-date">十大重仓 · 截止 ' + esc(reportDate) + '</div>';
+        html += '<div class="holdings-header"><span>股票名称</span><span>占比</span><span>涨跌幅</span></div>';
         holdingsCache[f.code].forEach(function(s) {
           var sc = Number.isFinite(s.change) ? (s.change >= 0 ? 'up' : 'down') : '';
           html += '<div class="holdings-row"><span class="stock-name">' + esc(s.name) + '<em>' + s.code + '</em></span><span>' + fmt(s.ratio) + '%</span><span class="' + sc + '">' + (Number.isFinite(s.change) ? (s.change >= 0 ? '+' : '') + fmt(s.change) + '%' : '--') + '</span></div>';

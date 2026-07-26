@@ -590,6 +590,12 @@ html, body {
 
 .holdings-table { font-size: 11px; }
 
+.holdings-report-date {
+  color: var(--muted);
+  font-size: 10px;
+  padding: 2px 0 4px;
+}
+
 .holdings-header {
   display: grid;
   grid-template-columns: 1fr 60px 60px;
