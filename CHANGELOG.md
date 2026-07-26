@@ -1,5 +1,11 @@
 # Changelog
 
+## 11.0.2 - 2026-07-26
+
+- 非交易日或盘中估值表不可用时，改为显示最近两个正式净值计算出的涨跌幅与净值日期。
+- 正式净值降级明确标记为“最近净值/净”，不再显示空白、获取失败或误标为海外非实时估值。
+- 增加非交易日正式净值语义和显示优先级回归测试。
+
 ## 11.0.1 - 2026-07-22
 
 - Route browser valuation requests through the server-side estimate proxy so the upstream-required Referer is supplied reliably.

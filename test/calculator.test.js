@@ -19,3 +19,11 @@ test('calculates holding profit consistently', () => {
 test('official NAV takes display priority', () => {
   assert.equal(chooseDisplayValue({ official: { nav: 2, change: 1 }, estimate: { nav: 3, change: 2 }, overseas: true }).kind, 'official');
 });
+
+test('official NAV fallback is not mislabeled as an estimate', () => {
+  const result = chooseDisplayValue({
+    estimate: { nav: 1.02, change: 2, kind: 'official_nav' },
+    overseas: false,
+  });
+  assert.deepEqual(result, { nav: 1.02, change: 2, kind: 'official', label: '净', stale: false });
+});

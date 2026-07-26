@@ -19,6 +19,27 @@ test('keeps missing estimate values missing', () => {
   assert.equal(Number.isNaN(result.est_change), true);
 });
 
+test('preserves the official NAV fallback semantics on non-trading days', () => {
+  const result = normalizeEstimateRow({
+    code: '000001',
+    last_nav: 1,
+    est_nav: 1.02,
+    est_change: 2,
+    nav_date: '2026-07-23',
+    est_time: '2026-07-24',
+    est_kind: 'official_nav',
+    est_label: '最近净值',
+    est_realtime: false,
+    est_note: '盘中估值不可用；展示最近两个已公布正式净值的涨跌',
+    source: 'eastmoney_official_nav',
+  });
+  assert.equal(result.est_kind, 'official_nav');
+  assert.equal(result.est_label, '最近净值');
+  assert.equal(result.est_realtime, false);
+  assert.equal(result.est_time, '2026-07-24');
+  assert.equal(result.source, 'eastmoney_official_nav');
+});
+
 test('loads multiple fund codes through the server-side estimate proxy', async () => {
   const originalFetch = globalThis.fetch;
   let requests = 0;

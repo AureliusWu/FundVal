@@ -786,7 +786,9 @@ function buildFundData(r, h, modelQuotes) {
   d.loading = false; d.stale = false; d.error = null; d.updatedAt = Date.now(); d._cached = false;
   d.market = classifyFundMarket(d.name);
   d.freshness = buildFreshness({
-    sourceTime: d.today_is_latest_nav ? (d.latest_nav_move && d.latest_nav_move.date) : d.est_time,
+    sourceTime: d.today_is_latest_nav
+      ? ((d.latest_nav_move && d.latest_nav_move.date) || d.est_time)
+      : d.est_time,
     fetchedAt: new Date(d.updatedAt).toISOString(),
     calculatedAt: d.est_model ? (d.est_model_time || new Date(d.updatedAt).toISOString()) : null,
     source: d.est_model ? 'market-model' : (d.status === 'ok_fallback' ? 'eastmoney' : 'tiantian'),
@@ -990,6 +992,16 @@ function preferredDailyMove(fund) {
       isLatestNav: true
     };
   }
+  if (fund && fund.est_kind === 'official_nav' && Number.isFinite(fund.est_change) && isUsableNav(fund.last_nav)) {
+    return {
+      change: fund.est_change,
+      baseNav: fund.last_nav,
+      nav: isUsableNav(fund.est_nav) ? fund.est_nav : fund.last_nav * (1 + fund.est_change / 100),
+      label: '净',
+      sourceNote: fund.est_note || '最近公布正式净值涨跌',
+      isLatestNav: true
+    };
+  }
   if (fund && Number.isFinite(fund.est_change) && isUsableNav(fund.last_nav)) {
     return {
       change: fund.est_change,
@@ -1069,7 +1081,7 @@ function chooseOverseasModel(fund) {
 }
 
 function applyOverseasModelEstimate(fund, quotes) {
-  if (!fund || fund.est_realtime !== false) return;
+  if (!fund || fund.est_realtime !== false || fund.est_kind === 'official_nav') return;
   var model = chooseOverseasModel(fund);
   if (!model) return;
   var normalizedQuotes = {};
@@ -1443,7 +1455,9 @@ function renderFundList(data) {
     var sourceTag = isFallback ? ' <span class="cache-tag">备源</span>' : '';
     var statusLabel = (f.freshness && f.freshness.label) || (f._cached || f.stale ? '旧数据' : '暂不可估值');
     var estimateTag = ' <span class="cache-tag source-kind">' + statusLabel + '</span>';
-    var estimateLabel = f.est_model ? '海外模型估算' : (f.est_realtime === false ? '海外非实时估值' : (f.est_label || '盘中估值'));
+    var estimateLabel = f.est_kind === 'official_nav'
+      ? '最近净值'
+      : (f.est_model ? '海外模型估算' : (f.est_realtime === false ? '延迟估值' : (f.est_label || '盘中估值')));
     var estimateTime = (f.freshness && f.freshness.sourceTime) || f.est_time || '--';
     if (f.today_is_latest_nav) {
       estimateLabel = '最新净值涨跌';

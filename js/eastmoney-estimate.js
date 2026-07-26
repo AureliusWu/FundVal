@@ -20,11 +20,11 @@ export function normalizeEstimateRow(row) {
     est_time: String(row.est_time || row.gxrq || ''),
     source_time_precision: 'date',
     est_label: String(row.est_label || '延迟估值'),
-    est_kind: 'estimate',
-    est_realtime: false,
+    est_kind: row.est_kind === 'official_nav' ? 'official_nav' : 'estimate',
+    est_realtime: row.est_realtime === true,
     est_note: String(row.est_note || '东方财富盘中估算；上游仅提供行情日期，未提供精确分钟'),
     status: 'ok',
-    source: 'sinan-estimate-proxy',
+    source: String(row.source || 'sinan-estimate-proxy'),
   };
 }
 

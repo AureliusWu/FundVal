@@ -27,6 +27,9 @@ export function calculateHolding(shares, cost, nav, baseNav) {
 export function chooseDisplayValue({ official, estimate, cached, overseas = false }) {
   if (overseas && official?.change != null) return { nav: official.nav, change: official.change, kind: 'official', label: '净', stale: false };
   if (estimate?.change != null) {
+    if (estimate.kind === 'official_nav') {
+      return { nav: estimate.nav, change: estimate.change, kind: 'official', label: '净', stale: false };
+    }
     const model = estimate.kind === 'overseas_model';
     return { nav: estimate.nav, change: estimate.change, kind: model ? 'model' : 'estimate', label: model ? '模' : '估', stale: false };
   }
