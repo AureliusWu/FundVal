@@ -7,6 +7,7 @@ import { accuracyStats, loadAccuracy, recordPrediction, saveAccuracy, settlePred
 import { buildFreshness, classifyFundMarket, refreshDelayForMarkets } from './freshness.js';
 import { fetchEstimateRows } from './eastmoney-estimate.js';
 import { fetchFundHoldings } from './fund-holdings.js';
+import { applyHoldingsEstimate, calculateHoldingsEstimate, formatChinaQuoteTime, parseTencentQuoteTime } from './holdings-estimate.js';
 
 const STORAGE_KEY = 'fuyu_holdings_v1';
 const CACHE_KEY = 'fuyu_funds_cache_v1';
@@ -38,6 +39,8 @@ let sortBy = 'est_change_desc';
 let expandedFund = null;
 const holdingsCache = {};
 const holdingsMetaCache = {};
+const fundHoldingsRequests = new Map();
+const holdingsEstimateRequests = new Map();
 let fundTypeCache = {};      // 基金类型/基本信息缓存
 let fundFeeCache = {};       // 费率信息缓存
 let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
@@ -791,12 +794,14 @@ function buildFundData(r, h, modelQuotes) {
       ? ((d.latest_nav_move && d.latest_nav_move.date) || d.est_time)
       : d.est_time,
     fetchedAt: new Date(d.updatedAt).toISOString(),
-    calculatedAt: d.est_model ? (d.est_model_time || new Date(d.updatedAt).toISOString()) : null,
-    source: d.est_model ? 'market-model' : (d.status === 'ok_fallback' ? 'eastmoney' : 'tiantian'),
-    isFallback: d.status === 'ok_fallback',
-    fallbackReason: d.status === 'ok_fallback' ? '主估值源不可用' : null,
+    calculatedAt: d.est_holdings_model
+      ? new Date(d.updatedAt).toISOString()
+      : (d.est_model ? (d.est_model_time || new Date(d.updatedAt).toISOString()) : null),
+    source: d.est_holdings_model ? 'quarterly-holdings-model' : (d.est_model ? 'market-model' : (d.status === 'ok_fallback' ? 'eastmoney' : 'tiantian')),
+    isFallback: Boolean(d.est_holdings_model || d.status === 'ok_fallback'),
+    fallbackReason: d.est_holdings_model ? '官方盘中估值不可用' : (d.status === 'ok_fallback' ? '主估值源不可用' : null),
     market: d.market,
-    model: Boolean(d.est_model),
+    model: Boolean(d.est_model || d.est_holdings_model),
     official: Boolean(d.today_is_latest_nav),
     unavailable: !Number.isFinite(d.display && d.display.change),
   });
@@ -864,6 +869,9 @@ async function runRefresh(requestId, options) {
       { force: options.force !== false }
     ).catch(function() { return new Map(); });
     var modelQuotesPromise = fetchOverseasModelQuotes().catch(function() { return {}; });
+    var holdingsEstimatePromises = new Map(snapshot.map(function(h) {
+      return [h.code, fetchHoldingsEstimateForFund(h.code, h.name).catch(function() { return null; })];
+    }));
     snapshot.forEach(function(h) {
       var old = fundsData.find(function(item) { return item.code === h.code; });
       if (old) updateFundStatus(h.code, { loading: true, error: null });
@@ -874,6 +882,8 @@ async function runRefresh(requestId, options) {
         var estimateMap = await estimateTablePromise;
         var r = await fetchFundFull(h.code, options.force !== false, estimateMap.get(h.code));
         if (r.status !== 'ok' && r.status !== 'ok_fallback' && r.status !== 'ok_official') throw new Error(r.message || '更新失败');
+        var holdingsEstimate = await holdingsEstimatePromises.get(h.code);
+        if (holdingsEstimate) applyHoldingsEstimate(r, holdingsEstimate);
         var quotes = selectOverseasModel(h.code, r.name || h.name) ? await modelQuotesPromise : {};
         var built = buildFundData(r, h, quotes);
         upsertFundData(h.code, built.data);
@@ -904,9 +914,12 @@ async function runRefresh(requestId, options) {
 function updateLatestSourceSummary() {
   var usable = fundsData.filter(function(f) { return f.freshness && f.freshness.sourceTime; });
   var latest = usable.map(function(f) { return f.freshness.sourceTime; }).sort().pop();
-  var freshCount = fundsData.filter(function(f) { return f.freshness && f.freshness.status === 'fresh'; }).length;
+  var today = chinaDateKey(getChinaDate());
+  var todayCount = fundsData.filter(function(f) {
+    return f.freshness && String(f.freshness.sourceTime || '').slice(0, 10) === today;
+  }).length;
   document.getElementById('last-upd').textContent = latest
-    ? '最新行情 ' + latest + ' · 实时 ' + freshCount + '/' + fundsData.length
+    ? '最新行情 ' + latest + ' · 今日 ' + todayCount + '/' + fundsData.length
     : '暂无可用行情时间';
 }
 
@@ -1008,7 +1021,7 @@ function preferredDailyMove(fund) {
       change: fund.est_change,
       baseNav: fund.last_nav,
       nav: isUsableNav(fund.est_nav) ? fund.est_nav : fund.last_nav * (1 + fund.est_change / 100),
-      label: fund.est_realtime === false ? '海外非实时' : '估',
+      label: fund.est_kind === 'holdings_model' ? '重仓估' : (fund.est_realtime === false ? '海外非实时' : '估'),
       sourceNote: fund.est_note || '',
       isLatestNav: false
     };
@@ -1155,6 +1168,52 @@ function updateSortBar() {
 }
 
 // ── 重仓股 ───────────────────────────────────────────────
+async function loadFundHoldings(code) {
+  if (holdingsCache[code] !== undefined && holdingsMetaCache[code]?.status !== 'error') {
+    return { items: holdingsCache[code], ...holdingsMetaCache[code] };
+  }
+  if (fundHoldingsRequests.has(code)) return fundHoldingsRequests.get(code);
+
+  var request = fetchFundHoldings(code).then(function(result) {
+    holdingsCache[code] = result.items;
+    holdingsMetaCache[code] = {
+      status: result.status,
+      reportDate: result.reportDate,
+      source: result.source,
+      fetchedAt: result.fetchedAt
+    };
+    return { items: result.items, ...holdingsMetaCache[code] };
+  }).catch(function(error) {
+    holdingsCache[code] = [];
+    holdingsMetaCache[code] = { status: 'error', reportDate: '', source: '', fetchedAt: '' };
+    throw error;
+  }).finally(function() {
+    fundHoldingsRequests.delete(code);
+  });
+  fundHoldingsRequests.set(code, request);
+  return request;
+}
+
+async function fetchHoldingsEstimateForFund(code, name) {
+  var market = classifyFundMarket(name);
+  if (!['cn', 'cn-index', 'hk'].includes(market)) return null;
+  if (holdingsEstimateRequests.has(code)) return holdingsEstimateRequests.get(code);
+
+  var request = loadFundHoldings(code).then(async function(result) {
+    if (!result.items.length) return null;
+    result.items.forEach(function(stock) {
+      delete stock.change;
+      delete stock.quoteTime;
+    });
+    await fetchHoldingsQuotes(code, result.items);
+    return calculateHoldingsEstimate(result.items, { now: Date.now() });
+  }).finally(function() {
+    holdingsEstimateRequests.delete(code);
+  });
+  holdingsEstimateRequests.set(code, request);
+  return request;
+}
+
 function toggleFundDetail(code) {
   if (expandedFund === code) {
     expandedFund = null;
@@ -1178,13 +1237,7 @@ async function fetchFundDetails(code) {
     // 1. 重仓股：通过服务端代理补齐东方财富要求的 Referer。
     if (holdingsCache[code] === undefined) {
       try {
-        var holdingsResult = await fetchFundHoldings(code);
-        holdingsCache[code] = holdingsResult.items;
-        holdingsMetaCache[code] = {
-          status: holdingsResult.status,
-          reportDate: holdingsResult.reportDate,
-          source: holdingsResult.source
-        };
+        await loadFundHoldings(code);
       } catch(e) {
         holdingsCache[code] = [];
         holdingsMetaCache[code] = { status: 'error', reportDate: '', source: '' };
@@ -1248,10 +1301,11 @@ function secidFor(stockCode) {
 }
 
 async function fetchHoldingsQuotes(code, stocks) {
-  await Promise.all([
-    fetchAStockHoldingQuotes(stocks),
-    fetchTencentHoldingQuotes(stocks)
-  ]);
+  await fetchAStockHoldingQuotes(stocks);
+  var missing = stocks.filter(function(stock) {
+    return !Number.isFinite(stock.change) || !stock.quoteTime;
+  });
+  if (missing.length) await fetchTencentHoldingQuotes(missing);
 }
 
 async function fetchAStockHoldingQuotes(stocks) {
@@ -1262,7 +1316,7 @@ async function fetchAStockHoldingQuotes(stocks) {
   var timeout = setTimeout(function() { controller.abort(); }, TIMING.INDEX_JSONP_TIMEOUT);
   try {
     var resp = await fetch(
-      'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f3&secids=' + secids.join(',') + '&_=' + Date.now(),
+      'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f3,f124&secids=' + secids.join(',') + '&_=' + Date.now(),
       { signal: controller.signal });
     if (!resp.ok) return;
     var json = await resp.json();
@@ -1270,9 +1324,18 @@ async function fetchAStockHoldingQuotes(stocks) {
     if (!diff) return;
     var list = Array.isArray(diff) ? diff : Object.keys(diff).map(function(k) { return diff[k]; });
     var changeMap = {};
-    list.forEach(function(item) { changeMap[item.f12] = parseNav(item.f3); });
+    list.forEach(function(item) {
+      changeMap[item.f12] = {
+        change: parseNav(item.f3),
+        quoteTime: formatChinaQuoteTime(item.f124)
+      };
+    });
     stocks.forEach(function(s) {
-      if (Number.isFinite(changeMap[s.code])) s.change = changeMap[s.code];
+      var quote = changeMap[s.code];
+      if (quote && Number.isFinite(quote.change)) {
+        s.change = quote.change;
+        s.quoteTime = quote.quoteTime;
+      }
     });
   } catch(e) {
     // 静默失败，涨跌幅列保持 '--'
@@ -1283,6 +1346,7 @@ async function fetchAStockHoldingQuotes(stocks) {
 
 function tencentQuoteCodeFor(stockCode) {
   var code = String(stockCode || '').trim().toUpperCase();
+  if (/^\d{6}$/.test(code)) return (/^[69]/.test(code) ? 'sh' : 'sz') + code;
   if (/^\d{5}$/.test(code)) return 'hk' + code;
   if (/^[A-Z][A-Z0-9.-]{0,9}$/.test(code)) return 'us' + code.replace(/\./g, '_');
   return '';
@@ -1316,6 +1380,7 @@ function fetchTencentHoldingQuotes(stocks) {
           delete window[varName];
           if (parsed && Number.isFinite(parsed.changePct)) {
             item.stock.change = parsed.changePct;
+            item.stock.quoteTime = parsed.sourceTime;
           }
         } catch(e) {}
       });
@@ -1386,7 +1451,7 @@ function renderFundList(data) {
   var html = '';
 
   sorted.forEach(function(f) {
-    var isFallback = f.status === 'ok_fallback';
+    var isFallback = f.status === 'ok_fallback' || f.status === 'ok_official';
     if (f.status !== 'ok' && !isFallback) {
       html += '<div class="fund-card"><div class="fund-main"><div class="fund-id"><div class="fund-name">' + esc(f.name||f.code) + '</div><div class="fund-code">' + f.code + '</div></div></div><div class="fund-error">获取失败 · ' + esc(f.message||'') + '</div></div>';
       return;
@@ -1407,7 +1472,7 @@ function renderFundList(data) {
     var estimateTag = ' <span class="cache-tag source-kind">' + statusLabel + '</span>';
     var estimateLabel = f.est_kind === 'official_nav'
       ? '最近净值'
-      : (f.est_model ? '海外模型估算' : (f.est_realtime === false ? '延迟估值' : (f.est_label || '盘中估值')));
+      : (f.est_holdings_model ? '十大重仓估算' : (f.est_model ? '海外模型估算' : (f.est_realtime === false ? '延迟估值' : (f.est_label || '盘中估值'))));
     var estimateTime = (f.freshness && f.freshness.sourceTime) || f.est_time || '--';
     if (f.today_is_latest_nav) {
       estimateLabel = '最新净值涨跌';
@@ -1667,7 +1732,11 @@ function parseTencentQuote(raw) {
       changePct = (price - prevClose) / prevClose * 100;
     }
   }
-  return { price: price, changePct: Number.isFinite(changePct) ? changePct : NaN };
+  return {
+    price: price,
+    changePct: Number.isFinite(changePct) ? changePct : NaN,
+    sourceTime: parseTencentQuoteTime(fields[30])
+  };
 }
 
 // ── 黄金 AU9999 实时金价（复刻司南基金：东方财富 push2 + 持久缓存兜底） ──
