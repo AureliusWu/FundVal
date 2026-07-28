@@ -1124,6 +1124,7 @@ function applyOverseasModelEstimate(fund, quotes) {
 
   var latestMove = latestNavMoveOf(fund);
   var modelBaseNav = latestMove && isUsableNav(latestMove.nav) ? latestMove.nav : fund.last_nav;
+  if (latestMove && latestMove.date) fund.nav_date = latestMove.date;
   fund.est_change = changePct;
   if (isUsableNav(modelBaseNav)) {
     fund.est_nav = modelBaseNav * (1 + changePct / 100);
