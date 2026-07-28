@@ -16,8 +16,20 @@ test('calculates holding profit consistently', () => {
   assert.equal(result.totalProfit, 10);
 });
 
-test('official NAV takes display priority', () => {
-  assert.equal(chooseDisplayValue({ official: { nav: 2, change: 1 }, estimate: { nav: 3, change: 2 }, overseas: true }).kind, 'official');
+test('current next-NAV overseas model takes display priority while official NAV remains available separately', () => {
+  assert.equal(chooseDisplayValue({
+    official: { nav: 2, change: 1 },
+    estimate: { nav: 3, change: 2, kind: 'overseas_model', stale: false },
+    overseas: true,
+  }).kind, 'model');
+});
+
+test('stale overseas model falls back to latest published NAV move', () => {
+  assert.equal(chooseDisplayValue({
+    official: { nav: 2, change: 1 },
+    estimate: { nav: 3, change: 2, kind: 'overseas_model', stale: true },
+    overseas: true,
+  }).kind, 'official');
 });
 
 test('official NAV fallback is not mislabeled as an estimate', () => {

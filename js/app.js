@@ -7,7 +7,7 @@ import { accuracyStats, loadAccuracy, recordPrediction, saveAccuracy, settlePred
 import { buildFreshness, classifyFundMarket, refreshDelayForMarkets } from './freshness.js';
 import { fetchEstimateRows } from './eastmoney-estimate.js';
 import { fetchFundHoldings } from './fund-holdings.js';
-import { applyHoldingsEstimate, calculateHoldingsEstimate, formatChinaQuoteTime, parseTencentQuoteTime } from './holdings-estimate.js';
+import { applyHoldingsEstimate, calculateHoldingsEstimate, formatChinaQuoteTime, normalizeTencentQuoteTime } from './holdings-estimate.js';
 
 const STORAGE_KEY = 'fuyu_holdings_v1';
 const CACHE_KEY = 'fuyu_funds_cache_v1';
@@ -783,7 +783,7 @@ function buildFundData(r, h, modelQuotes) {
   }
   d.display = chooseDisplayValue({
     official: d.latest_nav_move ? { nav: d.latest_nav_move.nav, change: d.latest_nav_move.change } : null,
-    estimate: Number.isFinite(d.est_change) ? { nav: d.est_nav, change: d.est_change, kind: d.est_kind } : null,
+    estimate: Number.isFinite(d.est_change) ? { nav: d.est_nav, change: d.est_change, kind: d.est_kind, stale: d.est_model_stale } : null,
     overseas: isOverseasLikeFund(d)
   });
   updateAccuracyLedger(d);
@@ -996,6 +996,21 @@ function latestNavMoveOf(fund) {
 
 function preferredDailyMove(fund) {
   var move = latestNavMoveOf(fund);
+  if (fund && fund.est_model && !fund.est_model_stale && Number.isFinite(fund.est_change)) {
+    var modelBaseNav = isUsableNav(fund.est_model_base_nav)
+      ? fund.est_model_base_nav
+      : (move && isUsableNav(move.nav) ? move.nav : fund.last_nav);
+    if (isUsableNav(modelBaseNav)) {
+      return {
+        change: fund.est_change,
+        baseNav: modelBaseNav,
+        nav: isUsableNav(fund.est_nav) ? fund.est_nav : modelBaseNav * (1 + fund.est_change / 100),
+        label: '模',
+        sourceNote: fund.est_note || '下一净值海外市场模型估算',
+        isLatestNav: false
+      };
+    }
+  }
   if (move && isOverseasLikeFund(fund)) {
     return {
       change: move.change,
@@ -1044,7 +1059,7 @@ function fetchTencentQuotes(codes) {
       codes.forEach(function(code) {
         var parsed = null;
         try {
-          parsed = ok ? parseTencentQuote(window['v_' + code]) : null;
+          parsed = ok ? parseTencentQuote(window['v_' + code], code) : null;
           delete window['v_' + code];
         } catch(e) {}
         out[code] = parsed;
@@ -1095,25 +1110,31 @@ function chooseOverseasModel(fund) {
 }
 
 function applyOverseasModelEstimate(fund, quotes) {
-  if (!fund || fund.est_realtime !== false || fund.est_kind === 'official_nav') return;
+  if (!fund || fund.est_realtime !== false) return;
   var model = chooseOverseasModel(fund);
   if (!model) return;
   var normalizedQuotes = {};
   Object.keys(quotes || {}).forEach(function(code) {
     var quote = quotes[code];
-    if (quote) normalizedQuotes[code] = { change: quote.changePct, time: quote.time };
+    if (quote) normalizedQuotes[code] = { change: quote.changePct, time: quote.sourceTime || quote.time };
   });
   var result = calculateOverseasEstimate(model, normalizedQuotes);
   var changePct = result && result.change;
   if (!Number.isFinite(changePct)) return;
 
+  var latestMove = latestNavMoveOf(fund);
+  var modelBaseNav = latestMove && isUsableNav(latestMove.nav) ? latestMove.nav : fund.last_nav;
   fund.est_change = changePct;
-  if (isUsableNav(fund.last_nav)) {
-    fund.est_nav = fund.last_nav * (1 + changePct / 100);
+  if (isUsableNav(modelBaseNav)) {
+    fund.est_nav = modelBaseNav * (1 + changePct / 100);
   }
+  fund.est_model_base_nav = modelBaseNav;
+  fund.est_time = result.sourceTime || fund.est_time;
+  fund.est_model_time = result.sourceTime || '';
+  fund.est_model_stale = Boolean(result.stale || !result.sourceTime);
   fund.est_kind = 'overseas_model';
   fund.est_label = '海外模型估算';
-  fund.est_realtime = true;
+  fund.est_realtime = !fund.est_model_stale;
   fund.est_model = true;
   fund.est_model_code = model.legs.map(function(leg) { return leg.code + ':' + leg.weight; }).join(',');
   fund.est_model_label = result.modelLabel || model.label;
@@ -1121,7 +1142,7 @@ function applyOverseasModelEstimate(fund, quotes) {
   fund.est_model_version = result.modelVersion || model.version || '';
   fund.est_model_quarter = model.quarter || '';
   fund.est_confidence = result.confidence;
-  fund.est_note = fund.est_model_label + ' · ' + fund.est_model_version + ' · 可用权重' + fmt(result.usableWeight) + '% · 基于实时市场行情自建估算，不是基金官方实时净值';
+  fund.est_note = fund.est_model_label + ' · ' + fund.est_model_version + ' · 可用权重' + fmt(result.usableWeight) + '% · 行情时间' + (result.sourceTime || '未知') + ' · 下一净值自建模型估算，不是基金公司官方净值';
 }
 
 // ── 排序 ─────────────────────────────────────────────────
@@ -1376,7 +1397,7 @@ function fetchTencentHoldingQuotes(stocks) {
       items.forEach(function(item) {
         try {
           var varName = tencentQuoteVarName(item.quoteCode);
-          var parsed = parseTencentQuote(window[varName]);
+          var parsed = parseTencentQuote(window[varName], item.quoteCode);
           delete window[varName];
           if (parsed && Number.isFinite(parsed.changePct)) {
             item.stock.change = parsed.changePct;
@@ -1502,13 +1523,19 @@ function renderFundList(data) {
       var modelNote = f.today_is_latest_nav && f.est_model && Number.isFinite(f.est_change)
         ? '<div class="cache-note">下一净值模型：' + (f.est_change >= 0 ? '+' : '') + fmt(f.est_change) + '%，估算净值 ' + fmt4(f.est_nav) + '。' + esc(f.est_note || '') + '</div>'
         : '';
+      var officialMove = latestNavMoveOf(f);
+      var officialNote = !f.today_is_latest_nav && officialMove && Number.isFinite(officialMove.change)
+        ? '<div class="cache-note">最近正式净值涨跌：' + (officialMove.change >= 0 ? '+' : '') + fmt(officialMove.change) + '%'
+          + ([officialMove.prevDate, officialMove.date].filter(Boolean).length ? '（' + [officialMove.prevDate, officialMove.date].filter(Boolean).join(' → ') + '）' : '')
+          + '</div>'
+        : '';
       var refCols = f.shares > 0 ? 3 : 2;
       html += '<div class="holdings-detail">';
 
       // 折叠的次要数据：盘中/上一净值（手机端，PC 已在行内列显示故隐藏）+ 持仓金额
       html += '<div class="detail-stats">';
       html += '<div class="detail-nav stats-grid" style="grid-template-columns:repeat(' + refCols + ',1fr)">';
-      html += '<div><div class="stat-label">' + estimateLabel + '</div><div class="stat-val">' + fmt4(f.primary_nav || f.est_nav) + '</div>' + primaryNote + estimateNote + modelNote + '</div>';
+      html += '<div><div class="stat-label">' + estimateLabel + '</div><div class="stat-val">' + fmt4(f.primary_nav || f.est_nav) + '</div>' + primaryNote + estimateNote + modelNote + officialNote + '</div>';
       html += '<div><div class="stat-label">基准净值</div><div class="stat-val">' + fmt4(f.primary_base_nav || f.last_nav) + '</div></div>';
       if (f.shares > 0) {
         html += '<div><div class="stat-label">持有份额</div><div class="stat-val">' + fmt(f.shares) + '</div></div>';
@@ -1717,7 +1744,7 @@ function switchPage(name) {
 }
 
 // ── 指数行情条（腾讯行情 JSONP，全局可用无 CORS 限制） ────
-function parseTencentQuote(raw) {
+function parseTencentQuote(raw, quoteCode = '') {
   // 腾讯行情返回 "~" 分隔字符串。实测所有指数（sh*/us*）字段布局一致：
   //   field 3 = 当前价, field 32 = 涨跌幅(%)
   if (!raw || typeof raw !== 'string') return null;
@@ -1735,7 +1762,7 @@ function parseTencentQuote(raw) {
   return {
     price: price,
     changePct: Number.isFinite(changePct) ? changePct : NaN,
-    sourceTime: parseTencentQuoteTime(fields[30])
+    sourceTime: normalizeTencentQuoteTime(fields[30], quoteCode)
   };
 }
 
@@ -1857,7 +1884,7 @@ function fetchIndices() {
         try {
           var raw = window['v_' + cfg.code];
           delete window['v_' + cfg.code];
-          var parsed = parseTencentQuote(raw);
+          var parsed = parseTencentQuote(raw, cfg.code);
           if (parsed && Number.isFinite(parsed.price)) {
             return { name: cfg.name, price: parsed.price, changePct: parsed.changePct };
           }

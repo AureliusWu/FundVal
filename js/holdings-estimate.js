@@ -20,6 +20,47 @@ export function parseTencentQuoteTime(value) {
   return match ? `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6]}` : '';
 }
 
+function localTimeInZoneToUtc(parts, timeZone) {
+  const target = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  let guess = target;
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  for (let index = 0; index < 3; index += 1) {
+    const actual = Object.fromEntries(formatter.formatToParts(new Date(guess))
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, Number(part.value)]));
+    const represented = Date.UTC(actual.year, actual.month - 1, actual.day, actual.hour, actual.minute, actual.second);
+    guess += target - represented;
+  }
+  return guess;
+}
+
+export function normalizeTencentQuoteTime(value, quoteCode = '') {
+  const compact = parseTencentQuoteTime(value);
+  if (compact) return compact;
+  const text = String(value || '').trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return '';
+  if (!String(quoteCode).startsWith('us')) return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6] || '00'}`;
+  const utc = localTimeInZoneToUtc({
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+    hour: Number(match[4]),
+    minute: Number(match[5]),
+    second: Number(match[6] || '0'),
+  }, 'America/New_York');
+  return formatChinaQuoteTime(utc / 1000);
+}
+
 function parseChinaQuoteTime(value) {
   const text = String(value || '').trim();
   const match = text.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
