@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFreshness, classifyFundMarket, parseChinaSourceTime, refreshDelayForMarkets } from '../js/freshness.js';
+import { buildFreshness, classifyFundMarket, marketState, MAX_FUTURE_SOURCE_SKEW_MS, parseChinaSourceTime, refreshDelayForMarkets } from '../js/freshness.js';
 
 test('parses upstream China time without replacing it with request time', () => {
   assert.equal(new Date(parseChinaSourceTime('2026-07-22 14:31')).toISOString(), '2026-07-22T06:31:00.000Z');
@@ -23,4 +23,25 @@ test('labels stale, model, official and unavailable data explicitly', () => {
   assert.equal(buildFreshness({ sourceTime: null, source: 'model', model: true }, now).label, '模型估算');
   assert.equal(buildFreshness({ sourceTime: '2026-07-21', source: 'official', official: true }, now).label, '最新正式净值');
   assert.equal(buildFreshness({ sourceTime: null, source: 'none', unavailable: true }, now).label, '暂不可估值');
+});
+
+test('does not label source timestamps more than five minutes in the future as realtime', () => {
+  const now = Date.parse('2026-07-22T06:30:00Z');
+  const withinSkew = buildFreshness({ sourceTime: '2026-07-22 14:35', source: 'quote', market: 'cn' }, now);
+  const future = buildFreshness({ sourceTime: '2026-07-22 14:36', source: 'quote', market: 'cn' }, now);
+
+  assert.equal(withinSkew.status, 'fresh');
+  assert.equal(future.status, 'stale');
+  assert.equal(future.label, '时间异常');
+  assert.equal(future.ageSeconds, null);
+  assert.equal(future.sourceTimeInFuture, true);
+  assert.equal(MAX_FUTURE_SOURCE_SKEW_MS, 5 * 60 * 1000);
+});
+
+test('uses the overseas exchange calendar instead of China weekend for US market refreshes', () => {
+  // Friday 12:00 in New York is Saturday 00:00 in China during daylight saving time.
+  const duringUsSession = new Date('2026-08-07T16:00:00Z');
+  assert.equal(marketState('overseas', duringUsSession), 'open');
+  assert.equal(refreshDelayForMarkets(['overseas'], duringUsSession), 60_000);
+  assert.equal(marketState('overseas', new Date('2026-08-07T21:00:00Z')), 'closed');
 });

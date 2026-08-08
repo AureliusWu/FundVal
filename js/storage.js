@@ -1,19 +1,24 @@
-export function safeGetItem(key, storage = localStorage) {
-  try { return storage.getItem(key); }
+function defaultStorage() {
+  try { return globalThis.localStorage; }
   catch (_) { return null; }
 }
 
-export function safeSetItem(key, value, storage = localStorage) {
-  try { storage.setItem(key, value); return true; }
+export function safeGetItem(key, storage = defaultStorage()) {
+  try { return storage && storage.getItem(key); }
+  catch (_) { return null; }
+}
+
+export function safeSetItem(key, value, storage = defaultStorage()) {
+  try { if (!storage) return false; storage.setItem(key, value); return true; }
   catch (_) { return false; }
 }
 
-export function safeRemoveItem(key, storage = localStorage) {
-  try { storage.removeItem(key); return true; }
+export function safeRemoveItem(key, storage = defaultStorage()) {
+  try { if (!storage) return false; storage.removeItem(key); return true; }
   catch (_) { return false; }
 }
 
-export function getCached(key, ttl, storage = localStorage, now = Date.now()) {
+export function getCached(key, ttl, storage = defaultStorage(), now = Date.now()) {
   try {
     const entry = JSON.parse(safeGetItem(key, storage) || 'null');
     if (!entry || !('data' in entry) || !Number.isFinite(entry.fetchedAt)) return null;
@@ -22,7 +27,7 @@ export function getCached(key, ttl, storage = localStorage, now = Date.now()) {
   } catch (_) { return null; }
 }
 
-export function setCached(key, data, ttl, source, storage = localStorage, now = Date.now()) {
+export function setCached(key, data, ttl, source, storage = defaultStorage(), now = Date.now()) {
   const entry = { data, fetchedAt: now, expiresAt: now + ttl, source: source || 'unknown' };
   return safeSetItem(key, JSON.stringify(entry), storage) ? entry : null;
 }
@@ -31,7 +36,7 @@ export function isCacheFresh(entry, now = Date.now()) {
   return Boolean(entry && Number.isFinite(entry.expiresAt) && now < entry.expiresAt);
 }
 
-export function backupHoldings(holdings, storage = localStorage) {
+export function backupHoldings(holdings, storage = defaultStorage()) {
   try {
     const latest = safeGetItem('fuyu_backup_latest', storage);
     if (latest) safeSetItem('fuyu_backup_previous', latest, storage);

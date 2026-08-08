@@ -1,4 +1,5 @@
-const CACHE = 'fuyu-v12.0.2';
+const CACHE = 'fuyu-v13.0.0';
+const CACHE_PREFIX = 'fuyu-v';
 const CORE = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './js/bootstrap.js', './js/migrations.js', './js/resilience.js', './js/integrity.js',
@@ -13,8 +14,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))));
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE)
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('message', event => {
@@ -58,16 +64,23 @@ async function networkFirst(request) {
     if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
     return response;
   } catch (_) {
-    return (await caches.match(request)) || caches.match('./index.html');
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    if (request.mode === 'navigate') return (await caches.match('./index.html')) || Response.error();
+    return Response.error();
   }
 }
 
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
-  const response = await fetch(request);
-  if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
-  return response;
+  try {
+    const response = await fetch(request);
+    if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
+    return response;
+  } catch (_) {
+    return Response.error();
+  }
 }
 
 async function staleWhileRevalidate(request) {
@@ -76,6 +89,6 @@ async function staleWhileRevalidate(request) {
   const update = fetch(request).then(response => {
     if (response.ok) cache.put(request, response.clone());
     return response;
-  }).catch(() => cached);
-  return cached || update;
+  }).catch(() => null);
+  return cached || (await update) || Response.error();
 }

@@ -16,7 +16,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: fundval-pages
+  group: fundval-pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

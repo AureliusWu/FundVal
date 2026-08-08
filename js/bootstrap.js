@@ -1,7 +1,17 @@
-import './migrations.js';
 import { installRuntimeGuards, runStartupIntegrityChecks } from './resilience.js';
 
-runStartupIntegrityChecks();
-installRuntimeGuards();
+function showStartupFailure() {
+  const list = document.getElementById('fund-list');
+  if (list) {
+    list.innerHTML = '<div class="empty-hint">应用启动失败，请刷新页面后重试。</div>';
+  }
+}
 
-await import('./app.js');
+try {
+  await import('./migrations.js');
+  runStartupIntegrityChecks();
+  installRuntimeGuards();
+  await import('./app.js');
+} catch (_) {
+  showStartupFailure();
+}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   appendDiagnostic,
   collectOrphanNavCacheKeys,
+  mergeHoldingsByTimestamp,
   normalizeHoldings,
   reconcileFundCache,
   repairHoldingsState
@@ -28,6 +29,27 @@ test('prefers tombstone when duplicate timestamps are equal', () => {
     { code: '000001', updated_at: NOW, deleted: true }
   ], NOW);
   assert.equal(result[0].deleted, true);
+});
+
+test('merges cloud holdings without resurrecting an equal-time tombstone', () => {
+  const result = mergeHoldingsByTimestamp([
+    { code: '000001', name: '本地', shares: 2, updated_at: NOW, deleted: false },
+    { code: '000002', name: '保留顺序', shares: 1, updated_at: NOW },
+  ], [
+    { code: '000001', name: '云端删除', shares: 2, updated_at: NOW, deleted: true },
+    { code: '000003', name: '仅云端', shares: 3, updated_at: NOW },
+  ], NOW);
+  assert.deepEqual(result.map(item => item.code), ['000001', '000002', '000003']);
+  assert.equal(result[0].deleted, true);
+});
+
+test('keeps semantically invalid primary holdings intact when no backup is available', () => {
+  const primaryRaw = JSON.stringify([{ code: '000001', name: '不能归零', shares: 'bad', cost: 1 }]);
+  const result = repairHoldingsState({ primaryRaw, latestBackupRaw: null, previousBackupRaw: null, nowISO: NOW });
+  assert.equal(result.preservePrimary, true);
+  assert.equal(result.changed, false);
+  assert.equal(result.source, 'semantic_invalid');
+  assert.equal(result.corruptRaw, primaryRaw);
 });
 
 test('recovers corrupt primary holdings from latest backup', () => {

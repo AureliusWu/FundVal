@@ -1,6 +1,7 @@
 import { APP_VERSION } from './version.js';
 import { TIMING, TTL, refreshInterval } from './config.js';
-import { backupHoldings, getCached, makeCloudPayload, parseCloudPayload, setCached } from './storage.js';
+import { backupHoldings, getCached, makeCloudPayload, parseCloudPayload, safeGetItem, safeRemoveItem, safeSetItem, setCached } from './storage.js';
+import { mergeHoldingsByTimestamp, normalizeHoldings as normalizeStoredHoldings } from './integrity.js';
 import { calculateHolding, chooseDisplayValue } from './calculator.js';
 import { getOverseasConfig, loadOverseasModels, selectOverseasModel, calculateOverseasEstimate } from './overseas-model.js';
 import { accuracyStats, loadAccuracy, recordPrediction, saveAccuracy, settlePredictions } from './accuracy.js';
@@ -46,6 +47,7 @@ let fundFeeCache = {};       // 费率信息缓存
 let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
 const fundFullRequests = new Map();
 let navMoveQueue = Promise.resolve(); // pingzhongdata 共用 Data_netWorthTrend，全局变量需串行读取
+let tencentQuoteQueue = Promise.resolve(); // 腾讯 JSONP 共用 window.v_*，必须串行读取与清理
 let isRefreshing = false;
 let refreshChain = Promise.resolve();
 let refreshRequestId = 0;
@@ -56,6 +58,12 @@ let autoPullTimer = null;      // 定时拉取
 let isSyncing = false;         // 是否正在同步中
 let goldCache = { price: NaN, changePct: NaN, time: 0 };  // 金价缓存，API 全部失败时兜底
 let notificationPrompted = false;
+
+function queueTencentQuoteRequest(request) {
+  const queued = tencentQuoteQueue.then(request, request);
+  tencentQuoteQueue = queued.catch(function() {});
+  return queued;
+}
 
 // ── 清理过期 tombstone（删除标记保留30天，供多设备同步消费后自动清理） ──
 function pruneOldTombstones() {
@@ -70,7 +78,7 @@ function pruneOldTombstones() {
 // ── 持仓存取 ─────────────────────────────────────────────
 function loadHoldings() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeGetItem(STORAGE_KEY);
     const data = raw ? JSON.parse(raw) : [];
     holdings = normalizeHoldings(data);
     // 给旧数据补上时间戳（没有 updated_at 的条目初始化为当前时间）
@@ -83,30 +91,19 @@ function loadHoldings() {
 }
 
 function saveHoldings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings));
+  const saved = safeSetItem(STORAGE_KEY, JSON.stringify(holdings));
+  if (saved) safeRemoveItem(CACHE_KEY);
+  return saved;
 }
 
 function normalizeHoldings(data) {
-  if (!Array.isArray(data)) return [];
-  const seen = new Set();
-  return data.reduce((acc, item) => {
-    const code = String(item && item.code || '').trim();
-    if (!/^\d{6}$/.test(code) || seen.has(code)) return acc;
-
-    const shares = toNonNegativeNumber(item.shares);
-    const cost = toNonNegativeNumber(item.cost);
-    const name = String(item.name || '').trim();
-    var updated_at = (typeof item.updated_at === 'string' && item.updated_at) ? item.updated_at : '';
-    seen.add(code);
-    var deleted = item.deleted === true;
-    acc.push({code, name: name || code, shares, cost, updated_at, deleted});
-    return acc;
-  }, []);
+  return normalizeStoredHoldings(data);
 }
 
 function toNonNegativeNumber(value) {
+  if (value == null || String(value).trim() === '') return 0;
   const n = Number(value);
-  return Number.isFinite(n) && n >= 0 ? n : 0;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 function isRealFundName(name, code) {
@@ -115,6 +112,16 @@ function isRealFundName(name, code) {
 }
 
 function nowISO() { return new Date().toISOString(); }
+
+async function fetchWithTimeout(url, options = {}, timeout = TIMING.CLOUD_SYNC_TIMEOUT) {
+  const controller = new AbortController();
+  const timer = setTimeout(function() { controller.abort(); }, timeout);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 // 返回"UTC值等于北京时间"的 Date，用于所有市场时段判断
 // 防止非 CST 时区设备（如 JST）导致刷新策略、市场状态、日志保存偏移1小时
 function getChinaDate() {
@@ -161,27 +168,29 @@ function importData(e) {
 }
 
 // ── 云同步 (GitHub Gist) — 双向自动同步 ────────────────────
-function getGistToken() { return localStorage.getItem(GIST_TOKEN_KEY) || ''; }
-function setGistToken(t) { localStorage.setItem(GIST_TOKEN_KEY, t); }
-function getGistId() { return localStorage.getItem(GIST_ID_KEY) || ''; }
-function setGistId(id) { localStorage.setItem(GIST_ID_KEY, id); }
-function getSyncTime() { return localStorage.getItem(GIST_SYNC_TIME_KEY) || ''; }
-function setSyncTime(t) { localStorage.setItem(GIST_SYNC_TIME_KEY, t); }
+function getGistToken() { return safeGetItem(GIST_TOKEN_KEY) || ''; }
+function setGistToken(t) { return safeSetItem(GIST_TOKEN_KEY, t); }
+function getGistId() { return safeGetItem(GIST_ID_KEY) || ''; }
+function setGistId(id) { return safeSetItem(GIST_ID_KEY, id); }
+function getSyncTime() { return safeGetItem(GIST_SYNC_TIME_KEY) || ''; }
+function setSyncTime(t) { return safeSetItem(GIST_SYNC_TIME_KEY, t); }
 
 // 同步元数据：记录上次 push 时数据的快照 hash，用于判断是否需要推送
 function loadSyncMeta() {
   try {
-    var raw = localStorage.getItem(SYNC_META_KEY);
+    var raw = safeGetItem(SYNC_META_KEY);
     return raw ? JSON.parse(raw) : { last_push_hash: '', last_pull: '' };
   } catch(e) { return { last_push_hash: '', last_pull: '' }; }
 }
 function saveSyncMeta(meta) {
-  localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+  return safeSetItem(SYNC_META_KEY, JSON.stringify(meta));
 }
 
 // 计算本地持仓的数据指纹（只比较 code + updated_at）
 function holdingsHash(h) {
-  return h.map(function(x) { return x.code + ':' + (x.updated_at||'0'); }).sort().join(';');
+  return h.map(function(x) {
+    return [x.code, x.updated_at || '0', x.deleted === true ? 'deleted' : 'active', x.shares, x.cost].join(':');
+  }).sort().join(';');
 }
 
 function hasCloudConfig() {
@@ -203,91 +212,80 @@ function renderCloudStatus() {
 }
 
 // ── 核心：双向合并 ─────────────────────────────────────────
-// 按 code 匹对，逐条比较 updated_at，时间戳新的胜出
+// 按 code 匹对，逐条比较 updated_at；同一时刻删除标记优先。
 function mergeFromCloud(cloudItems) {
-  var localMap = {};
-  holdings.forEach(function(h) { localMap[h.code] = h; });
+  return mergeHoldingsByTimestamp(holdings, cloudItems);
+}
 
-  var merged = [];
-  var cloudMap = {};
-  cloudItems.forEach(function(c) { cloudMap[c.code] = c; });
+async function readCloudHoldings(token, gistId) {
+  const response = await fetchWithTimeout('https://api.github.com/gists/' + gistId, {
+    headers: { 'Authorization': 'token ' + token }
+  }, TIMING.CLOUD_SYNC_TIMEOUT);
+  if (!response.ok) return { ok: false, status: response.status, holdings: [] };
+  const data = await response.json();
+  const file = data && data.files && data.files[GIST_FILENAME];
+  if (!file || !file.content) return { ok: true, status: response.status, holdings: [] };
+  const parsed = parseCloudPayload(JSON.parse(file.content));
+  return { ok: true, status: response.status, holdings: normalizeHoldings(parsed.holdings) };
+}
 
-  // 处理云端条目 + 共有条目
-  cloudItems.forEach(function(c) {
-    var local = localMap[c.code];
-    if (!local) {
-      // 仅云端有 → 直接加入
-      merged.push(c);
-    } else {
-      // 两边都有 → 比时间戳，新的胜出
-      var localTime = local.updated_at || '';
-      var cloudTime = c.updated_at || '';
-      if (cloudTime > localTime) {
-        merged.push(c);
-      } else {
-        merged.push(local);
-      }
-    }
-  });
+function markSyncPending() {
+  syncPending = true;
+  const meta = loadSyncMeta();
+  meta.pending_hash = holdingsHash(holdings);
+  saveSyncMeta(meta);
+}
 
-  // 处理仅本地有的条目（未被云端删除的保留）
-  holdings.forEach(function(h) {
-    if (!cloudMap[h.code]) {
-      merged.push(h);
-    }
-  });
+function hasPendingSync() {
+  const meta = loadSyncMeta();
+  return Boolean(meta.pending_hash && meta.pending_hash !== meta.last_push_hash);
+}
 
-  return merged;
+async function resolveGistId(token) {
+  let gistId = getGistId();
+  if (gistId) return gistId;
+  const found = await findExistingGist(token);
+  if (!found) return '';
+  setGistId(found);
+  return found;
 }
 
 // ── 从云端拉取并合并 ───────────────────────────────────────
 async function pullFromCloud(silent) {
   if (isSyncing) return;
-  var token = getGistToken();
+  const token = getGistToken();
   if (!token) return;
 
-  var gistId = getGistId();
-  if (!gistId) {
-    // 尝试自动发现云端存档
-    var found = await findExistingGist(token);
-    if (found) setGistId(found);
-    else return;
-  }
-
   isSyncing = true;
+  let retryAfterPull = false;
   try {
-    var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
-
-    var resp = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { 'Authorization': 'token ' + token },
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-
-    if (!resp.ok) {
-      if (resp.status === 404) { setGistId(''); renderCloudStatus(); }
+    const gistId = await resolveGistId(token);
+    if (!gistId) return;
+    const cloud = await readCloudHoldings(token, gistId);
+    if (!cloud.ok) {
+      if (cloud.status === 404) { setGistId(''); renderCloudStatus(); }
       return;
     }
 
-    var data = await resp.json();
-    var file = data.files[GIST_FILENAME];
-    if (!file || !file.content) return;
-
-    var parsed = parseCloudPayload(JSON.parse(file.content));
-    var cloudItems = normalizeHoldings(parsed.holdings);
-    if (!cloudItems.length) return;
-
-    var oldHash = holdingsHash(holdings);
-    holdings = mergeFromCloud(cloudItems);
-    var newHash = holdingsHash(holdings);
+    const oldHash = holdingsHash(holdings);
+    holdings = mergeFromCloud(cloud.holdings);
+    const newHash = holdingsHash(holdings);
+    const cloudHash = holdingsHash(cloud.holdings);
 
     if (oldHash !== newHash) {
       saveHoldings();
       setSyncTime(nowISO());
-      var meta = loadSyncMeta();
+      const meta = loadSyncMeta();
       meta.last_pull = nowISO();
-      meta.last_push_hash = newHash;
+      if (newHash === cloudHash) {
+        meta.last_push_hash = newHash;
+        meta.pending_hash = '';
+        syncPending = false;
+      } else {
+        meta.pending_hash = newHash;
+        syncPending = true;
+        retryAfterPull = true;
+      }
       saveSyncMeta(meta);
       // 数据变更后刷新界面（silent 模式也要刷，否则用户看到的是旧数据）
       renderHoldingsList();
@@ -298,72 +296,80 @@ async function pullFromCloud(silent) {
     // 静默失败，下次自动重试
   } finally {
     isSyncing = false;
+    if (retryAfterPull) scheduleAutoPush();
   }
 }
 
 // ── 推送本地变更到云端 ─────────────────────────────────────
 async function pushToCloud(silent) {
   if (isSyncing) return;
-  var token = getGistToken();
+  const token = getGistToken();
   if (!token) return;
 
-  var gistId = getGistId();
-  if (!gistId) {
-    // 尝试自动发现云端存档
-    var found = await findExistingGist(token);
-    if (found) setGistId(found);
-    else return;
-  }
-
-  var hash = holdingsHash(holdings);
-  var meta = loadSyncMeta();
-  if (hash === meta.last_push_hash) {
-    syncPending = false;
-    return;  // 没有新变更，跳过
-  }
-
   isSyncing = true;
+  let retryAfterPush = false;
   try {
-    var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
-
-    var payload = {
-      description: 'FundVal 持仓数据 | ' + nowISO(),
-      files: { [GIST_FILENAME]: { content: JSON.stringify(makeCloudPayload(holdings), null, 2) } }
-    };
-
-    var resp = await fetch('https://api.github.com/gists/' + gistId, {
-      method: 'PATCH',
-      headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-
-    if (!resp.ok) {
-      if (resp.status === 401) { if (!silent) showToast('Token 无效，请检查'); }
-      else if (resp.status === 404) { setGistId(''); renderCloudStatus(); }
+    const gistId = await resolveGistId(token);
+    if (!gistId) return;
+    const cloud = await readCloudHoldings(token, gistId);
+    if (!cloud.ok) {
+      if (cloud.status === 401 && !silent) showToast('Token 无效，请检查');
+      else if (cloud.status === 404) { setGistId(''); renderCloudStatus(); }
       return;
     }
 
-    await resp.json();
+    // 先读取并合并云端，再写回，避免常见的双设备后写覆盖。
+    const beforeMerge = holdingsHash(holdings);
+    holdings = mergeFromCloud(cloud.holdings);
+    const hash = holdingsHash(holdings);
+    const meta = loadSyncMeta();
+    if (hash === meta.last_push_hash && hash === holdingsHash(cloud.holdings)) {
+      meta.pending_hash = '';
+      saveSyncMeta(meta);
+      syncPending = false;
+      return;
+    }
+    if (beforeMerge !== hash) saveHoldings();
+
+    const payload = {
+      description: 'FundVal 持仓数据 | ' + nowISO(),
+      files: { [GIST_FILENAME]: { content: JSON.stringify(makeCloudPayload(holdings), null, 2) } }
+    };
+    const response = await fetchWithTimeout('https://api.github.com/gists/' + gistId, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }, TIMING.CLOUD_SYNC_TIMEOUT);
+
+    if (!response.ok) {
+      if (response.status === 401 && !silent) showToast('Token 无效，请检查');
+      else if (response.status === 404) { setGistId(''); renderCloudStatus(); }
+      return;
+    }
+
+    await response.json();
     meta.last_push_hash = hash;
     meta.last_pull = nowISO();
+    const changedDuringPush = holdingsHash(holdings) !== hash;
+    meta.pending_hash = changedDuringPush ? holdingsHash(holdings) : '';
     saveSyncMeta(meta);
     setSyncTime(nowISO());
-    syncPending = false;
+    syncPending = changedDuringPush;
+    retryAfterPush = changedDuringPush;
     renderCloudStatus();
   } catch(e) {
-    // 静默失败，保留 syncPending 标志以便下次重试
+    // 保留持久化待同步标记，以便网络恢复或下次启动后补推。
+    markSyncPending();
   } finally {
     isSyncing = false;
+    if (retryAfterPush) scheduleAutoPush();
   }
 }
 
 // ── 防抖：数据变更后延迟推送 ──────────────────────────────
 function scheduleAutoPush() {
   if (!hasCloudConfig()) return;
-  syncPending = true;
+  markSyncPending();
   if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
   syncDebounceTimer = setTimeout(function() {
     pushToCloud(true);
@@ -375,6 +381,7 @@ function startAutoPull() {
   if (autoPullTimer) clearInterval(autoPullTimer);
   autoPullTimer = setInterval(function() {
     pullFromCloud(true);
+    if (hasPendingSync()) scheduleAutoPush();
   }, TIMING.AUTO_PULL_INTERVAL);
 }
 
@@ -390,6 +397,7 @@ async function autoPullOnLoad() {
     renderHoldingsList();
     renderCloudStatus();
   }
+  if (hasPendingSync()) scheduleAutoPush();
 }
 
 // ── 首次创建 Gist（手动触发） ──────────────────────────────
@@ -414,26 +422,20 @@ async function uploadToCloud() {
   var desc = 'FundVal 持仓数据 | ' + nowISO();
 
   try {
-    var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
-
     var resp;
     if (gistId) {
-      resp = await fetch('https://api.github.com/gists/' + gistId, {
+      resp = await fetchWithTimeout('https://api.github.com/gists/' + gistId, {
         method: 'PATCH',
         headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: desc, files: { [GIST_FILENAME]: { content } } }),
-        signal: controller.signal
-      });
+        body: JSON.stringify({ description: desc, files: { [GIST_FILENAME]: { content } } })
+      }, TIMING.CLOUD_SYNC_TIMEOUT);
     } else {
-      resp = await fetch('https://api.github.com/gists', {
+      resp = await fetchWithTimeout('https://api.github.com/gists', {
         method: 'POST',
         headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: desc, public: false, files: { [GIST_FILENAME]: { content } } }),
-        signal: controller.signal
-      });
+        body: JSON.stringify({ description: desc, public: false, files: { [GIST_FILENAME]: { content } } })
+      }, TIMING.CLOUD_SYNC_TIMEOUT);
     }
-    clearTimeout(timer);
 
     if (!resp.ok) {
       var err = await resp.json().catch(function() { return {}; });
@@ -472,9 +474,9 @@ async function uploadToCloud() {
 async function findExistingGist(token) {
   try {
     for (var page = 1; page <= 5; page++) {
-      var resp = await fetch('https://api.github.com/gists?per_page=100&page=' + page, {
+      var resp = await fetchWithTimeout('https://api.github.com/gists?per_page=100&page=' + page, {
         headers: { 'Authorization': 'token ' + token }
-      });
+      }, TIMING.CLOUD_SYNC_TIMEOUT);
       if (!resp.ok) return null;
       var gists = await resp.json();
       if (!gists.length) return null;  // 无更多数据
@@ -509,14 +511,9 @@ async function downloadFromCloud() {
   downloadBtn.disabled = true;
 
   try {
-    var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, TIMING.CLOUD_SYNC_TIMEOUT);
-
-    var resp = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { 'Authorization': 'token ' + token },
-      signal: controller.signal
-    });
-    clearTimeout(timer);
+    var resp = await fetchWithTimeout('https://api.github.com/gists/' + gistId, {
+      headers: { 'Authorization': 'token ' + token }
+    }, TIMING.CLOUD_SYNC_TIMEOUT);
 
     if (!resp.ok) {
       if (resp.status === 401) { showToast('Token 无效'); }
@@ -568,10 +565,10 @@ async function downloadFromCloud() {
 
 function clearCloudConfig() {
   if (!confirm('清除云端同步配置？（不会删除云端 Gist 数据）')) return;
-  localStorage.removeItem(GIST_TOKEN_KEY);
-  localStorage.removeItem(GIST_ID_KEY);
-  localStorage.removeItem(GIST_SYNC_TIME_KEY);
-  localStorage.removeItem(SYNC_META_KEY);
+  safeRemoveItem(GIST_TOKEN_KEY);
+  safeRemoveItem(GIST_ID_KEY);
+  safeRemoveItem(GIST_SYNC_TIME_KEY);
+  safeRemoveItem(SYNC_META_KEY);
   document.getElementById('gist-token').value = '';
   syncPending = false;
   if (syncDebounceTimer) { clearTimeout(syncDebounceTimer); syncDebounceTimer = null; }
@@ -583,10 +580,11 @@ function clearCloudConfig() {
 // ── 缓存 ──────────────────────────────────────────────────
 function loadCache() {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = safeGetItem(CACHE_KEY);
     if (!raw) return null;
     const cache = JSON.parse(raw);
     if (!cache.data || !Array.isArray(cache.data) || !cache.data.length) return null;
+    if (cache.holdingsHash !== holdingsHash(holdings)) return null;
     return { data: cache.data, time: cache.fetchedAt || cache.time || 0, fresh: Date.now() < (cache.expiresAt || 0) };
   } catch(e) { return null; }
 }
@@ -600,15 +598,21 @@ function saveCache(data) {
       });
       return out;
     });
-    setCached(CACHE_KEY, slim, TTL.INTRADAY, 'fund-estimate');
+    const entry = setCached(CACHE_KEY, slim, TTL.INTRADAY, 'fund-estimate');
+    if (entry) {
+      entry.holdingsHash = holdingsHash(holdings);
+      safeSetItem(CACHE_KEY, JSON.stringify(entry));
+    }
   } catch(e) {}
 }
 
 // ── 备选数据源：东方财富 push2 API（CORS 友好） ──────────
 async function fetchFromEastmoney(code) {
   try {
-    const resp = await fetch(
-      `https://push2.eastmoney.com/api/qt/stock/get?secid=0.${code}&fields=f43,f169,f170&_=${Date.now()}`
+    const resp = await fetchWithTimeout(
+      `https://push2.eastmoney.com/api/qt/stock/get?secid=0.${code}&fields=f43,f169,f170&_=${Date.now()}`,
+      {},
+      TIMING.FUND_JSONP_TIMEOUT
     );
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const json = await resp.json();
@@ -632,7 +636,7 @@ async function fetchFromEastmoney(code) {
 
 function restoreLatestBackup() {
   try {
-    var backup = JSON.parse(localStorage.getItem('fuyu_backup_latest') || 'null');
+    var backup = JSON.parse(safeGetItem('fuyu_backup_latest') || 'null');
     if (!backup || !Array.isArray(backup.holdings)) throw new Error();
     backupHoldings(holdings);
     holdings = normalizeHoldings(backup.holdings);
@@ -741,8 +745,9 @@ async function fetchFundFullRaw(code, force, tableEstimate) {
     }
     if (navMove) {
       return {
-        code, name: '', status: 'ok_official', last_nav: navMove.nav,
-        est_nav: NaN, est_change: NaN, nav_date: navMove.date, est_time: navMove.date,
+        code, name: '', status: 'ok_official', last_nav: navMove.prevNav,
+        est_nav: navMove.nav, est_change: navMove.change, nav_date: navMove.date, est_time: navMove.date,
+        est_kind: 'official_nav', est_label: '最新正式净值',
         est_realtime: false,
         latest_nav_move: navMove,
       };
@@ -789,6 +794,7 @@ function buildFundData(r, h, modelQuotes) {
   updateAccuracyLedger(d);
   d.loading = false; d.stale = false; d.error = null; d.updatedAt = Date.now(); d._cached = false;
   d.market = classifyFundMarket(d.name);
+  const activeOverseasModel = Boolean(d.est_model && !d.est_model_stale);
   d.freshness = buildFreshness({
     sourceTime: d.today_is_latest_nav
       ? ((d.latest_nav_move && d.latest_nav_move.date) || d.est_time)
@@ -797,11 +803,11 @@ function buildFundData(r, h, modelQuotes) {
     calculatedAt: d.est_holdings_model
       ? new Date(d.updatedAt).toISOString()
       : (d.est_model ? (d.est_model_time || new Date(d.updatedAt).toISOString()) : null),
-    source: d.est_holdings_model ? 'quarterly-holdings-model' : (d.est_model ? 'market-model' : (d.status === 'ok_fallback' ? 'eastmoney' : 'tiantian')),
+    source: d.est_holdings_model ? 'quarterly-holdings-model' : (activeOverseasModel ? 'market-model' : (d.status === 'ok_fallback' ? 'eastmoney' : 'tiantian')),
     isFallback: Boolean(d.est_holdings_model || d.status === 'ok_fallback'),
     fallbackReason: d.est_holdings_model ? '官方盘中估值不可用' : (d.status === 'ok_fallback' ? '主估值源不可用' : null),
     market: d.market,
-    model: Boolean(d.est_model || d.est_holdings_model),
+    model: Boolean(activeOverseasModel || d.est_holdings_model),
     official: Boolean(d.today_is_latest_nav),
     unavailable: !Number.isFinite(d.display && d.display.change),
   });
@@ -812,15 +818,23 @@ function updateAccuracyLedger(fund) {
   if (!fund || !isOverseasLikeFund(fund)) return;
   var rows = loadAccuracy();
   if (fund.latest_nav_move && fund.latest_nav_move.date && Number.isFinite(fund.latest_nav_move.change)) {
-    rows = settlePredictions(rows, fund.code, fund.latest_nav_move.date, fund.latest_nav_move.change);
+    rows = settlePredictions(
+      rows,
+      fund.code,
+      fund.latest_nav_move.date,
+      fund.latest_nav_move.change,
+      new Date().toISOString(),
+      fund.latest_nav_move.prevDate || ''
+    );
   }
   var now = getChinaDate();
   var minute = now.getHours() * 60 + now.getMinutes();
-  if (fund.est_model && Number.isFinite(fund.est_change) && minute >= 14 * 60 + 30) {
+  if (fund.est_model && !fund.est_model_stale && Number.isFinite(fund.est_change) && minute >= 14 * 60 + 30) {
     rows = recordPrediction(rows, {
       code: fund.code,
       prediction_date: chinaDateKey(now),
       target_nav_date: 'next',
+      base_nav_date: (fund.latest_nav_move && fund.latest_nav_move.date) || fund.nav_date || '',
       model_version: fund.est_model_version || 'unknown',
       model_label: fund.est_model_label || '',
       predicted_change: fund.est_change,
@@ -868,7 +882,12 @@ async function runRefresh(requestId, options) {
       snapshot.map(function(h) { return h.code; }),
       { force: options.force !== false }
     ).catch(function() { return new Map(); });
-    var modelQuotesPromise = fetchOverseasModelQuotes().catch(function() { return {}; });
+    var hasOverseasModel = snapshot.some(function(h) {
+      return Boolean(selectOverseasModel(h.code, h.name));
+    });
+    var modelQuotesPromise = hasOverseasModel
+      ? fetchOverseasModelQuotes().catch(function() { return {}; })
+      : Promise.resolve({});
     var holdingsEstimatePromises = new Map(snapshot.map(function(h) {
       return [h.code, fetchHoldingsEstimateForFund(h.code, h.name).catch(function() { return null; })];
     }));
@@ -928,20 +947,28 @@ function tryShowCache() {
   if (!cache) return false;
   fundsData = cache.data.map(function(d) {
     var market = d.market || classifyFundMarket(d.name);
+    var freshness = buildFreshness({
+      sourceTime: d.est_time || (d.latest_nav_move && d.latest_nav_move.date),
+      fetchedAt: cache.time ? new Date(cache.time).toISOString() : new Date(0).toISOString(),
+      source: 'local-cache',
+      isFallback: true,
+      fallbackReason: '页面暂未完成在线更新',
+      market,
+      unavailable: !Number.isFinite(displayChangeOf(d)),
+    });
+    if (cache.fresh) {
+      freshness.status = 'delayed';
+      freshness.label = '本地缓存';
+    } else {
+      freshness.status = 'stale';
+      freshness.label = '旧数据';
+    }
     return {
       ...d,
       market,
       stale: true,
       _cached: true,
-      freshness: buildFreshness({
-        sourceTime: d.est_time || (d.latest_nav_move && d.latest_nav_move.date),
-        fetchedAt: cache.time ? new Date(cache.time).toISOString() : new Date(0).toISOString(),
-        source: 'local-cache',
-        isFallback: true,
-        fallbackReason: '页面暂未完成在线更新',
-        market,
-        unavailable: !Number.isFinite(displayChangeOf(d)),
-      }),
+      freshness,
     };
   });
   renderFundList(fundsData);
@@ -1045,7 +1072,7 @@ function preferredDailyMove(fund) {
 }
 
 function fetchTencentQuotes(codes) {
-  return new Promise(function(resolve) {
+  return queueTencentQuoteRequest(function() { return new Promise(function(resolve) {
     var script = document.createElement('script');
     var done = false;
     var timer = setTimeout(function() { finish(false); }, TIMING.INDEX_JSONP_TIMEOUT);
@@ -1071,7 +1098,7 @@ function fetchTencentQuotes(codes) {
     script.onerror = function() { finish(false); };
     script.src = 'https://qt.gtimg.cn/q=' + codes.join(',') + '&_t=' + Date.now();
     document.head.appendChild(script);
-  });
+  }); });
 }
 
 async function fetchOverseasModelQuotes() {
@@ -1190,8 +1217,15 @@ function updateSortBar() {
 }
 
 // ── 重仓股 ───────────────────────────────────────────────
+function holdingsCacheIsFresh(meta) {
+  const cachedAt = Number(meta && meta.cachedAt);
+  return Number.isFinite(cachedAt) && cachedAt > 0 && Date.now() - cachedAt < TTL.HOLDINGS;
+}
+
 async function loadFundHoldings(code) {
-  if (holdingsCache[code] !== undefined && holdingsMetaCache[code]?.status !== 'error') {
+  if (holdingsCache[code] !== undefined
+    && holdingsMetaCache[code]?.status !== 'error'
+    && holdingsCacheIsFresh(holdingsMetaCache[code])) {
     return { items: holdingsCache[code], ...holdingsMetaCache[code] };
   }
   if (fundHoldingsRequests.has(code)) return fundHoldingsRequests.get(code);
@@ -1202,7 +1236,8 @@ async function loadFundHoldings(code) {
       status: result.status,
       reportDate: result.reportDate,
       source: result.source,
-      fetchedAt: result.fetchedAt
+      fetchedAt: result.fetchedAt,
+      cachedAt: Date.now()
     };
     return { items: result.items, ...holdingsMetaCache[code] };
   }).catch(function(error) {
@@ -1228,7 +1263,11 @@ async function fetchHoldingsEstimateForFund(code, name) {
       delete stock.quoteTime;
     });
     await fetchHoldingsQuotes(code, result.items);
-    return calculateHoldingsEstimate(result.items, { now: Date.now() });
+    return calculateHoldingsEstimate(result.items, {
+      now: Date.now(),
+      reportDate: result.reportDate,
+      requireCurrentReport: true,
+    });
   }).finally(function() {
     holdingsEstimateRequests.delete(code);
   });
@@ -1385,7 +1424,7 @@ function fetchTencentHoldingQuotes(stocks) {
 
   if (!items.length) return Promise.resolve();
 
-  return new Promise(function(resolve) {
+  return queueTencentQuoteRequest(function() { return new Promise(function(resolve) {
     var script = document.createElement('script');
     var done = false;
     var timeout = setTimeout(finish, TIMING.INDEX_JSONP_TIMEOUT);
@@ -1415,7 +1454,7 @@ function fetchTencentHoldingQuotes(stocks) {
       return item.quoteCode;
     }).join(',') + '&_t=' + Date.now();
     document.head.appendChild(script);
-  });
+  }); });
 }
 
 // ── 基金基本类型解析 ──────────────────────────────────────
@@ -1682,6 +1721,7 @@ function saveFund() {
   const shares = toNonNegativeNumber(document.getElementById('i-shares').value);
   const cost = toNonNegativeNumber(document.getElementById('i-cost').value);
   if (!code || !/^\d{6}$/.test(code)) { showToast('请输入6位数字基金代码'); return; }
+  if (shares == null || cost == null) { showToast('份额和成本必须是非负数字'); return; }
 
   if (editingCode) {
     const idx = holdings.findIndex(h => h.code === editingCode);
@@ -1770,7 +1810,7 @@ function parseTencentQuote(raw, quoteCode = '') {
 // ── 黄金 AU9999 实时金价（复刻司南基金：东方财富 push2 + 持久缓存兜底） ──
 function loadGoldCache() {
   try {
-    var raw = localStorage.getItem(GOLD_CACHE_KEY);
+    var raw = safeGetItem(GOLD_CACHE_KEY);
     var cache = raw ? JSON.parse(raw) : null;
     if (!cache || !Number.isFinite(cache.price)) return null;
     if (Date.now() - (cache.time || 0) > 7 * 24 * 60 * 60 * 1000) return null;
@@ -1781,9 +1821,7 @@ function loadGoldCache() {
 function saveGoldCache(result) {
   if (!result || !Number.isFinite(result.price)) return;
   goldCache = { price: result.price, changePct: result.changePct, time: Date.now() };
-  try {
-    localStorage.setItem(GOLD_CACHE_KEY, JSON.stringify(goldCache));
-  } catch(e) {}
+  safeSetItem(GOLD_CACHE_KEY, JSON.stringify(goldCache));
 }
 
 function fetchGoldFromEastmoneySecid(secid) {
@@ -1854,63 +1892,55 @@ function fetchIndices() {
     }
   });
 
-  try {
-    var tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'gold'; });
-
-    var codes = tencentItems.map(function(cfg) { return cfg.code; }).join(',');
-    if (!codes) {
-      if (indexCache.length) renderIndexBar(indexCache);
-      return;
-    }
-
-    var script = document.createElement('script');
-    var called = false;
-
-    var timeout = setTimeout(function() {
-      if (!called) {
-        called = true;
-        script.remove();
+  return queueTencentQuoteRequest(function() { return new Promise(function(resolve) {
+    try {
+      var tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'gold'; });
+      var codes = tencentItems.map(function(cfg) { return cfg.code; }).join(',');
+      if (!codes) {
         if (indexCache.length) renderIndexBar(indexCache);
+        resolve();
+        return;
       }
-    }, TIMING.INDEX_JSONP_TIMEOUT);
 
-    script.onload = function() {
-      clearTimeout(timeout);
-      script.remove();
-      if (called) return;
-      called = true;
+      var script = document.createElement('script');
+      var called = false;
+      function finish(withData) {
+        if (called) return;
+        called = true;
+        clearTimeout(timeout);
+        script.remove();
+        if (withData) {
+          var data = INDEX_CONFIG.map(function(cfg, i) {
+            if (cfg.source === 'gold') return indexCache[i];
+            try {
+              var raw = window['v_' + cfg.code];
+              delete window['v_' + cfg.code];
+              var parsed = parseTencentQuote(raw, cfg.code);
+              if (parsed && Number.isFinite(parsed.price)) {
+                return { name: cfg.name, price: parsed.price, changePct: parsed.changePct };
+              }
+            } catch(e) {}
+            return { name: cfg.name, price: NaN, changePct: NaN };
+          });
+          var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
+          if (anyOk) indexCache = data;
+          renderIndexBar(anyOk ? data : indexCache);
+        } else if (indexCache.length) {
+          renderIndexBar(indexCache);
+        }
+        resolve();
+      }
 
-      var data = INDEX_CONFIG.map(function(cfg, i) {
-        if (cfg.source === 'gold') return indexCache[i];
-        try {
-          var raw = window['v_' + cfg.code];
-          delete window['v_' + cfg.code];
-          var parsed = parseTencentQuote(raw, cfg.code);
-          if (parsed && Number.isFinite(parsed.price)) {
-            return { name: cfg.name, price: parsed.price, changePct: parsed.changePct };
-          }
-        } catch(e) {}
-        return { name: cfg.name, price: NaN, changePct: NaN };
-      });
-
-      var anyOk = data.some(function(d) { return Number.isFinite(d.price); });
-      if (anyOk) indexCache = data;
-      renderIndexBar(anyOk ? data : indexCache);
-    };
-
-    script.onerror = function() {
-      clearTimeout(timeout);
-      script.remove();
-      if (called) return;
-      called = true;
+      var timeout = setTimeout(function() { finish(false); }, TIMING.INDEX_JSONP_TIMEOUT);
+      script.onload = function() { finish(true); };
+      script.onerror = function() { finish(false); };
+      script.src = 'https://qt.gtimg.cn/q=' + codes + '&_t=' + Date.now();
+      document.head.appendChild(script);
+    } catch(e) {
       if (indexCache.length) renderIndexBar(indexCache);
-    };
-
-    script.src = 'https://qt.gtimg.cn/q=' + codes + '&_t=' + Date.now();
-    document.head.appendChild(script);
-  } catch(e) {
-    if (indexCache.length) renderIndexBar(indexCache);
-  }
+      resolve();
+    }
+  }); });
 }
 
 function renderIndexBar(data) {
@@ -2095,11 +2125,11 @@ async function checkDailyNotification() {
   var minute = now.getHours() * 60 + now.getMinutes();
   if (minute < 14 * 60 + 30) return;
   var today = chinaDateKey(now);
-  if (localStorage.getItem(NOTIFY_DATE_KEY) === today) return;
+  if (safeGetItem(NOTIFY_DATE_KEY) === today) return;
   if (!holdings.filter(function(h) { return !h.deleted; }).length) return;
   await refresh({ force: true, reason: 'notification' });
   var sent = await showDailyNotification();
-  if (sent) localStorage.setItem(NOTIFY_DATE_KEY, today);
+  if (sent) safeSetItem(NOTIFY_DATE_KEY, today);
 }
 
 function startDailyNotifications() {
@@ -2168,6 +2198,7 @@ Object.assign(window, {
 
 window.addEventListener('online', function() {
   refresh({ force: true, reason: 'online' });
+  if (hasPendingSync()) scheduleAutoPush();
 });
 
 loadHoldings();
@@ -2176,7 +2207,10 @@ if (appVersionLabel) appVersionLabel.textContent = APP_VERSION;
 updateMktStatus();
 setInterval(updateMktStatus, TIMING.MKT_STATUS_MS);
 tryShowCache();
-loadOverseasModels().catch(function() {}).finally(function() { refresh({ force: true, reason: 'startup' }); });
+refresh({ force: true, reason: 'startup' });
+loadOverseasModels().then(function() {
+  refresh({ force: true, reason: 'overseas-models' });
+}).catch(function() {});
 startAutoRefresh();
 startIndexRefresh();
 initPullToRefresh();

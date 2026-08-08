@@ -78,13 +78,21 @@ export function runStartupIntegrityChecks(storage = localStorage, now = Date.now
   });
 
   if (result.corruptRaw) safeSet(storage, CORRUPT_HOLDINGS_KEY, result.corruptRaw);
-  if (result.changed) safeSet(storage, HOLDINGS_KEY, JSON.stringify(result.holdings));
+  if (result.changed && !result.preservePrimary) safeSet(storage, HOLDINGS_KEY, JSON.stringify(result.holdings));
   if (result.recovered) {
     safeSet(storage, RECOVERY_NOTICE_KEY, JSON.stringify({ time: nowISO, source: result.source }));
     rememberDiagnostic(storage, {
       time: nowISO,
       type: 'storage_recovery',
       message: `holdings recovered from ${result.source}`
+    });
+  }
+  if (result.preservePrimary) {
+    safeSet(storage, RECOVERY_NOTICE_KEY, JSON.stringify({ time: nowISO, source: result.source, manual: true }));
+    rememberDiagnostic(storage, {
+      time: nowISO,
+      type: 'storage_semantic_invalid',
+      message: 'holdings storage contains invalid numeric fields; original data was preserved'
     });
   }
 
@@ -142,6 +150,8 @@ export function installRuntimeGuards(storage = localStorage) {
   const notice = safeJsonParse(safeGet(storage, RECOVERY_NOTICE_KEY), null);
   if (notice) {
     safeRemove(storage, RECOVERY_NOTICE_KEY);
-    showSystemToast('检测到本地数据异常，已自动从备份恢复', { duration: 9000 });
+    showSystemToast(notice.manual
+      ? '检测到本地持仓字段异常，原始数据已保留，请从备份恢复或重新导入。'
+      : '检测到本地数据异常，已自动从备份恢复', { duration: 9000 });
   }
 }

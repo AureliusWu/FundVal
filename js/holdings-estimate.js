@@ -1,5 +1,6 @@
 const MIN_COVERAGE = 50;
 const MIN_QUOTES = 5;
+const MAX_REPORT_AGE_MS = 185 * 24 * 60 * 60 * 1000;
 
 function chinaDateKey(timestamp) {
   const date = new Date(timestamp + 8 * 60 * 60 * 1000);
@@ -47,7 +48,7 @@ export function normalizeTencentQuoteTime(value, quoteCode = '') {
   const compact = parseTencentQuoteTime(value);
   if (compact) return compact;
   const text = String(value || '').trim();
-  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  const match = text.match(/^(\d{4})[/-](\d{2})[/-](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (!match) return '';
   if (!String(quoteCode).startsWith('us')) return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6] || '00'}`;
   const utc = localTimeInZoneToUtc({
@@ -68,11 +69,33 @@ function parseChinaQuoteTime(value) {
   return Date.parse(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6] || '00'}+08:00`);
 }
 
+export function isCurrentHoldingsReport(reportDate, now = Date.now()) {
+  const text = String(reportDate || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const reportMs = Date.parse(`${text}T23:59:59+08:00`);
+  const nowMs = Number(now);
+  return Number.isFinite(reportMs) && Number.isFinite(nowMs)
+    && reportMs <= nowMs + 24 * 60 * 60 * 1000
+    && nowMs - reportMs <= MAX_REPORT_AGE_MS;
+}
+
 export function calculateHoldingsEstimate(stocks, options = {}) {
   const now = Number.isFinite(options.now) ? options.now : Date.now();
   const today = chinaDateKey(now);
   const minCoverage = Number.isFinite(options.minCoverage) ? options.minCoverage : MIN_COVERAGE;
   const minQuotes = Number.isFinite(options.minQuotes) ? options.minQuotes : MIN_QUOTES;
+  const reportDate = String(options.reportDate || '').trim();
+  if (options.requireCurrentReport && !isCurrentHoldingsReport(reportDate, now)) {
+    return {
+      available: false,
+      change: null,
+      coverage: 0,
+      quoteCount: 0,
+      sourceTime: null,
+      reportDate,
+      reason: '重仓披露日期缺失或已过期',
+    };
+  }
   const usable = [];
 
   (stocks || []).forEach((stock) => {
@@ -92,6 +115,7 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
       coverage,
       quoteCount: usable.length,
       sourceTime: null,
+      reportDate,
       reason: `当日重仓行情覆盖不足（${usable.length}只，${coverage.toFixed(1)}%）`,
     };
   }
@@ -104,6 +128,7 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
     coverage,
     quoteCount: usable.length,
     sourceTime: formatChinaQuoteTime(latestQuoteMs / 1000),
+    reportDate,
     reason: '',
   };
 }
@@ -132,7 +157,8 @@ export function applyHoldingsEstimate(fund, estimate) {
   fund.est_holdings_model = true;
   fund.est_holdings_coverage = estimate.coverage;
   fund.est_holdings_quote_count = estimate.quoteCount;
-  fund.est_note = `按已披露十大重仓的当日行情估算；覆盖净值${estimate.coverage.toFixed(1)}%，未披露部分按0贡献处理，不是基金公司官方估值`;
+  fund.est_holdings_report_date = String(estimate.reportDate || '');
+  fund.est_note = `按已披露十大重仓${estimate.reportDate ? `（截至${estimate.reportDate}）` : ''}的当日行情估算；覆盖净值${estimate.coverage.toFixed(1)}%，未披露部分按0贡献处理，不是基金公司官方估值`;
   fund.source = 'quarterly-holdings-model';
   return fund;
 }

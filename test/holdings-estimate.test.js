@@ -4,6 +4,7 @@ import {
   applyHoldingsEstimate,
   calculateHoldingsEstimate,
   formatChinaQuoteTime,
+  isCurrentHoldingsReport,
   normalizeTencentQuoteTime,
   parseTencentQuoteTime,
 } from '../js/holdings-estimate.js';
@@ -86,5 +87,19 @@ test('normalizes Eastmoney and Tencent quote timestamps to China time', () => {
   assert.equal(parseTencentQuoteTime('20260727161439'), '2026-07-27 16:14:39');
   assert.equal(normalizeTencentQuoteTime('2026-07-27 16:00:01', 'usQQQ'), '2026-07-28 04:00:01');
   assert.equal(normalizeTencentQuoteTime('2026-01-27 16:00:01', 'usQQQ'), '2026-01-28 05:00:01');
+  assert.equal(normalizeTencentQuoteTime('2026/08/07 16:08:40', 'r_hkHSTECH'), '2026-08-07 16:08:40');
   assert.equal(parseTencentQuoteTime('bad'), '');
+});
+
+test('requires a current disclosure date before using a top-holdings estimate in the live page', () => {
+  const now = Date.parse('2026-08-08T08:00:00Z');
+  assert.equal(isCurrentHoldingsReport('2026-06-30', now), true);
+  assert.equal(isCurrentHoldingsReport('2025-12-31', now), false);
+  const result = calculateHoldingsEstimate([], {
+    now,
+    reportDate: '2025-12-31',
+    requireCurrentReport: true,
+  });
+  assert.equal(result.available, false);
+  assert.match(result.reason, /披露日期/);
 });

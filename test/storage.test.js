@@ -5,6 +5,7 @@ import {
   getCached,
   makeCloudPayload,
   parseCloudPayload,
+  safeGetItem,
   safeSetItem,
   setCached
 } from '../js/storage.js';
@@ -38,4 +39,6 @@ test('storage write failures are contained', () => {
   assert.equal(safeSetItem('x', '1', storage), false);
   assert.equal(setCached('x', {}, 100, 'test', storage, 1000), null);
   assert.equal(backupHoldings([], storage), false);
+  assert.equal(safeGetItem('x', null), null);
+  assert.equal(safeSetItem('x', '1', null), false);
 });

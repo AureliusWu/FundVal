@@ -8,5 +8,6 @@ test('startup, visibility, network recovery and manual refresh all force a new r
     assert.match(source, new RegExp(`force: true, reason: '${reason}'`));
   }
   assert.match(source, /refreshChain\.then/);
+  assert.match(source, /status: 'ok_official', last_nav: navMove\.prevNav,[\s\S]*est_kind: 'official_nav'/);
   assert.doesNotMatch(source, /`估算时间 \$\{pad\(now\.getHours\(\)\)/);
 });

@@ -1,10 +1,10 @@
 {
   "name": "fuyu-fund",
-  "version": "12.0.2",
+  "version": "13.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check js/app.js && node --check sw.js"
+    "check": "node --check js/app.js && node --check js/bootstrap.js && node --check js/migrations.js && node --check js/resilience.js && node --check js/integrity.js && node --check js/overseas-model.js && node --check js/freshness.js && node --check js/storage.js && node --check js/accuracy.js && node --check sw.js"
   }
 }

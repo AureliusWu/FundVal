@@ -9,8 +9,9 @@ export function safeJsonParse(raw, fallback = null) {
 }
 
 function asNonNegativeFinite(value) {
+  if (value == null || value === '') return 0;
   const number = Number(value);
-  return Number.isFinite(number) && number >= 0 ? number : 0;
+  return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
 function normalizedTimestamp(value, fallback) {
@@ -23,17 +24,20 @@ function normalizedHolding(item, fallbackTimestamp) {
   const code = String(item && item.code || '').trim();
   if (!CODE_RE.test(code)) return null;
   const name = String(item && item.name || code).trim().slice(0, MAX_NAME_LENGTH) || code;
+  const shares = asNonNegativeFinite(item && item.shares);
+  const cost = asNonNegativeFinite(item && item.cost);
+  if (shares == null || cost == null) return null;
   return {
     code,
     name,
-    shares: asNonNegativeFinite(item && item.shares),
-    cost: asNonNegativeFinite(item && item.cost),
+    shares,
+    cost,
     updated_at: normalizedTimestamp(item && item.updated_at, fallbackTimestamp),
     deleted: item && item.deleted === true
   };
 }
 
-function shouldReplaceHolding(current, candidate) {
+export function shouldReplaceHolding(current, candidate) {
   if (!current) return true;
   if (candidate.updated_at > current.updated_at) return true;
   if (candidate.updated_at < current.updated_at) return false;
@@ -53,6 +57,27 @@ export function normalizeHoldings(value, nowISO = new Date().toISOString()) {
   return [...byCode.values()];
 }
 
+export function mergeHoldingsByTimestamp(localItems, cloudItems, nowISO = new Date().toISOString()) {
+  const local = normalizeHoldings(localItems, nowISO);
+  const cloud = normalizeHoldings(cloudItems, nowISO);
+  const cloudByCode = new Map(cloud.map(item => [item.code, item]));
+  const localCodes = new Set(local.map(item => item.code));
+  const merged = local.map(localItem => {
+    const cloudItem = cloudByCode.get(localItem.code);
+    return cloudItem && shouldReplaceHolding(localItem, cloudItem) ? cloudItem : localItem;
+  });
+  cloud.forEach(item => {
+    if (!localCodes.has(item.code)) merged.push(item);
+  });
+  return merged;
+}
+
+function hasSemanticHoldingError(item) {
+  const code = String(item && item.code || '').trim();
+  if (!CODE_RE.test(code)) return false;
+  return asNonNegativeFinite(item && item.shares) == null || asNonNegativeFinite(item && item.cost) == null;
+}
+
 function parseBackup(raw, nowISO) {
   const parsed = safeJsonParse(raw, null);
   if (!parsed || !Array.isArray(parsed.holdings)) return null;
@@ -66,6 +91,24 @@ export function repairHoldingsState({ primaryRaw, latestBackupRaw, previousBacku
 
   const parsedPrimary = safeJsonParse(primaryRaw, null);
   if (Array.isArray(parsedPrimary)) {
+    if (parsedPrimary.some(hasSemanticHoldingError)) {
+      const latest = parseBackup(latestBackupRaw, nowISO);
+      if (latest) {
+        return { holdings: latest, source: 'latest_backup', recovered: true, changed: true, corruptRaw: String(primaryRaw).slice(0, 50000) };
+      }
+      const previous = parseBackup(previousBackupRaw, nowISO);
+      if (previous) {
+        return { holdings: previous, source: 'previous_backup', recovered: true, changed: true, corruptRaw: String(primaryRaw).slice(0, 50000) };
+      }
+      return {
+        holdings: normalizeHoldings(parsedPrimary, nowISO),
+        source: 'semantic_invalid',
+        recovered: false,
+        changed: false,
+        preservePrimary: true,
+        corruptRaw: String(primaryRaw).slice(0, 50000)
+      };
+    }
     const holdings = normalizeHoldings(parsedPrimary, nowISO);
     return {
       holdings,
