@@ -86,9 +86,14 @@ test('finds only orphan per-fund cache keys', () => {
   );
 });
 
-test('diagnostics redact tokens and retain a bounded history', () => {
+test('diagnostics redact tokens and local image data while retaining a bounded history', () => {
   const raw = JSON.stringify([{ time: NOW, type: 'old', message: 'old', stack: '' }]);
-  const result = appendDiagnostic(raw, { type: 'error', message: 'ghp_abcdefghijklmnopqrstuvwxyz1234' }, 1);
+  const result = appendDiagnostic(raw, {
+    type: 'error',
+    message: 'ghp_abcdefghijklmnopqrstuvwxyz1234 data:image/png;base64,QUJDREVGR0g='
+  }, 1);
   assert.equal(result.length, 1);
   assert.match(result[0].message, /REDACTED_GITHUB_TOKEN/);
+  assert.match(result[0].message, /REDACTED_IMAGE_DATA/);
+  assert.doesNotMatch(result[0].message, /QUJDREVGR0g/);
 });

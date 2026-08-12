@@ -37,13 +37,35 @@ jobs:
         npm test
         npm run check
     - name: Build static Pages artifact
+      run: npm run build
+    - name: Verify Pages artifact
       shell: bash
       run: |
-        mkdir site
-        cp -R index.html manifest.json sw.js icon-192.png icon-512.png css js data site/
         test -f site/index.html
+        test -f site/ocr-import.html
+        test -f site/css/ocr.css
         test -f site/js/version.js
         test -f site/sw.js
+        test -s site/data/fund-catalog.json
+        test -f site/assets/ocr/tesseract/tesseract.esm.min.js
+        test -f site/assets/ocr/tesseract/worker.min.js
+        test -f site/assets/ocr/tesseract-core/tesseract-core-lstm.wasm.js
+        test -f site/assets/ocr/tessdata/chi_sim.traineddata.gz
+        test -f site/assets/ocr/licenses/tesseract.js-APACHE-2.0.txt
+        test -f site/assets/ocr/licenses/tesseract.js-core-APACHE-2.0.txt
+        test -f site/assets/ocr/licenses/paddleocr-APACHE-2.0.txt
+        test -f site/assets/ocr/licenses/opencv-js-APACHE-2.0.txt
+        test -f site/assets/ocr/licenses/js-yaml-MIT.txt
+        test -f site/assets/ocr/licenses/onnxruntime-web-MIT.txt
+        test -f site/assets/ocr/licenses/clipper-lib-BSL-1.0.txt
+        test -f site/assets/ocr/licenses/chi_sim-MIT.txt
+        test -f site/assets/ocr/paddle/engine/paddle-ocr-engine.mjs
+        test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar
+        test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar
+        test -f site/assets/ocr/paddle/models/integrity.json
+        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.mjs
+        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.wasm
+        test -f site/THIRD_PARTY_NOTICES.md
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3
       with:

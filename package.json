@@ -1,10 +1,24 @@
 {
   "name": "fuyu-fund",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check js/app.js && node --check js/bootstrap.js && node --check js/migrations.js && node --check js/resilience.js && node --check js/integrity.js && node --check js/overseas-model.js && node --check js/freshness.js && node --check js/storage.js && node --check js/accuracy.js && node --check sw.js"
+    "check": "node --check js/app.js && node --check js/bootstrap.js && node --check js/migrations.js && node --check js/resilience.js && node --check js/integrity.js && node --check js/overseas-model.js && node --check js/freshness.js && node --check js/storage.js && node --check js/accuracy.js && node --check js/alipay-ocr-parser.js && node --check js/holding-import-plan.js && node --check js/local-ocr.js && node --check js/paddle-local-ocr.js && node --check js/ocr-table-layout.js && node --check js/ocr-import-page.js && node --check js/fund-catalog.js && node --check sw.js && node --check scripts/build-site.mjs && node --check scripts/build-paddle-ocr.mjs && node --check scripts/paddle-ocr-entry.mjs && node --check scripts/serve-site.mjs && node --check scripts/refresh-fund-catalog.mjs",
+    "build": "node scripts/build-site.mjs",
+    "build:ocr": "node scripts/build-paddle-ocr.mjs",
+    "serve": "node scripts/serve-site.mjs",
+    "refresh:fund-catalog": "node scripts/refresh-fund-catalog.mjs"
+  },
+  "dependencies": {
+    "@paddleocr/paddleocr-js": "0.4.2",
+    "@tesseract.js-data/chi_sim": "1.0.0",
+    "onnxruntime-web": "1.27.0",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0"
+  },
+  "devDependencies": {
+    "vite": "6.4.3"
   }
 }

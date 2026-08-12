@@ -19,6 +19,7 @@ test('startup integrity checks preserve semantically invalid holdings instead of
   const result = runStartupIntegrityChecks(storage, Date.parse('2026-08-08T00:00:00Z'));
 
   assert.equal(result.recoverySource, 'semantic_invalid');
+  assert.equal(result.preservePrimary, true);
   assert.equal(storage.getItem('fuyu_holdings_v1'), raw);
   assert.equal(storage.getItem('fuyu_corrupt_holdings_last_v1'), raw);
 });

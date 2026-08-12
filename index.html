@@ -22,7 +22,7 @@
   <div class="header-inner">
     <div class="logo">
       <div class="logo-title">蜉蝣基金</div>
-      <div class="logo-sub"><span id="app-version-label">V13.0.0</span><em id="mkt-status"></em></div>
+      <div class="logo-sub"><span id="app-version-label">V14.0.0</span><em id="mkt-status"></em></div>
     </div>
   </div>
 </div>
@@ -70,6 +70,15 @@
   <div class="edit-page">
     <div class="sec-title">当前持仓</div>
     <div id="holdings-list"></div>
+
+    <section class="ocr-import-entry" aria-labelledby="ocr-import-title">
+      <div class="ocr-entry-copy">
+        <div class="ocr-entry-kicker">本地识别</div>
+        <h2 id="ocr-import-title">支付宝 / 蚂蚁财富基金截图导入</h2>
+        <p>优先支持支付宝生态的基金持有页；将在独立本地识别页处理图片，不上传、不保存。识别后请逐项确认基金与真实份额。</p>
+      </div>
+      <button class="ocr-entry-btn" type="button" onclick="openScreenshotImport()">选择截图</button>
+    </section>
 
     <div class="sec-title">添加基金</div>
     <div class="add-form">

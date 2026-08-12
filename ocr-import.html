@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#faf9f5">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/ocr.css">
+<title>支付宝 / 蚂蚁财富截图导入 · 蜉蝣基金</title>
+</head>
+<body>
+<main class="ocr-modal ocr-page" role="main" aria-labelledby="ocr-modal-title">
+  <section class="ocr-dialog" role="region" aria-labelledby="ocr-modal-title">
+    <header class="ocr-dialog-head">
+      <div>
+        <div class="ocr-entry-kicker">独立本地识别页</div>
+        <h1 id="ocr-modal-title">支付宝 / 蚂蚁财富基金截图导入</h1>
+      </div>
+      <button class="ocr-close-btn" id="ocr-import-close" type="button" aria-label="返回持仓页">×</button>
+    </header>
+    <div class="ocr-privacy-note">此页不加载行情、基金或第三方 JSONP 脚本。截图和 OCR 文本只在本机内存中处理，不上传、不保存。确认后若已配置 GitHub Gist，仅确认后的 FundVal 持仓会按既有设置同步；原图和 OCR 原文不会上传。</div>
+    <div class="ocr-import-status" id="ocr-import-status" aria-live="polite">请选择一张带支付宝或蚂蚁财富标识的完整基金持有截图。</div>
+    <input class="ocr-file-input" id="ocr-image-input" type="file" accept="image/png,image/jpeg,image/webp">
+    <div id="ocr-import-body"></div>
+    <div class="ocr-dialog-actions" id="ocr-import-actions">
+      <button class="ocr-secondary-btn" id="ocr-import-pick" type="button">选择本地截图</button>
+      <button class="ocr-secondary-btn" id="ocr-import-manual" type="button">返回手动输入</button>
+      <button class="ocr-secondary-btn" id="ocr-import-retry" type="button" hidden>重新识别</button>
+      <button class="ocr-primary-btn" id="ocr-import-confirm" type="button" hidden>确认并同步</button>
+    </div>
+  </section>
+</main>
+<script type="module" src="js/ocr-import-page.js"></script>
+</body>
+</html>

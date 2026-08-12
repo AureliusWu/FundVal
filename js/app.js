@@ -17,6 +17,7 @@ const GIST_ID_KEY = 'fuyu_gist_id';
 const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const GIST_FILENAME = 'fuyu-holdings.json';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
+const OCR_IMPORT_PENDING_KEY = 'fuyu_ocr_import_pending_v1';
 const GOLD_CACHE_KEY = 'fuyu_gold_cache_v2';
 const NOTIFY_DATE_KEY = 'fuyu_notify_1430_date_v1';
 // ── 缓存持久化黑名单（这些字段为瞬时 UI 状态，不写入 localStorage） ──
@@ -1751,6 +1752,13 @@ function saveFund() {
   }
 }
 
+function openScreenshotImport() {
+  // OCR runs in a separate document that deliberately does not load this
+  // page's third-party market JSONP scripts. It returns only after the user
+  // confirms a locally saved, canonical holdings batch.
+  window.location.assign('ocr-import.html');
+}
+
 function delFund(code) {
   const h = holdings.find(item => item.code === code);
   if (!h || h.deleted) return;
@@ -2146,6 +2154,21 @@ function showToast(msg, ms=2200) {
   setTimeout(()=>t.classList.remove('show'), ms);
 }
 
+function consumeOcrImportReturn() {
+  var returned = false;
+  try {
+    var url = new URL(window.location.href);
+    returned = url.searchParams.get('ocr_import') === '1';
+    if (returned) {
+      url.searchParams.delete('ocr_import');
+      window.history.replaceState(null, '', url.pathname + (url.search || '') + url.hash);
+    }
+  } catch (_) {}
+  const pending = safeGetItem(OCR_IMPORT_PENDING_KEY) === '1';
+  if (pending) safeRemoveItem(OCR_IMPORT_PENDING_KEY);
+  return returned || pending;
+}
+
 // ── Service Worker（含自动更新检测） ──────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -2193,7 +2216,8 @@ document.addEventListener('visibilitychange', function() {
 // ── 初始化 ───────────────────────────────────────────────
 Object.assign(window, {
   toggleEstSort, toggleFundDetail, editFund, delFund, cancelEdit, saveFund,
-  switchPage, uploadToCloud, downloadFromCloud, clearCloudConfig, restoreLatestBackup, exportData, importData
+  switchPage, uploadToCloud, downloadFromCloud, clearCloudConfig, restoreLatestBackup, exportData, importData,
+  openScreenshotImport
 });
 
 window.addEventListener('online', function() {
@@ -2201,13 +2225,21 @@ window.addEventListener('online', function() {
   if (hasPendingSync()) scheduleAutoPush();
 });
 
+var returnedFromOcrImport = consumeOcrImportReturn();
 loadHoldings();
 var appVersionLabel = document.getElementById('app-version-label');
 if (appVersionLabel) appVersionLabel.textContent = APP_VERSION;
 updateMktStatus();
 setInterval(updateMktStatus, TIMING.MKT_STATUS_MS);
 tryShowCache();
-refresh({ force: true, reason: 'startup' });
+if (returnedFromOcrImport) {
+  renderHoldingsList();
+  scheduleAutoPush();
+  showToast('截图导入已保存，正在刷新估值');
+  refresh({ force: true, reason: 'ocr-import' });
+} else {
+  refresh({ force: true, reason: 'startup' });
+}
 loadOverseasModels().then(function() {
   refresh({ force: true, reason: 'overseas-models' });
 }).catch(function() {});

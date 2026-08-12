@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v13.0.0';
+const CACHE = 'fuyu-v14.0.0';
 const CACHE_PREFIX = 'fuyu-v';
 const CORE = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
@@ -38,7 +38,11 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.endsWith('/data/overseas-models.json')) {
+  if (url.pathname.includes('/assets/ocr/')) {
+    // OCR binaries are very large and already use normal HTTP caching. Keeping
+    // another copy in Cache Storage can exhaust mobile PWA quota and evict CORE.
+    event.respondWith(networkOnly(event.request));
+  } else if (url.pathname.endsWith('/data/overseas-models.json')) {
     event.respondWith(staleWhileRevalidate(event.request));
   } else if (event.request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
     event.respondWith(networkFirst(event.request));
@@ -61,7 +65,7 @@ self.addEventListener('notificationclick', event => {
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
+    if (response.ok) void cacheResponseBestEffort(request, response);
     return response;
   } catch (_) {
     const cached = await caches.match(request);
@@ -71,12 +75,20 @@ async function networkFirst(request) {
   }
 }
 
+async function networkOnly(request) {
+  try {
+    return await fetch(request);
+  } catch (_) {
+    return Response.error();
+  }
+}
+
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
   try {
     const response = await fetch(request);
-    if (response.ok) (await caches.open(CACHE)).put(request, response.clone());
+    if (response.ok) void cacheResponseBestEffort(request, response);
     return response;
   } catch (_) {
     return Response.error();
@@ -87,8 +99,27 @@ async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request);
   const update = fetch(request).then(response => {
-    if (response.ok) cache.put(request, response.clone());
+    if (response.ok) void cachePutBestEffort(cache, request, response);
     return response;
   }).catch(() => null);
   return cached || (await update) || Response.error();
+}
+
+async function cacheResponseBestEffort(request, response) {
+  try {
+    return await cachePutBestEffort(await caches.open(CACHE), request, response);
+  } catch (_) {
+    return false;
+  }
+}
+
+async function cachePutBestEffort(cache, request, response) {
+  try {
+    await cache.put(request, response.clone());
+    return true;
+  } catch (_) {
+    // Large on-demand OCR assets may exceed a mobile browser's cache quota.
+    // A successful network response must remain usable even when persistence fails.
+    return false;
+  }
 }

@@ -19,4 +19,9 @@ test('service worker isolates its cache cleanup, claims clients during activatio
   for (const name of ['networkFirst', 'cacheFirst', 'staleWhileRevalidate']) {
     assert.match(functionBody(source, name), /Response\.error\(\)/, `${name} must return a Response when offline without a cache`);
   }
+  assert.match(source, /async function cachePutBestEffort/);
+  assert.match(functionBody(source, 'cachePutBestEffort'), /catch \(_\)[\s\S]*return false;/);
+  assert.doesNotMatch(source, /if \(response\.ok\) \(await caches\.open\(CACHE\)\)\.put/);
+  assert.match(source, /url\.pathname\.includes\('\/assets\/ocr\/'\)/);
+  assert.match(functionBody(source, 'networkOnly'), /return await fetch\(request\)/);
 });

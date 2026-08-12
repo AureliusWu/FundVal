@@ -1,1 +1,4 @@
+node_modules/
+site/
+npm-debug.log*
 .claude/

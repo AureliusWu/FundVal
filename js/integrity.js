@@ -183,6 +183,7 @@ export function redactDiagnosticText(value) {
     .replace(/gh[pousr]_[A-Za-z0-9_]{20,}/g, '[REDACTED_GITHUB_TOKEN]')
     .replace(/(authorization\s*[:=]\s*)(?:token|bearer)\s+[^\s,;]+/gi, '$1[REDACTED]')
     .replace(/([?&](?:token|access_token)=)[^&#\s]+/gi, '$1[REDACTED]')
+    .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi, '[REDACTED_IMAGE_DATA]')
     .slice(0, 4000);
 }
 

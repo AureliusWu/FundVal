@@ -740,6 +740,62 @@ html, body {
   color: var(--down) !important;
 }
 
+/* ── local screenshot import ────────────────────── */
+.ocr-import-entry {
+  margin: 14px 0 18px;
+  padding: 14px;
+  border: 1px solid #d9e5ef;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fbfdfd, #f1f7f7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ocr-entry-copy { min-width: 0; }
+.ocr-entry-kicker {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.ocr-entry-copy h2,
+.ocr-dialog-head h1,
+.ocr-dialog-head h2 {
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+.ocr-entry-copy p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.ocr-entry-btn,
+.ocr-primary-btn,
+.ocr-secondary-btn,
+.ocr-close-btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+.ocr-entry-btn {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.ocr-entry-btn:active,
+.ocr-primary-btn:active { opacity: .82; }
+
 /* ── profit rate ─────────────────────────────────── */
 .profit-rate {
   font-size: 10px;

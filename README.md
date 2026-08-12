@@ -1,8 +1,8 @@
 # 蜉蝣基金 (FundVal)
 
-当前版本：`13.0.0`。
+当前版本：`14.0.0`。
 
-## V13 架构
+## V14 架构
 
 - 页面先读本地缓存，再通过司南服务端代理批量刷新；单只失败不会阻塞或清空其他基金。
 - 启动前执行持仓与缓存一致性检查；主数据损坏时自动尝试从最近两份备份恢复。
@@ -19,10 +19,15 @@
 - 官方盘中估值不可用时，国内基金按最新正式净值与十大重仓当日行情贡献估算；展示行情时间、覆盖率并明确说明不是官方净值。
 - Gist 使用 Schema 2；兼容旧数组数据和更高版本 Schema，覆盖和导入前自动生成本地备份。
 - `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate。
-- 使用 ES Modules 和 Node 内置测试，无第三方运行时依赖。
+- 使用 ES Modules 和 Node 内置测试；基础行情页面保持零框架。支付宝截图导入以 `@paddleocr/paddleocr-js@0.4.2` + PP-OCRv6 tiny 为主引擎，仅在用户选择图片后按需加载同源静态资源；Tesseract 只保留为降级/回归链路。
 - 启动链、云同步、备选行情和海外模型配置均有超时与降级保护；不因单个悬挂请求卡住后续刷新。
 - 缓存与持仓指纹绑定，数量或成本变化后不会离线展示旧市值/收益；过期缓存明确标为“旧数据”。
 - 过季模型、未来时间、缺失时间或过期成分行情不会冒充实时估值，自动回退到最近正式净值。
+- 新增支付宝 / 蚂蚁财富基金持仓截图导入：图片在不加载主盘行情脚本、带严格同源 CSP 的独立页面本机预处理和识别，不上传、不写入本地存储/诊断日志；识别结果必须逐项确认后才会写入持仓。确认后的结构化持仓仍遵循用户已配置的 Gist 同步设置，截图和 OCR 原文不会上传。
+- 当前本地长截图验收使用 1440×9317 的真实支付宝持仓截图：重建 15 条记录，10 条自动匹配、5 条进入人工确认且默认跳过；持有金额、昨日收益、持有收益、持有收益率四类数值均重建 15/15。本机桌面 Chromium/IAB 完整处理约 18.3 秒，全程只请求同源 OCR 静态资源，未上传截图。
+- 当前 PaddleOCR 主链构建资源总量为 120,057,620 bytes（Tesseract 降级/回归资产另计）；两条 OCR 链路均不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。`/assets/ocr/` 走 SW network-only，避免再复制约 120 MB 到 Cache Storage（浏览器仍可按 HTTP 头缓存）。该证据仅代表本地桌面验证，Android、iOS/已安装 PWA 与生产 Pages 仍需发布前/发布后验收。
+- OCR 只把“持有金额、累计收益”等字段作为快照核对信息。必须填写真实持有份额，才允许按 `（持有金额 − 累计收益）÷ 份额` 换算成本净值；不会按估值反推份额，也不会删除截图外持仓。
+- 基金目录为构建时生成的同源 `data/fund-catalog.json`；页面只在截图确认时按需读取该 JSON，不执行第三方 JSONP。
 
 运行检查：
 
@@ -48,18 +53,26 @@ node --check js/resilience.js
 - 基金卡片展开：通过只读代理展示带披露截止日期的十大重仓股、基金信息、费率。
 - 0 份额关注模式。
 - GitHub Gist 云同步、JSON 导入导出。
+- 支付宝基金持仓截图本地 OCR 导入与人工确认同步。
 - PWA 安装、离线缓存、更新提示、14:30 本地通知。
 
 ## 技术
 
-零框架单页应用，无构建流程：
+零框架静态单页应用；构建仅复制静态资源并生成 Pages 产物：
 
 - `index.html`：页面结构与 PWA 入口。
+- `ocr-import.html`：隔离的支付宝截图本地识别页面，不加载主盘行情脚本。
 - `js/bootstrap.js`：启动顺序与启动前完整性检查。
 - `js/resilience.js`：自动恢复、缓存清理、错误日志和网络状态保护。
 - `js/integrity.js`：可测试的持仓、缓存与诊断纯函数。
 - `js/app.js`：全部业务逻辑。
-- `css/style.css`：样式与响应式布局。
+- `js/paddle-local-ocr.js`：File/Blob 仅本地校验、PaddleOCR/PP-OCRv6 tiny 分片识别及 Worker 受控释放。
+- `js/ocr-table-layout.js`：依据文字坐标重建支付宝持仓双列表格与四类数值字段。
+- `js/local-ocr.js`：Tesseract 本地预处理与降级/回归链路，不是 v14 长截图主引擎。
+- `js/alipay-ocr-parser.js`：支付宝持仓 OCR 纯解析与 A/C 份额防误配。
+- `js/holding-import-plan.js`：导入确认、真实份额校验和批量持仓映射纯函数。
+- `js/fund-catalog.js`：按需读取同源基金目录，不执行第三方脚本。
+- `css/style.css`：基础行情页样式与响应式布局；`css/ocr.css`：按需 OCR 独立页样式。
 - `manifest.json`：PWA 名称、图标、启动配置。
 - `sw.js`：Service Worker 缓存和通知。
 
@@ -70,15 +83,26 @@ node --check js/resilience.js
 - 东方财富 pingzhongdata：基金历史净值趋势，用于最新净值涨跌口径。
 - 东方财富 fundf10：十大重仓经只读 Worker 代理获取并保留披露截止日期；基金信息、费率来自基金详情元数据。
 - 腾讯行情：指数与海外模型成分行情。
+- 支付宝截图导入：图片和 OCR 在本机处理；基金名称/代码只与同源静态基金目录匹配。目录维护源为东方财富公开基金目录数据，构建前以 `npm run refresh:fund-catalog` 显式更新，不在用户导入时请求第三方脚本。
 
 ## 开发
 
-本项目没有运行时 npm 依赖。常用检查：
+基础行情页没有框架运行时依赖。OCR 主链使用固定版本的 PaddleOCR JS 0.4.2 与 PP-OCRv6 tiny 同源静态资源，且只在用户选择截图后加载；Tesseract 仅用于降级/回归。构建阶段会校验模型摘要，并用相对构建基址生成、校验适配 GitHub Pages 项目子路径的 Paddle Worker URL。常用检查：
 
 ```bash
 npm test
 npm run check
+npm run build
+npm run serve
 ```
+
+更新本地基金目录（仅维护/发布前执行，不会处理用户截图）：
+
+```bash
+npm run refresh:fund-catalog
+```
+
+第三方 OCR 组件、版本和许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 推送 `main` 分支后，GitHub Actions 会执行锁定安装、测试、语法检查、静态产物校验并部署 GitHub Pages。
 

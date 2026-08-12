@@ -108,6 +108,7 @@ export function runStartupIntegrityChecks(storage = localStorage, now = Date.now
     holdings: result.holdings,
     recovered: result.recovered,
     recoverySource: result.source,
+    preservePrimary: Boolean(result.preservePrimary),
     cacheRepaired: cacheResult.changed,
     orphanCacheCount: orphanKeys.length
   };
