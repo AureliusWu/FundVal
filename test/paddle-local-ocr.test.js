@@ -5,9 +5,11 @@ import {
   PADDLE_LOCAL_OCR_ASSETS,
   PADDLE_ROW_OCR_REGION,
   PADDLE_SOURCE_OCR_REGION,
+  assertPaddleOcrBrowserCapabilities,
   createPaddleOcrOptions,
   isSupportedPaddleOcrImage,
   mapPaddlePolygonToImage,
+  missingPaddleOcrBrowserCapabilities,
   normalizePaddleOcrItems,
   paddleItemIsInTileCore,
   planPaddleRowOcrTiles,
@@ -24,12 +26,53 @@ test('accepts only a local Blob with a supported screenshot type', () => {
   assert.throws(() => validatePaddleOcrImage(json));
 });
 
+test('defers generic Android file metadata to the local image signature', async () => {
+  const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+  const unnamed = new Blob([pngHeader]);
+  const octetStream = new Blob([pngHeader], { type: 'application/octet-stream' });
+  Object.defineProperty(octetStream, 'name', { value: 'content' });
+  assert.equal(isSupportedPaddleOcrImage(unnamed), true);
+  assert.equal(isSupportedPaddleOcrImage(octetStream), true);
+  await assert.doesNotReject(() => verifyPaddleOcrImageSignature(unnamed));
+  await assert.doesNotReject(() => verifyPaddleOcrImageSignature(octetStream));
+});
+
+test('rejects clearly non-image MIME types or filename suffixes before decoding', () => {
+  const jsonWithImageName = new Blob(['{}'], { type: 'application/json' });
+  Object.defineProperty(jsonWithImageName, 'name', { value: 'holding.png' });
+  const imageWithTextName = new Blob(['image'], { type: 'image/png' });
+  Object.defineProperty(imageWithTextName, 'name', { value: 'holding.txt' });
+  assert.equal(isSupportedPaddleOcrImage(jsonWithImageName), false);
+  assert.equal(isSupportedPaddleOcrImage(imageWithTextName), false);
+  assert.throws(() => validatePaddleOcrImage(jsonWithImageName));
+  assert.throws(() => validatePaddleOcrImage(imageWithTextName));
+});
+
 test('checks the local binary signature before image decoding', async () => {
   const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
   const valid = new Blob([pngHeader], { type: 'image/png' });
   const renamedSvg = new Blob(['<svg></svg>'], { type: 'image/png' });
   await assert.doesNotReject(() => verifyPaddleOcrImageSignature(valid));
   await assert.rejects(() => verifyPaddleOcrImageSignature(renamedSvg));
+});
+
+test('preflights the browser capabilities required by the Android OCR path', () => {
+  const supportedRuntime = {
+    Worker() {},
+    createImageBitmap() {},
+    OffscreenCanvas() {},
+    WebAssembly: {},
+    structuredClone() {},
+  };
+  assert.deepEqual(missingPaddleOcrBrowserCapabilities(supportedRuntime), []);
+  assert.equal(assertPaddleOcrBrowserCapabilities(supportedRuntime), true);
+
+  const unsupportedRuntime = { ...supportedRuntime, OffscreenCanvas: undefined, structuredClone: undefined };
+  assert.deepEqual(missingPaddleOcrBrowserCapabilities(unsupportedRuntime), ['OffscreenCanvas', 'structuredClone']);
+  assert.throws(
+    () => assertPaddleOcrBrowserCapabilities(unsupportedRuntime),
+    /Android.*最新版 Chrome/
+  );
 });
 
 test('plans bounded whole-row tiles for the long holdings-list region', () => {

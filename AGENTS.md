@@ -1,6 +1,6 @@
 # AGENTS.md
 
-## 当前架构（V14.0.0）
+## 当前架构（V14.0.1）
 
 - `js/bootstrap.js` 负责启动顺序，必须先执行迁移与完整性检查，再加载 `app.js`。
 - `js/resilience.js` 负责本地数据恢复、缓存清理、错误日志和跨标签页提示。
@@ -14,6 +14,7 @@
 - `js/overseas-model.js` 读取 `data/overseas-models.json`，不得回填硬编码基金规则。
 - `js/accuracy.js` 记录海外模型预测、官方净值结算和 MAE/方向准确率。
 - `js/paddle-local-ocr.js` 只接受本地 `File`/`Blob`，按需加载 `@paddleocr/paddleocr-js@0.4.2`、PP-OCRv6 tiny、同源 Worker/WASM/模型并输出坐标块；不得接受 URL、Base64 或上传截图。
+- PaddleOCR 页面模块必须保持轻量，重型 SDK/OpenCV 只允许在单个 Worker 中加载；Android 识别必须单任务串行、批次为 1，并通过 transferable `ImageBitmap` 传递分片。
 - `js/ocr-table-layout.js` 负责按坐标重建支付宝长截图中的基金行和四类数值字段；缺失字段必须保持 `null`，不得跨行猜测。
 - `js/local-ocr.js` 仅保留 Tesseract 降级/回归链路，不得被写回为 v14 长截图主方案。
 - `ocr-import.html` 必须维持严格同源 CSP，且不得加载 `app.js`、`bootstrap.js`、行情或第三方 JSONP；截图和 OCR 原文只能存在于该页内存。

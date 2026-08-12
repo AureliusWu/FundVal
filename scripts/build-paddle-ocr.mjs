@@ -35,11 +35,13 @@ const VENDOR_MODEL_DIRECTORY = 'vendor/paddle-ocr/models';
 const PADDLE_OUTPUT_DIRECTORY = 'assets/ocr/paddle';
 const paddleEntry = resolve(scriptDirectory, 'paddle-ocr-entry.mjs');
 
-// The official package constructs its module Worker from a path beneath its
-// ESM entry. Vite's default absolute base silently turns that into `/assets/`
-// during production builds, which is wrong for our nested OCR engine output.
-const ROOT_ABSOLUTE_WORKER_URL = /new URL\(\s*["']\/assets\/worker-entry-[^"']+\.js["']\s*,\s*import\.meta\.url\s*\)/;
-const RELATIVE_WORKER_URL = /new URL\(\s*["']((?:\.\/)?assets\/worker-entry-[^"']+\.js)["']\s*,\s*import\.meta\.url\s*\)/;
+// FundVal owns the outer module Worker. Vite's default absolute base would
+// silently make it deployment-root relative, which breaks GitHub Pages project
+// paths. The page-facing facade references only our pinned copy of the official
+// protocol Worker.
+const ROOT_ABSOLUTE_WORKER_URL = /new URL\(\s*["']\/assets\/fundval-paddle-worker\.js["']\s*,\s*import\.meta\.url\s*\)/;
+const RELATIVE_WORKER_URL = /new URL\(\s*["']((?:\.\/)?assets\/fundval-paddle-worker\.js)["']\s*,\s*import\.meta\.url\s*\)/;
+const MAX_PAGE_FACADE_BYTES = 32 * 1024;
 
 function requirePathInsideRoot(root, candidate, description) {
   const resolvedRoot = resolve(root);
@@ -101,6 +103,21 @@ export function assertRelativePaddleWorkerUrl(emittedEntry) {
     throw new Error('PaddleOCR build did not emit the expected same-origin module Worker URL.');
   }
   return workerReference;
+}
+
+/**
+ * Keep the page-side module small enough that Paddle/OpenCV cannot be bundled
+ * there unnoticed. The heavy SDK belongs exclusively to the owned Worker.
+ */
+export function assertLightweightPaddleEntry(emittedEntry) {
+  const bytes = Buffer.byteLength(emittedEntry, 'utf8');
+  if (bytes > MAX_PAGE_FACADE_BYTES) {
+    throw new Error(`PaddleOCR page facade is ${bytes} bytes; expected at most ${MAX_PAGE_FACADE_BYTES}.`);
+  }
+  if (!/new Worker\(/.test(emittedEntry)) {
+    throw new Error('PaddleOCR page facade did not create its owned module Worker.');
+  }
+  return bytes;
 }
 
 /**
@@ -171,8 +188,27 @@ export async function buildPaddleOcrAssets({ root = projectRoot, output = resolv
     logLevel: 'warn',
   });
 
+  // The package's exact-pinned prebuilt Worker already implements the public
+  // worker-transport protocol. Copy it verbatim: trying to bundle this deep,
+  // side-effect-only artifact is tree-shaken by Vite because the package marks
+  // itself sideEffects:false.
+  const engineAssetsDirectory = resolve(paddleOutput, 'engine/assets');
+  await mkdir(engineAssetsDirectory, { recursive: true });
+  const officialWorkerPath = requirePathInsideRoot(
+    normalizedRoot,
+    resolve(normalizedRoot, 'node_modules/@paddleocr/paddleocr-js/dist/assets/worker-entry-C9UNuyOJ.js'),
+    'PaddleOCR official Worker source'
+  );
+  const officialWorker = await readFile(officialWorkerPath);
+  if (officialWorker.byteLength < 10_000_000 || !officialWorker.includes(Buffer.from('worker-transport-request'))) {
+    throw new Error('PaddleOCR official Worker source failed its pinned protocol/build sanity check.');
+  }
+  await writeFile(resolve(engineAssetsDirectory, 'fundval-paddle-worker.js'), officialWorker);
+
   const engineEntryPath = resolve(paddleOutput, 'engine/paddle-ocr-engine.mjs');
-  const workerReference = assertRelativePaddleWorkerUrl(await readFile(engineEntryPath, 'utf8'));
+  const emittedEntry = await readFile(engineEntryPath, 'utf8');
+  const workerReference = assertRelativePaddleWorkerUrl(emittedEntry);
+  const facadeBytes = assertLightweightPaddleEntry(emittedEntry);
   const emittedWorkerPath = requirePathInsideRoot(
     resolve(paddleOutput, 'engine'),
     resolve(dirname(engineEntryPath), workerReference),
@@ -183,10 +219,22 @@ export async function buildPaddleOcrAssets({ root = projectRoot, output = resolv
   } catch {
     throw new Error(`PaddleOCR build emitted a missing Worker resource: ${workerReference}`);
   }
+  const emittedWorker = await readFile(emittedWorkerPath);
+  const workerProtocolMarkers = [
+    'worker-transport-request',
+    'worker-transport-response',
+    'sourcePayloadToMat',
+  ];
+  if (emittedWorker.byteLength < 10_000_000 || workerProtocolMarkers.some(marker => !emittedWorker.includes(Buffer.from(marker)))) {
+    throw new Error('PaddleOCR emitted Worker is incomplete or missing the pinned worker protocol.');
+  }
 
   return {
     output: relative(normalizedRoot, paddleOutput),
     entry: relative(normalizedRoot, resolve(paddleOutput, 'engine/paddle-ocr-engine.mjs')),
+    worker: relative(normalizedRoot, emittedWorkerPath),
+    workerBytes: emittedWorker.byteLength,
+    facadeBytes,
     models: verifiedModels.map(({ filename }) => filename),
     ortRuntimeFiles: [...PADDLE_ORT_RUNTIME_FILES],
   };

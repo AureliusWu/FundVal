@@ -8,6 +8,14 @@ const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_SOURCE_IMAGE_PIXELS = 16 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const ACCEPTED_IMAGE_SUFFIXES = ['.png', '.jpg', '.jpeg', '.webp'];
+const GENERIC_BINARY_TYPES = new Set(['', 'application/octet-stream']);
+const REQUIRED_BROWSER_CAPABILITIES = Object.freeze([
+  ['Worker', value => typeof value === 'function'],
+  ['createImageBitmap', value => typeof value === 'function'],
+  ['OffscreenCanvas', value => typeof value === 'function'],
+  ['WebAssembly', value => value != null && (typeof value === 'object' || typeof value === 'function')],
+  ['structuredClone', value => typeof value === 'function'],
+]);
 
 export const PADDLE_ROW_OCR_REGION = Object.freeze({
   left: 0.02,
@@ -74,8 +82,11 @@ function fileSuffix(file) {
 
 export function isSupportedPaddleOcrImage(file) {
   if (!isBlob(file)) return false;
-  return ACCEPTED_IMAGE_TYPES.has(String(file.type || '').toLowerCase())
-    || ACCEPTED_IMAGE_SUFFIXES.includes(fileSuffix(file));
+  const type = String(file.type || '').trim().toLowerCase();
+  const suffix = fileSuffix(file);
+  const typeIsCompatible = ACCEPTED_IMAGE_TYPES.has(type) || GENERIC_BINARY_TYPES.has(type);
+  const suffixIsCompatible = !suffix || ACCEPTED_IMAGE_SUFFIXES.includes(suffix);
+  return typeIsCompatible && suffixIsCompatible;
 }
 
 export function validatePaddleOcrImage(file) {
@@ -111,6 +122,21 @@ export async function verifyPaddleOcrImageSignature(file) {
     if (error instanceof PaddleLocalOcrError) throw error;
     throw new PaddleLocalOcrError('无法验证截图文件，请重新选择。');
   }
+}
+
+export function missingPaddleOcrBrowserCapabilities(runtime = globalThis) {
+  const target = runtime || {};
+  return REQUIRED_BROWSER_CAPABILITIES
+    .filter(([name, isAvailable]) => !isAvailable(target[name]))
+    .map(([name]) => name);
+}
+
+export function assertPaddleOcrBrowserCapabilities(runtime = globalThis) {
+  const missing = missingPaddleOcrBrowserCapabilities(runtime);
+  if (missing.length) {
+    throw new PaddleLocalOcrError('当前浏览器缺少本地识别所需功能。Android 请升级到最新版 Chrome 后重试。');
+  }
+  return true;
 }
 
 function positiveInteger(value) {
@@ -336,6 +362,7 @@ function sortTokensInReadingOrder(tokens) {
  * before leaving the dedicated import page.
  */
 export async function recognizeAlipayPaddleImage(file, { onProgress } = {}) {
+  assertPaddleOcrBrowserCapabilities();
   await verifyPaddleOcrImageSignature(file);
   report(onProgress, 'preparing', 0.04);
 

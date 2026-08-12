@@ -1,5 +1,14 @@
 # Changelog
 
+## 14.0.1 - 2026-08-12
+
+- 修复 GitHub Pages 同时启用仓库根目录 Jekyll 与 Actions artifact 发布时的覆盖竞态；发布源统一为 GitHub Actions，并在 CI 中校验 Pages 模式及部署后 OCR 引擎、模型、ORT/WASM 资源均返回成功。
+- 修复 Android 系统文件选择器可能返回空 MIME、`application/octet-stream` 或无后缀图片而被提前拒绝的问题，最终仍以本地图片魔数校验格式。
+- 增加 Android 浏览器能力预检；缺少 Worker、`createImageBitmap`、OffscreenCanvas、WebAssembly 或 `structuredClone` 时，在下载大模型前提示升级最新版 Chrome。
+- OCR 改为单任务锁，识别期间禁用选图、重试与确认，避免重复点击并行启动多个高内存 Worker。
+- PaddleOCR 主线程包由约 10.49 MB 缩减为约 4.9 KB，重型 Paddle/OpenCV 只在单个官方协议 Worker 中运行；分片 `ImageBitmap` 直接转移，检测、识别和管线批次均降为 1，降低 Android 峰值内存。
+- 本地真实 1440×9317 长截图回归仍得到 15 条候选、10 条自动匹配、5 条人工核对；实体 Android 设备验证仍明确保留为 `NOT_RUN`。
+
 ## 14.0.0 - 2026-08-12
 
 - 新增支付宝基金持仓截图本地 OCR 导入：图片仅在独立的 `ocr-import.html` 页面内存中预处理和识别，选图后才加载 `@paddleocr/paddleocr-js@0.4.2`、PP-OCRv6 tiny、同源 Worker/ONNX Runtime/WASM/模型；不上传、不保存截图或完整 OCR 文本。Tesseract 仅保留为降级/回归链路。

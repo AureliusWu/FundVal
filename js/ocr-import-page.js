@@ -11,6 +11,7 @@ const OCR_IMPORT_PENDING_KEY = 'fuyu_ocr_import_pending_v1';
 
 let activeSession = 0;
 let paddleOcrModulePromise = null;
+let activeRecognitionTask = null;
 let state = { rows: [], catalogWarning: '' };
 
 function element(id) {
@@ -45,6 +46,27 @@ function setStatus(message, { working = false, error = false } = {}) {
   status.textContent = message;
   status.classList.toggle('working', working);
   status.classList.toggle('error', error);
+}
+
+function setRecognitionControlsDisabled(disabled) {
+  ['ocr-image-input', 'ocr-import-pick', 'ocr-import-retry', 'ocr-import-confirm'].forEach(id => {
+    const control = element(id);
+    if (control) control.disabled = disabled;
+  });
+}
+
+function beginRecognitionTask() {
+  if (activeRecognitionTask) return null;
+  const task = { session: ++activeSession };
+  activeRecognitionTask = task;
+  setRecognitionControlsDisabled(true);
+  return task;
+}
+
+function finishRecognitionTask(task) {
+  if (activeRecognitionTask !== task) return;
+  activeRecognitionTask = null;
+  setRecognitionControlsDisabled(false);
 }
 
 function currentHoldings() {
@@ -242,8 +264,10 @@ function showValidationErrors(errors) {
 }
 
 async function processSelectedFile(file) {
-  const session = ++activeSession;
-  if (!file) return;
+  if (!file || activeRecognitionTask) return;
+  const task = beginRecognitionTask();
+  if (!task) return;
+  const { session } = task;
   element('ocr-import-confirm').hidden = true;
   element('ocr-import-retry').hidden = false;
   element('ocr-import-pick').hidden = true;
@@ -293,10 +317,13 @@ async function processSelectedFile(file) {
       ? error.message
       : '本地识别失败，未改动任何持仓。';
     setStatus(safeMessage, { error: true });
+  } finally {
+    finishRecognitionTask(task);
   }
 }
 
 async function confirmImport() {
+  if (activeRecognitionTask) return;
   if (!state.rows.length) return;
   if (!element('ocr-import-ack')?.checked) {
     setStatus('请先确认已核对基金身份和真实持有份额。', { error: true });
@@ -396,6 +423,7 @@ function editCandidateIdentity(event) {
 }
 
 function requestFile() {
+  if (activeRecognitionTask) return;
   element('ocr-image-input').click();
 }
 

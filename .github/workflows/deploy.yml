@@ -30,6 +30,12 @@ jobs:
       with:
         node-version: 22
         cache: npm
+    - name: Verify Pages publishing mode
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        test "$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.build_type')" = workflow
     - name: Install locked dependencies
       run: npm ci
     - name: Test and syntax check
@@ -83,3 +89,26 @@ jobs:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Smoke-test deployed OCR assets
+        shell: bash
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          base="${SITE_URL%/}"
+          paths=(
+            "ocr-import.html"
+            "js/paddle-local-ocr.js"
+            "assets/ocr/paddle/engine/paddle-ocr-engine.mjs"
+            "assets/ocr/paddle/engine/assets/fundval-paddle-worker.js"
+            "assets/ocr/paddle/models/integrity.json"
+            "assets/ocr/paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar"
+            "assets/ocr/paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar"
+            "assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.mjs"
+            "assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm"
+          )
+          for path in "${paths[@]}"; do
+            curl --fail --silent --show-error --location --head \
+              --retry 12 --retry-all-errors --retry-delay 5 \
+              "${base}/${path}?run=${GITHUB_RUN_ID}" > /dev/null
+          done

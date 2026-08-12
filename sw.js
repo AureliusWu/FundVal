@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v14.0.0';
+const CACHE = 'fuyu-v14.0.1';
 const CACHE_PREFIX = 'fuyu-v';
 const CORE = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',

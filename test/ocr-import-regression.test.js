@@ -33,6 +33,14 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.doesNotMatch(importPage, /bootstrap\.js|app\.js|https?:\/\/|preconnect/i);
   assert.match(page, /import\('\.\/paddle-local-ocr\.js'\)/);
   assert.match(page, /reconstructOcrTableLayout/);
+  assert.match(page, /let activeRecognitionTask = null/);
+  assert.match(page, /if \(!file \|\| activeRecognitionTask\) return/);
+  assert.match(page, /setRecognitionControlsDisabled\(true\)/);
+  assert.match(page, /finally \{\s*finishRecognitionTask\(task\)/);
+  assert.match(page, /\['ocr-image-input', 'ocr-import-pick', 'ocr-import-retry', 'ocr-import-confirm'\]/);
+  assert.match(paddleOcr, /assertPaddleOcrBrowserCapabilities\(\)/);
+  assert.match(paddleOcr, /Worker[\s\S]*createImageBitmap[\s\S]*OffscreenCanvas[\s\S]*WebAssembly[\s\S]*structuredClone/);
+  assert.match(paddleOcr, /Android 请升级到最新版 Chrome/);
   assert.doesNotMatch(page, /sourceHint\s*:/);
   assert.doesNotMatch(page, /document\.createElement\(['"]script|https?:\/\/qt\.gtimg|https?:\/\/fund\.eastmoney/i);
   assert.match(page, /backupHoldings\(previousHoldings\)/);
@@ -74,6 +82,12 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.match(workflow, /site\/assets\/ocr\/tessdata\/chi_sim\.traineddata\.gz/);
   assert.match(workflow, /site\/assets\/ocr\/paddle\/engine\/paddle-ocr-engine\.mjs/);
   assert.match(workflow, /PP-OCRv6_tiny_det_onnx_infer\.tar/);
+  assert.match(workflow, /Verify Pages publishing mode/);
+  assert.match(workflow, /\.build_type['"]?\)" = workflow/);
+  assert.match(workflow, /Smoke-test deployed OCR assets/);
+  assert.match(workflow, /engine\/assets\/fundval-paddle-worker\.js/);
+  assert.match(workflow, /ort-wasm-simd-threaded\.jsep\.wasm/);
+  assert.match(workflow, /--retry 12 --retry-all-errors --retry-delay 5/);
   const core = sw.slice(sw.indexOf('const CORE'), sw.indexOf('self.addEventListener'));
   assert.doesNotMatch(core, /assets\/ocr/);
   assert.match(sw, /url\.pathname\.includes\('\/assets\/ocr\/'\)[\s\S]*networkOnly\(event\.request\)/);
