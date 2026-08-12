@@ -1,6 +1,6 @@
 # Changelog
 
-## 14.0.0 - 2026-08-12（发布待完成）
+## 14.0.0 - 2026-08-12
 
 - 新增支付宝基金持仓截图本地 OCR 导入：图片仅在独立的 `ocr-import.html` 页面内存中预处理和识别，选图后才加载 `@paddleocr/paddleocr-js@0.4.2`、PP-OCRv6 tiny、同源 Worker/ONNX Runtime/WASM/模型；不上传、不保存截图或完整 OCR 文本。Tesseract 仅保留为降级/回归链路。
 - 支持当前支付宝生态“蚂蚁财富”基金持有双列表格：识别 `金额/昨日收益` 与 `持有收益/率` 的行内顺序，仍要求人工确认。
@@ -11,7 +11,7 @@
 - 增加图片 data URL 诊断脱敏、同源 OCR 资产构建/许可证校验及 `npm run build` 静态 Pages 构建。
 - 修复 PaddleOCR 构建产物中 Worker 根绝对路径在 GitHub Pages 项目子路径下失效的问题，通过相对构建基址生成并校验模块相对路径。
 - 本地桌面 Chromium/IAB 已用 1440×9317 的真实支付宝长截图完成验证：重建 15 条持仓，10 条自动匹配、5 条需人工确认且默认跳过，四类数值字段 15/15，完整处理约 18.3 秒；浏览器只访问同源静态资源，无截图上传。
-- 当前 PaddleOCR 主链构建资源总量为 120,057,620 bytes（Tesseract 降级/回归资产另计），两条 OCR 链路均保持首屏零加载且不进入 Service Worker `CORE` 预缓存。当前状态为 `LOCAL_VALIDATED / RELEASE_PENDING`；Android、iOS/已安装 PWA 和生产 Pages 尚未验证。
+- 当前 PaddleOCR 主链构建资源总量为 120,057,620 bytes（Tesseract 降级/回归资产另计），两条 OCR 链路均保持首屏零加载且不进入 Service Worker `CORE` 预缓存。发布状态为 `DEPLOYED / DEVICE_VALIDATION_PENDING`：生产 Pages 已通过真实长图复验，Android、iOS/已安装 PWA 实机仍未验证。
 - OCR 大体积运行资源改为 Service Worker network-only；Cache Storage 配额不足不会拖垮成功请求或淘汰应用核心缓存。
 - 导入保存前先持久化无敏感数据的待同步恢复标志，避免主持仓已写入但刷新/Gist 安排丢失。
 
