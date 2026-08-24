@@ -85,8 +85,11 @@ test('does not replace a genuine current upstream estimate', () => {
 test('normalizes Eastmoney and Tencent quote timestamps to China time', () => {
   assert.equal(formatChinaQuoteTime(1785139899), '2026-07-27 16:11:39');
   assert.equal(parseTencentQuoteTime('20260727161439'), '2026-07-27 16:14:39');
+  assert.equal(normalizeTencentQuoteTime('20260727160001', 'usQQQ'), '2026-07-28 04:00:01');
   assert.equal(normalizeTencentQuoteTime('2026-07-27 16:00:01', 'usQQQ'), '2026-07-28 04:00:01');
   assert.equal(normalizeTencentQuoteTime('2026-01-27 16:00:01', 'usQQQ'), '2026-01-28 05:00:01');
+  assert.equal(normalizeTencentQuoteTime('2026-08-24 14:00:13', 'kr000660'), '2026-08-24 13:00:13');
+  assert.equal(normalizeTencentQuoteTime('2026-08-24 00:30:00', 'jp285A'), '2026-08-23 23:30:00');
   assert.equal(normalizeTencentQuoteTime('2026/08/07 16:08:40', 'r_hkHSTECH'), '2026-08-07 16:08:40');
   assert.equal(parseTencentQuoteTime('bad'), '');
 });

@@ -46,11 +46,18 @@ function localTimeInZoneToUtc(parts, timeZone) {
 
 export function normalizeTencentQuoteTime(value, quoteCode = '') {
   const compact = parseTencentQuoteTime(value);
-  if (compact) return compact;
-  const text = String(value || '').trim();
+  const text = compact || String(value || '').trim();
   const match = text.match(/^(\d{4})[/-](\d{2})[/-](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (!match) return '';
-  if (!String(quoteCode).startsWith('us')) return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6] || '00'}`;
+  const code = String(quoteCode || '').toLowerCase();
+  const timeZone = code.startsWith('us')
+    ? 'America/New_York'
+    : code.startsWith('kr')
+      ? 'Asia/Seoul'
+      : code.startsWith('jp')
+        ? 'Asia/Tokyo'
+        : '';
+  if (!timeZone) return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6] || '00'}`;
   const utc = localTimeInZoneToUtc({
     year: Number(match[1]),
     month: Number(match[2]),
@@ -58,7 +65,7 @@ export function normalizeTencentQuoteTime(value, quoteCode = '') {
     hour: Number(match[4]),
     minute: Number(match[5]),
     second: Number(match[6] || '0'),
-  }, 'America/New_York');
+  }, timeZone);
   return formatChinaQuoteTime(utc / 1000);
 }
 

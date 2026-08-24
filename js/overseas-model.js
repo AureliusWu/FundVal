@@ -145,7 +145,10 @@ function modelIsPastQuarter(model, nowMs) {
   if (!match) return false;
   const modelQuarter = Number(match[1]) * 4 + Number(match[2]) - 1;
   const currentQuarter = chinaQuarterIndex(nowMs);
-  return currentQuarter != null && currentQuarter > modelQuarter;
+  // Public quarterly holdings are normally disclosed during the following
+  // calendar quarter. Keep the latest disclosed quarter usable for that lag,
+  // while an explicit valid_until remains the authoritative expiry above.
+  return currentQuarter != null && currentQuarter > modelQuarter + 1;
 }
 
 export function calculateOverseasEstimate(model, quotes, now = new Date()) {

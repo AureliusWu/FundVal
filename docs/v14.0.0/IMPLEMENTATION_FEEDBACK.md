@@ -1,7 +1,13 @@
-# 蜉蝣基金（FundVal）v14.0.1 实施反馈
+# 蜉蝣基金（FundVal）v14.0.2 实施反馈
 
 实施日期：2026-08-12
-发布状态：`DEPLOYED / DEVICE_VALIDATION_PENDING`
+发布状态：`RELEASE_CANDIDATE / DEPLOYMENT_PENDING / DEVICE_VALIDATION_PENDING`
+
+## v14.0.2 数据与 GitHub 维护补充（2026-08-24）
+
+- 海外模型季度规则改为允许最新已披露持仓滞后一季，同时继续拒绝两季前模型和过期/未知行情。
+- `539002`、`018147`、`012920` 已按 2026-06-30 披露重仓更新为 `2026q2-v1`，有效覆盖依次为 62.22%、62.22%、47.48%；配置保留了披露日期与上游查询来源，韩国/日本行情按当地 UTC+9 转换为北京时间。
+- GitHub Actions 已收紧为 job 级最小权限，官方 Actions 固定到 Node 24 主版本的完整提交 SHA，并新增 npm 安全审计、Dependabot 每周更新和构建产物完整性门禁。
 
 ## v14.0.1 Android 修复补充
 
@@ -11,7 +17,7 @@
 - 页面侧 OCR 引擎从 10,485,702 bytes 缩减至约 4.9 KB，Paddle/OpenCV 只在一个 11,341,486-byte Worker 中运行；ImageBitmap 直接转移，全部批次为 1。
 - 同一 1440×9317 真实长图在桌面 Chromium 修复后回归仍为 15 条候选、10 条自动匹配、5 条人工核对，控制台无错误；实体 Android 真机仍为 `NOT_RUN`，不得以桌面移动视口冒充真机通过。
 
-> 功能发布提交 `58c24e029235914516b02689b97979cc8bef99ab` 已推送至 `origin/main`，GitHub Actions/Pages 运行 `31563016789` 成功。生产桌面 Chromium 已完成真实长图复验；Android、iOS/已安装 PWA 仍无实机证据，因此不得宣称全部门禁通过。
+> v14.0.1 Android 修复最终提交 `8407bae3ba349a0e4163f0397e56ceb329fb3e00` 已推送至 `origin/main`，GitHub Actions/Pages 运行 `31612552767` 成功。生产桌面 Chromium 已完成真实长图复验；Android、iOS/已安装 PWA 仍无实机证据，因此不得宣称全部门禁通过。
 
 ## 结论摘要
 
@@ -63,21 +69,21 @@
 | 17 | 确认与合并策略 | 识别后不自动写入；逐条新增、更新或跳过。5 条不确定记录默认跳过；截图外旧持仓保持不变。确认批次先备份并建立无敏感数据的待同步恢复标志，再写入、清理相关缓存并安排既有 Gist 同步与估值刷新；恢复标志无法持久化时不会改动主持仓。 |
 | 18 | Android 测试 | `NOT_RUN`。未取得 Android Chrome 实机/PWA 证据。 |
 | 19 | iOS/Safari 测试 | `NOT_RUN`。未取得 iOS Safari 或已安装 PWA 实机证据。 |
-| 20 | PWA 测试 | `PARTIAL`：生产 manifest、`fuyu-v14.0.1` Service Worker 及 network-only OCR 路由已验证；移动端已安装 PWA 仍为 `NOT_RUN`。 |
+| 20 | PWA 测试 | `PENDING`：候选 manifest、`fuyu-v14.0.2` Service Worker 及 network-only OCR 路由已通过本地构建，待推送后以 Actions/Pages 生产证据为准；移动端已安装 PWA 仍为 `NOT_RUN`。 |
 | 21 | 首次 OCR 加载耗时 | 本机 localhost 首次选图到确认结果页约 18.3 秒。生产 Pages 冷加载也完成识别，但自动化在大资源下载期间多次超时，未取得可复现的精确总耗时；不得用本地 18.3 秒冒充线上或移动端性能。 |
 | 22 | 单张支付宝截图 OCR 耗时 | 1440×9317 真实长截图本机桌面 Chromium/IAB 完整处理约 18.3 秒；该数字不是 Android/iOS 性能承诺。 |
 | 23 | 真实截图结果 | 15 条记录重建；10 条自动匹配、5 条人工确认默认跳过；持有金额/昨日收益/持有收益/持有收益率四字段均为 15/15。未展示、记录或提交任何真实金额。 |
-| 24 | 单元测试 | v14.0.1 最终候选源码已运行 `npm test`，118 项全部通过。 |
-| 25 | Production build | v14.0.1 候选源码 `npm ci`、118 项测试、语法检查、生产构建、模型摘要、轻量门面、官方 Worker 相对路径及静态产物校验均通过；发布后 Actions/Pages 证据以最终运行结果为准。 |
+| 24 | 单元测试 | v14.0.2 最终候选源码已运行 `npm test`，123 项全部通过。 |
+| 25 | Production build | v14.0.2 候选源码 `npm ci`、123 项测试、语法检查、依赖安全审计、生产构建、模型摘要、轻量门面、官方 Worker 相对路径及静态产物校验均通过；发布后 Actions/Pages 证据以最终运行结果为准。 |
 | 26 | Network 隐私验证 | 本机流程仅访问 localhost/同源资源；生产真实图流程同样完成 15/10/5 结果。隔离页 CSP 仅允许同源连接，截图为本地 `File`，GitHub Pages 无上传端点；页面控制台无应用错误。自动化未导出逐请求 HAR，因此不把该证据扩展为移动端 Network 证明。 |
 | 27 | 图片上传 | 0。页面只接受本地 `File`/`Blob`，没有图片上传端点；真实图流程未观察到上传请求。 |
 | 28 | 收费 API | 0。没有 OCR API Key，没有百度/腾讯/阿里/Google/OpenAI/Gemini 等云 OCR 调用。 |
 | 29 | 新增运行费用 | OCR 0 元/次；持续新增费用 0 元；新增资源成本仅为现有 GitHub Pages 静态资源流量。 |
 | 30 | 已知限制 | 仅针对当前支付宝/蚂蚁财富持仓双列布局；微信压缩、页面版本变化、暗色模式和极端模糊图可能降低匹配率；生产首次加载体积大且可能需要较长等待；5 条模糊身份仍需人工选择；必须人工补充真实份额。 |
-| 31 | 未完成项 | Android Chrome、iOS Safari/已安装 PWA 的选图、OCR、确认、返回与同步流程仍为 `NOT_RUN`；生产桌面流程、线上 SW 和最终 CI 已完成。 |
+| 31 | 未完成项 | Android Chrome、iOS Safari/已安装 PWA 的选图、OCR、确认、返回与同步流程仍为 `NOT_RUN`；v14.0.1 的生产桌面流程、线上 SW 和最终 CI 已完成，v14.0.2 待本次发布后复验。 |
 | 32 | `git diff --stat` | 发布候选暂存区为 49 个文件、6456 行新增、39 行删除（另含两份 hash 固定的二进制模型）；范围均属于 v14 OCR、可靠性、构建、测试与文档。 |
 | 33 | `git status` | 提交前 `git status --short` 已确认仅包含预期 v14 变更；真实截图、参考资料路径、私钥与真实 Token 均未纳入。提交后须再确认工作区 clean。 |
-| 34 | 发布状态 | `DEPLOYED / DEVICE_VALIDATION_PENDING`。代码、CI、Pages 与生产桌面真实图已完成；因 Android/iOS/已安装 PWA 无实机证据，仍不标记 `READY_TO_RELEASE`。 |
+| 34 | 发布状态 | `RELEASE_CANDIDATE / DEPLOYMENT_PENDING / DEVICE_VALIDATION_PENDING`。v14.0.2 本地门禁已完成，CI/Pages 待推送后验证；因 Android/iOS/已安装 PWA 无实机证据，仍不标记 `READY_TO_RELEASE`。 |
 
 ## 真实长截图验收
 

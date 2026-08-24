@@ -1,5 +1,12 @@
 # Changelog
 
+## 14.0.2 - 2026-08-24
+
+- 修复海外模型把“上一季度最新已披露持仓”立即判为过期的问题；未配置 `valid_until` 时允许披露季度滞后一季，但两季前模型仍明确降级。
+- 将 `539002`、`018147` 和 `012920` 更新为 2026Q2 已披露的十大重仓穿透模型，在配置中保留披露日期和来源；新增韩国/日本行情当地时间转化，不让一小时偏移干扰新鲜度判断。
+- GitHub Actions 升级为 Node 24 对应的官方版本并固定完整提交 SHA；Pages/OIDC 写权限仅保留在部署 job，PR/build 只保留仓库读权限。
+- CI 新增官方 npm registry 高危漏洞审计，构建产物上传前补齐 Paddle Worker 与 ORT JSEP 文件检查；同时启用 GitHub 依赖漏洞告警和每周 npm/Actions 更新检查。
+
 ## 14.0.1 - 2026-08-12
 
 - 修复 GitHub Pages 同时启用仓库根目录 Jekyll 与 Actions artifact 发布时的覆盖竞态；发布源统一为 GitHub Actions，并在 CI 中校验 Pages 模式及部署后 OCR 引擎、模型、ORT/WASM 资源均返回成功。

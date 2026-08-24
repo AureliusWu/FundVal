@@ -1,46 +1,56 @@
 {
   "schema": 1,
-  "updated_at": "2026-07-11T00:00:00+08:00",
+  "updated_at": "2026-08-24T00:00:00+08:00",
   "models": {
     "539002": {
       "name": "建信新兴市场混合(QDII)A",
-      "version": "2026q1-v1",
-      "quarter": "2026Q1",
+      "version": "2026q2-v1",
+      "quarter": "2026Q2",
+      "report_date": "2026-06-30",
+      "source_name": "eastmoney_fund_archives",
+      "source_url": "https://sinan-estimate-push.ligugu69.workers.dev/holdings?code=539002",
       "label": "重仓穿透模型",
       "min_weight": 30,
       "legs": [
-        { "code": "usTSM", "weight": 10.26 }, { "code": "usNVDA", "weight": 10.14 },
-        { "code": "usEWY", "weight": 15.41 }, { "code": "usAVGO", "weight": 8.52 },
-        { "code": "usSNDK", "weight": 4.91 }, { "code": "usGLW", "weight": 4.29 },
-        { "code": "usWDC", "weight": 3.73 }, { "code": "usLITE", "weight": 3.58 },
-        { "code": "usMPWR", "weight": 3.49 }
+        { "code": "usTSM", "weight": 9.68 }, { "code": "usNVDA", "weight": 9.38 },
+        { "code": "kr000660", "weight": 8.94 }, { "code": "kr005930", "weight": 7.80 },
+        { "code": "usSNDK", "weight": 7.16 }, { "code": "usAVGO", "weight": 4.18 },
+        { "code": "usWDC", "weight": 4.18 }, { "code": "usMU", "weight": 3.99 },
+        { "code": "usLITE", "weight": 3.56 }, { "code": "usGLW", "weight": 3.35 }
       ]
     },
     "012920": {
       "name": "易方达全球成长精选混合(QDII)人民币A",
-      "version": "2026q1-v1",
-      "quarter": "2026Q1",
-      "label": "风格因子模型",
-      "min_weight": 100,
-      "scale": 1.4,
-      "bias": 0,
-      "legs": [
-        { "code": "usQQQ", "weight": 45 }, { "code": "usSOXX", "weight": 30 },
-        { "code": "sh000300", "weight": 25 }
-      ]
-    },
-    "018147": {
-      "name": "建信新兴市场优选混合(QDII)A",
-      "version": "2026q1-v1",
-      "quarter": "2026Q1",
+      "version": "2026q2-v1",
+      "quarter": "2026Q2",
+      "report_date": "2026-06-30",
+      "source_name": "eastmoney_fund_archives",
+      "source_url": "https://sinan-estimate-push.ligugu69.workers.dev/holdings?code=012920",
       "label": "重仓穿透模型",
       "min_weight": 30,
       "legs": [
-        { "code": "usTSM", "weight": 10.26 }, { "code": "usNVDA", "weight": 10.14 },
-        { "code": "usEWY", "weight": 15.41 }, { "code": "usAVGO", "weight": 8.52 },
-        { "code": "usSNDK", "weight": 4.91 }, { "code": "usGLW", "weight": 4.29 },
-        { "code": "usWDC", "weight": 3.73 }, { "code": "usLITE", "weight": 3.58 },
-        { "code": "usMPWR", "weight": 3.49 }
+        { "code": "usLRCX", "weight": 6.41 }, { "code": "jp285A", "weight": 5.89 },
+        { "code": "usTSM", "weight": 5.54 }, { "code": "usAMD", "weight": 4.96 },
+        { "code": "sz300502", "weight": 4.68 }, { "code": "sz300308", "weight": 4.61 },
+        { "code": "usSNDK", "weight": 4.46 }, { "code": "usINTC", "weight": 4.26 },
+        { "code": "sh688498", "weight": 3.34 }, { "code": "usASML", "weight": 3.33 }
+      ]
+    },
+    "018147": {
+      "name": "建信新兴市场混合(QDII)C",
+      "version": "2026q2-v1",
+      "quarter": "2026Q2",
+      "report_date": "2026-06-30",
+      "source_name": "eastmoney_fund_archives",
+      "source_url": "https://sinan-estimate-push.ligugu69.workers.dev/holdings?code=018147",
+      "label": "重仓穿透模型",
+      "min_weight": 30,
+      "legs": [
+        { "code": "usTSM", "weight": 9.68 }, { "code": "usNVDA", "weight": 9.38 },
+        { "code": "kr000660", "weight": 8.94 }, { "code": "kr005930", "weight": 7.80 },
+        { "code": "usSNDK", "weight": 7.16 }, { "code": "usAVGO", "weight": 4.18 },
+        { "code": "usWDC", "weight": 4.18 }, { "code": "usMU", "weight": 3.99 },
+        { "code": "usLITE", "weight": 3.56 }, { "code": "usGLW", "weight": 3.35 }
       ]
     }
   },

@@ -1,8 +1,5 @@
 name: Build and Deploy
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     branches: [ main ]
@@ -12,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: fundval-pages-${{ github.ref }}
@@ -23,21 +18,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
-        node-version: 22
+        node-version: 24
         cache: npm
-    - name: Verify Pages publishing mode
-      shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        test "$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.build_type')" = workflow
     - name: Install locked dependencies
       run: npm ci
+    - name: Audit dependencies
+      run: npm audit --audit-level=high --registry=https://registry.npmjs.org
     - name: Test and syntax check
       run: |
         npm test
@@ -66,14 +59,17 @@ jobs:
         test -f site/assets/ocr/licenses/clipper-lib-BSL-1.0.txt
         test -f site/assets/ocr/licenses/chi_sim-MIT.txt
         test -f site/assets/ocr/paddle/engine/paddle-ocr-engine.mjs
+        test -f site/assets/ocr/paddle/engine/assets/fundval-paddle-worker.js
         test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar
         test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar
         test -f site/assets/ocr/paddle/models/integrity.json
         test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.mjs
         test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.wasm
+        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.mjs
+        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm
         test -f site/THIRD_PARTY_NOTICES.md
     - name: Upload Pages artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
       with:
         path: site
 
@@ -82,13 +78,23 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Verify Pages publishing mode
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.build_type')" = workflow
       - name: Deploy GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
       - name: Smoke-test deployed OCR assets
         shell: bash
         env:

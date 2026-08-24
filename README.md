@@ -1,6 +1,6 @@
 # 蜉蝣基金 (FundVal)
 
-当前版本：`14.0.1`。
+当前版本：`14.0.2`。
 
 ## V14 架构
 
@@ -106,7 +106,7 @@ npm run refresh:fund-catalog
 
 第三方 OCR 组件、版本和许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-推送 `main` 分支后，GitHub Actions 会执行锁定安装、测试、语法检查、静态产物校验并部署 GitHub Pages。
+推送 `main` 分支后，GitHub Actions 会执行锁定安装、依赖安全审计、测试、语法检查、静态产物校验并部署 GitHub Pages；PR/build 仅有仓库读权限，Pages/OIDC 写权限只在部署 job 中授予。
 
 ## 项目关系
 
