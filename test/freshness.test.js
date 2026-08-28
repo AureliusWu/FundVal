@@ -9,6 +9,8 @@ test('parses upstream China time without replacing it with request time', () => 
 test('distinguishes markets and their refresh windows', () => {
   assert.equal(classifyFundMarket('恒生科技ETF'), 'hk');
   assert.equal(classifyFundMarket('纳斯达克100 QDII'), 'overseas');
+  assert.equal(classifyFundMarket('日经225指数'), 'jp');
+  assert.equal(classifyFundMarket('韩国综合指数'), 'kr');
   assert.equal(classifyFundMarket('沪深300指数'), 'cn-index');
   const chinaOpen = new Date('2026-07-22T02:00:00Z');
   assert.equal(refreshDelayForMarkets(['cn'], chinaOpen), 60_000);

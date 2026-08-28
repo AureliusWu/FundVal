@@ -4,8 +4,10 @@ import {
   appendDiagnostic,
   collectOrphanNavCacheKeys,
   mergeHoldingsByTimestamp,
+  normalizeOcrDiagnosticForDisplay,
   normalizeHoldings,
   reconcileFundCache,
+  selectSafeDiagnosticEvents,
   repairHoldingsState
 } from '../js/integrity.js';
 
@@ -96,4 +98,23 @@ test('diagnostics redact tokens and local image data while retaining a bounded h
   assert.match(result[0].message, /REDACTED_GITHUB_TOKEN/);
   assert.match(result[0].message, /REDACTED_IMAGE_DATA/);
   assert.doesNotMatch(result[0].message, /QUJDREVGR0g/);
+});
+
+test('diagnostic summary treats persisted entries as untrusted and emits fixed safe enums only', () => {
+  const token = 'ghp_abcdefghijklmnopqrstuvwxyz123456';
+  const path = 'C:\\Users\\person\\secret.png';
+  const events = selectSafeDiagnosticEvents([
+    { time: NOW, type: 'window_error', message: token },
+    { time: NOW, type: token },
+  ]);
+  assert.deepEqual(events.map(entry => entry.type), ['window_error', 'unknown']);
+  assert.doesNotMatch(JSON.stringify(events), /ghp_|secret\.png/i);
+
+  const ocr = normalizeOcrDiagnosticForDisplay({
+    backend: token,
+    errorCategory: path,
+    fallback: true,
+  });
+  assert.deepEqual(ocr, { backend: 'unknown', errorCategory: 'unknown', fallback: true });
+  assert.doesNotMatch(JSON.stringify(ocr), /ghp_|Users|secret\.png/i);
 });

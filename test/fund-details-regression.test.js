@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 test('fund details load holdings through the proxy instead of cross-site script injection', async () => {
   const source = await readFile(new URL('../js/app.js', import.meta.url), 'utf8');
-  assert.match(source, /fetchFundHoldings\(code\)/);
+  assert.match(source, /fetchFundHoldings\(code, \{ signal: opts\.signal, force: opts\.force \}\)/);
   assert.doesNotMatch(source, /FundArchivesDatas\.aspx/);
   assert.doesNotMatch(source, /window\.apidata/);
   assert.doesNotMatch(source, /type=(?:jjxx|jjfl)/);

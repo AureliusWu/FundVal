@@ -18,8 +18,31 @@ test('startup integrity checks preserve semantically invalid holdings instead of
   const storage = memoryStorage({ fuyu_holdings_v1: raw });
   const result = runStartupIntegrityChecks(storage, Date.parse('2026-08-08T00:00:00Z'));
 
-  assert.equal(result.recoverySource, 'semantic_invalid');
+  assert.equal(result.recoverySource, 'legacy_corrupt');
   assert.equal(result.preservePrimary, true);
+  assert.equal(result.transactionBlocked, true);
   assert.equal(storage.getItem('fuyu_holdings_v1'), raw);
   assert.equal(storage.getItem('fuyu_corrupt_holdings_last_v1'), raw);
+});
+
+test('startup recovers a corrupt legacy projection only through a verified repository backup', () => {
+  const raw = '{broken';
+  const storage = memoryStorage({
+    fuyu_holdings_v1: raw,
+    fuyu_backup_latest: JSON.stringify({
+      created_at: '2026-08-01T00:00:00.000Z',
+      holdings: [{
+        code: '000002', name: '备份基金', shares: 2, cost: null,
+        updated_at: '2026-08-01T00:00:00.000Z', deleted: false,
+      }],
+    }),
+  });
+
+  const result = runStartupIntegrityChecks(storage, Date.parse('2026-08-08T00:00:00Z'));
+
+  assert.equal(result.recovered, true);
+  assert.equal(result.recoverySource, 'legacy_backup_recovered');
+  assert.equal(result.transactionBlocked, false);
+  assert.ok(storage.getItem('fuyu_holdings_v3'));
+  assert.equal(JSON.parse(storage.getItem('fuyu_holdings_v1'))[0].code, '000002');
 });

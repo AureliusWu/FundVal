@@ -1,3 +1,5 @@
+import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
+
 const API = 'https://sinan-estimate-push.ligugu69.workers.dev/holdings';
 const TIMEOUT = 10000;
 
@@ -19,14 +21,14 @@ export async function fetchFundHoldings(code, options = {}) {
   const fundCode = String(code || '').trim();
   if (!/^\d{6}$/.test(fundCode)) throw new Error('基金代码无效');
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), options.timeout || TIMEOUT);
+  throwIfAborted(options.signal);
+  const requestSignal = createRequestSignal(options.signal, options.timeout ?? TIMEOUT);
   try {
     const query = new URLSearchParams({ code: fundCode });
     if (options.force) query.set('_', String(Date.now()));
     const response = await fetch(`${options.api || API}?${query}`, {
       cache: 'no-store',
-      signal: controller.signal,
+      signal: requestSignal.signal,
     });
     if (!response.ok) throw new Error(`重仓代理 HTTP ${response.status}`);
     const payload = await response.json();
@@ -39,7 +41,9 @@ export async function fetchFundHoldings(code, options = {}) {
       source: String(payload.source || 'sinan-holdings-proxy'),
       items,
     };
+  } catch (error) {
+    throw requestSignal.normalizeError(error);
   } finally {
-    clearTimeout(timer);
+    requestSignal.cleanup();
   }
 }

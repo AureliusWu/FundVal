@@ -4,11 +4,26 @@
 // OCR output stays in memory and is returned as individual positioned tokens;
 // it is never joined into a raw-text transcript.
 
+import { normalizeOcrBackend } from './ocr/capability.js';
+import {
+  loadOcrAssetManifest,
+  OCR_ENGINE_VERSION,
+  OCR_ORT_VERSION,
+} from './ocr/asset-manifest.js';
+
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_SOURCE_IMAGE_PIXELS = 16 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const ACCEPTED_IMAGE_SUFFIXES = ['.png', '.jpg', '.jpeg', '.webp'];
 const GENERIC_BINARY_TYPES = new Set(['', 'application/octet-stream']);
+const OCR_ERROR_STAGES = new Set([
+  'input',
+  'capability',
+  'preprocess',
+  'manifest',
+  'initialization',
+  'recognition',
+]);
 const REQUIRED_BROWSER_CAPABILITIES = Object.freeze([
   ['Worker', value => typeof value === 'function'],
   ['createImageBitmap', value => typeof value === 'function'],
@@ -64,9 +79,14 @@ export const PADDLE_ALIPAY_RECOGNITION_OPTIONS = Object.freeze({
 });
 
 export class PaddleLocalOcrError extends Error {
-  constructor(message = '本地识别暂时不可用，请更换清晰截图后重试。') {
+  constructor(message = '本地识别暂时不可用，请更换清晰截图后重试。', { stage = '', backend = 'none' } = {}) {
     super(message);
     this.name = 'PaddleLocalOcrError';
+    // Only fixed categories survive outside the engine. The original error can
+    // contain private resource paths or backend details, so it must never
+    // reach the ledger or UI.
+    this.stage = OCR_ERROR_STAGES.has(stage) ? stage : '';
+    this.backend = backend === 'webgpu' || backend === 'wasm' ? backend : 'none';
   }
 }
 
@@ -289,15 +309,6 @@ function report(onProgress, phase, progress) {
   onProgress({ phase, progress: Number.isFinite(progress) ? progress : null });
 }
 
-function safeEngineFailureDetail(error) {
-  const message = String(error && error.message || '')
-    .replace(/https?:\/\/\S+/gi, '[本地资源]')
-    .replace(/[A-Za-z]:[\\/][^\s]+/g, '[本地路径]')
-    .replace(/[\r\n\t]+/g, ' ')
-    .slice(0, 180);
-  return message ? `（${message}）` : '';
-}
-
 function resolveLocalPaddleFactory(module) {
   const candidates = [
     module && module.createLocalPaddleOcr,
@@ -313,7 +324,7 @@ async function loadLocalPaddleFactory() {
   return factory;
 }
 
-export function createPaddleOcrOptions() {
+export function createPaddleOcrOptions({ backend = 'wasm' } = {}) {
   return {
     worker: true,
     textDetectionModelName: 'PP-OCRv6_tiny_det',
@@ -323,7 +334,7 @@ export function createPaddleOcrOptions() {
     textDetectionBatchSize: 1,
     textRecognitionBatchSize: 2,
     ortOptions: {
-      backend: 'wasm',
+      backend: normalizeOcrBackend(backend),
       wasmPaths: PADDLE_ORT_WASM_URL,
       numThreads: 1,
       simd: true,
@@ -352,6 +363,15 @@ function predictionItems(prediction) {
   return Array.isArray(first && first.items) ? first.items : [];
 }
 
+function performanceNow() {
+  return typeof globalThis.performance?.now === 'function' ? globalThis.performance.now() : Date.now();
+}
+
+function metricNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : 0;
+}
+
 function sortTokensInReadingOrder(tokens) {
   return tokens.sort((left, right) => left.y - right.y || left.x - right.x);
 }
@@ -361,15 +381,18 @@ function sortTokensInReadingOrder(tokens) {
  * not persist or concatenate OCR text; callers must parse then discard tokens
  * before leaving the dedicated import page.
  */
-export async function recognizeAlipayPaddleImage(file, { onProgress } = {}) {
-  assertPaddleOcrBrowserCapabilities();
-  await verifyPaddleOcrImageSignature(file);
-  report(onProgress, 'preparing', 0.04);
-
+export async function recognizeAlipayPaddleImage(file, { onProgress, runtime = globalThis } = {}) {
+  const startedAt = performanceNow();
   let source = null;
   let ocr = null;
-  let failureStage = '读取图片';
+  let failureStage = 'capability';
   try {
+    assertPaddleOcrBrowserCapabilities(runtime);
+    failureStage = 'input';
+    await verifyPaddleOcrImageSignature(file);
+    report(onProgress, 'preparing', 0.04);
+
+    failureStage = 'preprocess';
     source = await createLocalImageBitmap(file);
     const imageWidth = positiveInteger(source.width);
     const imageHeight = positiveInteger(source.height);
@@ -381,19 +404,25 @@ export async function recognizeAlipayPaddleImage(file, { onProgress } = {}) {
     const rowTiles = planPaddleRowOcrTiles(imageWidth, imageHeight)
       .map(tile => ({ ...tile, region: 'holdings' }));
     const tiles = [...sourceTiles, ...rowTiles];
+    const preprocessMs = Math.max(0, performanceNow() - startedAt);
+    failureStage = 'manifest';
+    await loadOcrAssetManifest({
+      engineVersion: OCR_ENGINE_VERSION,
+      ortVersion: OCR_ORT_VERSION,
+    });
     report(onProgress, 'loading-engine', 0.10);
-    failureStage = '加载识别引擎';
+    failureStage = 'initialization';
     const createLocalPaddleOcr = await loadLocalPaddleFactory();
     report(onProgress, 'loading-models', 0.18);
-    failureStage = '加载本地模型';
     ocr = await createLocalPaddleOcr({
       onProgress(event) {
-        if (event && event.phase === 'initializing') report(onProgress, 'initializing', 0.19);
+        if (event?.phase === 'initializing') report(onProgress, 'initializing', 0.19);
+        if (event?.phase === 'webgpu-fallback') report(onProgress, 'webgpu-fallback', 0.19);
       },
     });
 
     const tokens = [];
-    failureStage = '识别图片';
+    failureStage = 'recognition';
     for (let index = 0; index < tiles.length; index += 1) {
       const tile = tiles[index];
       report(onProgress, 'recognizing', 0.20 + 0.78 * (index / tiles.length));
@@ -407,17 +436,36 @@ export async function recognizeAlipayPaddleImage(file, { onProgress } = {}) {
       }
     }
     report(onProgress, 'recognizing', 1);
+    const enginePerformance = ocr?.performance || {};
     return {
       engine: 'paddle',
       imageWidth,
       imageHeight,
       tokens: sortTokensInReadingOrder(tokens),
+      performance: {
+        capabilityClass: enginePerformance.capabilityClass === 'webgpu' ? 'webgpu' : 'wasm_only',
+        backend: normalizeOcrBackend(enginePerformance.backend, 'wasm'),
+        fallback: enginePerformance.fallback === true,
+        imageWidth,
+        imageHeight,
+        tileCount: tiles.length,
+        coldInitMs: metricNumber(enginePerformance.coldInitMs),
+        warmInitMs: 0,
+        preprocessMs,
+        detectionMs: metricNumber(enginePerformance.detectionMs),
+        recognitionMs: metricNumber(enginePerformance.recognitionMs),
+        totalMs: Math.max(0, performanceNow() - startedAt),
+        blockCount: tokens.length,
+      },
       // Do not create a raw OCR transcript. The parser consumes `tokens` only.
       text: '',
     };
   } catch (error) {
-    if (error instanceof PaddleLocalOcrError) throw error;
-    throw new PaddleLocalOcrError(`${failureStage}失败，请检查应用资源后重试。${safeEngineFailureDetail(error)}`);
+    if (error instanceof PaddleLocalOcrError && error.stage) throw error;
+    const message = error instanceof PaddleLocalOcrError
+      ? error.message
+      : '本地识别暂时不可用，请检查应用资源后重试。';
+    throw new PaddleLocalOcrError(message, { stage: failureStage });
   } finally {
     if (ocr && typeof ocr.dispose === 'function') {
       try { await ocr.dispose(); } catch (_) { /* local cleanup must not mask OCR errors */ }

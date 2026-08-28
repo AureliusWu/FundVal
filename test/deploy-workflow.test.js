@@ -9,6 +9,10 @@ test('deployment workflow uses least privilege, pinned Node 24 actions and depen
   assert.match(workflow, /actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020\s+# v7\.0\.0/);
   assert.match(workflow, /node-version:\s*24/);
   assert.match(workflow, /npm audit --audit-level=high --registry=https:\/\/registry\.npmjs\.org/);
+  assert.match(workflow, /test -s site\/js\/app-shell\.js/);
+  assert.match(workflow, /paths=\([\s\S]*"js\/app-shell\.js"/);
+  assert.match(workflow, /Deployed index does not exclusively load app-shell\.js/);
+  assert.match(workflow, /Deployed Service Worker CORE still contains the source module graph/);
   assert.match(workflow, /actions\/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9\s+# v5\.0\.0/);
   assert.match(workflow, /actions\/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128\s+# v5\.0\.0/);
   assert.match(workflow, /build:[\s\S]*?permissions:\s*\n\s+contents: read/);

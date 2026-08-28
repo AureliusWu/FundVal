@@ -1,13 +1,35 @@
-const CACHE = 'fuyu-v14.0.2';
+const CACHE = 'fuyu-v14.0.3';
 const CACHE_PREFIX = 'fuyu-v';
+let updateRequester = null;
 const CORE = [
   './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  // BUILD_APP_SHELL_CORE_START
   './js/bootstrap.js', './js/migrations.js', './js/resilience.js', './js/integrity.js',
   './js/app.js', './js/version.js', './js/config.js', './js/storage.js',
   './js/calculator.js', './js/overseas-model.js', './js/accuracy.js', './js/freshness.js',
   './js/eastmoney-estimate.js', './js/fund-holdings.js', './js/holdings-estimate.js',
+  './js/runtime/quote-contract.js', './js/runtime/quote-presentation.js', './js/runtime/quote-normalizer.js',
+  './js/runtime/market-session.js', './js/runtime/source-registry.js',
+  './js/runtime/refresh-generation.js', './js/runtime/refresh-coordinator.js',
+  './js/runtime/request-signal.js',
+  './js/storage/holdings-schema.js', './js/storage/holdings-migration.js',
+  './js/storage/holdings-repository.js', './js/storage/cloud-sync.js', './js/storage/gist-remote.js',
+  // BUILD_APP_SHELL_CORE_END
   './css/style.css', './data/overseas-models.json'
 ];
+
+function compareCacheVersions(left, right) {
+  const parts = value => {
+    const match = String(value).match(/^fuyu-v(\d+)\.(\d+)\.(\d+)$/);
+    return match ? match.slice(1).map(Number) : [0, 0, 0];
+  };
+  const a = parts(left);
+  const b = parts(right);
+  for (let index = 0; index < 3; index += 1) {
+    if (a[index] !== b[index]) return b[index] - a[index];
+  }
+  return 0;
+}
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)));
@@ -16,16 +38,41 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys
-      .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE)
-      .map(key => caches.delete(key)));
-    await self.clients.claim();
+    const previous = keys.filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE).sort(compareCacheVersions);
+    // Keep the immediately previous app shell while an old tab may still be
+    // using its worker. Older shells are bounded away on the next upgrade.
+    await Promise.all(previous.slice(1).map(key => caches.delete(key)));
+    if (!previous.length) {
+      await self.clients.claim();
+      return;
+    }
+    // Never claim every old tab during an upgrade: that could silently reload
+    // another tab with unsaved form input. Ask only the tab that explicitly
+    // requested this update to perform its own final dirty-state check. A
+    // worker-side navigate() would bypass that last guard and could lose input
+    // typed during activation.
+    if (updateRequester && updateRequester.id) {
+      const client = await self.clients.get(updateRequester.id);
+      if (client && typeof client.postMessage === 'function') {
+        client.postMessage({ type: 'UPDATE_ACTIVATED', cache: CACHE });
+      }
+    }
   })());
 });
 
 self.addEventListener('message', event => {
   const data = event.data || {};
-  if (data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (data.type === 'SKIP_WAITING') {
+    updateRequester = event.source && event.source.id
+      ? { id: event.source.id, url: event.source.url || './' }
+      : null;
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+  if (data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
+    event.ports[0].postMessage({ cache: CACHE });
+    return;
+  }
   if (data.type === 'notify') {
     event.waitUntil(self.registration.showNotification(data.title || '蜉蝣基金', {
       body: data.body || '', icon: './icon-192.png', badge: './icon-192.png',
@@ -38,18 +85,33 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.includes('/assets/ocr/')) {
+  if (url.pathname.includes('/api/')) {
+    // API responses may contain time-sensitive or user-specific state. Never
+    // replay them from Cache Storage when the network is unavailable.
+    event.respondWith(networkOnly(event.request));
+  } else if (url.pathname.endsWith('/assets/ocr/asset-manifest.json')) {
+    // The small manifest is safe to retain as an offline capability hint. The
+    // large OCR binaries themselves remain network-only below.
+    event.respondWith(networkFirst(event.request, event));
+  } else if (url.pathname.includes('/assets/ocr/')) {
     // OCR binaries are very large and already use normal HTTP caching. Keeping
     // another copy in Cache Storage can exhaust mobile PWA quota and evict CORE.
     event.respondWith(networkOnly(event.request));
-  } else if (url.pathname.endsWith('/data/overseas-models.json')) {
-    event.respondWith(staleWhileRevalidate(event.request));
   } else if (event.request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
-    event.respondWith(networkFirst(event.request));
-  } else if (/\.(?:png|json|webmanifest)$/.test(url.pathname)) {
-    event.respondWith(cacheFirst(event.request));
+    const fallback = url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')
+      ? './index.html'
+      : null;
+    event.respondWith(networkFirst(event.request, event, fallback));
+  } else if (url.pathname.endsWith('/manifest.json')) {
+    event.respondWith(networkFirst(event.request, event));
+  } else if (url.pathname.endsWith('/data/fund-catalog.json') || url.pathname.endsWith('/data/overseas-models.json')) {
+    event.respondWith(staleWhileRevalidate(event.request, event));
+  } else if (/\.(?:js|mjs|css)$/.test(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(event.request, event));
+  } else if (/\/icon-(?:192|512)\.png$/.test(url.pathname)) {
+    event.respondWith(cacheFirst(event.request, event));
   } else {
-    event.respondWith(networkFirst(event.request));
+    event.respondWith(networkFirst(event.request, event));
   }
 });
 
@@ -62,15 +124,18 @@ self.addEventListener('notificationclick', event => {
   }));
 });
 
-async function networkFirst(request) {
+async function networkFirst(request, event, navigationFallback = null) {
   try {
     const response = await fetch(request);
-    if (response.ok) void cacheResponseBestEffort(request, response);
+    if (response.ok) extendLifetime(event, cacheResponseBestEffort(request, response));
     return response;
   } catch (_) {
-    const cached = await caches.match(request);
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(request);
     if (cached) return cached;
-    if (request.mode === 'navigate') return (await caches.match('./index.html')) || Response.error();
+    if (request.mode === 'navigate' && navigationFallback) {
+      return (await cache.match(navigationFallback)) || Response.error();
+    }
     return Response.error();
   }
 }
@@ -83,26 +148,32 @@ async function networkOnly(request) {
   }
 }
 
-async function cacheFirst(request) {
-  const cached = await caches.match(request);
+async function cacheFirst(request, event) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
   if (cached) return cached;
   try {
     const response = await fetch(request);
-    if (response.ok) void cacheResponseBestEffort(request, response);
+    if (response.ok) extendLifetime(event, cachePutBestEffort(cache, request, response));
     return response;
   } catch (_) {
     return Response.error();
   }
 }
 
-async function staleWhileRevalidate(request) {
+async function staleWhileRevalidate(request, event) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request);
   const update = fetch(request).then(response => {
-    if (response.ok) void cachePutBestEffort(cache, request, response);
+    if (response.ok) return cachePutBestEffort(cache, request, response).then(() => response);
     return response;
   }).catch(() => null);
+  extendLifetime(event, update.then(() => undefined));
   return cached || (await update) || Response.error();
+}
+
+function extendLifetime(event, promise) {
+  if (event && typeof event.waitUntil === 'function') event.waitUntil(Promise.resolve(promise));
 }
 
 async function cacheResponseBestEffort(request, response) {

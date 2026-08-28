@@ -7,6 +7,7 @@ import {
   parseCloudPayload,
   safeGetItem,
   safeSetItem,
+  safeStorageKeys,
   setCached
 } from '../js/storage.js';
 
@@ -41,4 +42,11 @@ test('storage write failures are contained', () => {
   assert.equal(backupHoldings([], storage), false);
   assert.equal(safeGetItem('x', null), null);
   assert.equal(safeSetItem('x', '1', null), false);
+});
+
+test('storage key enumeration is bounded by the supplied storage adapter', () => {
+  const keys = ['fuyu_a', 'other'];
+  const storage = { length: keys.length, key(index) { return keys[index] ?? null; } };
+  assert.deepEqual(safeStorageKeys(storage), keys);
+  assert.deepEqual(safeStorageKeys(null), []);
 });

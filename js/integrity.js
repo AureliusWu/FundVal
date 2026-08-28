@@ -1,6 +1,15 @@
 const CODE_RE = /^\d{6}$/;
 const MAX_NAME_LENGTH = 120;
 const DEFAULT_FUTURE_SKEW_MS = 5 * 60 * 1000;
+const SAFE_RUNTIME_DIAGNOSTIC_TYPES = new Set([
+  'storage_transaction_blocked', 'storage_recovery', 'window_error', 'unhandled_rejection',
+]);
+const SAFE_OCR_DIAGNOSTIC_BACKENDS = new Set(['webgpu', 'wasm', 'none']);
+const SAFE_OCR_DIAGNOSTIC_ERRORS = new Set([
+  'none', 'input_invalid', 'capability_missing', 'asset_manifest_failed',
+  'webgpu_init_failed', 'wasm_init_failed', 'decode_failed', 'preprocess_failed',
+  'recognition_failed', 'layout_failed', 'parse_failed', 'cancelled', 'unknown',
+]);
 
 export function safeJsonParse(raw, fallback = null) {
   if (typeof raw !== 'string' || !raw.trim()) return fallback;
@@ -197,4 +206,26 @@ export function appendDiagnostic(raw, entry, limit = 20) {
     stack: redactDiagnosticText(entry.stack)
   };
   return [...list, sanitized].slice(-Math.max(1, limit));
+}
+
+export function selectSafeDiagnosticEvents(value, limit = 20) {
+  if (!Array.isArray(value)) return [];
+  const boundedLimit = Math.max(1, Math.min(20, Number(limit) || 20));
+  return value.slice(-boundedLimit).map(entry => {
+    const type = String(entry && entry.type || '').trim().toLowerCase();
+    return Object.freeze({
+      time: typeof (entry && entry.time) === 'string' ? entry.time : '',
+      type: SAFE_RUNTIME_DIAGNOSTIC_TYPES.has(type) ? type : 'unknown',
+    });
+  });
+}
+
+export function normalizeOcrDiagnosticForDisplay(value) {
+  const backend = String(value && value.backend || '').trim().toLowerCase();
+  const errorCategory = String(value && value.errorCategory || '').trim().toLowerCase();
+  return Object.freeze({
+    backend: SAFE_OCR_DIAGNOSTIC_BACKENDS.has(backend) ? backend : 'unknown',
+    errorCategory: SAFE_OCR_DIAGNOSTIC_ERRORS.has(errorCategory) ? errorCategory : 'unknown',
+    fallback: value && value.fallback === true,
+  });
 }

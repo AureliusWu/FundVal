@@ -53,3 +53,25 @@ test('throws when the holdings proxy is unavailable', async () => {
     global.fetch = originalFetch;
   }
 });
+
+test('honors caller cancellation and distinguishes it from its own timeout', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async (_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => {
+      const error = new Error('native abort');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+  try {
+    const caller = new AbortController();
+    const cancelled = fetchFundHoldings('005844', { signal: caller.signal });
+    caller.abort('superseded');
+    await assert.rejects(cancelled, { name: 'AbortError' });
+    await assert.rejects(fetchFundHoldings('005844', { timeout: 1 }), {
+      name: 'TimeoutError', code: 'REQUEST_TIMEOUT',
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

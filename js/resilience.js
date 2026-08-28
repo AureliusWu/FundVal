@@ -2,14 +2,17 @@ import {
   appendDiagnostic,
   collectOrphanNavCacheKeys,
   reconcileFundCache,
-  repairHoldingsState,
   safeJsonParse
 } from './integrity.js';
+import {
+  HOLDINGS_JOURNAL_KEY,
+  HOLDINGS_V1_COMPAT_KEY,
+  HOLDINGS_V3_KEY,
+  loadHoldingsRepository,
+  recoverPendingRepositoryTransaction,
+} from './storage/holdings-repository.js';
 
-const HOLDINGS_KEY = 'fuyu_holdings_v1';
 const FUNDS_CACHE_KEY = 'fuyu_funds_cache_v1';
-const LATEST_BACKUP_KEY = 'fuyu_backup_latest';
-const PREVIOUS_BACKUP_KEY = 'fuyu_backup_previous';
 const CORRUPT_HOLDINGS_KEY = 'fuyu_corrupt_holdings_last_v1';
 const DIAGNOSTICS_KEY = 'fuyu_diagnostics_v1';
 const RECOVERY_NOTICE_KEY = 'fuyu_recovery_notice_v1';
@@ -69,34 +72,46 @@ function showSystemToast(message, { reloadOnClick = false, duration = 6000 } = {
 
 export function runStartupIntegrityChecks(storage = localStorage, now = Date.now()) {
   const nowISO = new Date(now).toISOString();
-  const primaryRaw = safeGet(storage, HOLDINGS_KEY);
-  const result = repairHoldingsState({
-    primaryRaw,
-    latestBackupRaw: safeGet(storage, LATEST_BACKUP_KEY),
-    previousBackupRaw: safeGet(storage, PREVIOUS_BACKUP_KEY),
-    nowISO
-  });
+  const originalHoldingsRaw = safeGet(storage, HOLDINGS_V3_KEY)
+    || safeGet(storage, HOLDINGS_V1_COMPAT_KEY)
+    || '';
+  const recovery = recoverPendingRepositoryTransaction(storage);
+  const loaded = recovery.ok
+    ? loadHoldingsRepository(storage, { now })
+    : { ok: false, reason: recovery.reason, recovered: false, legacy: [] };
 
-  if (result.corruptRaw) safeSet(storage, CORRUPT_HOLDINGS_KEY, result.corruptRaw);
-  if (result.changed && !result.preservePrimary) safeSet(storage, HOLDINGS_KEY, JSON.stringify(result.holdings));
-  if (result.recovered) {
-    safeSet(storage, RECOVERY_NOTICE_KEY, JSON.stringify({ time: nowISO, source: result.source }));
+  if (!loaded.ok) {
+    const corruptRaw = safeGet(storage, HOLDINGS_V3_KEY) || safeGet(storage, HOLDINGS_V1_COMPAT_KEY) || '';
+    if (corruptRaw) safeSet(storage, CORRUPT_HOLDINGS_KEY, String(corruptRaw).slice(0, 50000));
+    safeSet(storage, RECOVERY_NOTICE_KEY, JSON.stringify({ time: nowISO, source: loaded.reason, manual: true }));
+    rememberDiagnostic(storage, {
+      time: nowISO,
+      type: 'storage_transaction_blocked',
+      message: `holdings repository blocked: ${loaded.reason || 'unknown'}`
+    });
+    return {
+      holdings: [],
+      recovered: false,
+      recoverySource: loaded.reason || 'repository_blocked',
+      preservePrimary: true,
+      cacheRepaired: false,
+      orphanCacheCount: 0,
+      transactionBlocked: true,
+    };
+  }
+
+  if (loaded.recovered) {
+    if (originalHoldingsRaw) safeSet(storage, CORRUPT_HOLDINGS_KEY, String(originalHoldingsRaw).slice(0, 50000));
+    safeSet(storage, RECOVERY_NOTICE_KEY, JSON.stringify({ time: nowISO, source: loaded.reason }));
     rememberDiagnostic(storage, {
       time: nowISO,
       type: 'storage_recovery',
-      message: `holdings recovered from ${result.source}`
-    });
-  }
-  if (result.preservePrimary) {
-    safeSet(storage, RECOVERY_NOTICE_KEY, JSON.stringify({ time: nowISO, source: result.source, manual: true }));
-    rememberDiagnostic(storage, {
-      time: nowISO,
-      type: 'storage_semantic_invalid',
-      message: 'holdings storage contains invalid numeric fields; original data was preserved'
+      message: `holdings recovered from ${loaded.reason}`
     });
   }
 
-  const activeCodes = new Set(result.holdings.filter(item => !item.deleted).map(item => item.code));
+  const resultHoldings = loaded.legacy || [];
+  const activeCodes = new Set(resultHoldings.filter(item => !item.deleted).map(item => item.code));
   const cacheResult = reconcileFundCache(safeGet(storage, FUNDS_CACHE_KEY), activeCodes, now);
   if (cacheResult.remove) safeRemove(storage, FUNDS_CACHE_KEY);
   else if (cacheResult.changed) safeSet(storage, FUNDS_CACHE_KEY, JSON.stringify(cacheResult.cache));
@@ -105,16 +120,19 @@ export function runStartupIntegrityChecks(storage = localStorage, now = Date.now
   orphanKeys.forEach(key => safeRemove(storage, key));
 
   return {
-    holdings: result.holdings,
-    recovered: result.recovered,
-    recoverySource: result.source,
-    preservePrimary: Boolean(result.preservePrimary),
+    holdings: resultHoldings,
+    recovered: Boolean(loaded.recovered),
+    recoverySource: loaded.reason,
+    preservePrimary: false,
     cacheRepaired: cacheResult.changed,
-    orphanCacheCount: orphanKeys.length
+    orphanCacheCount: orphanKeys.length,
+    transactionBlocked: false,
   };
 }
 
 export function installRuntimeGuards(storage = localStorage) {
+  document.documentElement.dataset.network = navigator.onLine === false ? 'offline' : 'online';
+
   window.addEventListener('error', event => {
     rememberDiagnostic(storage, {
       type: 'window_error',
@@ -133,7 +151,7 @@ export function installRuntimeGuards(storage = localStorage) {
   });
 
   window.addEventListener('storage', event => {
-    if (event.key !== HOLDINGS_KEY) return;
+    if (![HOLDINGS_V1_COMPAT_KEY, HOLDINGS_V3_KEY, HOLDINGS_JOURNAL_KEY].includes(event.key)) return;
     runStartupIntegrityChecks(storage);
     showSystemToast('检测到其他页面更新持仓，点击刷新', { reloadOnClick: true, duration: 10000 });
   });

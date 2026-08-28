@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>蜉蝣基金 v15 · 可信估值卡片原型</title>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --bg2: #ffffff;
+      --bg3: #f1efe9;
+      --line: #e9e7e0;
+      --text: #1a1a18;
+      --muted: #686862;
+      --up: #e8392d;
+      --down: #16864a;
+      --flat: #686862;
+      --accent: #2e75b6;
+      --accent-bg: #e8f0f8;
+      --accent-line: #cfe0f1;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      background: var(--bg);
+      color-scheme: light;
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, summary { font: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(250, 249, 245, .92);
+      backdrop-filter: saturate(180%) blur(18px);
+      -webkit-backdrop-filter: saturate(180%) blur(18px);
+      padding: env(safe-area-inset-top) 16px 0;
+    }
+
+    .topbar-inner {
+      width: min(100%, 1040px);
+      min-height: 58px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand strong {
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 650;
+    }
+
+    .brand span,
+    .prototype-mark {
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .prototype-mark {
+      border: 1px solid var(--accent-line);
+      border-radius: 999px;
+      background: var(--accent-bg);
+      color: var(--accent);
+      padding: 5px 10px;
+      font-weight: 650;
+    }
+
+    main {
+      width: min(100%, 1040px);
+      margin: 0 auto;
+      padding: 16px 0 88px;
+    }
+
+    .prototype-note {
+      margin: 0 16px 16px;
+      border: 1px solid var(--accent-line);
+      border-radius: 12px;
+      background: var(--accent-bg);
+      color: #224e78;
+      padding: 12px 14px;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .trust-order {
+      padding: 0 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      color: var(--muted);
+      font-size: 11px;
+      scrollbar-width: none;
+    }
+
+    .trust-order::-webkit-scrollbar { display: none; }
+
+    .trust-order strong {
+      flex: 0 0 auto;
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .trust-chip {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--bg2);
+      padding: 4px 9px;
+      white-space: nowrap;
+    }
+
+    .fund-list {
+      overflow: hidden;
+      border-block: 1px solid var(--line);
+      background: var(--bg2);
+    }
+
+    .fund-card {
+      position: relative;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg2);
+    }
+
+    .fund-card:last-child { border-bottom: 0; }
+
+    .card-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 16px;
+    }
+
+    .identity { min-width: 0; }
+
+    .fund-name {
+      margin: 0;
+      color: #000;
+      font-size: 14px;
+      font-weight: 550;
+      line-height: 1.4;
+      letter-spacing: -.01em;
+    }
+
+    .fund-code,
+    .official-nav {
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.5;
+    }
+
+    .fund-code { margin-top: 3px; }
+
+    .official-nav { margin-top: 9px; }
+
+    .quote {
+      min-width: 138px;
+      text-align: right;
+    }
+
+    .quote-value {
+      min-height: 26px;
+      font-size: 22px;
+      font-weight: 680;
+      line-height: 1.05;
+      letter-spacing: -.025em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .quote-value.up { color: var(--up); }
+    .quote-value.down { color: var(--down); }
+    .quote-value.flat { color: var(--flat); }
+
+    .quote-state {
+      margin-top: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border: 1px solid var(--accent-line);
+      border-radius: 999px;
+      background: var(--accent-bg);
+      color: var(--accent);
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-tag.neutral {
+      border-color: var(--line);
+      background: var(--bg3);
+      color: var(--muted);
+    }
+
+    .confidence {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-tools {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--line);
+    }
+
+    details { width: 100%; }
+
+    summary {
+      width: fit-content;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--accent);
+      cursor: pointer;
+      list-style: none;
+      font-size: 11px;
+      font-weight: 650;
+      user-select: none;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    summary::after {
+      content: "＋";
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    details[open] summary::after { content: "－"; }
+
+    summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+
+    .diagnostics {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg);
+      padding: 10px 12px;
+    }
+
+    .diagnostics dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
+      gap: 6px 12px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .diagnostics dt { margin: 0; }
+
+    .diagnostics dd {
+      margin: 0;
+      color: var(--text);
+      text-align: right;
+      overflow-wrap: anywhere;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rules {
+      margin: 18px 16px 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg2);
+      padding: 14px;
+    }
+
+    .rules h2 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .rules ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.75;
+    }
+
+    .rules strong { color: var(--text); }
+
+    @media (min-width: 760px) {
+      main { padding-top: 24px; }
+
+      .prototype-note,
+      .rules { margin-inline: 0; }
+
+      .trust-order { padding-inline: 0; }
+
+      .fund-list {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+
+      .fund-card { padding: 20px 22px; }
+
+      .card-main {
+        grid-template-columns: minmax(300px, 1fr) 280px;
+        gap: 32px;
+      }
+
+      .quote-value { font-size: 24px; }
+
+      .card-tools {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      details { width: min(100%, 520px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <strong>蜉蝣基金</strong>
+        <span>v15 可信估值卡片</span>
+      </div>
+      <span class="prototype-mark">局部原型</span>
+    </div>
+  </header>
+
+  <main>
+    <aside class="prototype-note" aria-label="原型说明">
+      本页只验证基金卡片的信息层级，示例数字不代表真实行情。正式首页、导航与品牌样式尚未替换。
+    </aside>
+
+    <div class="trust-order" aria-label="可信等级排序">
+      <strong>可信等级</strong>
+      <span class="trust-chip">实时</span>
+      <span aria-hidden="true">›</span>
+      <span class="trust-chip">延迟</span>
+      <span aria-hidden="true">›</span>
+      <span class="trust-chip">模型</span>
+      <span aria-hidden="true">›</span>
+      <span class="trust-chip">正式净值</span>
+      <span aria-hidden="true">›</span>
+      <span class="trust-chip">旧数据</span>
+      <span aria-hidden="true">›</span>
+      <span class="trust-chip">不可用</span>
+    </div>
+
+    <section class="fund-list" aria-label="可信估值卡片示例">
+      <article class="fund-card">
+        <div class="card-main">
+          <div class="identity">
+            <h2 class="fund-name">东方人工智能主题混合A</h2>
+            <div class="fund-code">005844 · 混合型</div>
+            <div class="official-nav">最新正式净值：2026-08-26</div>
+          </div>
+          <div class="quote">
+            <div class="quote-value up">+1.23%</div>
+            <div class="quote-state"><span class="status-tag">盘中估值</span><time datetime="2026-08-27T14:21:08+08:00">14:21</time></div>
+            <div class="confidence">覆盖率 100% · 置信度 高</div>
+          </div>
+        </div>
+        <div class="card-tools">
+          <details>
+            <summary>诊断</summary>
+            <div class="diagnostics">
+              <dl>
+                <dt>数据等级</dt><dd>实时</dd>
+                <dt>源时间</dt><dd>2026-08-27 14:21:08</dd>
+                <dt>市场状态</dt><dd>A 股交易中</dd>
+                <dt>来源</dt><dd>盘中估值主源</dd>
+                <dt>降级原因</dt><dd>无</dd>
+              </dl>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <article class="fund-card">
+        <div class="card-main">
+          <div class="identity">
+            <h2 class="fund-name">建信新兴市场混合(QDII)A</h2>
+            <div class="fund-code">539002 · QDII</div>
+            <div class="official-nav">最新正式净值：2026-08-25 · 目标净值日：2026-08-27</div>
+          </div>
+          <div class="quote">
+            <div class="quote-value up">+0.86%</div>
+            <div class="quote-state"><span class="status-tag">模型估算</span><time datetime="2026-08-27T10:46:00+08:00">10:46</time></div>
+            <div class="confidence">覆盖率 82% · 置信度 中</div>
+          </div>
+        </div>
+        <div class="card-tools">
+          <details>
+            <summary>诊断</summary>
+            <div class="diagnostics">
+              <dl>
+                <dt>数据等级</dt><dd>有效模型</dd>
+                <dt>源时间</dt><dd>2026-08-27 10:46:00</dd>
+                <dt>底层市场</dt><dd>美股盘前</dd>
+                <dt>来源</dt><dd>下一净值海外模型</dd>
+                <dt>缺失权重</dt><dd>18%</dd>
+              </dl>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <article class="fund-card">
+        <div class="card-main">
+          <div class="identity">
+            <h2 class="fund-name">永赢先锋半导体智选混合发起C</h2>
+            <div class="fund-code">025209 · 混合型</div>
+            <div class="official-nav">最新正式净值：2026-08-26</div>
+          </div>
+          <div class="quote">
+            <div class="quote-value down">-0.42%</div>
+            <div class="quote-state"><span class="status-tag">延迟估值</span><time datetime="2026-08-27T14:13:00+08:00">14:13</time></div>
+            <div class="confidence">覆盖率 100% · 置信度 高</div>
+          </div>
+        </div>
+        <div class="card-tools">
+          <details>
+            <summary>诊断</summary>
+            <div class="diagnostics">
+              <dl>
+                <dt>数据等级</dt><dd>延迟</dd>
+                <dt>源时间</dt><dd>2026-08-27 14:13:00</dd>
+                <dt>延迟</dt><dd>8 分钟</dd>
+                <dt>来源</dt><dd>盘中估值备源</dd>
+                <dt>降级原因</dt><dd>主源暂不可用</dd>
+              </dl>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <article class="fund-card">
+        <div class="card-main">
+          <div class="identity">
+            <h2 class="fund-name">易方达全球成长精选混合(QDII)人民币A</h2>
+            <div class="fund-code">012920 · QDII</div>
+            <div class="official-nav">正式净值区间：2026-08-25 → 2026-08-26</div>
+          </div>
+          <div class="quote">
+            <div class="quote-value up">+0.54%</div>
+            <div class="quote-state"><span class="status-tag neutral">正式净值</span><time datetime="2026-08-26">08-26</time></div>
+            <div class="confidence">基金公司已公布 · 非盘中估值</div>
+          </div>
+        </div>
+        <div class="card-tools">
+          <details>
+            <summary>诊断</summary>
+            <div class="diagnostics">
+              <dl>
+                <dt>数据等级</dt><dd>正式净值</dd>
+                <dt>净值日期</dt><dd>2026-08-26</dd>
+                <dt>显示含义</dt><dd>最近两个正式净值的涨跌</dd>
+                <dt>来源</dt><dd>基金正式净值</dd>
+                <dt>盘中估值</dt><dd>当前不可用</dd>
+              </dl>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <article class="fund-card">
+        <div class="card-main">
+          <div class="identity">
+            <h2 class="fund-name">财通成长优选混合C</h2>
+            <div class="fund-code">021528 · 混合型</div>
+            <div class="official-nav">最新正式净值：2026-08-26</div>
+          </div>
+          <div class="quote">
+            <div class="quote-value up">+0.18%</div>
+            <div class="quote-state"><span class="status-tag neutral">旧数据</span><time datetime="2026-08-26T15:00:00+08:00">昨日 15:00</time></div>
+            <div class="confidence">覆盖率 100% · 置信度 低</div>
+          </div>
+        </div>
+        <div class="card-tools">
+          <details>
+            <summary>诊断</summary>
+            <div class="diagnostics">
+              <dl>
+                <dt>数据等级</dt><dd>旧数据</dd>
+                <dt>源时间</dt><dd>2026-08-26 15:00:00</dd>
+                <dt>市场状态</dt><dd>A 股交易中</dd>
+                <dt>来源</dt><dd>本地缓存</dd>
+                <dt>降级原因</dt><dd>当前数据源未更新</dd>
+              </dl>
+            </div>
+          </details>
+        </div>
+      </article>
+
+      <article class="fund-card">
+        <div class="card-main">
+          <div class="identity">
+            <h2 class="fund-name">广发远见智选混合C</h2>
+            <div class="fund-code">016874 · 混合型</div>
+            <div class="official-nav">最新正式净值：2026-08-26</div>
+          </div>
+          <div class="quote">
+            <div class="quote-value flat">--</div>
+            <div class="quote-state"><span class="status-tag neutral">暂不可用</span><span>--</span></div>
+            <div class="confidence">覆盖率 -- · 置信度 未知</div>
+          </div>
+        </div>
+        <div class="card-tools">
+          <details>
+            <summary>诊断</summary>
+            <div class="diagnostics">
+              <dl>
+                <dt>数据等级</dt><dd>不可用</dd>
+                <dt>源时间</dt><dd>未知</dd>
+                <dt>市场状态</dt><dd>A 股已收盘</dd>
+                <dt>来源</dt><dd>无可用数据源</dd>
+                <dt>显示规则</dt><dd>缺失值不显示为 0</dd>
+              </dl>
+            </div>
+          </details>
+        </div>
+      </article>
+    </section>
+
+    <section class="rules" aria-labelledby="prototype-rules-title">
+      <h2 id="prototype-rules-title">这版原型固定了什么</h2>
+      <ul>
+        <li><strong>主数字与状态绑定：</strong>数值、类型和源时间始终在同一视觉组。</li>
+        <li><strong>时间不冒充：</strong>展示的是数据源时间，不是刚刚发起请求的时间。</li>
+        <li><strong>模型说清楚：</strong>QDII 同时显示覆盖率、置信度和目标净值日。</li>
+        <li><strong>缺失不归零：</strong>数据不可用时显示“--”，并可查看降级原因。</li>
+        <li><strong>诊断按需展开：</strong>默认保持简洁，用户需要时再看来源与降级链。</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

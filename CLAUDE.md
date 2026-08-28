@@ -1,10 +1,10 @@
 # 蜉蝣基金 · AI 协作指南
 
-## V14 维护约定
+## V14.0.3 兼容桥维护约定
 
-本项目当前版本为 `14.0.2`。保持纯前端、零框架和移动端优先。主页面启动必须经过 `bootstrap.js`，先执行迁移、状态完整性检查和运行时保护，再加载 `app.js`。业务逻辑应按职责进入 `config`、`calculator`、`storage`、`freshness`、`eastmoney-estimate`、`fund-holdings`、`holdings-estimate`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。可测试的修复规则放在 `integrity.js`，浏览器侧恢复与提示放在 `resilience.js`。
+本项目当前版本为 `14.0.3`。保持纯前端、零框架和移动端优先。主页面启动必须经过 `bootstrap.js`，先执行迁移、状态完整性检查和运行时保护，再加载 `app.js`。业务逻辑应按职责进入 `runtime/`、`storage/`、`config`、`calculator`、`freshness`、`eastmoney-estimate`、`fund-holdings`、`holdings-estimate`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。可测试的修复规则放在 `integrity.js`，浏览器侧恢复与提示放在 `resilience.js`。
 
-数据展示优先级固定为：海外基金官方净值 `净` 优先，其次盘中估值 `估` 或海外模型 `模`，网络失败保留旧值并标记 `旧`。任何导入或云端覆盖前都要备份；Gist 新写入使用 Schema 2，但继续读取旧数组格式和可兼容的更高版本 Schema。
+数据展示统一消费 Quote Envelope，并按 realtime、delayed、有效 model、official、stale、unavailable 的可信等级选择；网络失败保留旧值并标记 `旧`。任何导入或云同步前都要备份；Gist 永久保留旧版文件，Schema 3 仅写当前设备的隔离分片并在 PATCH 后读回校验，禁止高版本降写。
 
 支付宝截图导入必须在独立的 `ocr-import.html` 页面中完成；该页必须保持严格同源 CSP，且不得加载 `app.js`、`bootstrap.js`、行情或第三方 JSONP。OCR 只接受本地 `File`/`Blob`，主引擎固定为 `@paddleocr/paddleocr-js@0.4.2` + PP-OCRv6 tiny，模型、Worker、ONNX Runtime 与 WASM 均使用同源资产并仅在选图后动态加载；Tesseract 只保留为降级/回归链路。识别出的金额和累计收益只可辅助计算成本，用户必须确认真实份额大于 0；不得用当前估值反推份额，不得删除截图外持仓。确认批次必须先备份，再写入 canonical 持仓，回主页面后立即触发 Gist 同步和估值刷新。
 

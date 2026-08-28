@@ -1,3 +1,8 @@
+import {
+  LocalOcrEngine,
+  OCR_BACKEND,
+} from '../js/ocr/engine.js';
+
 // Lightweight page-side facade for the local PaddleOCR engine. The heavy
 // Paddle/OpenCV runtime is imported only inside our module Worker so Android
 // does not parse or retain a second copy on the main thread.
@@ -25,6 +30,7 @@ const SAFE_WORKER_ERRORS = Object.freeze({
   'unsupported-runtime': 'PaddleOCR worker is not supported in this browser.',
   'not-initialized': 'PaddleOCR worker is not ready.',
   'already-disposed': 'PaddleOCR worker has already been disposed.',
+  'busy': 'PaddleOCR worker is already processing a local image.',
   'engine-failure': 'PaddleOCR worker operation failed.',
 });
 
@@ -127,141 +133,162 @@ function createWorkerClient() {
   });
 }
 
-/**
- * Creates an isolated, same-origin PaddleOCR Worker for a user-selected
- * screenshot. The page-side module never imports PaddleOCR or OpenCV. Callers
- * own input validation and must dispose the returned facade.
- */
-export async function createLocalPaddleOcr({ onProgress } = {}) {
-  const assets = Object.freeze({
-    detection: resolveSameOriginAsset(LOCAL_MODEL_PATHS.detection),
-    recognition: resolveSameOriginAsset(LOCAL_MODEL_PATHS.recognition),
-    ortDirectory: resolveSameOriginAsset(LOCAL_MODEL_PATHS.ortDirectory),
-  });
-
-  emitProgress(onProgress, 'initializing');
-  const client = createWorkerClient();
-  try {
-    await client.request('init', {
-      options: {
-        pipelineConfig: {
-          pipelineName: 'OCR',
-          raw: {
-            pipeline_name: 'OCR',
-            text_type: 'general',
-            use_doc_preprocessor: false,
-            use_textline_orientation: false,
-            SubPipelines: {
-              DocPreprocessor: {
-                pipeline_name: 'doc_preprocessor',
-                use_doc_orientation_classify: false,
-                use_doc_unwarping: false,
-                SubModules: {
-                  DocOrientationClassify: {
-                    module_name: 'doc_text_orientation',
-                    model_name: 'PP-LCNet_x1_0_doc_ori',
-                    model_dir: null,
-                  },
-                  DocUnwarping: {
-                    module_name: 'image_unwarping',
-                    model_name: 'UVDoc',
-                    model_dir: null,
-                  },
+function createWorkerInitPayload(assets, backend) {
+  return {
+    options: {
+      pipelineConfig: {
+        pipelineName: 'OCR',
+        raw: {
+          pipeline_name: 'OCR',
+          text_type: 'general',
+          use_doc_preprocessor: false,
+          use_textline_orientation: false,
+          SubPipelines: {
+            DocPreprocessor: {
+              pipeline_name: 'doc_preprocessor',
+              use_doc_orientation_classify: false,
+              use_doc_unwarping: false,
+              SubModules: {
+                DocOrientationClassify: {
+                  module_name: 'doc_text_orientation',
+                  model_name: 'PP-LCNet_x1_0_doc_ori',
+                  model_dir: null,
+                },
+                DocUnwarping: {
+                  module_name: 'image_unwarping',
+                  model_name: 'UVDoc',
+                  model_dir: null,
                 },
               },
             },
-            SubModules: {
-              TextDetection: {
-                module_name: 'text_detection',
-                model_name: 'PP-OCRv5_mobile_det',
-                model_dir: null,
-                limit_side_len: 64,
-                limit_type: 'min',
-                max_side_limit: 4000,
-                thresh: 0.3,
-                box_thresh: 0.6,
-                unclip_ratio: 1.5,
-              },
-              TextLineOrientation: {
-                module_name: 'textline_orientation',
-                model_name: 'PP-LCNet_x1_0_textline_ori',
-                model_dir: null,
-                batch_size: 6,
-              },
-              TextRecognition: {
-                module_name: 'text_recognition',
-                model_name: 'PP-OCRv5_mobile_rec',
-                model_dir: null,
-                batch_size: 6,
-                score_thresh: 0,
-              },
+          },
+          SubModules: {
+            TextDetection: {
+              module_name: 'text_detection',
+              model_name: 'PP-OCRv5_mobile_det',
+              model_dir: null,
+              limit_side_len: 64,
+              limit_type: 'min',
+              max_side_limit: 4000,
+              thresh: 0.3,
+              box_thresh: 0.6,
+              unclip_ratio: 1.5,
+            },
+            TextLineOrientation: {
+              module_name: 'textline_orientation',
+              model_name: 'PP-LCNet_x1_0_textline_ori',
+              model_dir: null,
+              batch_size: 6,
+            },
+            TextRecognition: {
+              module_name: 'text_recognition',
+              model_name: 'PP-OCRv5_mobile_rec',
+              model_dir: null,
+              batch_size: 6,
+              score_thresh: 0,
             },
           },
-          warnings: [
-            'DocPreprocessor is not yet supported in PaddleOCR.js: config will be ignored for now.',
-            'TextLineOrientation is not yet supported in PaddleOCR.js: config will be ignored for now.',
-          ],
-          unsupportedFeatures: ['DocPreprocessor', 'TextLineOrientation'],
-          modelSelection: {
-            textDetectionModelName: 'PP-OCRv6_tiny_det',
-            textRecognitionModelName: 'PP-OCRv6_tiny_rec',
-          },
-          assets: {
-            det: { url: assets.detection },
-            rec: { url: assets.recognition },
-          },
-          runtimeDefaults: {
-            text_det_limit_side_len: 64,
-            text_det_limit_type: 'min',
-            text_det_max_side_limit: 4000,
-            text_det_thresh: 0.3,
-            text_det_box_thresh: 0.6,
-            text_det_unclip_ratio: 1.5,
-            text_rec_score_thresh: 0,
-          },
-          pipelineBatchSize: 1,
-          textDetectionBatchSize: 1,
-          textRecognitionBatchSize: 1,
         },
-        ortOptions: {
-          backend: 'wasm',
-          wasmPaths: assets.ortDirectory,
-          numThreads: 1,
-          simd: true,
-          proxy: false,
-          disableWasmProxy: true,
+        warnings: [
+          'DocPreprocessor is not yet supported in PaddleOCR.js: config will be ignored for now.',
+          'TextLineOrientation is not yet supported in PaddleOCR.js: config will be ignored for now.',
+        ],
+        unsupportedFeatures: ['DocPreprocessor', 'TextLineOrientation'],
+        modelSelection: {
+          textDetectionModelName: 'PP-OCRv6_tiny_det',
+          textRecognitionModelName: 'PP-OCRv6_tiny_rec',
         },
+        assets: {
+          det: { url: assets.detection },
+          rec: { url: assets.recognition },
+        },
+        runtimeDefaults: {
+          text_det_limit_side_len: 64,
+          text_det_limit_type: 'min',
+          text_det_max_side_limit: 4000,
+          text_det_thresh: 0.3,
+          text_det_box_thresh: 0.6,
+          text_det_unclip_ratio: 1.5,
+          text_rec_score_thresh: 0,
+        },
+        pipelineBatchSize: 1,
+        textDetectionBatchSize: 1,
+        textRecognitionBatchSize: 1,
       },
-    });
-  } catch (error) {
-    client.terminate();
-    throw error;
+      ortOptions: {
+        // Never use "auto": FundVal owns the single WebGPU attempt and creates
+        // a fresh one-thread WASM Worker only after that attempt is released.
+        backend,
+        wasmPaths: assets.ortDirectory,
+        numThreads: 1,
+        simd: true,
+        proxy: false,
+        disableWasmProxy: true,
+      },
+    },
+  };
+}
+
+function finiteDuration(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : 0;
+}
+
+function expectedProvider(summary, backend) {
+  return summary?.detProvider === backend && summary?.recProvider === backend;
+}
+
+function assertLocalWorkerInput(image) {
+  if (typeof image === 'string') {
+    throw new TypeError('PaddleOCR local import does not accept image URLs or Base64 data.');
   }
+  if (isTransferableImageBitmap(image)) return image;
+  if (typeof Blob === 'function' && image instanceof Blob && image.size > 0) return image;
+  throw new TypeError('PaddleOCR local import accepts a local Blob only.');
+}
 
+function summarizePredictionMetrics(prediction) {
+  const outputs = Array.isArray(prediction) ? prediction : [prediction];
+  return outputs.reduce((summary, output) => {
+    const metrics = output?.metrics || {};
+    summary.detectionMs += finiteDuration(metrics.detMs);
+    summary.recognitionMs += finiteDuration(metrics.recMs);
+    summary.blockCount += Math.max(0, Math.round(finiteDuration(metrics.recognizedCount)));
+    return summary;
+  }, { detectionMs: 0, recognitionMs: 0, blockCount: 0 });
+}
+
+function createPaddleWorkerBackend({ backend, assets }) {
+  const client = createWorkerClient();
+  let initializationSummary = null;
+  const cumulative = { detectionMs: 0, recognitionMs: 0, blockCount: 0 };
   let disposed = false;
-  emitProgress(onProgress, 'ready');
 
-  return Object.freeze({
-    async predict(image, options = {}) {
-      if (disposed) throw toSafeWorkerError('already-disposed');
-      if (typeof image === 'string') {
-        throw new TypeError('PaddleOCR local import does not accept image URLs.');
-      }
-      emitProgress(onProgress, 'recognizing');
-      try {
-        // Transfer ImageBitmap ownership to avoid a structured clone and the
-        // SDK's worker-mode createImageBitmap clone. A Blob is first decoded to
-        // a local ImageBitmap, then that bitmap is transferred the same way.
-        const imageBitmap = isTransferableImageBitmap(image)
-          ? image
-          : await createImageBitmap(image);
-        return await client.request('predict', {
-          sources: [{ kind: 'imageBitmap', imageBitmap }],
-          params: { ...DEFAULT_PREDICT_OPTIONS, ...options },
-        }, [imageBitmap]);
-      } finally {
-        emitProgress(onProgress, 'recognized');
-      }
+  return {
+    async initialize() {
+      const response = await client.request('init', createWorkerInitPayload(assets, backend));
+      initializationSummary = response?.summary || null;
+    },
+    isModelCompatible() {
+      return expectedProvider(initializationSummary, backend);
+    },
+    async recognize(image, options = {}) {
+      assertLocalWorkerInput(image);
+      const imageBitmap = isTransferableImageBitmap(image)
+        ? image
+        : await createImageBitmap(image);
+      const prediction = await client.request('predict', {
+        sources: [{ kind: 'imageBitmap', imageBitmap }],
+        params: { ...DEFAULT_PREDICT_OPTIONS, ...options },
+      }, [imageBitmap]);
+      const metrics = summarizePredictionMetrics(prediction);
+      cumulative.detectionMs += metrics.detectionMs;
+      cumulative.recognitionMs += metrics.recognitionMs;
+      cumulative.blockCount += metrics.blockCount;
+      return prediction;
+    },
+    performance() {
+      return Object.freeze({ ...cumulative });
     },
     async dispose() {
       if (disposed) return;
@@ -270,6 +297,83 @@ export async function createLocalPaddleOcr({ onProgress } = {}) {
         await client.request('dispose');
       } finally {
         client.terminate('already-disposed');
+      }
+    },
+  };
+}
+
+/**
+ * Creates an isolated, same-origin PaddleOCR Worker for a user-selected
+ * screenshot. WebGPU is attempted at most once; any initialization or model
+ * compatibility failure releases that Worker before one permanent WASM
+ * fallback. The page-side module never imports PaddleOCR or OpenCV.
+ */
+export async function createLocalPaddleOcr({ onProgress } = {}) {
+  const assets = Object.freeze({
+    detection: resolveSameOriginAsset(LOCAL_MODEL_PATHS.detection),
+    recognition: resolveSameOriginAsset(LOCAL_MODEL_PATHS.recognition),
+    ortDirectory: resolveSameOriginAsset(LOCAL_MODEL_PATHS.ortDirectory),
+  });
+  const engine = new LocalOcrEngine({
+    runtime: globalThis,
+    validateInput: assertLocalWorkerInput,
+    backends: {
+      [OCR_BACKEND.WEBGPU]: () => createPaddleWorkerBackend({
+        backend: OCR_BACKEND.WEBGPU,
+        assets,
+      }),
+      [OCR_BACKEND.WASM]: () => createPaddleWorkerBackend({
+        backend: OCR_BACKEND.WASM,
+        assets,
+      }),
+    },
+  });
+
+  emitProgress(onProgress, 'initializing');
+  await engine.initialize();
+  if (engine.diagnostics.fallback) emitProgress(onProgress, 'webgpu-fallback');
+  emitProgress(onProgress, 'ready');
+  let disposed = false;
+  let activePrediction = null;
+
+  const performanceMetadata = () => {
+    const diagnostics = engine.diagnostics;
+    const workerMetrics = engine.backend?.performance?.() || {};
+    return Object.freeze({
+      capabilityClass: engine.capabilities?.webgpu?.supported ? 'webgpu' : 'wasm_only',
+      backend: diagnostics.backend || 'none',
+      fallback: Boolean(diagnostics.fallback),
+      coldInitMs: finiteDuration(diagnostics.initializationMs),
+      detectionMs: finiteDuration(workerMetrics.detectionMs),
+      recognitionMs: finiteDuration(workerMetrics.recognitionMs)
+        || finiteDuration(diagnostics.recognitionMs),
+      blockCount: Math.max(0, Math.round(finiteDuration(workerMetrics.blockCount))),
+    });
+  };
+
+  return Object.freeze({
+    get performance() {
+      return performanceMetadata();
+    },
+    async predict(image, options = {}) {
+      if (disposed) throw toSafeWorkerError('already-disposed');
+      if (activePrediction) throw toSafeWorkerError('busy');
+      assertLocalWorkerInput(image);
+      emitProgress(onProgress, 'recognizing');
+      activePrediction = engine.recognize(image, options);
+      try {
+        return await activePrediction;
+      } finally {
+        activePrediction = null;
+        emitProgress(onProgress, 'recognized');
+      }
+    },
+    async dispose() {
+      if (disposed) return;
+      disposed = true;
+      try {
+        await engine.dispose();
+      } finally {
         emitProgress(onProgress, 'disposed');
       }
     },

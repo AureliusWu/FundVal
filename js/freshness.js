@@ -1,3 +1,9 @@
+import {
+  classifyMarketKind,
+  marketSession,
+  refreshDelayForMarketKinds,
+} from './runtime/market-session.js';
+
 const MINUTE = 60 * 1000;
 export const MAX_FUTURE_SOURCE_SKEW_MS = 5 * MINUTE;
 
@@ -13,55 +19,21 @@ export function parseChinaSourceTime(value) {
 
 export function classifyFundMarket(name) {
   const text = String(name || '');
-  if (/黄金|白银|贵金属|商品/i.test(text)) return 'gold';
-  if (/港股|恒生|香港/i.test(text)) return 'hk';
-  if (/QDII|全球|海外|纳斯达克|标普|美元|国际|日经|德国|越南|印度/i.test(text)) return 'overseas';
-  if (/指数|ETF|联接/i.test(text)) return 'cn-index';
-  return 'cn';
-}
-
-function clockInZone(now, timeZone) {
-  try {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    }).formatToParts(now);
-    const values = Object.fromEntries(parts
-      .filter(part => part.type !== 'literal')
-      .map(part => [part.type, part.value]));
-    const hour = Number(values.hour);
-    const minute = Number(values.minute);
-    return Number.isFinite(hour) && Number.isFinite(minute)
-      ? { weekday: values.weekday, minute: hour * 60 + minute }
-      : null;
-  } catch (_) { return null; }
-}
-
-function isWeekend(weekday) {
-  return weekday === 'Sat' || weekday === 'Sun' || weekday === 0 || weekday === 6;
+  const canonical = classifyMarketKind(text);
+  if (canonical === 'cn' && /指数|ETF|联接/i.test(text)) return 'cn-index';
+  // Keep the historical `overseas` alias for US callers, but do not collapse
+  // Japanese and Korean markets back into the US clock. The auto-refresh
+  // scheduler consumes this function directly.
+  if (canonical === 'us') return 'overseas';
+  return canonical;
 }
 
 export function marketState(market, now = new Date()) {
-  if (market === 'overseas') {
-    const us = clockInZone(now, 'America/New_York');
-    if (us) return isWeekend(us.weekday) || us.minute < 570 || us.minute >= 960 ? 'closed' : 'open';
-  }
-  const china = new Date(now.getTime() + (now.getTimezoneOffset() + 480) * MINUTE);
-  const weekday = china.getDay();
-  const minute = china.getHours() * 60 + china.getMinutes();
-  if (isWeekend(weekday)) return 'closed';
-  if (market === 'overseas') return minute >= 21 * 60 || minute < 5 * 60 ? 'open' : 'closed';
-  if (market === 'hk') return (minute >= 570 && minute < 720) || (minute >= 780 && minute < 960) ? 'open' : 'closed';
-  if (market === 'gold') return (minute >= 540 && minute < 930) || minute >= 1200 ? 'open' : 'closed';
-  return (minute >= 570 && minute < 690) || (minute >= 780 && minute < 900) ? 'open' : 'closed';
+  return marketSession(market, now).marketState;
 }
 
 export function refreshDelayForMarkets(markets, now = new Date()) {
-  const list = Array.from(markets || []);
-  return list.some((market) => marketState(market, now) === 'open') ? MINUTE : 5 * MINUTE;
+  return refreshDelayForMarketKinds(markets, now);
 }
 
 export function buildFreshness({ sourceTime, fetchedAt = new Date().toISOString(), calculatedAt = null, source, isFallback = false, fallbackReason = null, market = 'cn', model = false, official = false, unavailable = false }, now = Date.now()) {

@@ -14,9 +14,35 @@ test('normalizes current estimate table values without inventing a quote minute'
 });
 
 test('keeps missing estimate values missing', () => {
-  const result = normalizeEstimateRow({ bzdm: '000001', gsz: '--', gszzl: '--' });
+  const result = normalizeEstimateRow({ bzdm: '000001', dwjz: null, gsz: '--', gszzl: '--', coverage: null });
+  assert.equal(Number.isNaN(result.last_nav), true);
   assert.equal(Number.isNaN(result.est_nav), true);
   assert.equal(Number.isNaN(result.est_change), true);
+  assert.equal(Number.isNaN(result.coverage), true);
+  assert.equal(result.source_quote.value, null);
+  assert.equal(result.source_quote.changePct, null);
+  assert.equal(result.source_quote.status, 'unavailable');
+  assert.equal(result.status, 'error');
+});
+
+test('preserves an explicit unavailable proxy response for the fallback chain', () => {
+  const result = normalizeEstimateRow({
+    bzdm: '000001', status: 'unavailable', message: 'upstream empty', gsz: 1, gszzl: 0,
+  });
+  assert.equal(result.status, 'unavailable');
+  assert.equal(result.source_status, 'unavailable');
+  assert.equal(result.message, 'upstream empty');
+});
+
+test('attaches the unified source quote without dropping a legal zero change', () => {
+  const result = normalizeEstimateRow({
+    code: '000001', name: '测试基金', est_nav: 1, est_change: 0,
+    est_time: '2026-08-25 10:04', est_realtime: true, source: 'sinan-estimate-proxy',
+  }, { fetchedAt: '2026-08-25T02:04:30Z', now: Date.parse('2026-08-25T02:05:00Z') });
+  assert.equal(result.source_quote.changePct, 0);
+  assert.equal(result.source_quote.observedAt, '2026-08-25 10:04');
+  assert.equal(result.source_quote.fetchedAt, '2026-08-25T02:04:30.000Z');
+  assert.equal(result.source_quote.status, 'realtime');
 });
 
 test('preserves the official NAV fallback semantics on non-trading days', () => {
@@ -81,6 +107,43 @@ test('fails explicitly when the estimate proxy is unavailable', async () => {
   globalThis.fetch = async () => new Response('upstream unavailable', { status: 502 });
   try {
     await assert.rejects(fetchEstimateRows(['000001']), /HTTP 502/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('honors caller cancellation instead of waiting for its own timeout', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => {
+      const error = new Error('cancelled');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+  const controller = new AbortController();
+  try {
+    const pending = fetchEstimateRows(['000001'], { signal: controller.signal });
+    controller.abort('superseded');
+    await assert.rejects(pending, { name: 'AbortError' });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('reports its own deadline as a timeout source failure', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => {
+      const error = new Error('native abort');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+  try {
+    await assert.rejects(fetchEstimateRows(['000001'], { timeout: 1 }), {
+      name: 'TimeoutError', code: 'REQUEST_TIMEOUT',
+    });
   } finally {
     globalThis.fetch = originalFetch;
   }

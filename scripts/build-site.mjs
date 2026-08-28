@@ -2,10 +2,18 @@ import { access, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
+import { build as viteBuild } from 'vite';
 import { buildPaddleOcrAssets } from './build-paddle-ocr.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = resolve(root, 'site');
+const APP_SHELL_FILENAME = 'js/app-shell.js';
+// v14.0.2 shipped 43,545 gzip bytes across its 15 cold-start modules.
+// Keep the production shell at or below the exact +20% regression boundary.
+const APP_SHELL_GZIP_BUDGET = 52_254;
+const APP_SHELL_CORE_START = '// BUILD_APP_SHELL_CORE_START';
+const APP_SHELL_CORE_END = '// BUILD_APP_SHELL_CORE_END';
 
 if (dirname(output) !== root || relative(root, output) !== 'site') {
   throw new Error('Refusing to clean an unexpected build directory.');
@@ -17,6 +25,95 @@ const copyIntoSite = async source => {
   await cp(from, resolve(output, source), { recursive: true });
 };
 
+function replaceExactlyOnce(source, search, replacement, label) {
+  const first = source.indexOf(search);
+  if (first < 0 || source.indexOf(search, first + search.length) >= 0) {
+    throw new Error(`Expected exactly one ${label}.`);
+  }
+  return `${source.slice(0, first)}${replacement}${source.slice(first + search.length)}`;
+}
+
+function replaceMarkedSection(source, startMarker, endMarker, replacement) {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  if (
+    start < 0
+    || end < 0
+    || source.indexOf(startMarker, start + startMarker.length) >= 0
+    || source.indexOf(endMarker, end + endMarker.length) >= 0
+  ) {
+    throw new Error('Expected exactly one app-shell Service Worker marker pair.');
+  }
+  return `${source.slice(0, start + startMarker.length)}\n${replacement}\n${source.slice(end)}`;
+}
+
+async function buildAppShell() {
+  const result = await viteBuild({
+    configFile: false,
+    root,
+    logLevel: 'silent',
+    build: {
+      write: false,
+      minify: 'esbuild',
+      target: 'es2022',
+      rolldownOptions: {
+        input: resolve(root, 'js/bootstrap.js'),
+        output: {
+          format: 'es',
+          codeSplitting: false,
+          entryFileNames: APP_SHELL_FILENAME,
+        },
+      },
+    },
+  });
+  const outputs = Array.isArray(result)
+    ? result.flatMap(item => item.output || [])
+    : result.output || [];
+  const chunks = outputs.filter(item => item.type === 'chunk');
+  if (chunks.length !== 1 || chunks[0].fileName !== APP_SHELL_FILENAME) {
+    throw new Error(`Expected one ${APP_SHELL_FILENAME} chunk, received ${chunks.map(item => item.fileName).join(', ') || 'none'}.`);
+  }
+
+  const code = chunks[0].code;
+  if (/^\s*import\s/m.test(code) || /\bimport\s*\(/.test(code)) {
+    throw new Error('Homepage app shell contains a residual module import.');
+  }
+  if (/assets\/ocr|paddle-local-ocr|ocr-import-page|onnx|tesseract/i.test(code)) {
+    throw new Error('Homepage app shell unexpectedly contains an OCR runtime or asset reference.');
+  }
+  const gzipBytes = gzipSync(code).length;
+  if (gzipBytes > APP_SHELL_GZIP_BUDGET) {
+    throw new Error(`Homepage app shell exceeds its gzip budget: ${gzipBytes} > ${APP_SHELL_GZIP_BUDGET} bytes.`);
+  }
+
+  const target = resolve(output, APP_SHELL_FILENAME);
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, code, 'utf8');
+
+  const indexPath = resolve(output, 'index.html');
+  const index = await readFile(indexPath, 'utf8');
+  await writeFile(indexPath, replaceExactlyOnce(
+    index,
+    'src="js/bootstrap.js"',
+    `src="${APP_SHELL_FILENAME}"`,
+    'homepage bootstrap script reference',
+  ), 'utf8');
+
+  const workerPath = resolve(output, 'sw.js');
+  const worker = replaceMarkedSection(
+    await readFile(workerPath, 'utf8'),
+    APP_SHELL_CORE_START,
+    APP_SHELL_CORE_END,
+    `  './${APP_SHELL_FILENAME}',`,
+  );
+  const core = worker.slice(worker.indexOf('const CORE'), worker.indexOf('self.addEventListener'));
+  if (!core.includes(`'./${APP_SHELL_FILENAME}'`) || core.includes("'./js/bootstrap.js'")) {
+    throw new Error('Built Service Worker did not replace the source module graph with the app shell.');
+  }
+  await writeFile(workerPath, worker, 'utf8');
+  console.log(`Built ${APP_SHELL_FILENAME}: ${Buffer.byteLength(code)} bytes raw, ${gzipBytes} bytes gzip.`);
+}
+
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 
@@ -25,6 +122,8 @@ for (const source of [
 ]) {
   await copyIntoSite(source);
 }
+
+await buildAppShell();
 
 const ocrAssets = [
   ['node_modules/tesseract.js/dist/tesseract.esm.min.js', 'assets/ocr/tesseract/tesseract.esm.min.js'],

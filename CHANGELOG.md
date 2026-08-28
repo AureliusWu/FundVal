@@ -1,5 +1,14 @@
 # Changelog
 
+## 14.0.3 - 2026-08-28
+
+- 发布 v15 前置兼容桥：统一 Quote Envelope、市场时钟、刷新代际、请求取消、单基金失败隔离、数据源 cooldown/恢复与可信状态展示，缺失值不再被展示层推断为 0。
+- 本地持仓升级为可恢复的 Schema 3 仓储；云端使用按设备隔离的 V3 Gist 分片，永久保留旧 Schema 2 文件，合并较新的旧版变更并阻止旧客户端复活 tombstone 或降写 revision/note。
+- 云同步增加原始双文件备份、本地稳定快照、显式升级、PATCH 后 GET 读回与待同步恢复标志；损坏或未来 Schema 保持 fail-closed。
+- OCR 增加 WebGPU 能力探测、初始化失败后单次回退 WASM、资产 manifest/hash 校验与不含识别内容的性能账本；真实份额缺失时仍在持仓事务前阻断。
+- Service Worker 按资源类型执行 network-first、SWR 与 network-only，并通过受控更新握手保护未保存输入；生产首页构建为单一无 OCR `app-shell.js`，gzip 51,948 B，低于 v14.0.2 冷启动图 +20% 的 52,254 B 门禁。
+- Android/iOS 实机仍为 `NOT_RUN`；本版本用于先部署兼容读写边界和建立可回滚的 Schema 3 迁移路径，不冒充 v15.0.0 最终验收。
+
 ## 14.0.2 - 2026-08-24
 
 - 修复海外模型把“上一季度最新已披露持仓”立即判为过期的问题；未配置 `valid_until` 时允许披露季度滞后一季，但两季前模型仍明确降级。

@@ -1,16 +1,16 @@
 # AGENTS.md
 
-## 当前架构（V14.0.2）
+## 当前架构（V14.0.3）
 
 - `js/bootstrap.js` 负责启动顺序，必须先执行迁移与完整性检查，再加载 `app.js`。
 - `js/resilience.js` 负责本地数据恢复、缓存清理、错误日志和跨标签页提示。
 - `js/integrity.js` 只放可测试的持仓、缓存、诊断纯函数。
-- `js/app.js` 负责页面编排和刷新队列；`js/eastmoney-estimate.js` 负责调用司南服务端估值代理并保留部分结果；`js/fund-holdings.js` 负责通过同一只读代理获取带披露日期的十大重仓。
+- `js/app.js` 负责页面编排；`js/runtime/` 负责统一 Quote Envelope、市场时钟、数据源健康与刷新代际；`js/eastmoney-estimate.js` 负责调用司南服务端估值代理并保留部分结果；`js/fund-holdings.js` 负责通过同一只读代理获取带披露日期的十大重仓。
 - `js/freshness.js` 负责行情时间解析、市场分类和统一数据状态。
 - `js/holdings-estimate.js` 负责按披露权重计算十大重仓当日行情贡献；非当日行情和覆盖不足不得参与估算。
 - `js/config.js` 负责 TTL、超时和交易时段刷新间隔。
 - `js/calculator.js` 只放纯计算与显示来源优先级。
-- `js/storage.js` 负责带时间戳缓存、Gist Schema 和本地备份；所有读写失败必须可降级。
+- `js/storage.js` 保留通用安全存储；`js/storage/` 负责 Schema 3 仓储、迁移、事务恢复与云同步。Gist 的旧版文件必须永久保留，Schema 3 只写按设备隔离的 V3 分片；所有读写失败必须可降级并保留待同步状态。
 - `js/overseas-model.js` 读取 `data/overseas-models.json`，不得回填硬编码基金规则。
 - `js/accuracy.js` 记录海外模型预测、官方净值结算和 MAE/方向准确率。
 - `js/paddle-local-ocr.js` 只接受本地 `File`/`Blob`，按需加载 `@paddleocr/paddleocr-js@0.4.2`、PP-OCRv6 tiny、同源 Worker/WASM/模型并输出坐标块；不得接受 URL、Base64 或上传截图。

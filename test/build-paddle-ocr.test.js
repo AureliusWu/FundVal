@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { assertLightweightPaddleEntry, assertRelativePaddleWorkerUrl } from '../scripts/build-paddle-ocr.mjs';
+import {
+  assertLightweightPaddleEntry,
+  assertRelativePaddleWorkerUrl,
+  patchPaddleWorkerForExplicitWasm,
+} from '../scripts/build-paddle-ocr.mjs';
 
 test('PaddleOCR build accepts an engine-relative module Worker and rejects a root Worker', () => {
   const relativeEntry = 'return new Worker(new URL("assets/fundval-paddle-worker.js", import.meta.url));';
@@ -23,7 +27,7 @@ test('PaddleOCR build accepts an engine-relative module Worker and rejects a roo
   );
 });
 
-test('PaddleOCR page entry stays light and delegates heavy SDK work to the pinned official Worker', async () => {
+test('PaddleOCR page entry stays light and delegates heavy SDK work to a controlled pinned Worker', async () => {
   const [entry, build, officialWorker] = await Promise.all([
     readFile(new URL('../scripts/paddle-ocr-entry.mjs', import.meta.url), 'utf8'),
     readFile(new URL('../scripts/build-paddle-ocr.mjs', import.meta.url), 'utf8'),
@@ -40,8 +44,43 @@ test('PaddleOCR page entry stays light and delegates heavy SDK work to the pinne
   assertLightweightPaddleEntry('new Worker(new URL("./assets/fundval-paddle-worker.js", import.meta.url));');
 
   assert.match(build, /worker-entry-C9UNuyOJ\.js/);
-  assert.match(build, /officialWorker\.byteLength < 10_000_000/);
+  assert.match(build, /Buffer\.byteLength\(officialWorker\) < 10_000_000/);
+  assert.match(build, /patchPaddleWorkerForExplicitWasm\(officialWorker\)/);
   assert.match(officialWorker, /worker-transport-request/);
   assert.match(officialWorker, /worker-transport-response/);
   assert.match(officialWorker, /sourcePayloadToMat/);
+  assert.match(officialWorker, /const webgpuState = await detectWebGpuAvailability\(\);/);
+  const controlledWorker = patchPaddleWorkerForExplicitWasm(officialWorker);
+  assert.match(controlledWorker, /backend === "wasm" \? \{ available: false/);
+  assert.doesNotMatch(controlledWorker, /const webgpuState = await detectWebGpuAvailability\(\);/);
+  const initStart = controlledWorker.indexOf('async function initOrtRuntime(ortOptions = {}) {');
+  const initEnd = controlledWorker.indexOf('async function createSession(', initStart);
+  const initOrtRuntime = new Function(
+    'detectWebGpuAvailability',
+    'loadOrtModule',
+    'applyOrtEnvironmentOptions',
+    `${controlledWorker.slice(initStart, initEnd)}\nreturn initOrtRuntime;`
+  )(
+    async () => {
+      probes += 1;
+      return { available: true, reason: '' };
+    },
+    async () => ({ name: 'ort' }),
+    () => { applyOptionsCalls += 1; },
+  );
+  let probes = 0;
+  let applyOptionsCalls = 0;
+  const wasmRuntime = await initOrtRuntime({ backend: 'wasm' });
+  assert.equal(probes, 0);
+  assert.deepEqual(wasmRuntime.webgpuState, {
+    available: false,
+    reason: 'FundVal explicit WASM backend.',
+  });
+  await initOrtRuntime({ backend: 'webgpu' });
+  assert.equal(probes, 1);
+  assert.equal(applyOptionsCalls, 2);
+  assert.throws(
+    () => patchPaddleWorkerForExplicitWasm(`${officialWorker}\n// drift`),
+    /source changed/
+  );
 });

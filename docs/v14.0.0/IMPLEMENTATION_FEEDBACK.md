@@ -1,7 +1,14 @@
-# 蜉蝣基金（FundVal）v14.0.2 实施反馈
+# 蜉蝣基金（FundVal）v14.0.3 实施反馈
 
 实施日期：2026-08-12
 发布状态：`RELEASE_CANDIDATE / DEPLOYMENT_PENDING / DEVICE_VALIDATION_PENDING`
+
+## v14.0.3 v15 兼容桥补充（2026-08-28）
+
+- 行情统一进入 Quote Envelope，并由 RefreshCoordinator、代际提交门禁、AbortController 和数据源健康状态协调；缺失值保持 `null`，请求时间不得冒充行情时间。
+- Gist Schema 3 改为按设备隔离的新文件分片，旧版 Schema 2 文件永久保留；旧客户端无法覆盖 V3 元数据，新版仍会安全吸收真正较新的旧版变更。
+- OCR 增加 WebGPU 单次尝试、稳定 WASM 回退、完整资产清单与脱敏性能账本；首页继续保持 OCR 零请求。
+- 生产首页生成单一、无 OCR 的 `app-shell.js`，gzip 以 v14.0.2 冷启动图 +20% 为硬预算；Android/iOS 实机门禁仍保持 `NOT_RUN`，本桥接版本不宣称 v15 最终完成。
 
 ## v14.0.2 数据与 GitHub 维护补充（2026-08-24）
 

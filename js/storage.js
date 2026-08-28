@@ -18,6 +18,18 @@ export function safeRemoveItem(key, storage = defaultStorage()) {
   catch (_) { return false; }
 }
 
+export function safeStorageKeys(storage = defaultStorage()) {
+  const keys = [];
+  try {
+    if (!storage) return keys;
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (typeof key === 'string' && key) keys.push(key);
+    }
+  } catch (_) {}
+  return keys;
+}
+
 export function getCached(key, ttl, storage = defaultStorage(), now = Date.now()) {
   try {
     const entry = JSON.parse(safeGetItem(key, storage) || 'null');

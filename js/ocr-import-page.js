@@ -2,10 +2,12 @@ import { detectAlipayHoldingSourceEvidence, matchFundCandidate, normalizeFundNam
 import { loadFundCatalog } from './fund-catalog.js';
 import { applyHoldingImportPlan, createHoldingImportPlan, importPlanSummary, validateHoldingImportPlan } from './holding-import-plan.js';
 import { reconstructOcrTableLayout } from './ocr-table-layout.js';
+import { detectOcrCapabilities } from './ocr/capability.js';
+import { classifyOcrPerformanceError, recordOcrPerformance } from './ocr/performance-ledger.js';
 import { runStartupIntegrityChecks } from './resilience.js';
-import { backupHoldings, safeRemoveItem, safeSetItem } from './storage.js';
+import { safeRemoveItem, safeSetItem } from './storage.js';
+import { loadHoldingsRepository, saveLegacyHoldingsTransaction } from './storage/holdings-repository.js';
 
-const STORAGE_KEY = 'fuyu_holdings_v1';
 const CACHE_KEY = 'fuyu_funds_cache_v1';
 const OCR_IMPORT_PENDING_KEY = 'fuyu_ocr_import_pending_v1';
 
@@ -13,6 +15,62 @@ let activeSession = 0;
 let paddleOcrModulePromise = null;
 let activeRecognitionTask = null;
 let state = { rows: [], catalogWarning: '' };
+
+function monotonicNow() {
+  const value = globalThis.performance?.now?.();
+  return Number.isFinite(value) ? value : Date.now();
+}
+
+function capabilityClass() {
+  try {
+    const capabilities = detectOcrCapabilities(globalThis);
+    if (capabilities.webgpu.supported) return 'webgpu';
+    if (capabilities.wasm.supported) return 'wasm_only';
+    return 'unsupported';
+  } catch (_) {
+    return 'unknown';
+  }
+}
+
+function createPerformanceRun() {
+  return {
+    capabilityClass: capabilityClass(),
+    backend: 'none',
+    fallback: false,
+    errorCategory: 'none',
+    imageWidth: 0,
+    imageHeight: 0,
+    tileCount: 0,
+    coldInitMs: 0,
+    warmInitMs: 0,
+    preprocessMs: 0,
+    detectionMs: 0,
+    recognitionMs: 0,
+    layoutMs: 0,
+    parseMs: 0,
+    totalMs: 0,
+    blockCount: 0,
+  };
+}
+
+const PERFORMANCE_NUMERIC_FIELDS = Object.freeze([
+  'imageWidth', 'imageHeight', 'tileCount', 'coldInitMs', 'warmInitMs',
+  'preprocessMs', 'detectionMs', 'recognitionMs', 'layoutMs', 'parseMs',
+  'totalMs', 'blockCount',
+]);
+
+function mergeRecognitionPerformance(target, source) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return;
+  if (source.backend === 'webgpu' || source.backend === 'wasm' || source.backend === 'none') {
+    target.backend = source.backend;
+  }
+  target.fallback = source.fallback === true;
+  for (const field of PERFORMANCE_NUMERIC_FIELDS) {
+    if (typeof source[field] === 'number' && Number.isFinite(source[field])) {
+      target[field] = source[field];
+    }
+  }
+}
 
 function element(id) {
   return document.getElementById(id);
@@ -75,7 +133,12 @@ function currentHoldings() {
     // integrity gate as the main entry before it ever writes a merged batch.
     const checked = runStartupIntegrityChecks(globalThis.localStorage);
     if (checked.preservePrimary) return null;
-    return Array.isArray(checked.holdings) ? checked.holdings.map(item => ({ ...item })) : null;
+    const loaded = loadHoldingsRepository(globalThis.localStorage, { cacheKey: CACHE_KEY });
+    if (!loaded.ok || !loaded.document || !Array.isArray(loaded.legacy)) return null;
+    return {
+      document: loaded.document,
+      holdings: loaded.legacy.map(item => ({ ...item })),
+    };
   } catch (_) {
     return null;
   }
@@ -103,6 +166,7 @@ function setWorking(session, phase) {
     'loading-language': '正在加载中文识别数据…',
     'loading-models': '正在加载本地中文识别模型…',
     initializing: '正在初始化本地识别器…',
+    'webgpu-fallback': '本机加速不可用，正在切换兼容识别…',
     recognizing: '正在本机识别文字…',
     matching: '正在核对基金代码与名称…',
   };
@@ -112,6 +176,7 @@ function setWorking(session, phase) {
 function buildPaddleHoldingCandidates(recognition, catalog) {
   const holdingsTokens = (Array.isArray(recognition?.tokens) ? recognition.tokens : [])
     .filter(token => token && token.region === 'holdings');
+  const layoutStartedAt = monotonicNow();
   const layout = reconstructOcrTableLayout({
     tokens: holdingsTokens,
     imageWidth: recognition?.imageWidth,
@@ -122,6 +187,8 @@ function buildPaddleHoldingCandidates(recognition, catalog) {
       });
     },
   });
+  const layoutMs = monotonicNow() - layoutStartedAt;
+  const parseStartedAt = monotonicNow();
   const holdings = layout.previewRows.map(row => {
     const warnings = [];
     if (!layout.schema.header.reliable) {
@@ -150,7 +217,15 @@ function buildPaddleHoldingCandidates(recognition, catalog) {
     holdings,
     tableLayout: layout.schema.header.reliable,
   });
-  return { detection, holdings, layout };
+  return {
+    detection,
+    holdings,
+    layout,
+    performance: {
+      layoutMs,
+      parseMs: monotonicNow() - parseStartedAt,
+    },
+  };
 }
 
 function candidateOptions(row) {
@@ -273,12 +348,28 @@ async function processSelectedFile(file) {
   element('ocr-import-pick').hidden = true;
   element('ocr-import-body').textContent = '';
   setWorking(session, 'preparing');
+  const performanceRun = createPerformanceRun();
+  const runStartedAt = monotonicNow();
+  let failureStage = 'preprocess';
+  let performanceRecorded = false;
+  const recordPerformanceOnce = errorCategory => {
+    if (performanceRecorded) return;
+    performanceRecorded = true;
+    performanceRun.errorCategory = errorCategory || 'none';
+    performanceRun.totalMs = monotonicNow() - runStartedAt;
+    recordOcrPerformance(performanceRun);
+  };
   try {
     paddleOcrModulePromise ||= import('./paddle-local-ocr.js');
     const localOcr = await paddleOcrModulePromise;
+    failureStage = 'recognition';
     const recognition = await localOcr.recognizeAlipayPaddleImage(file, {
       onProgress({ phase }) { setWorking(session, phase); },
     });
+    mergeRecognitionPerformance(performanceRun, recognition?.performance);
+    performanceRun.imageWidth = recognition?.imageWidth || performanceRun.imageWidth;
+    performanceRun.imageHeight = recognition?.imageHeight || performanceRun.imageHeight;
+    performanceRun.blockCount = Array.isArray(recognition?.tokens) ? recognition.tokens.length : 0;
     if (session !== activeSession) return;
     setWorking(session, 'matching');
     let catalog = [];
@@ -289,28 +380,39 @@ async function processSelectedFile(file) {
       catalogWarning = '基金目录暂不可用，请手动确认代码和名称。';
     }
     if (session !== activeSession) return;
+    failureStage = 'layout';
     const parsed = buildPaddleHoldingCandidates(recognition, catalog);
+    mergeRecognitionPerformance(performanceRun, parsed.performance);
     // Explicitly discard positioned OCR tokens as soon as candidates are built.
     recognition.text = '';
     recognition.tokens = [];
     if (!parsed.detection.supported || !parsed.holdings.length) {
+      recordPerformanceOnce('parse_failed');
       state = { rows: [], catalogWarning: '' };
       element('ocr-import-body').innerHTML = '<div class="ocr-results-summary">未识别到支付宝基金持仓条目。请使用清晰、完整的「基金持有」页面截图后重试。</div>';
       setStatus('未识别到可确认的基金条目。', { error: true });
       return;
     }
-    const holdings = currentHoldings();
-    if (holdings == null) {
+    failureStage = 'parse';
+    const holdingsSnapshot = currentHoldings();
+    if (holdingsSnapshot == null) {
       state = { rows: [], catalogWarning: '' };
       element('ocr-import-body').innerHTML = '<div class="ocr-results-summary">无法安全读取现有持仓。请返回主页面完成数据恢复后再导入。</div>';
       setStatus('现有持仓不可用，未改动任何数据。', { error: true });
       return;
     }
-    state = { rows: createHoldingImportPlan(parsed.holdings, holdings), catalogWarning, holdings };
+    state = {
+      rows: createHoldingImportPlan(parsed.holdings, holdingsSnapshot.holdings),
+      catalogWarning,
+      holdings: holdingsSnapshot.holdings,
+    };
     renderResults();
+    recordPerformanceOnce('none');
     setStatus('识别完成：请逐项确认后再同步。');
   } catch (error) {
     if (session !== activeSession) return;
+    mergeRecognitionPerformance(performanceRun, error?.performance);
+    recordPerformanceOnce(classifyOcrPerformanceError(error, error?.stage || failureStage));
     state = { rows: [], catalogWarning: '' };
     element('ocr-import-body').innerHTML = '<div class="ocr-results-summary">本地识别没有完成。请检查图片格式或改用更清晰的支付宝基金持仓截图。</div>';
     const safeMessage = error && /^(?:PaddleLocalOcrError|LocalOcrError|FundCatalogError)$/.test(error.name)
@@ -336,11 +438,12 @@ async function confirmImport() {
     setStatus('请修正标出的条目；未填写真实份额不会导入。', { error: true });
     return;
   }
-  const previousHoldings = currentHoldings();
-  if (previousHoldings == null) {
+  const previousSnapshot = currentHoldings();
+  if (previousSnapshot == null) {
     setStatus('无法安全读取现有持仓，未同步任何变更。', { error: true });
     return;
   }
+  const previousHoldings = previousSnapshot.holdings;
   const result = applyHoldingImportPlan(previousHoldings, rows);
   if (!result.ok) {
     showValidationErrors(result.errors);
@@ -353,21 +456,40 @@ async function confirmImport() {
   }
   const confirmButton = element('ocr-import-confirm');
   confirmButton.disabled = true;
+  let transactionResult = null;
   try {
-    if (!backupHoldings(previousHoldings)) throw new Error();
     // Establish the data-free recovery flag before mutating canonical holdings.
     // A harmless extra refresh is preferable to an unscheduled successful import.
     if (!safeSetItem(OCR_IMPORT_PENDING_KEY, '1')) throw new Error();
-    if (!safeSetItem(STORAGE_KEY, JSON.stringify(result.holdings))) throw new Error();
-    safeRemoveItem(CACHE_KEY);
+    const restoreCodes = result.values
+      .filter(change => previousHoldings.some(item => item.code === change.code && item.deleted === true))
+      .map(change => change.code);
+    transactionResult = saveLegacyHoldingsTransaction(undefined, result.holdings, {
+      cacheKey: CACHE_KEY,
+      expectedDocument: previousSnapshot.document,
+      allowRestoreCodes: restoreCodes,
+    });
+    if (!transactionResult.ok) {
+      if (transactionResult.reason === 'stale_local_document') {
+        throw new Error('holding_changed_elsewhere');
+      }
+      throw new Error(transactionResult.reason || 'holding_transaction_failed');
+    }
     // The main page consumes the recovery flag on its next startup. If the
     // scheduled navigation is interrupted, a later open still triggers the
     // existing Gist retry and valuation refresh for this confirmed batch.
     setStatus('已保存确认持仓，正在返回主页面刷新估值…', { working: true });
     window.setTimeout(() => window.location.replace('./?ocr_import=1'), 180);
-  } catch (_) {
-    safeRemoveItem(OCR_IMPORT_PENDING_KEY);
-    setStatus('无法安全保存持仓，未同步任何变更。请稍后重试。', { error: true });
+  } catch (error) {
+    // If a write reached the verified-readback boundary but journal cleanup was
+    // interrupted, retain the recovery flag. Bootstrap will settle the local
+    // transaction before deciding whether a later Gist sync may run.
+    if (!transactionResult || !(transactionResult.recoveryRequired || transactionResult.recovery_required)) {
+      safeRemoveItem(OCR_IMPORT_PENDING_KEY);
+    }
+    setStatus(error?.message === 'holding_changed_elsewhere'
+      ? '持仓已在另一页面更新。为避免覆盖，请返回后重新识别并确认。'
+      : '无法安全保存持仓，未同步任何变更。请稍后重试。', { error: true });
     confirmButton.disabled = false;
   }
 }
@@ -387,7 +509,8 @@ function chooseCandidate(event) {
 
 function existingHoldingForCode(code) {
   if (!/^\d{6}$/.test(String(code || '').trim())) return null;
-  const holdings = Array.isArray(state.holdings) ? state.holdings : currentHoldings();
+  const snapshot = Array.isArray(state.holdings) ? null : currentHoldings();
+  const holdings = Array.isArray(state.holdings) ? state.holdings : snapshot?.holdings;
   return Array.isArray(holdings)
     ? holdings.find(item => item.code === code && item.deleted !== true) || null
     : null;

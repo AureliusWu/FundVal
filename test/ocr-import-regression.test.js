@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('OCR import runs in an isolated local-only document and remains confirmation-gated', async () => {
-  const [app, page, localOcr, paddleOcr, layout, plan, catalog, index, importPage, build, workflow, sw] = await Promise.all([
+  const [app, page, localOcr, paddleOcr, paddleEntry, layout, plan, catalog, ledger, index, importPage, build, workflow, sw] = await Promise.all([
     readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/local-ocr.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/paddle-local-ocr.js', import.meta.url), 'utf8'),
+    readFile(new URL('../scripts/paddle-ocr-entry.mjs', import.meta.url), 'utf8'),
     readFile(new URL('../js/ocr-table-layout.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/holding-import-plan.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/fund-catalog.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/ocr/performance-ledger.js', import.meta.url), 'utf8'),
     readFile(new URL('../index.html', import.meta.url), 'utf8'),
     readFile(new URL('../ocr-import.html', import.meta.url), 'utf8'),
     readFile(new URL('../scripts/build-site.mjs', import.meta.url), 'utf8'),
@@ -37,20 +39,31 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.match(page, /if \(!file \|\| activeRecognitionTask\) return/);
   assert.match(page, /setRecognitionControlsDisabled\(true\)/);
   assert.match(page, /finally \{\s*finishRecognitionTask\(task\)/);
+  assert.match(page, /recordOcrPerformance\(performanceRun\)/);
+  assert.match(page, /recognition\.text = ''[\s\S]*recognition\.tokens = \[\]/);
   assert.match(page, /\['ocr-image-input', 'ocr-import-pick', 'ocr-import-retry', 'ocr-import-confirm'\]/);
-  assert.match(paddleOcr, /assertPaddleOcrBrowserCapabilities\(\)/);
+  assert.match(paddleOcr, /assertPaddleOcrBrowserCapabilities\(runtime\)/);
   assert.match(paddleOcr, /Worker[\s\S]*createImageBitmap[\s\S]*OffscreenCanvas[\s\S]*WebAssembly[\s\S]*structuredClone/);
   assert.match(paddleOcr, /Android 请升级到最新版 Chrome/);
+  assert.doesNotMatch(paddleOcr, /selectOcrBackend|OCR_BACKEND\.WEBGPU|OCR_BACKEND\.WASM/);
+  assert.match(paddleEntry, /new LocalOcrEngine\(\{/);
+  assert.match(paddleEntry, /\[OCR_BACKEND\.WEBGPU\][\s\S]*backend:\s*OCR_BACKEND\.WEBGPU/);
+  assert.match(paddleEntry, /\[OCR_BACKEND\.WASM\][\s\S]*backend:\s*OCR_BACKEND\.WASM/);
+  assert.doesNotMatch(paddleEntry, /backend:\s*['"]auto['"]/);
+  assert.equal((paddleEntry.match(/new LocalOcrEngine\(\{/g) || []).length, 1);
   assert.doesNotMatch(page, /sourceHint\s*:/);
   assert.doesNotMatch(page, /document\.createElement\(['"]script|https?:\/\/qt\.gtimg|https?:\/\/fund\.eastmoney/i);
-  assert.match(page, /backupHoldings\(previousHoldings\)/);
+  assert.match(page, /saveLegacyHoldingsTransaction\(undefined, result\.holdings/);
+  assert.match(page, /loadHoldingsRepository\(globalThis\.localStorage, \{ cacheKey: CACHE_KEY \}\)/);
+  assert.match(page, /expectedDocument:\s*previousSnapshot\.document/);
+  assert.match(page, /holding_changed_elsewhere/);
   assert.match(page, /runStartupIntegrityChecks\(globalThis\.localStorage\)/);
   assert.match(page, /safeSetItem\(OCR_IMPORT_PENDING_KEY, '1'\)/);
   assert.ok(
-    page.indexOf("safeSetItem(OCR_IMPORT_PENDING_KEY, '1')") < page.indexOf('safeSetItem(STORAGE_KEY, JSON.stringify(result.holdings))'),
+    page.indexOf("safeSetItem(OCR_IMPORT_PENDING_KEY, '1')") < page.indexOf('saveLegacyHoldingsTransaction(undefined, result.holdings'),
     'the recoverable sync flag must be persisted before canonical holdings are changed'
   );
-  assert.match(page, /catch \(_\) \{\s*safeRemoveItem\(OCR_IMPORT_PENDING_KEY\)/);
+  assert.match(page, /if \(!transactionResult \|\| !\(transactionResult\.recoveryRequired \|\| transactionResult\.recovery_required\)\) \{\s*safeRemoveItem\(OCR_IMPORT_PENDING_KEY\)/);
   assert.match(page, /window\.location\.replace\('\.\/\?ocr_import=1'\)/);
   assert.match(app, /consumeOcrImportReturn/);
   assert.match(app, /safeGetItem\(OCR_IMPORT_PENDING_KEY\) === '1'/);
@@ -63,6 +76,8 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.match(paddleOcr, /numThreads:\s*1/);
   assert.doesNotMatch(paddleOcr, /https?:\/\/|data:image|fetch\(|localStorage|indexedDB/i);
   assert.doesNotMatch(layout, /fetch\(|localStorage|indexedDB|document\./i);
+  assert.match(ledger, /PERFORMANCE_NUMERIC_FIELDS|INTEGER_FIELDS/);
+  assert.doesNotMatch(ledger, /ocrText|imageBase64|localPath|fileName|fundName|holdingAmount/);
   assert.match(catalog, /FUND_CATALOG_PATH/);
   assert.match(catalog, /credentials:\s*'same-origin'/);
   assert.doesNotMatch(catalog, /https?:\/\/|document\.createElement\(['"]script|base64|localStorage|indexedDB/i);

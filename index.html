@@ -10,9 +10,6 @@
 <meta name="apple-mobile-web-app-title" content="蜉蝣基金">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://sinan-estimate-push.ligugu69.workers.dev" crossorigin>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="css/style.css">
 <title>蜉蝣基金</title>
 </head>
@@ -22,7 +19,7 @@
   <div class="header-inner">
     <div class="logo">
       <div class="logo-title">蜉蝣基金</div>
-      <div class="logo-sub"><span id="app-version-label">V14.0.2</span><em id="mkt-status"></em></div>
+      <div class="logo-sub"><span id="app-version-label">V14.0.3</span><em id="mkt-status"></em></div>
     </div>
   </div>
 </div>
@@ -41,14 +38,19 @@
 
 <div class="last-upd" id="last-upd"></div>
 
+<div class="update-banner" id="update-banner" role="status" aria-live="polite" hidden>
+  <span id="update-banner-text">发现新版本，可安全更新</span>
+  <button class="update-banner-btn" id="update-now-btn" type="button" onclick="applyPendingServiceWorkerUpdate()">安全更新</button>
+</div>
+
 <div class="page active" id="page-market">
   <div class="sort-bar" id="sort-bar">
-    <button class="sort-chip active" id="sort-est-btn" onclick="toggleEstSort()">估值涨跌 ↓</button>
+    <button class="sort-chip active" id="sort-est-btn" onclick="toggleEstSort()">可信等级优先 · 涨跌 ↓</button>
   </div>
   <div class="fund-list-head" aria-hidden="true">
     <span>名称 / 代码</span>
-    <span>估值涨跌</span>
-    <span>估值 / 上一净值</span>
+    <span>当前显示涨跌</span>
+    <span>显示值 / 基准净值</span>
   </div>
   <div class="fund-list" id="fund-list">
     <div class="fund-card" style="pointer-events:none">
@@ -130,6 +132,16 @@
       <button class="exp-btn" onclick="document.getElementById('imp-file').click()">↑ 导入持仓</button>
       <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importData(event)">
     </div>
+
+    <details class="diagnostics-center" id="diagnostics-center" ontoggle="if(this.open) refreshDiagnosticsCenter()">
+      <summary>运行诊断</summary>
+      <p class="diagnostics-intro">仅显示本机运行状态；不上传数据，也不会复制 Token、图片、OCR 原文、持仓金额或本地路径。</p>
+      <div class="diagnostics-content" id="diagnostics-content">展开后读取诊断状态</div>
+      <div class="diagnostics-actions">
+        <button class="exp-btn" type="button" onclick="refreshDiagnosticsCenter()">刷新诊断</button>
+        <button class="exp-btn" type="button" onclick="copyDiagnosticsSummary()">复制脱敏摘要</button>
+      </div>
+    </details>
   </div>
 </div>
 

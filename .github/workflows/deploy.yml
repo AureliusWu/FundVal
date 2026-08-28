@@ -43,9 +43,11 @@ jobs:
         test -f site/index.html
         test -f site/ocr-import.html
         test -f site/css/ocr.css
+        test -s site/js/app-shell.js
         test -f site/js/version.js
         test -f site/sw.js
         test -s site/data/fund-catalog.json
+        test -s site/assets/ocr/asset-manifest.json
         test -f site/assets/ocr/tesseract/tesseract.esm.min.js
         test -f site/assets/ocr/tesseract/worker.min.js
         test -f site/assets/ocr/tesseract-core/tesseract-core-lstm.wasm.js
@@ -103,8 +105,10 @@ jobs:
           set -euo pipefail
           base="${SITE_URL%/}"
           paths=(
+            "js/app-shell.js"
             "ocr-import.html"
             "js/paddle-local-ocr.js"
+            "assets/ocr/asset-manifest.json"
             "assets/ocr/paddle/engine/paddle-ocr-engine.mjs"
             "assets/ocr/paddle/engine/assets/fundval-paddle-worker.js"
             "assets/ocr/paddle/models/integrity.json"
@@ -117,4 +121,49 @@ jobs:
             curl --fail --silent --show-error --location --head \
               --retry 12 --retry-all-errors --retry-delay 5 \
               "${base}/${path}?run=${GITHUB_RUN_ID}" > /dev/null
+          done
+          smoke_dir="$(mktemp -d)"
+          manifest_file="${smoke_dir}/asset-manifest.json"
+          trap 'rm -rf "$smoke_dir"' EXIT
+          curl --fail --silent --show-error --location \
+            --retry 12 --retry-all-errors --retry-delay 5 \
+            "${base}/index.html?run=${GITHUB_RUN_ID}" > "${smoke_dir}/index.html"
+          curl --fail --silent --show-error --location \
+            --retry 12 --retry-all-errors --retry-delay 5 \
+            "${base}/sw.js?run=${GITHUB_RUN_ID}" > "${smoke_dir}/sw.js"
+          node --input-type=module --eval '
+            import { readFileSync } from "node:fs";
+            const [indexPath, workerPath] = process.argv.slice(1);
+            const index = readFileSync(indexPath, "utf8");
+            const worker = readFileSync(workerPath, "utf8");
+            const core = worker.slice(worker.indexOf("const CORE"), worker.indexOf("self.addEventListener"));
+            if ((index.match(/src="js\/app-shell\.js"/g) || []).length !== 1 || index.includes("js/bootstrap.js")) {
+              throw new Error("Deployed index does not exclusively load app-shell.js.");
+            }
+            if ((core.match(/\.\/js\/app-shell\.js/g) || []).length !== 1
+              || /\.\/js\/(?:bootstrap|app)\.js|\.\/js\/(?:runtime|storage)\//.test(core)) {
+              throw new Error("Deployed Service Worker CORE still contains the source module graph.");
+            }
+          ' "${smoke_dir}/index.html" "${smoke_dir}/sw.js"
+          curl --fail --silent --show-error --location \
+            --retry 12 --retry-all-errors --retry-delay 5 \
+            "${base}/assets/ocr/asset-manifest.json?run=${GITHUB_RUN_ID}" > "$manifest_file"
+          node --input-type=module --eval '
+            import { readFileSync } from "node:fs";
+            const [base, manifestPath] = process.argv.slice(1);
+            const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+            if (!Array.isArray(manifest.assets) || !manifest.assets.length) throw new Error("OCR asset manifest is empty.");
+            for (const asset of manifest.assets) {
+              const path = String(asset?.path || "");
+              if (!/^[A-Za-z0-9._/-]+$/.test(path) || path.includes("..") || path.startsWith("/")) {
+                throw new Error("OCR asset manifest contains an unsafe path.");
+              }
+              const url = new URL("assets/ocr/" + path, base);
+              if (!url.href.startsWith(base)) throw new Error("OCR asset escaped the deployed site origin.");
+              console.log(url.href);
+            }
+          ' "${base}/" "$manifest_file" | while IFS= read -r asset_url; do
+            curl --fail --silent --show-error --location --head \
+              --retry 12 --retry-all-errors --retry-delay 5 \
+              "${asset_url}?run=${GITHUB_RUN_ID}" > /dev/null
           done
