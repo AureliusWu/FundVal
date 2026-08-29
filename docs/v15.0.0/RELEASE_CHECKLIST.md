@@ -2,7 +2,8 @@
 
 发布日期：2026-08-29
 目标分支：`main`
-发布状态：`BLOCKED_FOR_DEVICE_VALIDATION`
+部署状态：`DEPLOYED`
+实体设备验收：`BLOCKED_FOR_DEVICE_VALIDATION`
 
 ## 代码与数据门禁
 
@@ -46,12 +47,14 @@
 
 ## 提交、部署与生产 smoke
 
-- [ ] release commit — 尚未创建；完成后回填精确 hash。
-- [ ] push `origin/main` — 尚未执行。
-- [ ] GitHub Actions/Pages — 尚未执行。
-- [ ] 生产根页、version、manifest、SW、Bridge、chunk manifest — 等待部署。
-- [ ] 生产 chunk 字节数/SHA-256 — 等待部署。
-- [ ] 生产代表性基金数据来源、状态、日期/时间 — 等待部署。
+- [x] release commit — `24886d2654630c5ed902212fe8d56fa7e4ea7015`。
+- [x] CI E2E 稳定性修复 — `9b935adfaf9a7cc081a9cab0e687a27d6a3a829a`；本地连续 3 轮 `7/7 PASS`。
+- [x] push `origin/main` — 成功。
+- [x] GitHub Actions/Pages — run `33252212754` 成功，应用 HEAD `9b935adfaf9a7cc081a9cab0e687a27d6a3a829a`。
+- [x] 生产根页、version、manifest、SW、Bridge、chunk manifest — HTTP 200；V15.0.0 / `fuyu-v15.0.0`。
+- [x] 生产 chunk 字节数/SHA-256 — 16 chunks / 180,728 B，清单逐项通过；发布指纹 `7afc21c773a782799ea2e3e5c7f9ae42928ba4b53b009cb70b298f2f4d64c672` 与 CI 构建一致。
+- [x] 生产 OCR — 23 assets / 88,196,072 B，逐文件字节数与 SHA-256 通过。
+- [x] 生产代表性基金数据 — 2026-08-29：`005844`、`012920` 均为 `degraded / eastmoney_official_nav / official_nav`，明确是非交易日正式净值降级；`005844` 重仓为 `ok / eastmoney_fund_archives / 2026-06-30 / 10`。
 
 ## 回滚
 
@@ -61,7 +64,7 @@
 
 ## 最终结论
 
-自动门禁和生产 smoke 完成后，代码可发布到 Pages；但在物理 Android/iOS 均有证据前，按方案只能记为：
+自动门禁、Pages 部署和生产 smoke 已完成；但在物理 Android/iOS 均有证据前，实体设备验收按方案只能记为：
 
 ```text
 BLOCKED_FOR_DEVICE_VALIDATION

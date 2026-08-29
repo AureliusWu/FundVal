@@ -2,7 +2,8 @@
 
 实施日期：2026-08-29
 版本主题：可信架构重构（Trustworthy Architecture）
-发布状态：`BLOCKED_FOR_DEVICE_VALIDATION`
+部署状态：`DEPLOYED`
+实体设备验收：`BLOCKED_FOR_DEVICE_VALIDATION`
 
 本文件按《FundVal v15.0.0 迭代方案》要求记录实现、证据与未完成门禁。模拟器、桌面浏览器和自动化结果均不会被写成实体 Android/iOS 验收。
 
@@ -11,7 +12,8 @@
 | 项目 | 结果 |
 |---|---|
 | 开始 HEAD | `3f89327a58c6d5ded7efc0031676aa08733d149d` |
-| 结束实现 HEAD | 尚未创建 release commit；将在推送后的发布证据提交中回填精确 hash |
+| release commit | `24886d2654630c5ed902212fe8d56fa7e4ea7015` |
+| 最终应用部署 HEAD | `9b935adfaf9a7cc081a9cab0e687a27d6a3a829a` |
 | 分支 | `main` |
 | 远端 | `origin` / `https://github.com/AureliusWu/FundVal.git` |
 | 开始状态 | 工作区非干净；已有 `README.md`、`docs/V15_AUDIT.md`、`docs/v14.0.0/IMPLEMENTATION_FEEDBACK.md` 修改和未跟踪 `CODEX_HANDOFF.md` |
@@ -42,8 +44,8 @@
 | app chunks manifest | `PASS`；16 chunks / 180,728 B 均通过清单校验 |
 | `git diff --check` | `PASS`；仅 Windows LF→CRLF 提示 |
 | npm 高危审计 | `PASS`；0 vulnerabilities |
-| GitHub Actions / Pages | 尚未执行；将在 release commit 推送后记录 workflow 与部署证据 |
-| 生产 smoke | 尚未执行；将在 Pages 部署后核对静态产物、chunk 指纹和代表性基金数据 |
+| GitHub Actions / Pages | `PASS`；run `33252212754`，build/deploy/OCR smoke 全部成功 |
+| 生产 smoke | `PASS`；HTTP 200、V15.0.0、migration=ok、16 chunks 与 23 OCR assets 校验通过 |
 
 ## 3. P0-1：基金/股票代码碰撞
 
@@ -279,6 +281,18 @@ Android 模拟器：PASS_WITH_BOUNDARY
 状态：BLOCKED_FOR_DEVICE_VALIDATION
 ```
 
-## 19. Git diff --stat
+## 19. 部署与生产证据
+
+- release commit：`24886d2654630c5ed902212fe8d56fa7e4ea7015`。
+- CI E2E 稳定性修复：`9b935adfaf9a7cc081a9cab0e687a27d6a3a829a`。首次 run `33252130644` 在首次安装 Service Worker 接管页面的瞬间发生测试上下文切换，未进入部署；有界重试修复后本地连续 3 轮 `7/7 PASS`。
+- 成功 workflow：[Build and Deploy 33252212754](https://github.com/AureliusWu/FundVal/actions/runs/33252212754)。依赖审计、332 项 Node 测试、语法检查、构建、7 项 E2E、Pages 部署及 OCR smoke 全部成功。
+- Pages：`https://aureliuswu.github.io/FundVal/`。独立浏览器 smoke 为 HTTP 200、标题“蜉蝣基金”、版本 `V15.0.0`、迁移 `ok`、无 startup failure 或 pageerror。
+- 静态产物：生产 `index.html`、`js/version.js`、`manifest.json`、`sw.js`、Bridge 与 chunk manifest 均为 HTTP 200；SW cache 为 `fuyu-v15.0.0`。
+- 生产发布指纹：`7afc21c773a782799ea2e3e5c7f9ae42928ba4b53b009cb70b298f2f4d64c672`，与 run 的构建输出一致。16 个 app chunks（180,728 B）和 23 个 OCR assets（88,196,072 B）逐文件验证通过。
+- 2026-08-29 20:23（Asia/Shanghai）代表性数据：`005844` 与 `012920` 返回 `degraded / eastmoney_official_nav / official_nav`，属于非交易日最近正式净值涨跌，不是盘中实时估值；日期分别为 `2026-08-27 → 2026-08-28`（-2.45%）与 `2026-08-26 → 2026-08-27`（+2.38%）。`005844` 重仓源为 `eastmoney_fund_archives`，报告期 `2026-06-30`，10 项。
+
+应用与 Pages 已发布，但实体设备验收仍保持 `BLOCKED_FOR_DEVICE_VALIDATION`，两种状态不能合并为“真机已验收”。
+
+## 20. Git diff --stat
 
 release commit 相对 `3f89327a58c6d5ded7efc0031676aa08733d149d`：69 files changed，5,154 insertions(+)，671 deletions(-)。其中包含开始时已存在并按用户要求保留的审计/历史文档改动。

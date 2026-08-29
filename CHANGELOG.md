@@ -12,7 +12,7 @@
 - 增加本地只读数据代理、浏览器 E2E、PWA 离线/更新、恶意重仓、云同步读回不一致和 OCR 确认边界验证；Android MuMu/Brave 用真实长截图识别出 15 条候选（12 自动匹配、3 人工核对）。
 - 修复正式净值 UTC+8 日期偏差、正式净值/重仓异步返回顺序导致估值基准不一致、首次创建云归档期间并发本地编辑被误标为已同步，以及 partial 数据源记录错误；均补充回归测试。
 - 站点构建在未显式提供 `SOURCE_DATE_EPOCH` 时使用当前 Git 提交时间生成 OCR manifest，保证同一提交连续构建的发布指纹一致。
-- 物理 Android Chrome/PWA 与 iOS Safari/PWA 尚未执行，发布状态按方案记为 `BLOCKED_FOR_DEVICE_VALIDATION`，模拟器证据不替代真机门禁。
+- 物理 Android Chrome/PWA 与 iOS Safari/PWA 尚未执行，实体设备验收状态按方案记为 `BLOCKED_FOR_DEVICE_VALIDATION`，模拟器证据不替代真机门禁。
 
 ## 14.0.4 - 2026-08-29
 

@@ -1,6 +1,6 @@
 # 蜉蝣基金 (FundVal)
 
-当前版本：`15.0.0`。本版本完成可信架构重构；物理 Android/iOS 门禁仍未完成，因此发布状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
+当前版本：`15.0.0`。生产 Pages 已部署；物理 Android/iOS 门禁仍未完成，因此实体设备验收状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
 
 ## V15.0.0 可信架构
 
