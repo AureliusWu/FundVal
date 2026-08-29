@@ -134,6 +134,37 @@ function fundCard(page, code = TEST_FUND.code) {
   return page.locator('#fund-list .fund-card').filter({ hasText: code });
 }
 
+async function readPwaCacheState(page) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.ready;
+        if (!registration.active) throw new Error('service_worker_not_active');
+        const manifest = await (await fetch('./js/app-chunks.json')).json();
+        const lazyPath = manifest.lazy[0];
+        const cacheNames = await caches.keys();
+        const cache = await caches.open(cacheNames.find(name => name.startsWith('fuyu-v')));
+        return {
+          cacheNames,
+          lazyPath,
+          lazyCached: Boolean(await cache.match(`./${lazyPath}`)),
+          bridgeCached: Boolean(await cache.match('./quote-bridge.html')),
+        };
+      });
+    } catch (error) {
+      lastError = error;
+      if (!/execution context was destroyed|navigation/i.test(String(error?.message || error))) throw error;
+      // Chromium can commit one controller/navigation transition while the
+      // first-install worker claims the page. Retry only after the replacement
+      // document reaches a usable state; no fixed delay is required.
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await expect(page.getByText('蜉蝣基金', { exact: true })).toBeVisible();
+    }
+  }
+  throw lastError || new Error('pwa_cache_state_unavailable');
+}
+
 test('app starts and a holding survives add/reload/delete/reload through the UI', async ({ context, page }) => {
   const network = await installHermeticNetwork(context);
   await openApp(page);
@@ -309,20 +340,7 @@ test('PWA installs the versioned shell, caches lazy chunks and reopens offline',
   await installHermeticNetwork(context);
   try {
     await openApp(page);
-    const state = await page.evaluate(async () => {
-      const registration = await navigator.serviceWorker.ready;
-      if (!registration.active) throw new Error('service_worker_not_active');
-      const manifest = await (await fetch('./js/app-chunks.json')).json();
-      const lazyPath = manifest.lazy[0];
-      const cacheNames = await caches.keys();
-      const cache = await caches.open(cacheNames.find(name => name.startsWith('fuyu-v')));
-      return {
-        cacheNames,
-        lazyPath,
-        lazyCached: Boolean(await cache.match(`./${lazyPath}`)),
-        bridgeCached: Boolean(await cache.match('./quote-bridge.html')),
-      };
-    });
+    const state = await readPwaCacheState(page);
     expect(state.cacheNames.some(name => name.startsWith('fuyu-v'))).toBe(true);
     expect(state.lazyPath).toMatch(/^js\/chunks\/.+\.js$/);
     expect(state.lazyCached).toBe(true);
