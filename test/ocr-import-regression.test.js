@@ -40,17 +40,23 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.match(page, /setRecognitionControlsDisabled\(true\)/);
   assert.match(page, /finally \{\s*finishRecognitionTask\(task\)/);
   assert.match(page, /recordOcrPerformance\(performanceRun\)/);
+  assert.ok(
+    page.indexOf("recordPerformanceOnce('none')") < page.indexOf('const holdingsSnapshot = currentHoldings()'),
+    'successful OCR performance must be recorded before holdings integrity can fail'
+  );
   assert.match(page, /recognition\.text = ''[\s\S]*recognition\.tokens = \[\]/);
   assert.match(page, /\['ocr-image-input', 'ocr-import-pick', 'ocr-import-retry', 'ocr-import-confirm'\]/);
   assert.match(paddleOcr, /assertPaddleOcrBrowserCapabilities\(runtime\)/);
   assert.match(paddleOcr, /Worker[\s\S]*createImageBitmap[\s\S]*OffscreenCanvas[\s\S]*WebAssembly[\s\S]*structuredClone/);
   assert.match(paddleOcr, /Android 请升级到最新版 Chrome/);
   assert.doesNotMatch(paddleOcr, /selectOcrBackend|OCR_BACKEND\.WEBGPU|OCR_BACKEND\.WASM/);
-  assert.match(paddleEntry, /new LocalOcrEngine\(\{/);
   assert.match(paddleEntry, /\[OCR_BACKEND\.WEBGPU\][\s\S]*backend:\s*OCR_BACKEND\.WEBGPU/);
   assert.match(paddleEntry, /\[OCR_BACKEND\.WASM\][\s\S]*backend:\s*OCR_BACKEND\.WASM/);
   assert.doesNotMatch(paddleEntry, /backend:\s*['"]auto['"]/);
-  assert.equal((paddleEntry.match(/new LocalOcrEngine\(\{/g) || []).length, 1);
+  assert.match(paddleEntry, /webgpuAttempted:\s*diagnostics\.webgpuAttempted === true/);
+  assert.match(paddleEntry, /PERFORMANCE_FALLBACK_REASONS\.has\(submittedReason\)/);
+  assert.match(paddleEntry, /createEngine = options => new LocalOcrEngine\(options\)/);
+  assert.equal((paddleEntry.match(/new LocalOcrEngine\(/g) || []).length, 1);
   assert.doesNotMatch(page, /sourceHint\s*:/);
   assert.doesNotMatch(page, /document\.createElement\(['"]script|https?:\/\/qt\.gtimg|https?:\/\/fund\.eastmoney/i);
   assert.match(page, /saveLegacyHoldingsTransaction\(undefined, result\.holdings/);
@@ -74,9 +80,19 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.match(paddleOcr, /paddle-ocr-engine\.mjs/);
   assert.match(paddleOcr, /PP-OCRv6_tiny_det_onnx_infer\.tar/);
   assert.match(paddleOcr, /numThreads:\s*1/);
+  assert.match(paddleOcr, /normalizeOcrBackend\(input\.backend, 'none'\)/);
+  assert.match(paddleOcr, /performance:\s*failurePerformance/);
+  assert.match(paddleOcr, /webgpuAttempted:\s*input\.webgpuAttempted === true/);
+  assert.match(page, /target\.capabilityClass = source\.capabilityClass/);
+  assert.match(page, /target\.webgpuAttempted = source\.webgpuAttempted/);
+  assert.match(page, /if \(typeof source\.fallback === 'boolean'\)[\s\S]*target\.fallback = source\.fallback/);
+  assert.match(page, /target\.fallbackReason = source\.fallback/);
+  assert.doesNotMatch(page, /target\.fallback = source\.fallback === true/);
   assert.doesNotMatch(paddleOcr, /https?:\/\/|data:image|fetch\(|localStorage|indexedDB/i);
   assert.doesNotMatch(layout, /fetch\(|localStorage|indexedDB|document\./i);
   assert.match(ledger, /PERFORMANCE_NUMERIC_FIELDS|INTEGER_FIELDS/);
+  assert.match(ledger, /consistency:\s*'consistent'/);
+  assert.match(ledger, /inconsistentRuns/);
   assert.doesNotMatch(ledger, /ocrText|imageBase64|localPath|fileName|fundName|holdingAmount/);
   assert.match(catalog, /FUND_CATALOG_PATH/);
   assert.match(catalog, /credentials:\s*'same-origin'/);
@@ -106,4 +122,28 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   const core = sw.slice(sw.indexOf('const CORE'), sw.indexOf('self.addEventListener'));
   assert.doesNotMatch(core, /assets\/ocr/);
   assert.match(sw, /url\.pathname\.includes\('\/assets\/ocr\/'\)[\s\S]*networkOnly\(event\.request\)/);
+});
+
+test('layout-only performance cannot erase an already observed OCR backend fallback', async () => {
+  const page = await readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8');
+  const start = page.indexOf('function mergeRecognitionPerformance(target, source)');
+  const end = page.indexOf('\n}\n\nfunction element', start);
+  assert.ok(start >= 0 && end > start, 'performance merge helper must remain extractable');
+  const merge = new Function(
+    'PERFORMANCE_NUMERIC_FIELDS',
+    `${page.slice(start, end + 2)}; return mergeRecognitionPerformance;`
+  )(['layoutMs', 'parseMs']);
+  const target = {
+    capabilityClass: 'unknown', backend: 'none', webgpuAttempted: false,
+    fallback: false, fallbackReason: 'none', layoutMs: 0, parseMs: 0,
+  };
+  merge(target, {
+    capabilityClass: 'webgpu', backend: 'wasm', webgpuAttempted: true,
+    fallback: true, fallbackReason: 'initialization_failed',
+  });
+  merge(target, { layoutMs: 123, parseMs: 4 });
+  assert.deepEqual(target, {
+    capabilityClass: 'webgpu', backend: 'wasm', webgpuAttempted: true,
+    fallback: true, fallbackReason: 'initialization_failed', layoutMs: 123, parseMs: 4,
+  });
 });

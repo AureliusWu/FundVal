@@ -1,7 +1,15 @@
-# 蜉蝣基金（FundVal）v14.0.3 实施反馈
+# 蜉蝣基金（FundVal）v14.0.4 实施反馈
 
-实施日期：2026-08-12
+实施日期：2026-08-12；v14.0.4 维护候选：2026-08-29
 发布状态：`RELEASE_CANDIDATE / DEPLOYMENT_PENDING / DEVICE_VALIDATION_PENDING`
+
+## v14.0.4 遥测与 PWA 更新维护补充（2026-08-29）
+
+- OCR 初始化失败、WebGPU→WASM 回退后识别失败及双后端初始化耗尽均保留经过白名单清洗的后端快照；未知后端不再被伪装为 WASM，诊断中心会显式提示矛盾遥测。
+- 新增四种成功/失败适配层行为测试及初始化失败资源释放测试；截图、OCR 原文、文件路径和底层错误不会进入性能账本。
+- Service Worker 新版本安装时对全部 CORE 强制重新获取，版本桶首次获取按需 JS 与 OCR manifest 时也绕过旧 HTTP cache；OCR JS/MJS 改用允许 304 的条件重验证，避免旧 engine/Worker 污染新版本且不让 11 MB Worker 每次全量重下；部署 smoke 比对发布关键文件构建指纹，并逐个下载 manifest 中 23 个 OCR 资产核验字节数与 SHA-256。
+- 真实 Gist 已新增 Schema 3 当前设备 sidecar 并完成规范化读回；2026-08-29 只读复核确认 legacy 内容相对迁移前版本完全未变。该证据不替代第二实体设备并发验证。
+- Android 15 x86_64 模拟器只形成 localhost PWA/OCR 与生产基础页面/fail-closed 补充证据；物理 Android Chrome/PWA、iOS Safari/PWA 仍为 `NOT_RUN`，因此 v15.0.0 继续受阻。
 
 ## v14.0.3 v15 兼容桥补充（2026-08-28）
 
@@ -32,7 +40,7 @@
 - 用户提供的 1440×9317 真实支付宝长截图仅在本机桌面 Chromium/IAB 中处理，未加入仓库。坐标重建得到 15 条持仓记录：10 条自动匹配，5 条进入人工确认并默认跳过。
 - 15 条记录的持有金额、昨日收益、持有收益、持有收益率四类数值字段均完成重建（15/15）；不确定基金没有被静默匹配或写入。
 - 从选图到结果页的本地完整处理约 18.3 秒。浏览器只请求当前站点的 OCR 引擎、Worker、WASM 和模型，没有图片上传请求。
-- PaddleOCR 主链当前构建资源总量为 82,345,666 bytes（Tesseract 降级/回归资产另计）；OCR 资产不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。
+- PaddleOCR 主链当前构建资源总量为 82,356,164 bytes（按 manifest 排除 Tesseract fallback 与许可证角色）；OCR 资产不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。
 - 生产 Pages、线上 Service Worker、同源 Worker/模型/ORT/WASM 与真实长图桌面流程已验证；Android Chrome、iOS Safari/已安装 PWA 仍为 `NOT_RUN`，因此状态为 `DEVICE_VALIDATION_PENDING`。
 
 ## 本地方案与数据流
@@ -68,7 +76,7 @@
 | 9 | 选型原因 | Tesseract 对微信压缩的 1440×9317 长图无法稳定形成多行坐标表；PaddleOCR tiny 能在纯浏览器环境返回更可靠的中文文本框，结合固定双列布局可重建全部 15 行，速度也明显优于 PP-OCRv6 small 的 PoC。 |
 | 10 | 是否 100% 客户端执行 | 是。识别在独立 `ocr-import.html` 页面、浏览器 Worker 与本地 WASM 中执行；没有 OCR 后端。 |
 | 11 | Worker/WASM/中文模型路径 | 引擎：`assets/ocr/paddle/engine/paddle-ocr-engine.mjs`；Worker 与打包 WASM：`assets/ocr/paddle/engine/assets/`；模型：`assets/ocr/paddle/models/PP-OCRv6_tiny_*_onnx_infer.tar`；ORT：`assets/ocr/paddle/ort/`。构建使用相对基址生成 Worker 模块 URL，并校验其适配 GitHub Pages 项目子路径。 |
-| 12 | OCR 静态资源体积 | PaddleOCR 主链当前构建证据：82,345,666 bytes；Tesseract 降级/回归资产另计。资源只在选图后加载，首屏和 SW `CORE` 均不包含。 |
+| 12 | OCR 静态资源体积 | PaddleOCR 主链当前构建证据：82,356,164 bytes（按 manifest 排除 fallback/license）；全部 23 个 OCR 资产共 88,196,072 bytes。资源只在选图后加载，首屏和 SW `CORE` 均不包含。 |
 | 13 | 依赖与许可证 | `@paddleocr/paddleocr-js@0.4.2`、PP-OCRv6 tiny、`@techstark/opencv-js@4.10.0-release.1`：Apache-2.0；`onnxruntime-web@1.27.0`、`js-yaml@4.3.1`：MIT；`clipper-lib@6.4.2`：BSL；Tesseract.js/Core 7.0.0：Apache-2.0；`@tesseract.js-data/chi_sim@1.0.0`：MIT。详见 `THIRD_PARTY_NOTICES.md`。 |
 | 14 | 支付宝 Parser 规则 | 先校验支付宝/蚂蚁财富来源证据，再按坐标识别基金名称锚点、跨行合并名称、按行带重叠去重，分别解析中列“持有金额/昨日收益”和右列“持有收益/收益率”。严格保留正负号与百分比；布局或字段证据不足时保持 `null`，不跨行猜测。 |
 | 15 | 基金匹配规则 | 六位代码优先；否则使用标准化名称、份额类别隔离和同源 `data/fund-catalog.json`。只有达到置信阈值且与第二候选拉开差距才自动匹配；其余进入人工确认。真实图结果为 10 自动匹配、5 人工确认。 |
@@ -135,7 +143,9 @@ git rev-parse HEAD
 
 发布后还必须补充 GitHub Actions、Pages 精确提交、干净会话首屏、`ocr-import.html`、同源模型/Worker/WASM、生产 Network 无图片上传和 Service Worker 更新证据。
 
-## 尚未通过的发布门禁
+## 历史已部署版本证据与仍未通过的设备门禁
+
+以下表格保留 v14.0.1/v14.0.2 阶段的历史生产证据，不是 v14.0.4 的部署结论；v14.0.4 当前仍为候选，必须等待本轮提交、Actions/Pages 部署和生产 smoke。
 
 | 门禁 | 当前结果 |
 | --- | --- |
@@ -147,4 +157,4 @@ git rev-parse HEAD
 | 生产域名图片上传边界 | `PASS WITH LIMITATION`（本地 File + 同源 CSP + 静态 Pages 无上传端点；未导出逐请求 HAR） |
 | 最终源码 npm/构建/差异/CI 闭环 | `PASS`（Actions `31563016789`） |
 
-当前版本已经部署，但不得改写为 `READY_TO_RELEASE`：Android/iOS/已安装 PWA 仍无实机证据，必须继续明确保留 `NOT_RUN`，不得用桌面响应式模拟冒充。
+上述历史版本已经部署，但 v14.0.4 尚未部署，不得提前改写为 `READY_TO_RELEASE`。即使 v14.0.4 后续生产 smoke 通过，Android/iOS/已安装 PWA 仍无实机证据，必须继续明确保留 `NOT_RUN`，不得用桌面响应式模拟冒充。

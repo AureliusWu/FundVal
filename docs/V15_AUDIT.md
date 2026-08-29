@@ -456,10 +456,10 @@ File/Blob only
 |---|---|---|
 | Phase 1 Quote Contract | `AUTOMATED_PASS` | 已新增统一 Quote Envelope、normalizer、market session 与 source registry，并接入现有行情链路 |
 | Phase 2 Refresh Runtime | `AUTOMATED_PASS` | generation、主动取消、重复触发折叠、partial success、source cooldown/half-open 与 drain 已有回归覆盖 |
-| Phase 3 Storage Schema 3 | `AUTOMATED_PASS / REAL_GIST_NOT_TOUCHED` | Schema 3、旧结构迁移、tombstone、事务日志/恢复、多标签页门禁与安全云同步已实现；没有对用户真实 Gist 执行迁移或写入 |
+| Phase 3 Storage Schema 3 | `AUTOMATED_PASS / REAL_GIST_NOT_TOUCHED`（当时快照） | Schema 3、旧结构迁移、tombstone、事务日志/恢复、多标签页门禁与安全云同步已实现；本节记录时尚未写入真实 Gist，后续迁移与读回见 18.11 |
 | Phase 4 OCR 2.0 | `DESKTOP_WEBGPU_LONG_IMAGE_PASS / MOBILE_GATES_NOT_RUN` | capability、单次 WebGPU→WASM、完整 asset manifest、脱敏 performance ledger 与真实长截图桌面回归已完成；桌面真实 WebGPU 推理通过，硬件初始化失败→WASM 与 Android/PWA 实机仍未执行 |
 | Phase 5 UI | `FORMAL_UI_BROWSER_PASS` | 用户已确认 `docs/v15-ui-prototype.html`；可信卡片、来源时间、coverage/confidence、诊断展开、空值语义与移动端焦点恢复已落地正式 UI |
-| Phase 6 PWA / Release | `DESKTOP_PWA_PASS / DEVICE_GATES_NOT_RUN` | SW 路由、动态离线回退、真实桌面更新握手、跨标签编辑保护、诊断脱敏与重复手动刷新已验证；Android/iOS/已安装 PWA、真实 Gist 仍未执行，当前不得升为 15.0.0 |
+| Phase 6 PWA / Release | `DESKTOP_PWA_PASS / DEVICE_GATES_NOT_RUN`（当时快照） | SW 路由、动态离线回退、真实桌面更新握手、跨标签编辑保护、诊断脱敏与重复手动刷新已验证；后续 MuMu 与真实 Gist 补充证据见 18.10～18.11，但物理 Android/iOS 仍未执行，当前不得升为 15.0.0 |
 
 ### 18.2 最新自动化证据
 
@@ -514,7 +514,7 @@ File/Blob only
 1. 真实 WebGPU 初始化失败→WASM 的硬件路径未实测；桌面 WebGPU 成功路径已通过；
 2. Android Chrome、Android 已安装 PWA、iOS Safari/iOS PWA 实机未测；
 3. Android/iOS 断网恢复、前后台恢复、文件选择与已安装 PWA 更新仍未完成实机矩阵；
-4. 真实 Gist Schema 3 迁移、远端读回与旧设备兼容确认未执行；
+4. 本节记录时真实 Gist Schema 3 迁移尚未执行；后续已完成当前设备 sidecar 与远端读回（见 18.11），但第二实体设备并发兼容仍未验证；
 5. 生产 Pages 未部署，部署后 smoke 尚未执行；
 6. 版本仍为 `14.0.2`，当前工作区尚未提交、推送或发布。
 
@@ -561,22 +561,23 @@ Service Worker 更新握手已补为可执行的动态测试：升级时保留�
 
 Phase 1～4 的代码级验收为 `AUTOMATED_PASS`；Phase 5 为 `FORMAL_UI_BROWSER_PASS`；Phase 6 现为 `DESKTOP_PWA_PASS / DEVICE_AND_V15_PRODUCTION_NOT_RUN`，不能据此升级或发布 `15.0.0`。
 
-仍必须保持 `NOT_RUN` 的项目：真实硬件 WebGPU 初始化失败→WASM 回退、Android Chrome/已安装 PWA/iOS Safari/iOS PWA、移动端断网/前后台/文件选择与真实 PWA 更新、真实 Gist Schema 3 迁移读回、部署后的 Pages smoke。桌面 WebGPU 长截图、Windows 本地干净 `npm ci`、重复真实手动刷新、动态 SW 离线/更新测试已通过；真实 Gist 写入、提交、推送和正式发布均未执行。
+本节记录时仍为 `NOT_RUN` 的项目包括真实硬件 WebGPU 初始化失败→WASM 回退、Android Chrome/已安装 PWA/iOS Safari/iOS PWA、移动端断网/前后台/文件选择与真实 PWA 更新、真实 Gist Schema 3 迁移读回、部署后的 Pages smoke。后续真实 Gist 当前设备迁移和 MuMu 补充证据见 18.10～18.11；物理设备、提交、推送和正式发布仍未完成。
 
 ### 18.7 当前线上 v14 基线（非 v15 发布证明）
 
-2026-08-28 重新 `git fetch --prune origin` 后，本地 `main` 与 `origin/main` 均为 `fc71555`，ahead/behind 为 `0/0`。GitHub Pages API 返回 `built`、workflow 部署与 HTTPS；最近一次 `Build and Deploy`（run `32698997374`）为 success。
+2026-08-28 再次 `git fetch --prune origin` 后，本地 `main` 与 `origin/main` 均为 `c2d3ea9`，ahead/behind 为 `0/0`。GitHub Pages API 返回 `built`、workflow 部署与 HTTPS；该提交的 `Build and Deploy`（run `33151401061`）为 success。
 
 | 生产检查 | 结果 | 证据 |
 |---|---|---|
 | 首页 | PASS | `https://aureliuswu.github.io/FundVal/` HTTP 200，约 2.14 s，6920 B |
-| 版本源 | PASS | `js/version.js` HTTP 200，`APP_VERSION = '14.0.2'` |
-| Service Worker | PASS | `sw.js` HTTP 200，缓存名 `fuyu-v14.0.2` |
+| 版本源 | PASS | `js/version.js` HTTP 200，`APP_VERSION = '14.0.3'` |
+| Service Worker | PASS | `sw.js` HTTP 200，缓存名 `fuyu-v14.0.3` |
 | PWA manifest | PASS | `manifest.json` HTTP 200，JSON Content-Type |
-| 浏览器首页 | PASS | 标题“蜉蝣基金”、可见版本 `14.0.2`、行情时间 `2026-08-28 14:30:45`、今日 `2/2`、控制台 error/warning 为 0、桌面无横向溢出 |
+| v14.0.3 新产物 | PASS | `ocr-import.html`、`assets/ocr/asset-manifest.json`、`js/app-shell.js` 均 HTTP 200；线上 app shell 为 162,142 B |
+| 浏览器首页 | NOT_RERUN_FOR_14.0.3 | 先前 `14.0.2` 的浏览器交互证据不冒充本次 `14.0.3` 证据；本次只完成独立 HTTP/资源与 MuMu localhost 验收 |
 | 生产手动刷新 | NOT_RUN | 移动视口下真实下拉动作后的远端等待超过浏览器控制时限，未取得可重复的完成证据，不据此判 PASS |
 
-上述 smoke 只确认当前已部署的 v14.0.2 仍可用；本轮 v15 工作区没有推送或部署，因此 v15 生产验证仍为 `BLOCKED_BY_NOT_DEPLOYED`。
+上述 smoke 只确认当前已部署的 v14.0.3 静态入口、版本源、SW 与 OCR/App Shell 产物可访问；本轮新增遥测修复尚未推送或部署，因此不能把线上 v14.0.3 当成该修复或 v15 的生产验证，状态仍为 `BLOCKED_BY_NOT_DEPLOYED`。
 
 ### 18.8 进一步自动执行结果（2026-08-28）
 
@@ -586,21 +587,60 @@ Phase 1～4 的代码级验收为 `AUTOMATED_PASS`；Phase 5 为 `FORMAL_UI_BROW
 |---|---|---|
 | 公共行情端到端抽样 | 司南估值接口对 `000001` 返回东方财富正式净值降级：净值日 `2026-08-27`、净值 `1.34`、日涨跌 `2.6%`；独立东方财富正式净值序列得到相同日期、净值和涨跌 | `LIVE_DATA_CONDITIONALLY_TRUSTED`：降级、来源和日期均被 Quote Contract 保留，不把拉取时间伪装为实时行情 |
 | 实时来源语义 | 归一化后为 `official_nav` / `official` / `eastmoney-official-nav` / `secondary`，并带“正式净值回退、仅提供净值日期”等有界原因码 | `PASS` |
-| 线上 v14 复查 | 首页、`js/version.js`、`sw.js`、`manifest.json`、`ocr-import.html` 均返回 HTTP 200；线上仍是 `14.0.2`，且尚无 v15 OCR manifest | `CURRENT_V14_HEALTHY / V15_NOT_DEPLOYED` |
+| 线上 v14 复查 | 首页、`js/version.js`、`sw.js`、`manifest.json`、`ocr-import.html`、OCR manifest 与 app shell 均返回 HTTP 200；线上为 `14.0.3`，本轮新增遥测修复尚未部署 | `CURRENT_V14_0_3_STATIC_RESOURCES_HEALTHY / NEW_FIX_NOT_DEPLOYED / V15_NOT_DEPLOYED` |
 | Schema 3 定向回归 | 云同步、Schema、迁移、持仓事务及集成定向用例 68/68 PASS；工作区条目数测试前后同为 54 | `AUTOMATED_PASS` |
-| 真实 Gist 只读预检 | 私有远端仍为 Schema 2；可无损解析、迁移和规范化生成 Schema 3 载荷，但未发出 PATCH | `NO_REMOTE_WRITE` |
-| Android / PWA 环境 | 未发现 ADB、Android SDK、模拟器、已连接移动设备、ADB 5037 服务或已注册的蜉蝣基金 PWA | `DEVICE_GATES_NOT_RUN`，当前机器没有可自动执行的 Android/iOS 实机路径 |
+| 真实 Gist 只读预检（历史快照） | 私有远端当时仍为 Schema 2；可无损解析、迁移和规范化生成 Schema 3 载荷，但未发出 PATCH | `SUPERSEDED_BY_18.11`；后续迁移闭环不改变本次预检曾保持只读的事实 |
+| Android / PWA 环境（历史快照） | 当时未发现 ADB、Android SDK、模拟器、已连接移动设备、ADB 5037 服务或已注册的蜉蝣基金 PWA | `SUPERSEDED_BY_18.9_AND_18.10`；本行只保留首次预检时的历史语境，后续已发现 MuMu 虚拟 Android 环境，但实体 Android/iOS 门槛仍为 `NOT_RUN` |
 
-真实 Gist 不在外部脚本中直接升级：已部署 v14 客户端不能安全保留 Schema 3 的 revision、tombstone 和 note，且权威浏览器本地持仓状态、事务备份与合并窗口不可由只读预检替代。必须先让所有可能同步该 Gist 的旧客户端退出或升级到防降写版本，再在权威浏览器内走“备份 → 合并 → 显式 Schema 3 升级 → PATCH → readback”事务。该结论是数据保护约束，不是未执行的普通自动化步骤。
+本节当时作出的“只读、不得由外部脚本升级”结论已被 18.11 的实际迁移闭环取代。实际操作在旧客户端降写风险隔离后使用脱敏的外部 Node/`gh api` 脚本，只新增当前设备 Schema 3 sidecar，并在 PATCH 后完成规范化 readback；没有使用权威浏览器中的本地事务备份。恢复边界因此是逐字节未变的 legacy 文件与 Gist 历史，而不是应用内本地备份。该结果只能记为 `PASS_WITH_BOUNDARY`，不等价于应用内完整“备份 → 合并 → PATCH → readback”事务，也不替代第二实体设备并发验证。
 
-### 18.9 v14.0.3 兼容桥候选（2026-08-28）
+### 18.9 v14.0.3 兼容桥候选历史快照（2026-08-28）
 
 为解除“旧客户端降写 Schema 3”的循环依赖，本轮先形成 v14.0.3 兼容桥候选，仍不把它标记为 v15 最终发布。旧版 `fuyu-holdings.json` 永久保留；Schema 3 使用严格命名的按设备分片 `fuyu-holdings-v3-<16 hex>.json`。新版读取全部 V3 分片和 legacy，只有 legacy 记录确实更新时才提升其 shares/cost/name，并保留 V3 note；legacy active 永远不能复活 V3 tombstone。新版任何自动或手动同步在用户明确批准 Schema 3 前均保持 pull-only/pending，代码中不存在 Schema 2 PATCH 路径。
 
 独立安全复核后又补齐五项 fail-closed 边界：本设备分片必须在 PATCH 后读回并与聚合结果一致；Gist 顶层 `truncated` 立即拒绝；V3 分片最多 64 个；备份/手工相似文件不进入权威集合；不再把 GitHub 未承诺的 `If-Match`/CAS 当并发保证。原始 legacy 与全部 V3 文件内容仍在本地同步备份中保留，Gist PATCH 只携带当前设备文件名。
 
-生产构建新增单一 `site/js/app-shell.js`：162,142 B raw、51,948 B gzip、无静态/动态 import、无 OCR 引用。可复现的 v14.0.2 冷启动 15 模块逐文件 gzip 基线为 43,545 B，精确 +20% 上限 52,254 B；构建、CI 与部署烟测均 fail-closed。生产 `index.html` 只能引用一次 app-shell，生产 SW `CORE` 只能包含该首页 JS，不能残留 bootstrap/app/runtime/storage 源模块图。
+`SUPERSEDED_BUILD_SNAPSHOT`：当时的生产构建新增单一 `site/js/app-shell.js`，记录为 162,928 B raw、52,239 B gzip、无静态/动态 import、无 OCR 引用。可复现的 v14.0.2 冷启动 15 模块逐文件 gzip 基线为 43,545 B，精确 +20% 上限 52,254 B；构建、CI 与部署烟测均 fail-closed。生产 `index.html` 只能引用一次 app-shell，生产 SW `CORE` 只能包含该首页 JS，不能残留 bootstrap/app/runtime/storage 源模块图。本数字不是已部署 v14.0.3 的 162,142/51,948，也不是 18.11 的 v14.0.4 候选 162,946/52,241。
 
-最终候选在 `npm ci` 后通过 267/267 测试、`npm run check`、`npm run build`、官方 npm registry 高危审计（0 vulnerabilities）与 `git diff --check`。敏感模式扫描只命中 `test/integrity.test.js` 的固定脱敏测试样本；未发现真实 Token、截图或 OCR 原文。当前版本源一致为 `14.0.3`，状态仍是 `RELEASE_CANDIDATE / DEPLOYMENT_PENDING / DEVICE_VALIDATION_PENDING`。
+`SUPERSEDED_TEST_SNAPSHOT`：当时候选在 `npm ci` 后通过 280/280 测试、`npm run check`、`npm run build`、官方 npm registry 高危审计（0 vulnerabilities）与 `git diff --check`。敏感模式扫描只命中 `test/integrity.test.js` 的固定脱敏测试样本；未发现真实 Token、截图或 OCR 原文。当时版本源一致为 `14.0.3`，状态为 `RELEASE_CANDIDATE / DEPLOYMENT_PENDING / DEVICE_VALIDATION_PENDING`；该 280/280 不是 18.11 的 v14.0.4 最终门禁计数。
 
 ADB 37.0.1 当前发现 `127.0.0.1:16416` Android 15 环境；虽然属性伪装为 Xiaomi 设备且 `ro.kernel.qemu` 为空，但主 ABI 为 `x86_64`，因此保守判定为虚拟 Android 环境，不作为实体真机证据。其系统包含已禁用的 Chromium 110 与 Brave 1.94，可用于补充 Android OS/Chromium 兼容验证；Android Chrome 实体机和 iOS Safari/iOS PWA 仍保持 `NOT_RUN`。
+
+### 18.10 MuMu Android 15 + Brave standalone PWA 验收（2026-08-28）
+
+在 MuMu 6.5.5.0 的 Android 15 虚拟环境中，使用 Brave 1.94.117（Chromium 152）安装并以 standalone 模式运行来自 `127.0.0.1:4173` 本地候选构建的蜉蝣基金 PWA。该来源边界很重要：本节的安装态刷新、前后台、离线与真实长截图 OCR 都是 localhost 候选证据，不是生产 Pages 的 Brave OCR 证据。本节只补充 Android OS、Chromium 与安装态 PWA 的兼容性验证；MuMu 是 `x86_64` 模拟器，不是物理 Android 真机，因此结论只能记为 `ANDROID_EMULATOR_PASS_WITH_LIMITS`，不能据此把方案要求的“PWA 实机矩阵”整体标为 `PASS`。
+
+| 验收项 | 证据 | 结论 |
+|---|---|---|
+| 安装态与 Service Worker | Brave 中已安装 localhost 候选构建，并以 standalone 模式启动；页面由该本地构建的 Service Worker 控制 | `LOCAL_EMULATOR_PWA_STANDALONE_PASS` |
+| 移动端布局 | standalone 页面未出现横向溢出 | `PASS` |
+| 手动刷新 | 在安装态 PWA 中完成真实下拉刷新，刷新流程正常结束 | `PASS` |
+| 前后台恢复 | PWA 切到后台后重新回到前台，页面恢复并完成补刷 | `PASS` |
+| CDP 离线重载 | 通过 CDP 将页面置为离线后由 Service Worker 重载；黄金缓存明确显示“旧”，无法确认的指数保持 `--`，没有把缺失值伪装为 `0` | `PASS_WITH_SCOPE_LIMIT`；证明 Chromium/CDP 离线与 SW 缓存语义，不等同于系统级断网 |
+| 真实长截图 OCR | 在 localhost 候选构建中选择 `1440 × 9317` 支付宝长截图后重建 15 条候选，其中 5 条保持待人工确认，表单行错误为 0；最终 SW 受控 standalone 复测总耗时 20.746 秒 | `LOCAL_EMULATOR_OCR_FUNCTIONAL_PASS`；不等同于生产或实体设备 OCR |
+| OCR 后端真实性 | 最终账本记录 `capabilityClass=webgpu`、`webgpuAttempted=true`、`backend=wasm`、`fallback=true`、`fallbackReason=initialization_failed`、`consistency=consistent`，证明 Brave 尝试 WebGPU 失败后实际回退 WASM，而不是把 WASM 冒充 WebGPU | `TELEMETRY_TRUTH_PASS` |
+| OCR 失败遥测 | WebGPU、WASM-only、WebGPU→WASM 成功路径和识别/初始化失败路径均有行为测试；失败只透传固定枚举与有界性能数值，错误原文、路径、OCR 内容不进入账本 | `SANITIZED_FAILURE_TELEMETRY_PASS` |
+| OCR 性能 | 单轮总耗时约 20～26 秒（包含约 25.811 秒样本）；方案没有规定数值型 OCR 硬上限，但该结果明显慢于桌面 WebGPU 证据 | `PERFORMANCE_WARNING`；功能通过，不能标为无条件性能通过 |
+| 数据写入边界 | 全程未勾选最终确认、未保存导入持仓，也未触碰真实 Gist | `NO_LOCAL_HOLDINGS_WRITE / NO_GIST_WRITE` |
+
+回退遥测复测还确认了开发阶段的同版本缓存边界：`stale-while-revalidate` 会让已经缓存过旧模块的既有客户端先执行一次旧代码、再后台更新；重新启动安装态 PWA 后，新客户端由 SW 控制并读取更新后的模块，最终账本恢复一致。为避免 GitHub Pages 约 10 分钟 HTTP 缓存把旧字节写入全新的 Cache Storage，当前版本缓存 miss 时已使用 `cache: 'reload'` 强制向源站重新验证；动态测试覆盖“同版本已有条目先旧后更”和“新版本无条目首取源站新字节”。正式发布仍必须提升 `sw.js` 缓存版本，不能把“同版本重建”当成可发布升级路径。
+
+本轮没有完成 MuMu 系统级 WiFi 开关或等价的整机网络切换，因此只能确认 CDP 作用域内的离线 SW 重载，系统级 Android 断网恢复继续标为 `NOT_RUN`。物理 Android Chrome、物理 Android 已安装 PWA、iOS Safari/iOS PWA、实体设备上的文件选择/更新/前后台/断网矩阵，以及 v15 生产部署与部署后 smoke 也仍为 `NOT_RUN`。这组模拟器证据不会解除最终版本号、物理实机与生产发布门槛。
+
+### 18.11 v14.0.4 遥测与 PWA 更新维护候选（2026-08-29）
+
+v14.0.3 兼容桥部署并完成真实 Gist Schema 3 sidecar 新增后，本轮形成 v14.0.4 维护候选。迁移通过脱敏外部 Node/`gh api` 脚本执行，没有使用浏览器本地事务备份；脚本只新增当前设备 V3 sidecar，恢复边界为逐字节未变的 legacy 与 Gist 历史。真实远端读回确认当前设备 V3 分片与聚合结果规范化一致（`requiresPatch=false`）；2026-08-29 再次只读比较迁移前后 Gist revision，确认 legacy 内容未变、V3 文档为 Schema 3 且具有有效更新时间。该结论记为 `PASS_WITH_BOUNDARY`，只证明当前 Gist 的迁移闭环，不替代应用内备份事务或第二实体设备并发场景，也不在本文记录文件名、Token、原始 JSON、哈希或个人持仓内容。
+
+| 门禁 | 证据 | 当前结论 |
+|---|---|---|
+| OCR 失败遥测 | WebGPU、WASM-only、WebGPU→WASM 成功、回退后识别失败及双后端初始化耗尽均为运行时行为测试；异常只携带白名单枚举、布尔和有界数值，底层错误、路径、截图与 OCR 内容被丢弃 | `PASS` |
+| 遥测一致性 | 回退后识别失败保留 `backend=wasm`；WebGPU 与 WASM 初始化均耗尽时保留 `backend=none` 且明确归类 `wasm_init_failed`，不把真实失败误报成矛盾遥测 | `PASS` |
+| PWA 新版本缓存 | 新 Worker install 对全部 CORE 使用 `cache: reload`；版本桶首次按需 JS miss 与 OCR manifest 强制重取；OCR JS/MJS 使用 `cache: no-cache` 条件重验证，可用 304 复用 11 MB Worker，防止旧 engine/Worker 污染新版本而不造成每次全量重下；部署 smoke 已配置为比对线上发布关键文件与构建产物的组合 SHA-256 指纹，并逐个下载 manifest 中 23 个 OCR 资产核验 88,196,072 bytes 与 SHA-256；当前只完成本地 Pages 原样重放 | `AUTOMATED_LOCAL_PASS / PRODUCTION_PENDING`（动态 SW 测试覆盖 install、runtime miss、OCR 代码与大模型差异化策略） |
+| Android Cromite 生产首页 | 生产根页完成加载，版本 `14.0.3`、SW 受控、645 px 视口无横向溢出，首页请求中 OCR 重资产为 0 | `PRODUCTION_EMULATOR_UI_PASS_WITH_LIMITS` |
+| Android Cromite 生产 OCR | 生产 OCR 页在选图前保持重模型/WASM 0 请求；合成内存 PNG 触发后因该运行时没有 WebAssembly 而以 `capability_missing` 安全终止，未产生候选、未保存、未同步 | `FAIL_CLOSED_PASS / OCR_FUNCTION_NOT_PROVEN` |
+| Android Brave 生产访问 | DNS 与系统连通存在，但 Brave 最终进入 `ERR_CONNECTION_RESET` | `NETWORK_STACK_WARNING / NOT_RUN`；不归因为产品故障，也不作为生产移动端通过 |
+| 自动化与构建 | 干净 `npm ci` 后全量 `npm test` 286/286、`npm run check`、官方 npm 高危审计（0 vulnerabilities）与 `git diff --check` 通过；正式构建连续 3 次均为 162,946 B raw / 52,241 B gzip、SHA-256 `489edee769530f790774f5924cc47e2d9be603ca0b1e9ce4db70b49b398f2762` | `PASS_WITH_BUNDLE_MARGIN_WARNING`；低于 52,254 B 硬上限但只余 13 B |
+| v14.0.4 生产 | 版本源已统一为候选，尚未提交、推送或部署 | `RELEASE_CANDIDATE / DEPLOYMENT_PENDING` |
+| v15.0.0 | 物理 Android Chrome/PWA 与 iOS Safari/PWA 仍未完成 | `BLOCKED_BY_PHYSICAL_DEVICE_GATES`；按方案不得提前改最终版本号 |
+
+v14.0.4 是维护桥，不改变 OCR 模型、识别策略、持仓 Schema 或云同步授权边界。只有部署成功并完成生产版本、SW、app shell、OCR 静态资源、公共行情语义与更新缓存 smoke 后，才能把该维护版改记为已发布；即使维护版发布成功，v15.0.0 仍保持阻断。

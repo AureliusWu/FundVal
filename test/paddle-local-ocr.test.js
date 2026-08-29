@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createLocalPaddleOcr } from '../scripts/paddle-ocr-entry.mjs';
 import {
+  PaddleLocalOcrError,
   PADDLE_ALIPAY_RECOGNITION_OPTIONS,
   PADDLE_LOCAL_OCR_ASSETS,
   PADDLE_ROW_OCR_REGION,
@@ -10,9 +12,11 @@ import {
   isSupportedPaddleOcrImage,
   mapPaddlePolygonToImage,
   missingPaddleOcrBrowserCapabilities,
+  normalizePaddleOcrPerformance,
   normalizePaddleOcrItems,
   paddleItemIsInTileCore,
   planPaddleRowOcrTiles,
+  recognizeAlipayPaddleImage,
   validatePaddleOcrImage,
   verifyPaddleOcrImageSignature,
 } from '../js/paddle-local-ocr.js';
@@ -152,4 +156,200 @@ test('uses a same-origin static Paddle engine with local tiny models and single-
   }
   assert.match(options.textDetectionModelAsset.url, /PP-OCRv6_tiny_det_onnx_infer\.tar$/);
   assert.match(options.textRecognitionModelAsset.url, /PP-OCRv6_tiny_rec_onnx_infer\.tar$/);
+});
+
+test('sanitizes successful and failed engine performance without retaining private fields', () => {
+  const performance = normalizePaddleOcrPerformance({
+    capabilityClass: 'webgpu', backend: 'wasm', webgpuAttempted: true,
+    fallback: true, fallbackReason: 'initialization_failed', coldInitMs: 123.4,
+    detectionMs: 456.7, recognitionMs: 89.1, totalMs: 800.2,
+    localPath: 'C:/private/screenshot.jpg', ocrText: 'private OCR text',
+  });
+  assert.deepEqual(performance, {
+    capabilityClass: 'webgpu', backend: 'wasm', webgpuAttempted: true,
+    fallback: true, fallbackReason: 'initialization_failed', coldInitMs: 123.4,
+    detectionMs: 456.7, recognitionMs: 89.1, totalMs: 800.2,
+    imageWidth: 0, imageHeight: 0, tileCount: 0, preprocessMs: 0, blockCount: 0,
+  });
+  assert.doesNotMatch(JSON.stringify(performance), /private|screenshot|ocr text/i);
+
+  const error = new PaddleLocalOcrError('本地识别失败', {
+    stage: 'recognition', performance,
+  });
+  assert.equal(error.backend, 'wasm');
+  assert.deepEqual(error.performance, performance);
+});
+
+function localPng() {
+  return new Blob([
+    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]),
+  ], { type: 'image/png' });
+}
+
+async function runRecognitionScenario(performance, { predictionError = null } = {}) {
+  const source = {
+    width: 100,
+    height: 100,
+    closeCalls: 0,
+    close() { this.closeCalls += 1; },
+  };
+  const crops = [];
+  const createBitmap = async input => {
+    if (input instanceof Blob) return source;
+    const crop = { closeCalls: 0, close() { this.closeCalls += 1; } };
+    crops.push(crop);
+    return crop;
+  };
+  const runtime = {
+    Worker() {},
+    createImageBitmap: createBitmap,
+    OffscreenCanvas() {},
+    WebAssembly: {},
+    structuredClone(value) { return value; },
+  };
+  let manifestCalls = 0;
+  let factoryCalls = 0;
+  let predictCalls = 0;
+  let disposeCalls = 0;
+  const phases = [];
+
+  const options = {
+    runtime,
+    createBitmap,
+    onProgress({ phase }) { phases.push(phase); },
+    async loadAssetManifest(expected) {
+      manifestCalls += 1;
+      assert.deepEqual(expected, { engineVersion: '0.4.2', ortVersion: '1.27.0' });
+    },
+    async loadPaddleFactory() {
+      factoryCalls += 1;
+      return async ({ onProgress }) => {
+        if (performance.fallback) onProgress({ phase: 'webgpu-fallback' });
+        return {
+          get performance() { return performance; },
+          async predict() {
+            predictCalls += 1;
+            if (predictionError) throw predictionError;
+            return [{ items: [] }];
+          },
+          async dispose() { disposeCalls += 1; },
+        };
+      };
+    },
+  };
+
+  try {
+    const result = await recognizeAlipayPaddleImage(localPng(), options);
+    return {
+      result, source, crops, phases,
+      counts: { manifestCalls, factoryCalls, predictCalls, disposeCalls },
+    };
+  } catch (error) {
+    error.testEvidence = {
+      source, crops, phases,
+      counts: { manifestCalls, factoryCalls, predictCalls, disposeCalls },
+    };
+    throw error;
+  }
+}
+
+for (const scenario of [
+  {
+    name: 'WebGPU success',
+    performance: {
+      capabilityClass: 'webgpu', backend: 'webgpu', webgpuAttempted: true,
+      fallback: false, fallbackReason: 'none',
+    },
+  },
+  {
+    name: 'WASM-only success',
+    performance: {
+      capabilityClass: 'wasm_only', backend: 'wasm', webgpuAttempted: false,
+      fallback: false, fallbackReason: 'none',
+    },
+  },
+  {
+    name: 'WebGPU to WASM fallback success',
+    performance: {
+      capabilityClass: 'webgpu', backend: 'wasm', webgpuAttempted: true,
+      fallback: true, fallbackReason: 'initialization_failed',
+    },
+  },
+]) {
+  test(`preserves truthful ${scenario.name} performance through the image adapter`, async () => {
+    const evidence = await runRecognitionScenario(scenario.performance);
+    assert.deepEqual({
+      capabilityClass: evidence.result.performance.capabilityClass,
+      backend: evidence.result.performance.backend,
+      webgpuAttempted: evidence.result.performance.webgpuAttempted,
+      fallback: evidence.result.performance.fallback,
+      fallbackReason: evidence.result.performance.fallbackReason,
+    }, scenario.performance);
+    assert.deepEqual(evidence.counts, {
+      manifestCalls: 1, factoryCalls: 1, predictCalls: 2, disposeCalls: 1,
+    });
+    assert.equal(evidence.source.closeCalls, 1);
+    assert.equal(evidence.crops.length, 2);
+    assert.ok(evidence.crops.every(crop => crop.closeCalls === 1));
+    assert.equal(
+      evidence.phases.filter(phase => phase === 'webgpu-fallback').length,
+      scenario.performance.fallback ? 1 : 0,
+    );
+  });
+}
+
+test('preserves fallback evidence when recognition fails without leaking the backend error', async () => {
+  const privateError = new Error('private model path and screenshot name');
+  const performance = {
+    capabilityClass: 'webgpu', backend: 'wasm', webgpuAttempted: true,
+    fallback: true, fallbackReason: 'initialization_failed',
+  };
+  const error = await runRecognitionScenario(performance, { predictionError: privateError })
+    .catch(value => value);
+  assert.ok(error instanceof PaddleLocalOcrError);
+  assert.equal(error.stage, 'recognition');
+  assert.equal(error.backend, 'wasm');
+  assert.deepEqual({
+    capabilityClass: error.performance.capabilityClass,
+    backend: error.performance.backend,
+    webgpuAttempted: error.performance.webgpuAttempted,
+    fallback: error.performance.fallback,
+    fallbackReason: error.performance.fallbackReason,
+  }, performance);
+  assert.doesNotMatch(`${error.message}\n${error.stack}\n${JSON.stringify(error.performance)}`, /private|screenshot name/i);
+  assert.deepEqual(error.testEvidence.counts, {
+    manifestCalls: 1, factoryCalls: 1, predictCalls: 1, disposeCalls: 1,
+  });
+  assert.equal(error.testEvidence.source.closeCalls, 1);
+  assert.equal(error.testEvidence.crops.length, 1);
+  assert.equal(error.testEvidence.crops[0].closeCalls, 1);
+});
+
+test('initialization failure exports only a safe exhausted-fallback snapshot and disposes the engine', async () => {
+  let disposeCalls = 0;
+  const engine = {
+    capabilities: {
+      webgpu: { supported: true },
+      wasm: { supported: true },
+    },
+    diagnostics: {
+      backend: null,
+      webgpuAttempted: true,
+      fallback: { from: 'webgpu', to: 'wasm', reason: 'initialization_failed' },
+      initializationMs: 321,
+      recognitionMs: 0,
+    },
+    backend: null,
+    async initialize() { throw new Error('private initialization path'); },
+    async dispose() { disposeCalls += 1; },
+  };
+  const error = await createLocalPaddleOcr({ createEngine: () => engine }).catch(value => value);
+  assert.equal(error.message, 'PaddleOCR worker operation failed.');
+  assert.deepEqual(error.performance, {
+    capabilityClass: 'webgpu', backend: 'none', webgpuAttempted: true,
+    fallback: true, fallbackReason: 'initialization_failed', coldInitMs: 321,
+    detectionMs: 0, recognitionMs: 0, blockCount: 0,
+  });
+  assert.equal(disposeCalls, 1);
+  assert.doesNotMatch(`${error.message}\n${error.stack}\n${JSON.stringify(error.performance)}`, /private|initialization path/i);
 });

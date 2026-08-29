@@ -115,6 +115,29 @@ test('diagnostic summary treats persisted entries as untrusted and emits fixed s
     errorCategory: path,
     fallback: true,
   });
-  assert.deepEqual(ocr, { backend: 'unknown', errorCategory: 'unknown', fallback: true });
+  assert.deepEqual(ocr, {
+    backend: 'unknown', errorCategory: 'unknown',
+    fallback: true, fallbackReason: 'unknown', consistency: 'inconsistent',
+  });
   assert.doesNotMatch(JSON.stringify(ocr), /ghp_|Users|secret\.png/i);
+});
+
+test('OCR diagnostic display exposes contradictory backend telemetry instead of presenting it as a clean run', () => {
+  const ocr = normalizeOcrDiagnosticForDisplay({
+    capabilityClass: 'webgpu', backend: 'wasm', webgpuAttempted: false,
+    fallback: false, fallbackReason: 'none', consistency: 'inconsistent', errorCategory: 'none',
+  });
+  assert.deepEqual(ocr, {
+    backend: 'wasm', errorCategory: 'none',
+    fallback: false, fallbackReason: 'none', consistency: 'inconsistent',
+  });
+});
+
+test('OCR diagnostic display accepts an exhausted WebGPU to WASM initialization failure', () => {
+  const ocr = normalizeOcrDiagnosticForDisplay({
+    capabilityClass: 'webgpu', backend: 'none', webgpuAttempted: true,
+    fallback: true, fallbackReason: 'initialization_failed',
+    consistency: 'consistent', errorCategory: 'wasm_init_failed',
+  });
+  assert.equal(ocr.consistency, 'consistent');
 });

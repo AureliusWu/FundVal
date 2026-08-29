@@ -36,7 +36,9 @@ function createPerformanceRun() {
   return {
     capabilityClass: capabilityClass(),
     backend: 'none',
+    webgpuAttempted: false,
     fallback: false,
+    fallbackReason: 'none',
     errorCategory: 'none',
     imageWidth: 0,
     imageHeight: 0,
@@ -61,10 +63,23 @@ const PERFORMANCE_NUMERIC_FIELDS = Object.freeze([
 
 function mergeRecognitionPerformance(target, source) {
   if (!source || typeof source !== 'object' || Array.isArray(source)) return;
+  if (source.capabilityClass === 'webgpu' || source.capabilityClass === 'wasm_only'
+    || source.capabilityClass === 'unsupported' || source.capabilityClass === 'unknown') {
+    target.capabilityClass = source.capabilityClass;
+  }
   if (source.backend === 'webgpu' || source.backend === 'wasm' || source.backend === 'none') {
     target.backend = source.backend;
   }
-  target.fallback = source.fallback === true;
+  if (typeof source.webgpuAttempted === 'boolean') target.webgpuAttempted = source.webgpuAttempted;
+  if (typeof source.fallback === 'boolean') {
+    target.fallback = source.fallback;
+    if (source.fallbackReason === 'backend_unavailable' || source.fallbackReason === 'initialization_failed'
+      || source.fallbackReason === 'unknown' || source.fallbackReason === 'none') {
+      target.fallbackReason = source.fallback ? source.fallbackReason : 'none';
+    } else {
+      target.fallbackReason = source.fallback ? 'unknown' : 'none';
+    }
+  }
   for (const field of PERFORMANCE_NUMERIC_FIELDS) {
     if (typeof source[field] === 'number' && Number.isFinite(source[field])) {
       target[field] = source[field];
@@ -393,6 +408,10 @@ async function processSelectedFile(file) {
       setStatus('未识别到可确认的基金条目。', { error: true });
       return;
     }
+    // The OCR pipeline is complete once positioned tokens have been parsed.
+    // Persist its bounded performance evidence before reading holdings so a
+    // separate local-storage integrity failure cannot erase a successful run.
+    recordPerformanceOnce('none');
     failureStage = 'parse';
     const holdingsSnapshot = currentHoldings();
     if (holdingsSnapshot == null) {
@@ -407,7 +426,6 @@ async function processSelectedFile(file) {
       holdings: holdingsSnapshot.holdings,
     };
     renderResults();
-    recordPerformanceOnce('none');
     setStatus('识别完成：请逐项确认后再同步。');
   } catch (error) {
     if (session !== activeSession) return;

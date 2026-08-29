@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v14.0.3';
+const CACHE = 'fuyu-v14.0.4';
 const CACHE_PREFIX = 'fuyu-v';
 let updateRequester = null;
 const CORE = [
@@ -32,7 +32,11 @@ function compareCacheVersions(left, right) {
 }
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)));
+  // A new Cache Storage version must be filled from the deployed origin, not
+  // from a still-fresh HTTP cache containing the previous release under the
+  // same asset URLs (notably js/app-shell.js in production builds).
+  const freshCore = CORE.map(path => new Request(new URL(path, self.location.href), { cache: 'reload' }));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(freshCore)));
 });
 
 self.addEventListener('activate', event => {
@@ -91,8 +95,15 @@ self.addEventListener('fetch', event => {
     event.respondWith(networkOnly(event.request));
   } else if (url.pathname.endsWith('/assets/ocr/asset-manifest.json')) {
     // The small manifest is safe to retain as an offline capability hint. The
-    // large OCR binaries themselves remain network-only below.
-    event.respondWith(networkFirst(event.request, event));
+    // large OCR binaries themselves remain network-only below. Force origin
+    // revalidation so a new release cannot pair new code with an old manifest
+    // still present in the browser HTTP cache.
+    event.respondWith(networkFirst(event.request, event, null, { cache: 'reload' }));
+  } else if (url.pathname.includes('/assets/ocr/') && /\.(?:js|mjs)$/.test(url.pathname)) {
+    // OCR code is version-sensitive and intentionally stays out of Cache
+    // Storage. Some generated Workers are large, so conditionally revalidate
+    // them (allowing a 304) instead of forcing a full reload on every engine.
+    event.respondWith(networkOnly(event.request, { cache: 'no-cache' }));
   } else if (url.pathname.includes('/assets/ocr/')) {
     // OCR binaries are very large and already use normal HTTP caching. Keeping
     // another copy in Cache Storage can exhaust mobile PWA quota and evict CORE.
@@ -124,9 +135,9 @@ self.addEventListener('notificationclick', event => {
   }));
 });
 
-async function networkFirst(request, event, navigationFallback = null) {
+async function networkFirst(request, event, navigationFallback = null, fetchOptions = undefined) {
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, fetchOptions);
     if (response.ok) extendLifetime(event, cacheResponseBestEffort(request, response));
     return response;
   } catch (_) {
@@ -140,9 +151,9 @@ async function networkFirst(request, event, navigationFallback = null) {
   }
 }
 
-async function networkOnly(request) {
+async function networkOnly(request, fetchOptions = undefined) {
   try {
-    return await fetch(request);
+    return await fetch(request, fetchOptions);
   } catch (_) {
     return Response.error();
   }
@@ -164,7 +175,12 @@ async function cacheFirst(request, event) {
 async function staleWhileRevalidate(request, event) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request);
-  const update = fetch(request).then(response => {
+  // A newly versioned Cache Storage bucket must not be seeded from the
+  // browser's still-fresh HTTP cache for an older deployment. Existing cache
+  // entries keep normal stale-while-revalidate behavior; a current-version
+  // miss forces revalidation against the origin before the response is stored.
+  const fetchOptions = cached ? undefined : { cache: 'reload' };
+  const update = fetch(request, fetchOptions).then(response => {
     if (response.ok) return cachePutBestEffort(cache, request, response).then(() => response);
     return response;
   }).catch(() => null);

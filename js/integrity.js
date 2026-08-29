@@ -5,6 +5,10 @@ const SAFE_RUNTIME_DIAGNOSTIC_TYPES = new Set([
   'storage_transaction_blocked', 'storage_recovery', 'window_error', 'unhandled_rejection',
 ]);
 const SAFE_OCR_DIAGNOSTIC_BACKENDS = new Set(['webgpu', 'wasm', 'none']);
+const SAFE_OCR_DIAGNOSTIC_CAPABILITIES = new Set(['webgpu', 'wasm_only', 'unsupported', 'unknown']);
+const SAFE_OCR_DIAGNOSTIC_FALLBACK_REASONS = new Set([
+  'none', 'backend_unavailable', 'initialization_failed', 'unknown',
+]);
 const SAFE_OCR_DIAGNOSTIC_ERRORS = new Set([
   'none', 'input_invalid', 'capability_missing', 'asset_manifest_failed',
   'webgpu_init_failed', 'wasm_init_failed', 'decode_failed', 'preprocess_failed',
@@ -222,10 +226,36 @@ export function selectSafeDiagnosticEvents(value, limit = 20) {
 
 export function normalizeOcrDiagnosticForDisplay(value) {
   const backend = String(value && value.backend || '').trim().toLowerCase();
+  const capabilityClass = String(value && value.capabilityClass || '').trim().toLowerCase();
   const errorCategory = String(value && value.errorCategory || '').trim().toLowerCase();
+  const safeBackend = SAFE_OCR_DIAGNOSTIC_BACKENDS.has(backend) ? backend : 'unknown';
+  const safeCapability = SAFE_OCR_DIAGNOSTIC_CAPABILITIES.has(capabilityClass) ? capabilityClass : 'unknown';
+  const safeError = SAFE_OCR_DIAGNOSTIC_ERRORS.has(errorCategory) ? errorCategory : 'unknown';
+  const fallback = value && value.fallback === true;
+  const webgpuAttempted = typeof (value && value.webgpuAttempted) === 'boolean'
+    ? value.webgpuAttempted
+    : safeBackend === 'webgpu' || fallback;
+  const fallbackReasonValue = String(value && value.fallbackReason || '').trim().toLowerCase();
+  const fallbackReason = fallback
+    ? (SAFE_OCR_DIAGNOSTIC_FALLBACK_REASONS.has(fallbackReasonValue) && fallbackReasonValue !== 'none'
+      ? fallbackReasonValue
+      : 'unknown')
+    : 'none';
+  const derivedInconsistent = safeBackend === 'unknown'
+    || (safeBackend === 'webgpu' && (!webgpuAttempted || fallback))
+    || (fallback && (!webgpuAttempted || (safeBackend !== 'wasm'
+      && !(safeBackend === 'none' && safeError === 'wasm_init_failed'))))
+    || (safeCapability === 'webgpu' && safeBackend === 'wasm' && !fallback)
+    || (safeCapability === 'wasm_only' && (safeBackend === 'webgpu' || webgpuAttempted || fallback))
+    || (safeCapability === 'unsupported' && safeBackend !== 'none')
+    || (safeBackend === 'none' && safeError === 'none');
   return Object.freeze({
-    backend: SAFE_OCR_DIAGNOSTIC_BACKENDS.has(backend) ? backend : 'unknown',
-    errorCategory: SAFE_OCR_DIAGNOSTIC_ERRORS.has(errorCategory) ? errorCategory : 'unknown',
-    fallback: value && value.fallback === true,
+    backend: safeBackend,
+    errorCategory: safeError,
+    fallback,
+    fallbackReason,
+    consistency: ((value && value.consistency === 'inconsistent') || derivedInconsistent)
+      ? 'inconsistent'
+      : 'consistent',
   });
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 14.0.4 - 2026-08-29
+
+- 修复 OCR 初始化失败或 WebGPU 回退到 WASM 后识别失败时丢失后端诊断的问题；账本只保留固定枚举、布尔值和有界性能数值，不记录截图、OCR 原文、文件路径或底层错误。
+- 增加 WebGPU 成功、WASM-only、WebGPU→WASM 成功、回退后识别失败与双后端初始化耗尽的行为测试；诊断中心显式标记矛盾遥测，不再把未知后端伪装为 WASM。
+- Service Worker 新版本安装、版本桶首次运行时缓存和 OCR manifest 强制向部署源重取；OCR JS/MJS 使用允许 304 复用的条件重验证，避免相同资产 URL 的旧 HTTP 缓存污染新 app-shell、按需模块或 Paddle engine/Worker，同时避免 11 MB Worker 每次全量重下；部署 smoke 会比对发布关键文件的构建指纹，并逐个下载 manifest 中 23 个 OCR 资产核验字节数与 SHA-256。
+- Schema 3 真实 Gist sidecar 已完成新增与规范化读回；2026-08-29 只读复核确认 legacy 内容相对迁移前版本完全未变。本维护版不改变持仓 Schema、OCR 模型、识别策略或同步授权边界。
+- Android 15 x86_64 模拟器完成生产首页/SW/移动布局与能力缺失 fail-closed 验证；物理 Android Chrome/PWA 与 iOS Safari/PWA 仍为 `NOT_RUN`，v15.0.0 继续受实体设备门禁约束。
+
 ## 14.0.3 - 2026-08-28
 
 - 发布 v15 前置兼容桥：统一 Quote Envelope、市场时钟、刷新代际、请求取消、单基金失败隔离、数据源 cooldown/恢复与可信状态展示，缺失值不再被展示层推断为 0。

@@ -15,11 +15,14 @@ function currentCacheVersion(source) {
   return match[1];
 }
 
-function createServiceWorkerHarness(source, { cacheKeys = [], cached = new Map() } = {}) {
+function createServiceWorkerHarness(source, {
+  cacheKeys = [], cached = new Map(), fetchImpl = async () => { throw new Error('offline'); },
+} = {}) {
   const listeners = new Map();
   const deleted = [];
   const clientMessages = [];
   const cacheMatches = [];
+  const cacheAdds = [];
   let claimed = 0;
   let skipped = 0;
   const client = {
@@ -28,7 +31,7 @@ function createServiceWorkerHarness(source, { cacheKeys = [], cached = new Map()
     postMessage(message) { clientMessages.push(message); },
   };
   const cache = {
-    async addAll() {},
+    async addAll(requests) { cacheAdds.push(...requests); },
     async match(request) {
       const key = typeof request === 'string' ? request : request.url;
       cacheMatches.push(key);
@@ -49,11 +52,12 @@ function createServiceWorkerHarness(source, { cacheKeys = [], cached = new Map()
       async open() { return cache; },
     },
     clients: clientApi,
-    fetch: async () => { throw new Error('offline'); },
+    fetch: fetchImpl,
+    Request,
     URL,
     Response,
     self: {
-      location: { origin: 'https://example.test' },
+      location: { origin: 'https://example.test', href: 'https://example.test/FundVal/sw.js' },
       registration: { async showNotification() {} },
       clients: clientApi,
       async skipWaiting() { skipped += 1; },
@@ -82,6 +86,7 @@ function createServiceWorkerHarness(source, { cacheKeys = [], cached = new Map()
   }
 
   return {
+    cacheAdds,
     cacheMatches,
     client,
     clientMessages,
@@ -117,14 +122,15 @@ test('service worker isolates version caches, preserves old tabs during upgrades
   assert.match(functionBody(source, 'cachePutBestEffort'), /catch \(_\)[\s\S]*return false;/);
   assert.doesNotMatch(source, /if \(response\.ok\) \(await caches\.open\(CACHE\)\)\.put/);
   assert.match(source, /url\.pathname\.includes\('\/api\/'\)[\s\S]*networkOnly\(event\.request\)/);
-  assert.match(source, /assets\/ocr\/asset-manifest\.json'[\s\S]*networkFirst\(event\.request, event\)/);
+  assert.match(source, /assets\/ocr\/asset-manifest\.json'[\s\S]*networkFirst\(event\.request, event, null, \{ cache: 'reload' \}\)/);
+  assert.match(source, /assets\/ocr\/[\s\S]*\.\(\?:js\|mjs\)[\s\S]*networkOnly\(event\.request, \{ cache: 'no-cache' \}\)/);
   assert.match(source, /url\.pathname\.includes\('\/assets\/ocr\/'\)[\s\S]*networkOnly\(event\.request\)/);
   assert.match(source, /event\.request\.mode === 'navigate'[\s\S]*networkFirst\(event\.request, event, fallback\)/);
   assert.match(source, /manifest\.json'[\s\S]*networkFirst\(event\.request, event\)/);
   assert.match(source, /fund-catalog\.json'[\s\S]*overseas-models\.json'[\s\S]*staleWhileRevalidate\(event\.request, event\)/);
   assert.match(source, /\(\?:js\|mjs\|css\)[\s\S]*staleWhileRevalidate\(event\.request, event\)/);
   assert.match(source, /icon-.*192\|512[\s\S]*cacheFirst\(event\.request, event\)/);
-  assert.match(functionBody(source, 'networkOnly'), /return await fetch\(request\)/);
+  assert.match(functionBody(source, 'networkOnly'), /return await fetch\(request, fetchOptions\)/);
   assert.doesNotMatch(functionBody(source, 'networkFirst'), /caches\.match\(/);
   assert.doesNotMatch(functionBody(source, 'cacheFirst'), /caches\.match\(/);
   assert.match(source, /extendLifetime\(event, update\.then/);
@@ -148,6 +154,15 @@ test('service worker isolates version caches, preserves old tabs during upgrades
   assert.match(app, /serviceWorkerUpdateApplying[\s\S]*status: 'skipped', reason: 'service_worker_update_pending'/);
   assert.match(app, /serviceWorkerUpdateApplying = true;[\s\S]*clearTimeout\(autoRefreshTimer\)[\s\S]*stopAndDrain/);
   assert.match(app, /hasServiceWorkerUpdateBlocker\(\)[\s\S]*isSyncing/);
+});
+
+test('install reloads every versioned core asset instead of seeding from an older HTTP cache', async () => {
+  const source = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+  const harness = createServiceWorkerHarness(source);
+  await harness.dispatchWithLifetime('install');
+  assert.ok(harness.cacheAdds.length > 0);
+  assert.ok(harness.cacheAdds.every(request => request instanceof Request && request.cache === 'reload'));
+  assert.ok(harness.cacheAdds.some(request => request.url === 'https://example.test/FundVal/js/app.js'));
 });
 
 test('service worker activation keeps the newest previous shell and delegates reload to the requesting page', async () => {
@@ -220,4 +235,55 @@ test('API and large OCR requests stay network-only while offline', async () => {
     assert.equal(response.type, 'error');
   }
   assert.deepEqual(harness.cacheMatches, []);
+});
+
+test('OCR code and manifest revalidate HTTP cache while large immutable assets keep normal HTTP caching', async () => {
+  const source = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+  const fetchCalls = [];
+  const fetchImpl = async (request, options) => {
+    fetchCalls.push({ url: request.url, cache: options?.cache || 'default' });
+    return new Response('network', { status: 200 });
+  };
+  const harness = createServiceWorkerHarness(source, { fetchImpl });
+  const urls = [
+    'https://example.test/FundVal/assets/ocr/asset-manifest.json',
+    'https://example.test/FundVal/assets/ocr/paddle/engine/paddle-ocr-engine.mjs',
+    'https://example.test/FundVal/assets/ocr/paddle/engine/assets/fundval-paddle-worker.js',
+    'https://example.test/FundVal/assets/ocr/paddle/models/model.tar',
+    'https://example.test/FundVal/assets/ocr/paddle/ort/runtime.wasm',
+  ];
+  for (const url of urls) {
+    const response = await harness.dispatchFetch({ method: 'GET', mode: 'cors', url });
+    assert.equal(response.status, 200);
+  }
+  assert.deepEqual(fetchCalls, [
+    { url: urls[0], cache: 'reload' },
+    { url: urls[1], cache: 'no-cache' },
+    { url: urls[2], cache: 'no-cache' },
+    { url: urls[3], cache: 'default' },
+    { url: urls[4], cache: 'default' },
+  ]);
+});
+
+test('a new version cache miss revalidates JS against origin before seeding stale-while-revalidate', async () => {
+  const source = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+  const fetchCalls = [];
+  const fetchImpl = async (request, options) => {
+    fetchCalls.push({ url: request.url, cache: options?.cache || 'default' });
+    return new Response('network-new', { status: 200 });
+  };
+  const request = { method: 'GET', mode: 'cors', url: 'https://example.test/FundVal/js/ocr-import-page.js' };
+  const missHarness = createServiceWorkerHarness(source, { fetchImpl });
+  const missResponse = await missHarness.dispatchFetch(request);
+  assert.equal(await missResponse.text(), 'network-new');
+  assert.deepEqual(fetchCalls, [{ url: request.url, cache: 'reload' }]);
+
+  fetchCalls.length = 0;
+  const hitHarness = createServiceWorkerHarness(source, {
+    fetchImpl,
+    cached: new Map([[request.url, new Response('cached-current', { status: 200 })]]),
+  });
+  const hitResponse = await hitHarness.dispatchFetch(request);
+  assert.equal(await hitResponse.text(), 'cached-current');
+  assert.deepEqual(fetchCalls, [{ url: request.url, cache: 'default' }]);
 });

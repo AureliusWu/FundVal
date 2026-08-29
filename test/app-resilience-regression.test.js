@@ -54,6 +54,7 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(app, /function copyDiagnosticsSummary/);
   assert.match(app, /recentSafeDiagnostics[\s\S]*selectSafeDiagnosticEvents\(rows\)/);
   assert.match(app, /normalizeOcrDiagnosticForDisplay\(latest\)/);
+  assert.match(app, /遥测异常/);
   assert.doesNotMatch(app, /diagnosticsLastSummary[\s\S]{0,500}GIST_TOKEN_KEY/);
   assert.doesNotMatch(app, /fund-name[^\n]+sourceTag|fund-name[^\n]+estimateTag/);
   assert.match(app, /const refreshCoordinator = new RefreshCoordinator/);

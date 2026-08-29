@@ -23,7 +23,11 @@ test('runtime, release metadata and maintained documentation versions stay synch
   assert.match(manifest.description, new RegExp(`v${APP_VERSION.replaceAll('.', '\\.')}`, 'i'));
   assert.match(index, new RegExp(`V${APP_VERSION.replaceAll('.', '\\.')}`));
   const escapedVersion = APP_VERSION.replaceAll('.', '\\.');
-  assert.match(readme, new RegExp(`^\\s*当前版本：[\`]${escapedVersion}[\`]。`, 'm'));
+  const readmeVersion = readme.match(new RegExp(`^\\s*当前(源码候选|版本)：[\`]${escapedVersion}[\`](?:；|。)`, 'm'));
+  assert.ok(readmeVersion, 'README must identify the source candidate or deployed current version');
+  if (readmeVersion[1] === '源码候选') {
+    assert.match(readme, /^\s*当前源码候选：[^\r\n]*当前线上版本：[`]\d+\.\d+\.\d+[`]/m);
+  }
   assert.match(agents, new RegExp(`^## 当前架构（V${escapedVersion}）`, 'm'));
   assert.match(claude, new RegExp(`本项目当前版本为 [\`]${escapedVersion}[\`]`));
   assert.match(changelog, new RegExp(`^## ${escapedVersion} - \\d{4}-\\d{2}-\\d{2}$`, 'm'));

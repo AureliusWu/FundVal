@@ -234,6 +234,52 @@ function finiteDuration(value) {
   return Number.isFinite(number) && number >= 0 ? number : 0;
 }
 
+const PERFORMANCE_FALLBACK_REASONS = new Set([
+  'backend_unavailable',
+  'initialization_failed',
+]);
+
+function engineCapabilityClass(engine) {
+  if (!engine?.capabilities) return 'unknown';
+  if (engine.capabilities.webgpu?.supported === true) return 'webgpu';
+  if (engine.capabilities.wasm?.supported === true) return 'wasm_only';
+  return 'unsupported';
+}
+
+function enginePerformanceMetadata(engine) {
+  const diagnostics = engine?.diagnostics || {};
+  const workerMetrics = engine?.backend?.performance?.() || {};
+  const fallback = Boolean(diagnostics.fallback);
+  const submittedReason = diagnostics.fallback?.reason;
+  return Object.freeze({
+    capabilityClass: engineCapabilityClass(engine),
+    backend: diagnostics.backend === OCR_BACKEND.WEBGPU || diagnostics.backend === OCR_BACKEND.WASM
+      ? diagnostics.backend
+      : 'none',
+    webgpuAttempted: diagnostics.webgpuAttempted === true,
+    fallback,
+    fallbackReason: fallback && PERFORMANCE_FALLBACK_REASONS.has(submittedReason)
+      ? submittedReason
+      : (fallback ? 'unknown' : 'none'),
+    coldInitMs: finiteDuration(diagnostics.initializationMs),
+    detectionMs: finiteDuration(workerMetrics.detectionMs),
+    recognitionMs: finiteDuration(workerMetrics.recognitionMs)
+      || finiteDuration(diagnostics.recognitionMs),
+    blockCount: Math.max(0, Math.round(finiteDuration(workerMetrics.blockCount))),
+  });
+}
+
+function safePerformanceError(performance) {
+  const error = toSafeWorkerError('engine-failure');
+  Object.defineProperty(error, 'performance', {
+    configurable: false,
+    enumerable: true,
+    value: performance,
+    writable: false,
+  });
+  return error;
+}
+
 function expectedProvider(summary, backend) {
   return summary?.detProvider === backend && summary?.recProvider === backend;
 }
@@ -308,13 +354,16 @@ function createPaddleWorkerBackend({ backend, assets }) {
  * compatibility failure releases that Worker before one permanent WASM
  * fallback. The page-side module never imports PaddleOCR or OpenCV.
  */
-export async function createLocalPaddleOcr({ onProgress } = {}) {
+export async function createLocalPaddleOcr({
+  onProgress,
+  createEngine = options => new LocalOcrEngine(options),
+} = {}) {
   const assets = Object.freeze({
     detection: resolveSameOriginAsset(LOCAL_MODEL_PATHS.detection),
     recognition: resolveSameOriginAsset(LOCAL_MODEL_PATHS.recognition),
     ortDirectory: resolveSameOriginAsset(LOCAL_MODEL_PATHS.ortDirectory),
   });
-  const engine = new LocalOcrEngine({
+  const engine = createEngine({
     runtime: globalThis,
     validateInput: assertLocalWorkerInput,
     backends: {
@@ -330,26 +379,19 @@ export async function createLocalPaddleOcr({ onProgress } = {}) {
   });
 
   emitProgress(onProgress, 'initializing');
-  await engine.initialize();
+  try {
+    await engine.initialize();
+  } catch (_) {
+    const performance = enginePerformanceMetadata(engine);
+    try { await engine.dispose?.(); } catch { /* cleanup must not mask the fixed public error */ }
+    throw safePerformanceError(performance);
+  }
   if (engine.diagnostics.fallback) emitProgress(onProgress, 'webgpu-fallback');
   emitProgress(onProgress, 'ready');
   let disposed = false;
   let activePrediction = null;
 
-  const performanceMetadata = () => {
-    const diagnostics = engine.diagnostics;
-    const workerMetrics = engine.backend?.performance?.() || {};
-    return Object.freeze({
-      capabilityClass: engine.capabilities?.webgpu?.supported ? 'webgpu' : 'wasm_only',
-      backend: diagnostics.backend || 'none',
-      fallback: Boolean(diagnostics.fallback),
-      coldInitMs: finiteDuration(diagnostics.initializationMs),
-      detectionMs: finiteDuration(workerMetrics.detectionMs),
-      recognitionMs: finiteDuration(workerMetrics.recognitionMs)
-        || finiteDuration(diagnostics.recognitionMs),
-      blockCount: Math.max(0, Math.round(finiteDuration(workerMetrics.blockCount))),
-    });
-  };
+  const performanceMetadata = () => enginePerformanceMetadata(engine);
 
   return Object.freeze({
     get performance() {
@@ -363,6 +405,8 @@ export async function createLocalPaddleOcr({ onProgress } = {}) {
       activePrediction = engine.recognize(image, options);
       try {
         return await activePrediction;
+      } catch (_) {
+        throw safePerformanceError(performanceMetadata());
       } finally {
         activePrediction = null;
         emitProgress(onProgress, 'recognized');

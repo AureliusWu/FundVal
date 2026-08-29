@@ -23,7 +23,8 @@ function memoryStorage(hooks = {}) {
 
 function entry(overrides = {}) {
   return {
-    capabilityClass: 'webgpu', backend: 'webgpu', fallback: false, errorCategory: 'none',
+    capabilityClass: 'webgpu', backend: 'webgpu', webgpuAttempted: true,
+    fallback: false, fallbackReason: 'none', errorCategory: 'none',
     imageWidth: 1440, imageHeight: 9317, tileCount: 7, coldInitMs: 1200, warmInitMs: 0,
     preprocessMs: 100, detectionMs: 500, recognitionMs: 900, layoutMs: 20,
     parseMs: 10, totalMs: 2730, blockCount: 120,
@@ -41,7 +42,7 @@ test('normalizes only the fixed non-sensitive performance contract', () => {
     arbitrary: { private: true },
   });
   assert.deepEqual(Object.keys(normalized), [
-    'capabilityClass', 'backend', 'fallback', 'errorCategory',
+    'capabilityClass', 'backend', 'webgpuAttempted', 'fallback', 'fallbackReason', 'consistency', 'errorCategory',
     'imageWidth', 'imageHeight', 'tileCount', 'coldInitMs', 'warmInitMs',
     'preprocessMs', 'detectionMs', 'recognitionMs', 'layoutMs', 'parseMs',
     'totalMs', 'blockCount',
@@ -53,9 +54,11 @@ test('normalizes only the fixed non-sensitive performance contract', () => {
 test('keeps only the latest twenty entries and reports aggregate backend counts', () => {
   const storage = memoryStorage();
   for (let index = 0; index < 25; index += 1) {
+    const fallback = index % 2 === 1;
     assert.equal(recordOcrPerformance(entry({
-      backend: index % 2 ? 'wasm' : 'webgpu',
-      fallback: index % 3 === 0,
+      backend: fallback ? 'wasm' : 'webgpu',
+      fallback,
+      fallbackReason: fallback ? 'initialization_failed' : 'none',
       blockCount: index,
     }), storage).ok, true);
   }
@@ -67,6 +70,56 @@ test('keeps only the latest twenty entries and reports aggregate backend counts'
   assert.equal(summary.count, 20);
   assert.equal(summary.webgpuRuns + summary.wasmRuns, 20);
   assert.ok(summary.fallbackRuns > 0);
+  assert.equal(summary.inconsistentRuns, 0);
+});
+
+test('marks the legacy webgpu-capable wasm-without-fallback combination inconsistent', () => {
+  const legacy = entry({ backend: 'wasm', fallback: false });
+  delete legacy.webgpuAttempted;
+  delete legacy.fallbackReason;
+  const normalized = normalizeOcrPerformanceEntry(legacy);
+  assert.equal(normalized.backend, 'wasm');
+  assert.equal(normalized.webgpuAttempted, false);
+  assert.equal(normalized.fallback, false);
+  assert.equal(normalized.fallbackReason, 'none');
+  assert.equal(normalized.consistency, 'inconsistent');
+});
+
+test('backfills old truthful fallback entries without inventing private detail', () => {
+  const legacy = entry({ backend: 'wasm', fallback: true });
+  delete legacy.webgpuAttempted;
+  delete legacy.fallbackReason;
+  const normalized = normalizeOcrPerformanceEntry(legacy);
+  assert.equal(normalized.webgpuAttempted, true);
+  assert.equal(normalized.fallbackReason, 'unknown');
+  assert.equal(normalized.consistency, 'consistent');
+});
+
+test('preserves explicit fallback evidence and never turns a missing backend into wasm', () => {
+  const fallback = normalizeOcrPerformanceEntry(entry({
+    backend: 'wasm', webgpuAttempted: true, fallback: true, fallbackReason: 'backend_unavailable',
+  }));
+  assert.equal(fallback.consistency, 'consistent');
+  assert.equal(fallback.fallbackReason, 'backend_unavailable');
+
+  const missingBackend = normalizeOcrPerformanceEntry(entry({
+    backend: undefined, webgpuAttempted: true, fallback: false,
+  }));
+  assert.equal(missingBackend.backend, 'none');
+  assert.equal(missingBackend.consistency, 'inconsistent');
+});
+
+test('treats an exhausted WebGPU to WASM initialization fallback as truthful failure evidence', () => {
+  const exhausted = normalizeOcrPerformanceEntry(entry({
+    backend: 'none',
+    webgpuAttempted: true,
+    fallback: true,
+    fallbackReason: 'initialization_failed',
+    errorCategory: 'wasm_init_failed',
+  }));
+  assert.equal(exhausted.backend, 'none');
+  assert.equal(exhausted.fallback, true);
+  assert.equal(exhausted.consistency, 'consistent');
 });
 
 test('contains malformed storage and write failures without exposing the submitted object', () => {

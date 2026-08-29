@@ -2662,8 +2662,9 @@ function ocrDiagnosticSummary() {
   if (!latest) return capability + '；暂无识别记录';
   var safeLatest = normalizeOcrDiagnosticForDisplay(latest);
   return capability + '；最近后端 ' + safeLatest.backend
-    + (safeLatest.fallback ? '（已回退）' : '')
-    + '；结果 ' + safeLatest.errorCategory;
+    + (safeLatest.fallback ? '（已回退：' + safeLatest.fallbackReason + '）' : '')
+    + '；结果 ' + safeLatest.errorCategory
+    + (safeLatest.consistency === 'inconsistent' ? '；遥测异常' : '');
 }
 
 function marketDiagnosticSummary() {

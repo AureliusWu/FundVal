@@ -1,8 +1,8 @@
 # 蜉蝣基金 · AI 协作指南
 
-## V14.0.3 兼容桥维护约定
+## V14.0.4 兼容桥维护约定
 
-本项目当前版本为 `14.0.3`。保持纯前端、零框架和移动端优先。主页面启动必须经过 `bootstrap.js`，先执行迁移、状态完整性检查和运行时保护，再加载 `app.js`。业务逻辑应按职责进入 `runtime/`、`storage/`、`config`、`calculator`、`freshness`、`eastmoney-estimate`、`fund-holdings`、`holdings-estimate`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。可测试的修复规则放在 `integrity.js`，浏览器侧恢复与提示放在 `resilience.js`。
+本项目当前版本为 `14.0.4`。保持纯前端、零框架和移动端优先。主页面启动必须经过 `bootstrap.js`，先执行迁移、状态完整性检查和运行时保护，再加载 `app.js`。业务逻辑应按职责进入 `runtime/`、`storage/`、`config`、`calculator`、`freshness`、`eastmoney-estimate`、`fund-holdings`、`holdings-estimate`、`overseas-model`、`accuracy` 模块，`app.js` 只承担编排和浏览器适配。可测试的修复规则放在 `integrity.js`，浏览器侧恢复与提示放在 `resilience.js`。
 
 数据展示统一消费 Quote Envelope，并按 realtime、delayed、有效 model、official、stale、unavailable 的可信等级选择；网络失败保留旧值并标记 `旧`。任何导入或云同步前都要备份；Gist 永久保留旧版文件，Schema 3 仅写当前设备的隔离分片并在 PATCH 后读回校验，禁止高版本降写。
 
