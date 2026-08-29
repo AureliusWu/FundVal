@@ -1,7 +1,7 @@
 import { normalizeEstimateQuote } from './runtime/quote-normalizer.js';
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
+import { fundDataApiUrl } from './config.js';
 
-const API = 'https://sinan-estimate-push.ligugu69.workers.dev/estimates';
 const TIMEOUT = 10000;
 
 function numberOrNaN(value) {
@@ -73,7 +73,7 @@ export async function fetchEstimateRows(codes, options = {}) {
   try {
     const query = new URLSearchParams({ codes: wanted.join(',') });
     if (options.force) query.set('_', String(Date.now()));
-    const response = await fetch(`${options.api || API}?${query}`, {
+    const response = await fetch(`${options.api || fundDataApiUrl('estimates')}?${query}`, {
       cache: 'no-store',
       signal: requestSignal.signal,
     });

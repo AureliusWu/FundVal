@@ -169,3 +169,20 @@ export function applyHoldingsEstimate(fund, estimate) {
   fund.source = 'quarterly-holdings-model';
   return fund;
 }
+
+/**
+ * Rebuild enrichment from the immutable primary quote so asynchronous detail
+ * sources cannot make the displayed NAV depend on their completion order.
+ * Official NAV is always installed before a holdings estimate chooses its
+ * base NAV.
+ */
+export function composeFundEnrichment(rawFund, options = {}) {
+  const fund = { ...(rawFund || {}) };
+  if (options.officialNavMove) {
+    fund.latest_nav_move = { ...options.officialNavMove };
+  }
+  if (options.holdingsEstimate) {
+    applyHoldingsEstimate(fund, options.holdingsEstimate);
+  }
+  return fund;
+}

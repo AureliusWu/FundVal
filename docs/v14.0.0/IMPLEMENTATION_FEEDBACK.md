@@ -1,7 +1,7 @@
 # 蜉蝣基金（FundVal）v14.0.4 实施反馈
 
-实施日期：2026-08-12；v14.0.4 维护候选：2026-08-29
-发布状态：`RELEASE_CANDIDATE / DEPLOYMENT_PENDING / DEVICE_VALIDATION_PENDING`
+实施日期：2026-08-12；v14.0.4 维护版发布：2026-08-29
+发布状态：`RELEASED_WITH_WARNINGS / DEVICE_VALIDATION_PENDING`
 
 ## v14.0.4 遥测与 PWA 更新维护补充（2026-08-29）
 
@@ -10,6 +10,9 @@
 - Service Worker 新版本安装时对全部 CORE 强制重新获取，版本桶首次获取按需 JS 与 OCR manifest 时也绕过旧 HTTP cache；OCR JS/MJS 改用允许 304 的条件重验证，避免旧 engine/Worker 污染新版本且不让 11 MB Worker 每次全量重下；部署 smoke 比对发布关键文件构建指纹，并逐个下载 manifest 中 23 个 OCR 资产核验字节数与 SHA-256。
 - 真实 Gist 已新增 Schema 3 当前设备 sidecar 并完成规范化读回；2026-08-29 只读复核确认 legacy 内容相对迁移前版本完全未变。该证据不替代第二实体设备并发验证。
 - Android 15 x86_64 模拟器只形成 localhost PWA/OCR 与生产基础页面/fail-closed 补充证据；物理 Android Chrome/PWA、iOS Safari/PWA 仍为 `NOT_RUN`，因此 v15.0.0 继续受阻。
+- 发布提交 `3f89327a58c6d5ded7efc0031676aa08733d149d` 已推送到 `origin/main`；GitHub Actions/Pages 运行 `33247073251` 的 build、deploy 与线上 OCR smoke 全部成功，逐项校验 23 个 OCR 资产、88,196,072 bytes。
+- 独立生产 smoke 确认根页、版本源、manifest、SW、app-shell、OCR 页面/账本/引擎均为 HTTP 200；app-shell 为 162,946 B，SHA-256 `489edee769530f790774f5924cc47e2d9be603ca0b1e9ce4db70b49b398f2762`。五轮缓存破坏采样中，根页中位总耗时 84 ms，app-shell 中位 103 ms。
+- 公共行情样本 `000001` 经客户端合约规范化为 `official_nav / secondary`，正式净值日期 `2026-08-28`、净值 `1.318`、涨跌 `-1.64%`，与东方财富最新净值序列一致；无效估值/重仓代码均返回 HTTP 400。浏览器自动化未取得可见 DOM，记为 `TOOL_LIMITATION / NOT_OBSERVED`，不以静态 HTTP 证据冒充可见 UI 交互通过。
 
 ## v14.0.3 v15 兼容桥补充（2026-08-28）
 
@@ -145,7 +148,7 @@ git rev-parse HEAD
 
 ## 历史已部署版本证据与仍未通过的设备门禁
 
-以下表格保留 v14.0.1/v14.0.2 阶段的历史生产证据，不是 v14.0.4 的部署结论；v14.0.4 当前仍为候选，必须等待本轮提交、Actions/Pages 部署和生产 smoke。
+以下表格保留 v14.0.1/v14.0.2 阶段的历史生产证据，不是 v14.0.4 的部署结论；v14.0.4 的独立发布证据记录在本文顶部。
 
 | 门禁 | 当前结果 |
 | --- | --- |
@@ -157,4 +160,4 @@ git rev-parse HEAD
 | 生产域名图片上传边界 | `PASS WITH LIMITATION`（本地 File + 同源 CSP + 静态 Pages 无上传端点；未导出逐请求 HAR） |
 | 最终源码 npm/构建/差异/CI 闭环 | `PASS`（Actions `31563016789`） |
 
-上述历史版本已经部署，但 v14.0.4 尚未部署，不得提前改写为 `READY_TO_RELEASE`。即使 v14.0.4 后续生产 smoke 通过，Android/iOS/已安装 PWA 仍无实机证据，必须继续明确保留 `NOT_RUN`，不得用桌面响应式模拟冒充。
+上述表格是历史版本证据；v14.0.4 现已发布，但仍不得改写为 v15 `READY_TO_RELEASE`。Android/iOS/已安装 PWA 仍无实机证据，必须继续明确保留 `NOT_RUN`，不得用桌面响应式模拟冒充。

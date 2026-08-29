@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   applyHoldingImportPlan,
   createHoldingImportPlan,
+  resolveCandidateSelectionAction,
   screenshotCostTotal,
   suggestCostFromScreenshot,
   validateHoldingImportPlan,
@@ -34,6 +35,29 @@ test('missing OCR fields stay missing while a real zero remains zero', () => {
   assert.equal(row.holdingProfitRate, null);
   assert.equal(row.dailyProfit, 0);
   assert.equal(screenshotCostTotal(row), null);
+});
+
+test('an existing unknown cost remains canonical null instead of the string null or zero', () => {
+  const holdings = [{ code: '000009', name: 'Unknown Cost', shares: 10, cost: null, deleted: false }];
+  const [row] = createHoldingImportPlan([{
+    match: { status: 'matched', code: '000009', name: 'Unknown Cost' },
+  }], holdings);
+  assert.equal(row.existing.cost, null);
+  assert.equal(row.cost, '');
+  row.shares = '10';
+  const validation = validateHoldingImportPlan([row]);
+  assert.equal(validation.ok, true);
+  assert.equal(validation.values[0].cost, null);
+  const applied = applyHoldingImportPlan(holdings, [row]);
+  assert.equal(applied.holdings[0].cost, null);
+  assert.equal(applied.holdings[0].cost === 0, false);
+});
+
+test('a legal candidate activates add/update unless the user explicitly chose skip', () => {
+  assert.equal(resolveCandidateSelectionAction(null, false), 'add');
+  assert.equal(resolveCandidateSelectionAction({ code: '000001' }, false), 'update');
+  assert.equal(resolveCandidateSelectionAction(null, true), 'skip');
+  assert.equal(resolveCandidateSelectionAction({ code: '000001' }, true), 'skip');
 });
 
 test('unmatched OCR rows default to skip and never create a zero-share holding', () => {

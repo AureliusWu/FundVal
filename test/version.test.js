@@ -14,7 +14,7 @@ test('runtime, release metadata and maintained documentation versions stay synch
     readFile(new URL('../AGENTS.md', import.meta.url), 'utf8'),
     readFile(new URL('../CLAUDE.md', import.meta.url), 'utf8'),
     readFile(new URL('../CHANGELOG.md', import.meta.url), 'utf8'),
-    readFile(new URL('../docs/v14.0.0/IMPLEMENTATION_FEEDBACK.md', import.meta.url), 'utf8'),
+    readFile(new URL('../docs/v15.0.0/IMPLEMENTATION_FEEDBACK.md', import.meta.url), 'utf8'),
   ]);
   assert.match(sw, new RegExp(`fuyu-v${APP_VERSION.replaceAll('.', '\\.')}`));
   assert.equal(pkg.version, APP_VERSION);

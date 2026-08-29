@@ -411,7 +411,9 @@ function catalogEntry(value) {
   return { code, name, normalizedName: normalizeFundName(name) };
 }
 
-function normalizedCatalog(fundCatalog) {
+const fundMatchIndexCache = new WeakMap();
+
+function normalizedCatalogEntries(fundCatalog) {
   const unique = new Map();
   for (const value of Array.isArray(fundCatalog) ? fundCatalog : []) {
     const entry = catalogEntry(value);
@@ -424,6 +426,104 @@ function shareClass(value) {
   const name = normalizeFundName(value);
   const match = /(?:人民币|美元)?(?:份额)?([ACE])(?:类)?$/i.exec(name);
   return match ? match[1].toUpperCase() : null;
+}
+
+function baseNameWithoutShareClass(value) {
+  const normalized = normalizeFundName(value);
+  return normalized.replace(/(?:人民币|美元)?(?:份额)?[ACE](?:类)?$/i, '');
+}
+
+function searchName(value) {
+  return normalizeFundName(value).toUpperCase();
+}
+
+function trigramTokens(value) {
+  const source = searchName(value);
+  if (!source) return [];
+  if (source.length <= 3) return [source];
+  const tokens = new Set();
+  for (let index = 0; index <= source.length - 3; index += 1) {
+    tokens.add(source.slice(index, index + 3));
+  }
+  return [...tokens];
+}
+
+function appendMapList(map, key, value) {
+  const list = map.get(key) || [];
+  list.push(value);
+  map.set(key, list);
+}
+
+/**
+ * Build the local-only OCR matching index once per catalog array. The index
+ * contains fund identity only; it never receives OCR text, amounts or images.
+ */
+export function buildFundMatchIndex(fundCatalog) {
+  if (fundCatalog?.kind === 'fund-match-index') return fundCatalog;
+  if (Array.isArray(fundCatalog) && fundMatchIndexCache.has(fundCatalog)) {
+    return fundMatchIndexCache.get(fundCatalog);
+  }
+  const entries = normalizedCatalogEntries(fundCatalog).map(entry => ({
+    ...entry,
+    searchName: searchName(entry.normalizedName),
+    shareClass: shareClass(entry.normalizedName),
+    baseName: baseNameWithoutShareClass(entry.normalizedName),
+  }));
+  const byCode = new Map();
+  const byExactNormalizedName = new Map();
+  const byBaseNameAndShareClass = new Map();
+  const byShareClass = new Map();
+  const trigramIndex = new Map();
+  for (const entry of entries) {
+    byCode.set(entry.code, entry);
+    appendMapList(byExactNormalizedName, entry.normalizedName, entry);
+    appendMapList(byBaseNameAndShareClass, `${entry.baseName}\u0000${entry.shareClass || ''}`, entry);
+    appendMapList(byShareClass, entry.shareClass || '', entry);
+    for (const token of trigramTokens(entry.searchName)) {
+      const matches = trigramIndex.get(token) || new Set();
+      matches.add(entry);
+      trigramIndex.set(token, matches);
+    }
+  }
+  const index = Object.freeze({
+    kind: 'fund-match-index',
+    entries: Object.freeze(entries),
+    byCode,
+    byExactNormalizedName,
+    byBaseNameAndShareClass,
+    byShareClass,
+    trigramIndex,
+  });
+  if (Array.isArray(fundCatalog)) fundMatchIndexCache.set(fundCatalog, index);
+  fundMatchIndexCache.set(index.entries, index);
+  return index;
+}
+
+function normalizedCatalog(fundCatalog) {
+  return buildFundMatchIndex(fundCatalog).entries;
+}
+
+function fuzzyCandidatePool(index, normalizedName, inputClass, maximum) {
+  const tokens = trigramTokens(normalizedName);
+  if (!tokens.length) return [];
+  const counts = new Map();
+  for (const token of tokens) {
+    for (const entry of index.trigramIndex.get(token) || []) {
+      if (inputClass && entry.shareClass !== inputClass) continue;
+      counts.set(entry, (counts.get(entry) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([entry, overlap]) => ({
+      entry,
+      overlap,
+      lengthDistance: Math.abs(entry.searchName.length - searchName(normalizedName).length),
+    }))
+    .sort((left, right) => right.overlap - left.overlap
+      || left.lengthDistance - right.lengthDistance
+      || left.entry.code.localeCompare(right.entry.code))
+    .slice(0, maximum)
+    .map(item => item.entry);
 }
 
 function levenshtein(left, right) {
@@ -456,23 +556,27 @@ function similarity(left, right) {
  * fund by themselves.
  */
 export function matchFundCandidate(candidate, fundCatalog, options = {}) {
-  const catalog = normalizedCatalog(fundCatalog);
+  const index = options.index?.kind === 'fund-match-index'
+    ? options.index
+    : buildFundMatchIndex(fundCatalog);
+  const catalog = index.entries;
   const code = extractFundCode(candidate?.code) || null;
   const name = textOf(candidate?.name);
   const normalizedName = normalizeFundName(name);
   const toCandidate = ({ code: itemCode, name: itemName, score }) => ({ code: itemCode, name: itemName, ...(score == null ? {} : { score: Number(score.toFixed(3)) }) });
 
   if (code) {
-    const matches = catalog.filter(item => item.code === code);
+    const codeMatch = index.byCode.get(code);
+    const matches = codeMatch ? [codeMatch] : [];
     if (matches.length === 1) {
       const warning = normalizedName && normalizedName !== matches[0].normalizedName
         ? ['基金代码已匹配，OCR 名称与基金库名称不同，请在确认页核对'] : [];
       const fund = toCandidate(matches[0]);
       return { status: 'matched', strategy: 'code', code: fund.code, name: fund.name, fund, candidates: [fund], warnings: warning };
     }
-    const nameCandidates = normalizedName ? catalog
-      .filter(item => item.normalizedName === normalizedName)
-      .map(toCandidate) : [];
+    const nameCandidates = normalizedName
+      ? (index.byExactNormalizedName.get(normalizedName) || []).map(toCandidate)
+      : [];
     return {
       status: 'needs_confirmation', strategy: 'code_not_found', code: null, name: null, fund: null, candidates: nameCandidates,
       warnings: ['OCR 识别到的基金代码不在基金库中，未自动改用名称匹配']
@@ -483,7 +587,7 @@ export function matchFundCandidate(candidate, fundCatalog, options = {}) {
     return { status: 'unmatched', strategy: 'none', code: null, name: null, fund: null, candidates: [], warnings: ['未识别到基金代码或基金名称'] };
   }
 
-  const exact = catalog.filter(item => item.normalizedName === normalizedName);
+  const exact = index.byExactNormalizedName.get(normalizedName) || [];
   if (exact.length === 1) {
     const fund = toCandidate(exact[0]);
     return { status: 'matched', strategy: 'exact_name', code: fund.code, name: fund.name, fund, candidates: [fund], warnings: [] };
@@ -493,12 +597,31 @@ export function matchFundCandidate(candidate, fundCatalog, options = {}) {
   }
 
   const inputClass = shareClass(normalizedName);
+  if (inputClass) {
+    const classIdentity = index.byBaseNameAndShareClass.get(
+      `${baseNameWithoutShareClass(normalizedName)}\u0000${inputClass}`,
+    ) || [];
+    if (classIdentity.length === 1) {
+      const fund = toCandidate(classIdentity[0]);
+      return { status: 'matched', strategy: 'exact_name', code: fund.code, name: fund.name, fund, candidates: [fund], warnings: [] };
+    }
+    if (classIdentity.length > 1) {
+      return {
+        status: 'needs_confirmation', strategy: 'exact_name_ambiguous', code: null, name: null, fund: null,
+        candidates: classIdentity.map(toCandidate), warnings: ['基金名称和份额类别存在多个精确候选'],
+      };
+    }
+  }
   const threshold = Number.isFinite(options.fuzzyThreshold) ? options.fuzzyThreshold : 0.72;
   const ambiguityGap = Number.isFinite(options.ambiguityGap) ? options.ambiguityGap : 0.08;
-  const fuzzy = catalog
-    // When the OCR input explicitly says A/C/E, candidates without that same
-    // class are unsafe rather than a convenient fallback.
-    .filter(item => !inputClass || shareClass(item.normalizedName) === inputClass)
+  const maximum = Math.max(16, Math.min(256, Number(options.maxFuzzyCandidates) || 96));
+  const narrowed = fuzzyCandidatePool(index, normalizedName, inputClass, maximum);
+  if (options.metrics && typeof options.metrics === 'object') {
+    options.metrics.catalogSize = catalog.length;
+    options.metrics.fuzzyCandidateCount = narrowed.length;
+    options.metrics.levenshteinComparisons = narrowed.length;
+  }
+  const fuzzy = narrowed
     .map(item => ({ ...item, score: similarity(normalizedName, item.normalizedName) }))
     .filter(item => item.score >= threshold)
     .sort((a, b) => b.score - a.score || a.code.localeCompare(b.code));
@@ -519,6 +642,43 @@ export function matchFundCandidate(candidate, fundCatalog, options = {}) {
     status: 'matched', strategy: 'fuzzy', code: fund.code, name: fund.name, fund, candidates: [fund],
     warnings: ['基金名称为 OCR 模糊匹配，请在确认页核对']
   };
+}
+
+/** A bounded in-memory memo for one OCR confirmation session. */
+export function createFundMatchSession(fundCatalog, options = {}) {
+  const index = buildFundMatchIndex(fundCatalog);
+  const memo = new Map();
+  const memoLimit = Math.max(16, Math.min(512, Number(options.memoLimit) || 128));
+  const stats = {
+    queries: 0,
+    memoHits: 0,
+    levenshteinComparisons: 0,
+    lastFuzzyCandidateCount: 0,
+  };
+  return Object.freeze({
+    index,
+    match(candidate) {
+      stats.queries += 1;
+      const key = `${extractFundCode(candidate?.code) || ''}\u0000${normalizeFundName(candidate?.name)}`;
+      if (memo.has(key)) {
+        stats.memoHits += 1;
+        return memo.get(key);
+      }
+      const metrics = {};
+      const result = matchFundCandidate(candidate, index.entries, { ...options, index, metrics });
+      stats.levenshteinComparisons += metrics.levenshteinComparisons || 0;
+      stats.lastFuzzyCandidateCount = metrics.fuzzyCandidateCount || 0;
+      if (memo.size >= memoLimit) memo.delete(memo.keys().next().value);
+      memo.set(key, result);
+      return result;
+    },
+    metrics() {
+      return Object.freeze({ ...stats, memoSize: memo.size, catalogSize: index.entries.length });
+    },
+    clear() {
+      memo.clear();
+    },
+  });
 }
 
 function lineLooksLikeName(line, catalog) {

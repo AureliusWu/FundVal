@@ -330,6 +330,29 @@ export function recordSourceSuccess(registry, sourceId, details = {}, now = 0) {
   });
 }
 
+/** A structurally valid response with incomplete business coverage stays usable but degraded. */
+export function recordSourcePartial(registry, sourceId, details = {}, now = 0) {
+  requireRegistry(registry);
+  const metadata = isRecord(details) ? details : {};
+  const at = detailClock(metadata, now);
+  const index = requireSourceIndex(registry, sourceId);
+  const previous = registry.sources[index].health;
+  const responseMs = optionalResponseMs(metadata.responseMs);
+  const availableAt = optionalTimestamp(metadata.availableAt ?? metadata.quoteTime);
+  return replaceHealth(registry, index, {
+    ...previous,
+    status: SOURCE_HEALTH.DEGRADED,
+    consecutiveFailures: 0,
+    lastSuccessAt: at,
+    lastResponseMs: responseMs ?? previous.lastResponseMs,
+    lastAvailableAt: preferredAvailableAt(previous.lastAvailableAt, availableAt),
+    degradationReason: optionalReason(metadata.reason) || 'partial_coverage',
+    cooldownUntil: null,
+    halfOpenProbeActive: false,
+    halfOpenProbeAt: null,
+  });
+}
+
 /**
  * Record a non-aborted failure.  A source in cooldown remains protected when
  * its single half-open probe fails; an explicit unavailable result stays out

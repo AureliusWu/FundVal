@@ -1,8 +1,9 @@
-const CACHE = 'fuyu-v14.0.4';
+const CACHE = 'fuyu-v15.0.0';
 const CACHE_PREFIX = 'fuyu-v';
 let updateRequester = null;
 const CORE = [
-  './', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  './', './index.html', './quote-bridge.html', './manifest.json', './icon-192.png', './icon-512.png',
+  './js/sandbox/quote-bridge-runtime.js',
   // BUILD_APP_SHELL_CORE_START
   './js/bootstrap.js', './js/migrations.js', './js/resilience.js', './js/integrity.js',
   './js/app.js', './js/version.js', './js/config.js', './js/storage.js',

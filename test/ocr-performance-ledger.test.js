@@ -7,6 +7,7 @@ import {
   readOcrPerformanceLedger,
   recordOcrPerformance,
   summarizeOcrPerformance,
+  updateLatestOcrPerformance,
 } from '../js/ocr/performance-ledger.js';
 import { PaddleLocalOcrError } from '../js/paddle-local-ocr.js';
 
@@ -27,7 +28,8 @@ function entry(overrides = {}) {
     fallback: false, fallbackReason: 'none', errorCategory: 'none',
     imageWidth: 1440, imageHeight: 9317, tileCount: 7, coldInitMs: 1200, warmInitMs: 0,
     preprocessMs: 100, detectionMs: 500, recognitionMs: 900, layoutMs: 20,
-    parseMs: 10, totalMs: 2730, blockCount: 120,
+    parseMs: 10, catalogLoadMs: 30, matchMs: 12, commitMs: 0,
+    totalMs: 2730, blockCount: 120,
     ...overrides,
   };
 }
@@ -45,10 +47,23 @@ test('normalizes only the fixed non-sensitive performance contract', () => {
     'capabilityClass', 'backend', 'webgpuAttempted', 'fallback', 'fallbackReason', 'consistency', 'errorCategory',
     'imageWidth', 'imageHeight', 'tileCount', 'coldInitMs', 'warmInitMs',
     'preprocessMs', 'detectionMs', 'recognitionMs', 'layoutMs', 'parseMs',
-    'totalMs', 'blockCount',
+    'catalogLoadMs', 'matchMs', 'commitMs', 'totalMs', 'blockCount',
   ]);
   const raw = JSON.stringify(normalized);
   assert.doesNotMatch(raw, /基金|30216|base64|ghp_|Users|screenshot|private/);
+});
+
+test('updates commit timing only when the latest ledger entry is the expected OCR run', () => {
+  const storage = memoryStorage();
+  const recorded = recordOcrPerformance(entry(), storage);
+  assert.equal(recorded.ok, true);
+  const updated = updateLatestOcrPerformance(recorded.entry, { commitMs: 48 }, storage);
+  assert.equal(updated.ok, true);
+  assert.equal(updated.entry.commitMs, 48);
+
+  const stale = updateLatestOcrPerformance(recorded.entry, { commitMs: 99 }, storage);
+  assert.deepEqual(stale, { ok: false, reason: 'stale_performance_entry' });
+  assert.equal(readOcrPerformanceLedger(storage)[0].commitMs, 48);
 });
 
 test('keeps only the latest twenty entries and reports aggregate backend counts', () => {

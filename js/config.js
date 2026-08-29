@@ -11,6 +11,15 @@ export const TTL = Object.freeze({
 
 export const MODEL_URL = './data/overseas-models.json';
 
+const REMOTE_DATA_ORIGIN = 'https://sinan-estimate-push.ligugu69.workers.dev';
+
+export function fundDataApiUrl(endpoint, runtimeLocation = globalThis.location) {
+  if (!['estimates', 'holdings'].includes(endpoint)) throw new Error('unsupported_fund_data_endpoint');
+  const hostname = String(runtimeLocation?.hostname || '').toLowerCase();
+  if (hostname === '127.0.0.1' || hostname === 'localhost') return `/__fundval_dev/${endpoint}`;
+  return `${REMOTE_DATA_ORIGIN}/${endpoint}`;
+}
+
 export function refreshInterval(now) {
   const day = now.getDay();
   const minute = now.getHours() * 60 + now.getMinutes();

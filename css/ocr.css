@@ -19,6 +19,9 @@
   background: var(--bg);
   box-shadow: 0 18px 56px rgba(0,0,0,.22);
 }
+@supports (min-height: 100dvh) {
+  .ocr-dialog { min-height: min(640px, calc(100dvh - 24px)); }
+}
 .ocr-dialog-head {
   display: flex;
   align-items: flex-start;

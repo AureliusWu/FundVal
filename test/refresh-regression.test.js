@@ -12,6 +12,7 @@ test('startup, visibility, network recovery and manual refresh all route through
   assert.doesNotMatch(source, /refreshChain|refreshRequestId/);
   assert.match(source, /code: 'ALL_FUNDS_FAILED'/);
   assert.match(source, /fetchFundFull\(h\.code, opts\.force !== false, estimateMap\.get\(h\.code\), context\.signal\)/);
+  assert.match(source, /scheduleFundEnrichment\([\s\S]*fetchLatestNavMove\(h\.code/);
   assert.match(source, /status: 'ok_official', last_nav: navMove\.prevNav,[\s\S]*est_kind: 'official_nav'/);
   assert.doesNotMatch(source, /`估算时间 \$\{pad\(now\.getHours\(\)\)/);
   const failureStart = source.indexOf('function commitRefreshFailure');

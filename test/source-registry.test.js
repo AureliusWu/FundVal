@@ -9,6 +9,7 @@ import {
   getSourceDescriptor,
   getSourceHealth,
   recordSourceFailure,
+  recordSourcePartial,
   recordSourceSuccess,
   releaseSourceAttempt,
   registerSource,
@@ -42,6 +43,19 @@ test('registers controlled immutable source descriptors without changing caller 
   assert.throws(() => registerSource(registry, descriptor('primary')), /already registered/);
   assert.throws(() => createSourceRegistry([descriptor('bad', { markets: [] })]), /markets must not be empty/);
   assert.throws(() => createSourceRegistry([descriptor('bad', { requiresProxy: 'yes' })]), /requiresProxy must be boolean/);
+});
+
+test('partial business coverage is degraded without opening the circuit breaker', () => {
+  const original = createSourceRegistry([descriptor('primary')]);
+  const partial = recordSourcePartial(original, 'primary', {
+    reason: '3_of_5_usable', responseMs: 25,
+  }, 100);
+  const health = getSourceHealth(partial, 'primary');
+  assert.equal(health.status, SOURCE_HEALTH.DEGRADED);
+  assert.equal(health.consecutiveFailures, 0);
+  assert.equal(health.lastSuccessAt, 100);
+  assert.equal(health.degradationReason, '3_of_5_usable');
+  assert.equal(canAttemptSource(partial, 'primary', 101), true);
 });
 
 test('accepts the declared production registry including its zero-timeout cache source', () => {

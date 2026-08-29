@@ -1,11 +1,13 @@
 # AGENTS.md
 
-## 当前架构（V14.0.4）
+## 当前架构（V15.0.0）
 
 - `js/bootstrap.js` 负责启动顺序，必须先执行迁移与完整性检查，再加载 `app.js`。
 - `js/resilience.js` 负责本地数据恢复、缓存清理、错误日志和跨标签页提示。
 - `js/integrity.js` 只放可测试的持仓、缓存、诊断纯函数。
-- `js/app.js` 负责页面编排；`js/runtime/` 负责统一 Quote Envelope、市场时钟、数据源健康与刷新代际；`js/eastmoney-estimate.js` 负责调用司南服务端估值代理并保留部分结果；`js/fund-holdings.js` 负责通过同一只读代理获取带披露日期的十大重仓。
+- `js/app.js` 负责页面编排；`js/runtime/` 负责统一 Quote Envelope、市场时钟、数据源健康、刷新代际、活动持仓裁剪、通知策略与隔离 Bridge 客户端；`js/eastmoney-estimate.js` 负责调用司南服务端估值代理并保留部分结果；`js/fund-holdings.js` 负责通过同一只读代理获取且严格规范化带披露日期的十大重仓。
+- `quote-bridge.html` 与 `js/sandbox/quote-bridge-runtime.js` 是唯一允许执行东方财富/腾讯 JSONP 的页面。iframe 必须保持精确的 `sandbox="allow-scripts"`，禁止 `allow-same-origin`；主页面不得重新注入第三方脚本。
+- `scripts/build-site.mjs` 生成真实 cold/lazy chunks 与 `js/app-chunks.json`；冷启动 gzip 门禁不得通过调高预算绕过，OCR 资源不得进入首页图或 Service Worker `CORE`。
 - `js/freshness.js` 负责行情时间解析、市场分类和统一数据状态。
 - `js/holdings-estimate.js` 负责按披露权重计算十大重仓当日行情贡献；非当日行情和覆盖不足不得参与估算。
 - `js/config.js` 负责 TTL、超时和交易时段刷新间隔。
@@ -20,7 +22,7 @@
 - `ocr-import.html` 必须维持严格同源 CSP，且不得加载 `app.js`、`bootstrap.js`、行情或第三方 JSONP；截图和 OCR 原文只能存在于该页内存。
 - `js/alipay-ocr-parser.js`、`js/holding-import-plan.js` 是可测试的 OCR 解析和确认映射层；OCR 未识别到真实份额时，确认页必须要求用户填写大于 0 的真实份额。
 - `js/fund-catalog.js` 只按需读取同源 `data/fund-catalog.json`；目录维护脚本可以解析上游公开文本，但浏览器端不得执行任何第三方 JSONP。
-- 变更后必须运行 `npm test`、`npm run check`、`npm run build`，并保持 `js/version.js` 与 `sw.js` 缓存版本一致。
+- 变更后必须运行 `npm test`、`npm run check`、`npm run build`、`npm run test:e2e`，并保持 `package.json`、`js/version.js`、页面标签、manifest 与 `sw.js` 缓存版本一致。
 - 缺失值必须保持缺失，禁止以 `0` 代替；旧缓存必须显示 `旧`。
 
 ## 项目识别
@@ -40,16 +42,15 @@
 - `js/bootstrap.js`：启动前迁移、自检和主程序加载。
 - `js/resilience.js`：损坏恢复、缓存一致性、运行时保护。
 - `js/integrity.js`：可测试的状态修复规则。
-- `js/app.js`：估值抓取、持仓管理、Gist 同步、海外模型、通知、渲染逻辑。
+- `js/app.js`：估值与持仓页面编排；云同步、通知、重仓与 JSONP Bridge 通过动态 import 保持在冷启动图之外。
 - `css/style.css`：基础行情页移动端优先样式；`css/ocr.css`：OCR 独立页按需样式。
 - `manifest.json`：PWA 名称、图标、启动配置。
 - `sw.js`：Service Worker 缓存与通知点击。
 
 ## 数据源与关键约定
 
-- 东方财富 FundGuZhi 估值表 JSONP：盘中估算主源；仅提供更新日期时必须标为延迟。
-- 东方财富备源：`push2.eastmoney.com`，用于最新净值、净值日涨跌幅、涨跌额。
-- 东方财富净值趋势：`fund.eastmoney.com/pingzhongdata/{code}.js`，写入全局 `Data_netWorthTrend`，必须串行读取。
+- 司南 Worker `/estimates` 是基金结构化主源；本地开发代理只允许固定的 `/estimates`、`/holdings` GET 路由和严格代码参数，不得扩展成任意 URL 代理。
+- 东方财富基金数据、净值趋势和腾讯行情只允许由隔离 Bridge 的固定 operation 加载；主页面必须把 Bridge 结果继续视为不可信输入并按期望代码、长度、数量、有限数值验证。
 - 基金重仓：浏览器不得直连要求来源标头的 `FundArchivesDatas.aspx`；统一调用司南 Worker `/holdings` 只读代理，并保留披露截止日期。
 - 本地存储统一使用 `fuyu_` 前缀。
 - QDII/海外基金要区分「最新公布净值涨跌」和「下一净值模型估算」；季度持仓允许披露滞后一季，两季前或显式 `valid_until` 过期的模型必须降级。

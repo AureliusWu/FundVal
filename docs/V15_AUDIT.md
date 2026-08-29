@@ -627,20 +627,23 @@ ADB 37.0.1 当前发现 `127.0.0.1:16416` Android 15 环境；虽然属性伪装
 
 本轮没有完成 MuMu 系统级 WiFi 开关或等价的整机网络切换，因此只能确认 CDP 作用域内的离线 SW 重载，系统级 Android 断网恢复继续标为 `NOT_RUN`。物理 Android Chrome、物理 Android 已安装 PWA、iOS Safari/iOS PWA、实体设备上的文件选择/更新/前后台/断网矩阵，以及 v15 生产部署与部署后 smoke 也仍为 `NOT_RUN`。这组模拟器证据不会解除最终版本号、物理实机与生产发布门槛。
 
-### 18.11 v14.0.4 遥测与 PWA 更新维护候选（2026-08-29）
+### 18.11 v14.0.4 遥测与 PWA 更新维护发布（2026-08-29）
 
-v14.0.3 兼容桥部署并完成真实 Gist Schema 3 sidecar 新增后，本轮形成 v14.0.4 维护候选。迁移通过脱敏外部 Node/`gh api` 脚本执行，没有使用浏览器本地事务备份；脚本只新增当前设备 V3 sidecar，恢复边界为逐字节未变的 legacy 与 Gist 历史。真实远端读回确认当前设备 V3 分片与聚合结果规范化一致（`requiresPatch=false`）；2026-08-29 再次只读比较迁移前后 Gist revision，确认 legacy 内容未变、V3 文档为 Schema 3 且具有有效更新时间。该结论记为 `PASS_WITH_BOUNDARY`，只证明当前 Gist 的迁移闭环，不替代应用内备份事务或第二实体设备并发场景，也不在本文记录文件名、Token、原始 JSON、哈希或个人持仓内容。
+v14.0.3 兼容桥部署并完成真实 Gist Schema 3 sidecar 新增后，本轮形成并发布 v14.0.4 维护版。迁移通过脱敏外部 Node/`gh api` 脚本执行，没有使用浏览器本地事务备份；脚本只新增当前设备 V3 sidecar，恢复边界为逐字节未变的 legacy 与 Gist 历史。真实远端读回确认当前设备 V3 分片与聚合结果规范化一致（`requiresPatch=false`）；2026-08-29 再次只读比较迁移前后 Gist revision，确认 legacy 内容未变、V3 文档为 Schema 3 且具有有效更新时间。该结论记为 `PASS_WITH_BOUNDARY`，只证明当前 Gist 的迁移闭环，不替代应用内备份事务或第二实体设备并发场景，也不在本文记录文件名、Token、原始 JSON、哈希或个人持仓内容。
 
 | 门禁 | 证据 | 当前结论 |
 |---|---|---|
 | OCR 失败遥测 | WebGPU、WASM-only、WebGPU→WASM 成功、回退后识别失败及双后端初始化耗尽均为运行时行为测试；异常只携带白名单枚举、布尔和有界数值，底层错误、路径、截图与 OCR 内容被丢弃 | `PASS` |
 | 遥测一致性 | 回退后识别失败保留 `backend=wasm`；WebGPU 与 WASM 初始化均耗尽时保留 `backend=none` 且明确归类 `wasm_init_failed`，不把真实失败误报成矛盾遥测 | `PASS` |
-| PWA 新版本缓存 | 新 Worker install 对全部 CORE 使用 `cache: reload`；版本桶首次按需 JS miss 与 OCR manifest 强制重取；OCR JS/MJS 使用 `cache: no-cache` 条件重验证，可用 304 复用 11 MB Worker，防止旧 engine/Worker 污染新版本而不造成每次全量重下；部署 smoke 已配置为比对线上发布关键文件与构建产物的组合 SHA-256 指纹，并逐个下载 manifest 中 23 个 OCR 资产核验 88,196,072 bytes 与 SHA-256；当前只完成本地 Pages 原样重放 | `AUTOMATED_LOCAL_PASS / PRODUCTION_PENDING`（动态 SW 测试覆盖 install、runtime miss、OCR 代码与大模型差异化策略） |
+| PWA 新版本缓存 | 新 Worker install 对全部 CORE 使用 `cache: reload`；版本桶首次按需 JS miss 与 OCR manifest 强制重取；OCR JS/MJS 使用 `cache: no-cache` 条件重验证，可用 304 复用 11 MB Worker，防止旧 engine/Worker 污染新版本而不造成每次全量重下；Actions `33247073251` 在线比对发布关键文件组合 SHA-256，并逐个下载 manifest 中 23 个 OCR 资产核验 88,196,072 bytes 与 SHA-256 | `PRODUCTION_PASS`（动态 SW 测试与部署后完整资产 smoke 均通过） |
+| v14.0.4 生产静态与性能 | 根页、版本源、manifest、SW、app-shell、OCR 页面/账本/引擎均 HTTP 200；线上 app-shell 162,946 B 且 SHA-256 为 `489edee769530f790774f5924cc47e2d9be603ca0b1e9ce4db70b49b398f2762`。五轮缓存破坏采样根页中位 84 ms、app-shell 中位 103 ms | `PRODUCTION_STATIC_PASS / PERFORMANCE_PASS_WITH_BUNDLE_MARGIN_WARNING` |
+| v14.0.4 公共数据语义 | `000001` 规范化为 `official_nav / secondary`，正式净值日期 `2026-08-28`、净值 `1.318`、涨跌 `-1.64%`，与东方财富最新净值序列一致；无效估值/重仓代码均返回 400 | `LIVE_DATA_CONDITIONALLY_TRUSTED`；盘中主源当前降级，不把请求时间或前一净值日冒充正式净值日期 |
+| v14.0.4 可见浏览器 UI | 浏览器标签可确认标题与生产 URL，但可见 DOM 读取连续超过控制时限；独立 HTTP/Actions 证据均正常 | `TOOL_LIMITATION / NOT_OBSERVED`；不归因为站点故障，也不冒充浏览器交互通过 |
 | Android Cromite 生产首页 | 生产根页完成加载，版本 `14.0.3`、SW 受控、645 px 视口无横向溢出，首页请求中 OCR 重资产为 0 | `PRODUCTION_EMULATOR_UI_PASS_WITH_LIMITS` |
 | Android Cromite 生产 OCR | 生产 OCR 页在选图前保持重模型/WASM 0 请求；合成内存 PNG 触发后因该运行时没有 WebAssembly 而以 `capability_missing` 安全终止，未产生候选、未保存、未同步 | `FAIL_CLOSED_PASS / OCR_FUNCTION_NOT_PROVEN` |
 | Android Brave 生产访问 | DNS 与系统连通存在，但 Brave 最终进入 `ERR_CONNECTION_RESET` | `NETWORK_STACK_WARNING / NOT_RUN`；不归因为产品故障，也不作为生产移动端通过 |
 | 自动化与构建 | 干净 `npm ci` 后全量 `npm test` 286/286、`npm run check`、官方 npm 高危审计（0 vulnerabilities）与 `git diff --check` 通过；正式构建连续 3 次均为 162,946 B raw / 52,241 B gzip、SHA-256 `489edee769530f790774f5924cc47e2d9be603ca0b1e9ce4db70b49b398f2762` | `PASS_WITH_BUNDLE_MARGIN_WARNING`；低于 52,254 B 硬上限但只余 13 B |
-| v14.0.4 生产 | 版本源已统一为候选，尚未提交、推送或部署 | `RELEASE_CANDIDATE / DEPLOYMENT_PENDING` |
+| v14.0.4 生产 | 提交 `3f89327a58c6d5ded7efc0031676aa08733d149d` 已推送；Actions/Pages `33247073251` 成功，独立生产 smoke 通过；回滚点为 `c2d3ea900ae38f1e64aea733304afe0bbdb0f340` | `RELEASED_WITH_WARNINGS` |
 | v15.0.0 | 物理 Android Chrome/PWA 与 iOS Safari/PWA 仍未完成 | `BLOCKED_BY_PHYSICAL_DEVICE_GATES`；按方案不得提前改最终版本号 |
 
-v14.0.4 是维护桥，不改变 OCR 模型、识别策略、持仓 Schema 或云同步授权边界。只有部署成功并完成生产版本、SW、app shell、OCR 静态资源、公共行情语义与更新缓存 smoke 后，才能把该维护版改记为已发布；即使维护版发布成功，v15.0.0 仍保持阻断。
+v14.0.4 是维护桥，不改变 OCR 模型、识别策略、持仓 Schema 或云同步授权边界。该维护版已完成部署及生产版本、SW、app shell、OCR 静态资源、公共行情语义与更新缓存 smoke，状态为带警告发布；v15.0.0 仍保持物理设备门禁阻断。

@@ -21,6 +21,21 @@ function nonNegative(value) {
   return number != null && number >= 0 ? number : null;
 }
 
+function formValue(value) {
+  return value == null || (typeof value === 'string' && !value.trim()) ? '' : String(value);
+}
+
+function optionalCost(value) {
+  if (value == null || (typeof value === 'string' && !value.trim())) return { ok: true, value: null };
+  const number = nonNegative(value);
+  return number == null ? { ok: false, value: null } : { ok: true, value: number };
+}
+
+export function resolveCandidateSelectionAction(existing, explicitlySkipped = false) {
+  if (explicitlySkipped) return 'skip';
+  return existing ? 'update' : 'add';
+}
+
 function activeHoldingByCode(holdings) {
   const byCode = new Map();
   (Array.isArray(holdings) ? holdings : []).forEach(item => {
@@ -67,9 +82,12 @@ export function createHoldingImportPlan(candidates, holdings) {
       dailyProfit: finite(candidate && candidate.dailyProfit),
       existing: existing ? { code: existing.code, name: existing.name, shares: existing.shares, cost: existing.cost } : null,
       action: matched ? (existing ? 'update' : 'add') : 'skip',
-      shares: existing ? String(existing.shares) : '',
-      cost: existing ? String(existing.cost) : '',
+      shares: existing ? formValue(existing.shares) : '',
+      // Unknown cost is canonical null. The form renders it as an empty value
+      // with a "--" hint; never stringify null or silently coerce it to zero.
+      cost: existing ? formValue(existing.cost) : '',
       useScreenshotCost: false,
+      explicitSkip: false,
       warnings: [...new Set(warnings)],
     };
   });
@@ -82,9 +100,12 @@ function validateOne(row) {
   const name = text(row.name) || code;
   const shares = positive(row.shares);
   if (shares == null) return { ok: false, message: '请填写大于 0 的真实持有份额' };
-  let cost = nonNegative(row.cost);
+  const submittedCost = optionalCost(row.cost);
+  let cost = submittedCost.value;
   if (row.useScreenshotCost) cost = suggestCostFromScreenshot(row, shares);
-  if (cost == null) return { ok: false, message: row.useScreenshotCost ? '截图金额或累计收益不完整，不能换算成本净值' : '请填写有效成本净值' };
+  if ((row.useScreenshotCost && cost == null) || (!row.useScreenshotCost && !submittedCost.ok)) {
+    return { ok: false, message: row.useScreenshotCost ? '截图金额或累计收益不完整，不能换算成本净值' : '请填写有效成本净值或留空表示未知' };
+  }
   return { ok: true, value: { code, name, shares, cost } };
 }
 
@@ -134,7 +155,7 @@ export function applyHoldingImportPlan(holdings, rows, nowISO = new Date().toISO
     const changed = current.deleted === true
       || current.name !== change.name
       || Number(current.shares) !== change.shares
-      || Number(current.cost) !== change.cost;
+      || finite(current.cost) !== change.cost;
     if (!changed) return;
     next[index] = {
       ...current,

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="个人基金盘中估值监控">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; connect-src 'self' https://sinan-estimate-push.ligugu69.workers.dev https://api.github.com https://push2.eastmoney.com">
 <meta name="theme-color" content="#faf9f5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19,7 +20,7 @@
   <div class="header-inner">
     <div class="logo">
       <div class="logo-title">蜉蝣基金</div>
-      <div class="logo-sub"><span id="app-version-label">V14.0.4</span><em id="mkt-status"></em></div>
+      <div class="logo-sub"><span id="app-version-label">V15.0.0</span><em id="mkt-status"></em></div>
     </div>
   </div>
 </div>
@@ -40,12 +41,12 @@
 
 <div class="update-banner" id="update-banner" role="status" aria-live="polite" hidden>
   <span id="update-banner-text">发现新版本，可安全更新</span>
-  <button class="update-banner-btn" id="update-now-btn" type="button" onclick="applyPendingServiceWorkerUpdate()">安全更新</button>
+  <button class="update-banner-btn" id="update-now-btn" type="button" data-action="apply-update">安全更新</button>
 </div>
 
 <div class="page active" id="page-market">
   <div class="sort-bar" id="sort-bar">
-    <button class="sort-chip active" id="sort-est-btn" onclick="toggleEstSort()">可信等级优先 · 涨跌 ↓</button>
+    <button class="sort-chip active" id="sort-est-btn" type="button" data-action="toggle-sort">可信等级优先 · 涨跌 ↓</button>
   </div>
   <div class="fund-list-head" aria-hidden="true">
     <span>名称 / 代码</span>
@@ -79,7 +80,7 @@
         <h2 id="ocr-import-title">支付宝 / 蚂蚁财富基金截图导入</h2>
         <p>优先支持支付宝生态的基金持有页；将在独立本地识别页处理图片，不上传、不保存。识别后请逐项确认基金与真实份额。</p>
       </div>
-      <button class="ocr-entry-btn" type="button" onclick="openScreenshotImport()">选择截图</button>
+      <button class="ocr-entry-btn" type="button" data-action="open-ocr">选择截图</button>
     </section>
 
     <div class="sec-title">添加基金</div>
@@ -103,8 +104,8 @@
         </div>
       </div>
       <div class="edit-btns">
-        <button class="add-btn" id="add-btn" onclick="saveFund()">+ 添加</button>
-        <button class="cancel-edit-btn" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none">取消编辑</button>
+        <button class="add-btn" id="add-btn" type="button" data-action="save-fund">+ 添加</button>
+        <button class="cancel-edit-btn" id="cancel-edit-btn" type="button" data-action="cancel-edit" style="display:none">取消编辑</button>
       </div>
     </div>
 
@@ -114,42 +115,49 @@
         <div class="f-label">GitHub Personal Access Token</div>
         <input class="f-input" id="gist-token" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
         <div class="f-hint">
-          需要 <code>gist</code> 权限，<a href="https://github.com/settings/tokens" target="_blank">创建 Classic Token</a>
+          需要 <code>gist</code> 权限，<a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">创建 Classic Token</a>
            · 填入 Token 后首次点击「上传」即开始自动同步
         </div>
       </div>
       <div class="cloud-status" id="cloud-status">配置 Token 后自动同步</div>
       <div class="cloud-btns">
-        <button class="exp-btn cloud-btn" id="cloud-upload-btn" onclick="uploadToCloud()">上传到云端</button>
-        <button class="exp-btn cloud-btn" id="cloud-download-btn" onclick="downloadFromCloud()">从云端下载</button>
+        <button class="exp-btn cloud-btn" id="cloud-upload-btn" type="button" data-action="cloud-upload">上传到云端</button>
+        <button class="exp-btn cloud-btn" id="cloud-download-btn" type="button" data-action="cloud-download">从云端下载</button>
       </div>
-      <button class="exp-btn cloud-clear" onclick="restoreLatestBackup()">恢复最近备份</button>
-      <button class="exp-btn cloud-clear" onclick="clearCloudConfig()">清除云同步配置</button>
+      <button class="exp-btn cloud-clear" type="button" data-action="restore-backup">恢复最近备份</button>
+      <button class="exp-btn cloud-clear" type="button" data-action="clear-cloud">清除云同步配置</button>
     </div>
 
     <div class="export-row">
-      <button class="exp-btn" onclick="exportData()">↓ 导出持仓</button>
-      <button class="exp-btn" onclick="document.getElementById('imp-file').click()">↑ 导入持仓</button>
-      <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="exp-btn" type="button" data-action="export-data">↓ 导出持仓</button>
+      <button class="exp-btn" type="button" data-action="pick-import">↑ 导入持仓</button>
+      <input type="file" id="imp-file" accept=".json" style="display:none">
     </div>
 
-    <details class="diagnostics-center" id="diagnostics-center" ontoggle="if(this.open) refreshDiagnosticsCenter()">
+    <div class="sec-title">可信行情通知</div>
+    <div class="cloud-section notification-section">
+      <div class="cloud-status" id="notification-status">仅在你主动启用后请求通知权限</div>
+      <div class="f-hint">只通知当日且仍在有效期内的盘中估值；正式净值、模型估算、重仓估算和旧数据不会冒充“今日涨跌”。</div>
+      <button class="exp-btn cloud-btn" id="notification-enable-btn" type="button" data-action="enable-notifications">启用 14:30 通知</button>
+    </div>
+
+    <details class="diagnostics-center" id="diagnostics-center">
       <summary>运行诊断</summary>
       <p class="diagnostics-intro">仅显示本机运行状态；不上传数据，也不会复制 Token、图片、OCR 原文、持仓金额或本地路径。</p>
       <div class="diagnostics-content" id="diagnostics-content">展开后读取诊断状态</div>
       <div class="diagnostics-actions">
-        <button class="exp-btn" type="button" onclick="refreshDiagnosticsCenter()">刷新诊断</button>
-        <button class="exp-btn" type="button" onclick="copyDiagnosticsSummary()">复制脱敏摘要</button>
+        <button class="exp-btn" type="button" data-action="refresh-diagnostics">刷新诊断</button>
+        <button class="exp-btn" type="button" data-action="copy-diagnostics">复制脱敏摘要</button>
       </div>
     </details>
   </div>
 </div>
 
 <div class="bottom-nav">
-  <button class="nav-btn active" id="nav-market" onclick="switchPage('market')">
+  <button class="nav-btn active" id="nav-market" type="button" data-action="switch-page" data-page="market">
     <span class="nav-icon">📈</span>行情
   </button>
-  <button class="nav-btn" id="nav-edit" onclick="switchPage('edit')">
+  <button class="nav-btn" id="nav-edit" type="button" data-action="switch-page" data-page="edit">
     <span class="nav-icon">⚙️</span>持仓
   </button>
 </div>

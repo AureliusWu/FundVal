@@ -30,6 +30,9 @@ const INTEGER_FIELDS = Object.freeze([
   ['recognitionMs', 0, 3_600_000],
   ['layoutMs', 0, 3_600_000],
   ['parseMs', 0, 3_600_000],
+  ['catalogLoadMs', 0, 3_600_000],
+  ['matchMs', 0, 3_600_000],
+  ['commitMs', 0, 3_600_000],
   ['totalMs', 0, 7_200_000],
   ['blockCount', 0, 1_000_000],
 ]);
@@ -101,7 +104,8 @@ export function normalizeOcrPerformanceEntry(value) {
   }
   if (output.totalMs === 0) {
     output.totalMs = output.coldInitMs + output.warmInitMs + output.preprocessMs
-      + output.detectionMs + output.recognitionMs + output.layoutMs + output.parseMs;
+      + output.detectionMs + output.recognitionMs + output.layoutMs + output.parseMs
+      + output.catalogLoadMs + output.matchMs + output.commitMs;
   }
   return Object.freeze(output);
 }
@@ -132,6 +136,41 @@ export function recordOcrPerformance(value, storage = defaultStorage()) {
       return { ok: false, reason: 'ledger_readback_failed' };
     }
     return { ok: true, entry, count: entries.length };
+  } catch (_) {
+    return { ok: false, reason: 'ledger_write_failed' };
+  }
+}
+
+/**
+ * Attach a later confirmation-write timing to the exact latest OCR run. The
+ * compare-before-write guard prevents a second tab from updating another run.
+ * Only the three fixed v15 stage timings are accepted; no recognition content
+ * or holding values can enter the ledger through this function.
+ */
+export function updateLatestOcrPerformance(expectedValue, changes, storage = defaultStorage()) {
+  const expected = normalizeOcrPerformanceEntry(expectedValue);
+  if (!expected || !storage || !changes || typeof changes !== 'object' || Array.isArray(changes)) {
+    return { ok: false, reason: 'invalid_performance_entry' };
+  }
+  const allowed = new Set(['catalogLoadMs', 'matchMs', 'commitMs']);
+  if (Object.keys(changes).some(key => !allowed.has(key))) {
+    return { ok: false, reason: 'invalid_performance_entry' };
+  }
+  const entries = readLedger(storage);
+  const latest = entries[entries.length - 1];
+  if (!latest || JSON.stringify(latest) !== JSON.stringify(expected)) {
+    return { ok: false, reason: 'stale_performance_entry' };
+  }
+  const updated = normalizeOcrPerformanceEntry({ ...latest, ...changes });
+  if (!updated) return { ok: false, reason: 'invalid_performance_entry' };
+  const next = [...entries.slice(0, -1), updated];
+  const raw = JSON.stringify(next);
+  try {
+    storage.setItem(OCR_PERFORMANCE_LEDGER_KEY, raw);
+    if (storage.getItem(OCR_PERFORMANCE_LEDGER_KEY) !== raw) {
+      return { ok: false, reason: 'ledger_readback_failed' };
+    }
+    return { ok: true, entry: updated, count: next.length };
   } catch (_) {
     return { ok: false, reason: 'ledger_write_failed' };
   }

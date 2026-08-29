@@ -36,6 +36,22 @@ test('loads only same-origin JSON and retains only minimal catalog identity fiel
   assert.equal('holdingAmount' in catalog[0], false);
 });
 
+test('reuses one successful catalog load for the OCR page session', async () => {
+  let calls = 0;
+  const options = {
+    url: 'https://example.test/data/fund-catalog-once.json',
+    locationRef: localLocation,
+    fetchFn: async () => {
+      calls += 1;
+      return { ok: true, json: async () => rows };
+    },
+  };
+  const first = await loadFundCatalog(options);
+  const second = await loadFundCatalog(options);
+  assert.equal(calls, 1);
+  assert.equal(second, first);
+});
+
 test('rejects a cross-origin catalog URL before any request is sent', async () => {
   let called = false;
   await assert.rejects(

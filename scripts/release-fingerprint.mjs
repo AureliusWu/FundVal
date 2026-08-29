@@ -9,7 +9,10 @@ export const RELEASE_CRITICAL_PATHS = Object.freeze([
   'manifest.json',
   'sw.js',
   'js/app-shell.js',
+  'js/app-chunks.json',
   'js/version.js',
+  'quote-bridge.html',
+  'js/sandbox/quote-bridge-runtime.js',
   'ocr-import.html',
   'js/ocr-import-page.js',
   'js/ocr/performance-ledger.js',
@@ -88,6 +91,68 @@ async function readValidatedOcrManifest(manifestPath) {
   return validateOcrAssetManifest(manifest);
 }
 
+export async function readValidatedAppChunkManifest(manifestPath) {
+  const manifest = JSON.parse(await readFile(resolve(String(manifestPath || '')), 'utf8'));
+  if (!manifest || manifest.schema !== 1 || manifest.entry !== 'js/app-shell.js'
+    || !Array.isArray(manifest.coldStart) || !Array.isArray(manifest.lazy)
+    || !Array.isArray(manifest.chunks) || manifest.chunks.length < 2 || manifest.chunks.length > 64) {
+    throw new Error('App chunk manifest is invalid.');
+  }
+  const paths = new Set();
+  const chunks = manifest.chunks.map(chunk => {
+    const path = assertSafeReleasePath(chunk?.path);
+    if (!/^js\/(?:app-shell|chunks\/[A-Za-z0-9._-]+)\.js$/.test(path)
+      || !['cold', 'lazy'].includes(chunk?.role)
+      || !Number.isInteger(chunk?.bytes) || chunk.bytes <= 0
+      || !Number.isInteger(chunk?.gzipBytes) || chunk.gzipBytes <= 0
+      || !/^[0-9a-f]{64}$/.test(String(chunk?.sha256 || ''))
+      || paths.has(path)) {
+      throw new Error('App chunk manifest contains an invalid chunk.');
+    }
+    paths.add(path);
+    return Object.freeze({
+      path,
+      role: chunk.role,
+      bytes: chunk.bytes,
+      gzipBytes: chunk.gzipBytes,
+      sha256: chunk.sha256,
+    });
+  });
+  const cold = new Set(manifest.coldStart);
+  const lazy = new Set(manifest.lazy);
+  if (!paths.has(manifest.entry)
+    || manifest.coldStart.some(path => !paths.has(path))
+    || manifest.lazy.some(path => !paths.has(path))
+    || [...cold].some(path => lazy.has(path))
+    || chunks.some(chunk => (chunk.role === 'cold' ? !cold.has(chunk.path) : !lazy.has(chunk.path)))
+    || new Set([...manifest.coldStart, ...manifest.lazy]).size !== paths.size) {
+    throw new Error('App chunk manifest graph is inconsistent.');
+  }
+  return Object.freeze({ ...manifest, chunks: Object.freeze(chunks) });
+}
+
+export async function listAppChunkPaths(manifestPath) {
+  return (await readValidatedAppChunkManifest(manifestPath)).chunks.map(chunk => chunk.path);
+}
+
+export async function verifyAppChunkReleaseDirectory(directory) {
+  const root = resolve(String(directory || ''));
+  const rootRealPath = await realpath(root);
+  const manifestBytes = await readRegularFileInsideRoot(root, rootRealPath, 'js/app-chunks.json');
+  const temporaryManifestPath = resolve(root, 'js/app-chunks.json');
+  const manifest = await readValidatedAppChunkManifest(temporaryManifestPath);
+  let totalBytes = 0;
+  for (const chunk of manifest.chunks) {
+    const content = await readRegularFileInsideRoot(root, rootRealPath, chunk.path);
+    if (content.length !== chunk.bytes || hashBytes(content) !== chunk.sha256) {
+      throw new Error(`Deployed app chunk failed manifest verification: ${chunk.path}`);
+    }
+    totalBytes += content.length;
+  }
+  if (!manifestBytes.length) throw new Error('App chunk manifest is empty.');
+  return { chunkCount: manifest.chunks.length, totalBytes };
+}
+
 export async function listOcrAssetPaths(manifestPath) {
   const manifest = await readValidatedOcrManifest(manifestPath);
   return manifest.assets.map(asset => asset.path);
@@ -112,6 +177,21 @@ export async function verifyOcrReleaseDirectory(directory) {
 async function main(args) {
   if (args.includes('--list')) {
     process.stdout.write(`${RELEASE_CRITICAL_PATHS.join('\n')}\n`);
+    return;
+  }
+  const listAppChunksIndex = args.indexOf('--list-app-chunks');
+  if (listAppChunksIndex >= 0) {
+    const manifestPath = args[listAppChunksIndex + 1];
+    if (!manifestPath) throw new Error('Usage: release-fingerprint.mjs --list-app-chunks <manifest>');
+    process.stdout.write(`${(await listAppChunkPaths(manifestPath)).join('\n')}\n`);
+    return;
+  }
+  const verifyAppChunksIndex = args.indexOf('--verify-app-chunks-directory');
+  if (verifyAppChunksIndex >= 0) {
+    const directory = args[verifyAppChunksIndex + 1];
+    if (!directory) throw new Error('Usage: release-fingerprint.mjs --verify-app-chunks-directory <path>');
+    const result = await verifyAppChunkReleaseDirectory(directory);
+    process.stdout.write(`Verified ${result.chunkCount} app chunks (${result.totalBytes} bytes).\n`);
     return;
   }
   const listOcrIndex = args.indexOf('--list-ocr-assets');

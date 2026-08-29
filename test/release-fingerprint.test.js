@@ -8,12 +8,16 @@ import { canonicalModelAssetSignature } from '../js/ocr/asset-manifest.js';
 import {
   RELEASE_CRITICAL_PATHS,
   fingerprintReleaseDirectory,
+  listAppChunkPaths,
   listOcrAssetPaths,
+  verifyAppChunkReleaseDirectory,
   verifyOcrReleaseDirectory,
 } from '../scripts/release-fingerprint.mjs';
 
 assert.ok(RELEASE_CRITICAL_PATHS.includes('manifest.json'));
 assert.ok(RELEASE_CRITICAL_PATHS.includes('js/ocr/performance-ledger.js'));
+assert.ok(RELEASE_CRITICAL_PATHS.includes('js/app-chunks.json'));
+assert.ok(RELEASE_CRITICAL_PATHS.includes('quote-bridge.html'));
 
 function digest(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -56,6 +60,35 @@ async function createOcrFixture(root) {
     assets,
   };
   const manifestPath = join(root, 'asset-manifest.json');
+  await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`, 'utf8');
+  return { definitions, manifestPath };
+}
+
+async function createAppChunkFixture(root) {
+  const definitions = [
+    ['js/app-shell.js', 'cold', 'entry-code'],
+    ['js/chunks/feature-abc123.js', 'lazy', 'feature-code'],
+  ];
+  for (const [path, , content] of definitions) {
+    const target = join(root, path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, content, 'utf8');
+  }
+  const chunks = definitions.map(([path, role, content]) => ({
+    path,
+    role,
+    bytes: Buffer.byteLength(content),
+    gzipBytes: 1,
+    sha256: digest(content),
+  }));
+  const manifest = {
+    schema: 1,
+    entry: 'js/app-shell.js',
+    coldStart: ['js/app-shell.js'],
+    lazy: ['js/chunks/feature-abc123.js'],
+    chunks,
+  };
+  const manifestPath = join(root, 'js/app-chunks.json');
   await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`, 'utf8');
   return { definitions, manifestPath };
 }
@@ -114,6 +147,20 @@ test('deployed OCR verification checks every validated manifest asset byte', asy
 
     await writeFile(join(root, definitions[0][0]), 'stale-worker-bytes', 'utf8');
     await assert.rejects(() => verifyOcrReleaseDirectory(root), /failed manifest verification/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('deployed app chunk verification binds every lazy and cold chunk byte', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'fundval-app-chunks-'));
+  try {
+    const { definitions, manifestPath } = await createAppChunkFixture(root);
+    assert.deepEqual(await listAppChunkPaths(manifestPath), definitions.map(([path]) => path));
+    const verified = await verifyAppChunkReleaseDirectory(root);
+    assert.equal(verified.chunkCount, definitions.length);
+    await writeFile(join(root, definitions[1][0]), 'changed-feature-code', 'utf8');
+    await assert.rejects(() => verifyAppChunkReleaseDirectory(root), /failed manifest verification/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

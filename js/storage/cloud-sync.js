@@ -132,6 +132,37 @@ export function canonicalCloudPayload(value, expectedSchema) {
 }
 
 /**
+ * Finalize metadata after a newly-created archive has been read back. The
+ * uploaded snapshot and the latest local repository state are intentionally
+ * separate: edits made while the POST/readback was in flight must remain
+ * pending instead of being silently marked as uploaded.
+ */
+export function finalizeCreatedArchiveState(uploadedValue, currentValue, previousMeta = {}, details = {}) {
+  const uploadedDocument = normalizeHoldingsDocumentV3(uploadedValue);
+  const currentDocument = normalizeHoldingsDocumentV3(currentValue);
+  const uploadedHash = canonicalHoldingsDocument(uploadedDocument);
+  const currentHash = canonicalHoldingsDocument(currentDocument);
+  const pending = uploadedHash !== currentHash;
+  const meta = {
+    ...(isObject(previousMeta) ? previousMeta : {}),
+    last_push_hash: uploadedHash,
+    pending_hash: pending ? currentHash : '',
+    last_remote_schema: Number.isSafeInteger(Number(details.remoteSchema))
+      ? Number(details.remoteSchema)
+      : HOLDINGS_SCHEMA_VERSION,
+  };
+  if (typeof details.syncedAt === 'string' && details.syncedAt) {
+    meta.last_pull = details.syncedAt;
+  }
+  return Object.freeze({
+    pending,
+    uploadedHash,
+    currentHash,
+    meta: Object.freeze(meta),
+  });
+}
+
+/**
  * Reconcile the isolated Schema 3 Gist file with the legacy Schema 2 file.
  * The V3 file remains authoritative for revisions, notes and tombstones; a
  * genuinely newer legacy edit may still be lifted into V3 by the origin-aware

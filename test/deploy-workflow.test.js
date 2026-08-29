@@ -10,6 +10,8 @@ test('deployment workflow uses least privilege, pinned Node 24 actions and depen
   assert.match(workflow, /node-version:\s*24/);
   assert.match(workflow, /npm audit --audit-level=high --registry=https:\/\/registry\.npmjs\.org/);
   assert.match(workflow, /test -s site\/js\/app-shell\.js/);
+  assert.match(workflow, /test -s site\/js\/app-chunks\.json/);
+  assert.match(workflow, /Run hermetic browser E2E[\s\S]*npm run test:e2e/);
   assert.match(workflow, /test -f site\/manifest\.json/);
   assert.match(workflow, /paths=\([\s\S]*"js\/app-shell\.js"/);
   assert.match(workflow, /paths=\([\s\S]*"js\/ocr-import-page\.js"/);
@@ -20,10 +22,13 @@ test('deployment workflow uses least privilege, pinned Node 24 actions and depen
   assert.match(workflow, /node scripts\/release-fingerprint\.mjs --directory site/);
   assert.match(workflow, /node scripts\/release-fingerprint\.mjs --directory "\$\{smoke_dir\}\/release"/);
   assert.match(workflow, /node scripts\/release-fingerprint\.mjs --list/);
+  assert.match(workflow, /--list-app-chunks/);
+  assert.match(workflow, /--verify-app-chunks-directory/);
   assert.match(workflow, /node scripts\/release-fingerprint\.mjs --list-ocr-assets/);
   assert.match(workflow, /--verify-ocr-directory/);
   assert.match(workflow, /Deployed release-critical files do not match the built Pages artifact/);
   assert.match(workflow, /Deployed Service Worker is missing release-safe HTTP cache revalidation/);
+  assert.match(workflow, /Deployed Service Worker CORE is missing an app chunk from the release manifest/);
   assert.match(workflow, /const quote = String\.fromCharCode\(39\)/);
   assert.doesNotMatch(workflow, /worker\.includes\("\{ cache: 'reload' \}"\)/);
   assert.match(workflow, /const revalidateOption = .*no-cache/);

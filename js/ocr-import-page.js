@@ -1,9 +1,19 @@
-import { detectAlipayHoldingSourceEvidence, matchFundCandidate, normalizeFundName } from './alipay-ocr-parser.js';
+import { createFundMatchSession, detectAlipayHoldingSourceEvidence, matchFundCandidate, normalizeFundName } from './alipay-ocr-parser.js';
 import { loadFundCatalog } from './fund-catalog.js';
-import { applyHoldingImportPlan, createHoldingImportPlan, importPlanSummary, validateHoldingImportPlan } from './holding-import-plan.js';
+import {
+  applyHoldingImportPlan,
+  createHoldingImportPlan,
+  importPlanSummary,
+  resolveCandidateSelectionAction,
+  validateHoldingImportPlan,
+} from './holding-import-plan.js';
 import { reconstructOcrTableLayout } from './ocr-table-layout.js';
 import { detectOcrCapabilities } from './ocr/capability.js';
-import { classifyOcrPerformanceError, recordOcrPerformance } from './ocr/performance-ledger.js';
+import {
+  classifyOcrPerformanceError,
+  recordOcrPerformance,
+  updateLatestOcrPerformance,
+} from './ocr/performance-ledger.js';
 import { runStartupIntegrityChecks } from './resilience.js';
 import { safeRemoveItem, safeSetItem } from './storage.js';
 import { loadHoldingsRepository, saveLegacyHoldingsTransaction } from './storage/holdings-repository.js';
@@ -14,6 +24,7 @@ const OCR_IMPORT_PENDING_KEY = 'fuyu_ocr_import_pending_v1';
 let activeSession = 0;
 let paddleOcrModulePromise = null;
 let activeRecognitionTask = null;
+let activeMatchSession = null;
 let state = { rows: [], catalogWarning: '' };
 
 function monotonicNow() {
@@ -50,6 +61,9 @@ function createPerformanceRun() {
     recognitionMs: 0,
     layoutMs: 0,
     parseMs: 0,
+    catalogLoadMs: 0,
+    matchMs: 0,
+    commitMs: 0,
     totalMs: 0,
     blockCount: 0,
   };
@@ -58,7 +72,7 @@ function createPerformanceRun() {
 const PERFORMANCE_NUMERIC_FIELDS = Object.freeze([
   'imageWidth', 'imageHeight', 'tileCount', 'coldInitMs', 'warmInitMs',
   'preprocessMs', 'detectionMs', 'recognitionMs', 'layoutMs', 'parseMs',
-  'totalMs', 'blockCount',
+  'catalogLoadMs', 'matchMs', 'commitMs', 'totalMs', 'blockCount',
 ]);
 
 function mergeRecognitionPerformance(target, source) {
@@ -164,7 +178,7 @@ function renderIntro() {
   element('ocr-import-body').innerHTML = `
     <div class="ocr-results-summary">
       <strong>开始前请确认</strong><br>
-      请选择带有支付宝标识的完整「基金持有」页面截图。图片只在此独立页面的本机内存中处理；系统不会根据估值猜测份额。
+      请选择带有支付宝标识的完整「基金持有」页面截图。图片只在此独立页面的本机内存中处理；系统不会根据估值猜测份额。为避免手机内存溢出，超过 1600 万像素的超长截图仍需裁剪后分次识别。
     </div>`;
   element('ocr-import-confirm').hidden = true;
   element('ocr-import-retry').hidden = true;
@@ -188,21 +202,26 @@ function setWorking(session, phase) {
   setStatus(labels[phase] || '正在本机处理截图…', { working: true });
 }
 
-function buildPaddleHoldingCandidates(recognition, catalog) {
+function buildPaddleHoldingCandidates(recognition, catalog, matchSession) {
   const holdingsTokens = (Array.isArray(recognition?.tokens) ? recognition.tokens : [])
     .filter(token => token && token.region === 'holdings');
   const layoutStartedAt = monotonicNow();
+  let matchMs = 0;
   const layout = reconstructOcrTableLayout({
     tokens: holdingsTokens,
     imageWidth: recognition?.imageWidth,
     matchFund(name) {
-      return matchFundCandidate({ name }, catalog, {
-        fuzzyThreshold: 0.78,
-        ambiguityGap: 0.06,
-      });
+      const startedAt = monotonicNow();
+      try {
+        return matchSession
+          ? matchSession.match({ name })
+          : matchFundCandidate({ name }, catalog, { fuzzyThreshold: 0.78, ambiguityGap: 0.06 });
+      } finally {
+        matchMs += monotonicNow() - startedAt;
+      }
     },
   });
-  const layoutMs = monotonicNow() - layoutStartedAt;
+  const layoutMs = Math.max(0, monotonicNow() - layoutStartedAt - matchMs);
   const parseStartedAt = monotonicNow();
   const holdings = layout.previewRows.map(row => {
     const warnings = [];
@@ -239,6 +258,7 @@ function buildPaddleHoldingCandidates(recognition, catalog) {
     performance: {
       layoutMs,
       parseMs: monotonicNow() - parseStartedAt,
+      matchMs,
     },
   };
 }
@@ -259,7 +279,21 @@ function actionOptions(row) {
 }
 
 function actionOptionsForExisting(existing, selectedAction) {
-  return actionOptions({ existing, action: selectedAction === 'skip' ? 'skip' : (existing ? 'update' : 'add') });
+  return actionOptions({
+    existing,
+    action: selectedAction === 'skip' ? 'skip' : resolveCandidateSelectionAction(existing, false),
+  });
+}
+
+function costDisplay(value) {
+  const number = finite(value);
+  return number == null ? '--' : String(number);
+}
+
+function existingHoldingHint(existing) {
+  return existing
+    ? `当前：${existing.name || existing.code}，${existing.shares} 份，成本 ${costDisplay(existing.cost)}`
+    : '尚未写入 FundVal';
 }
 
 function snapshotItem(label, value, suffix = '') {
@@ -272,11 +306,9 @@ function renderCandidate(row) {
     ? `<ul class="ocr-warning-list">${row.warnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join('')}</ul>`
     : '';
   const snapshotCostAvailable = finite(row.holdingAmount) != null && finite(row.holdingProfit) != null;
-  const existingHint = row.existing
-    ? `当前：${escapeHtml(row.existing.name || row.existing.code)}，${escapeHtml(row.existing.shares)} 份`
-    : '尚未写入 FundVal';
+  const existingHint = existingHoldingHint(row.existing);
   return `
-    <article class="ocr-candidate ${needsConfirmation ? 'needs-confirmation' : ''}" data-row-id="${escapeHtml(row.id)}">
+    <article class="ocr-candidate ${needsConfirmation ? 'needs-confirmation' : ''}" data-row-id="${escapeHtml(row.id)}" data-explicit-skip="${row.explicitSkip ? 'true' : 'false'}">
       <div class="ocr-candidate-head">
         <div>
           <div class="ocr-candidate-name">${escapeHtml(row.name || row.rawFundName || '未识别基金')}</div>
@@ -298,7 +330,7 @@ function renderCandidate(row) {
       </div>
       <div class="ocr-inline-grid">
         <label class="ocr-row"><span class="ocr-row-label">真实持有份额（必填）</span><input class="f-input" data-field="shares" inputmode="decimal" value="${escapeHtml(row.shares)}" placeholder="例如 1000"></label>
-        <label class="ocr-row"><span class="ocr-row-label">成本净值</span><input class="f-input" data-field="cost" inputmode="decimal" value="${escapeHtml(row.cost)}" placeholder="例如 1.2345"></label>
+        <label class="ocr-row"><span class="ocr-row-label">成本净值</span><input class="f-input" data-field="cost" inputmode="decimal" value="${escapeHtml(row.cost)}" placeholder="未填写（--）"></label>
       </div>
       ${snapshotCostAvailable ? `<label class="ocr-cost-option"><input type="checkbox" data-field="screenshot-cost"${row.useScreenshotCost ? ' checked' : ''}>以截图「持有金额 − 累计收益」和上方真实份额换算成本净值（请核对）</label>` : ''}
       ${warnings}
@@ -331,6 +363,7 @@ function readRowsFromForm() {
       shares: value('shares').trim(),
       cost: value('cost').trim(),
       useScreenshotCost: Boolean(root.querySelector('[data-field="screenshot-cost"]')?.checked),
+      explicitSkip: root.dataset.explicitSkip === 'true',
     };
   });
 }
@@ -367,12 +400,14 @@ async function processSelectedFile(file) {
   const runStartedAt = monotonicNow();
   let failureStage = 'preprocess';
   let performanceRecorded = false;
+  let performanceEntry = null;
   const recordPerformanceOnce = errorCategory => {
     if (performanceRecorded) return;
     performanceRecorded = true;
     performanceRun.errorCategory = errorCategory || 'none';
     performanceRun.totalMs = monotonicNow() - runStartedAt;
-    recordOcrPerformance(performanceRun);
+    const recorded = recordOcrPerformance(performanceRun);
+    if (recorded.ok) performanceEntry = recorded.entry;
   };
   try {
     paddleOcrModulePromise ||= import('./paddle-local-ocr.js');
@@ -389,14 +424,23 @@ async function processSelectedFile(file) {
     setWorking(session, 'matching');
     let catalog = [];
     let catalogWarning = '';
+    const catalogStartedAt = monotonicNow();
     try {
       catalog = await loadFundCatalog();
     } catch (_) {
       catalogWarning = '基金目录暂不可用，请手动确认代码和名称。';
     }
+    activeMatchSession?.clear();
+    activeMatchSession = createFundMatchSession(catalog, {
+      fuzzyThreshold: 0.78,
+      ambiguityGap: 0.06,
+      maxFuzzyCandidates: 96,
+      memoLimit: 128,
+    });
+    performanceRun.catalogLoadMs = monotonicNow() - catalogStartedAt;
     if (session !== activeSession) return;
     failureStage = 'layout';
-    const parsed = buildPaddleHoldingCandidates(recognition, catalog);
+    const parsed = buildPaddleHoldingCandidates(recognition, catalog, activeMatchSession);
     mergeRecognitionPerformance(performanceRun, parsed.performance);
     // Explicitly discard positioned OCR tokens as soon as candidates are built.
     recognition.text = '';
@@ -424,6 +468,7 @@ async function processSelectedFile(file) {
       rows: createHoldingImportPlan(parsed.holdings, holdingsSnapshot.holdings),
       catalogWarning,
       holdings: holdingsSnapshot.holdings,
+      performanceEntry,
     };
     renderResults();
     setStatus('识别完成：请逐项确认后再同步。');
@@ -475,6 +520,16 @@ async function confirmImport() {
   const confirmButton = element('ocr-import-confirm');
   confirmButton.disabled = true;
   let transactionResult = null;
+  const commitStartedAt = monotonicNow();
+  let commitTimingRecorded = false;
+  const recordCommitTiming = () => {
+    if (commitTimingRecorded || !state.performanceEntry) return;
+    commitTimingRecorded = true;
+    const updated = updateLatestOcrPerformance(state.performanceEntry, {
+      commitMs: monotonicNow() - commitStartedAt,
+    });
+    if (updated.ok) state.performanceEntry = updated.entry;
+  };
   try {
     // Establish the data-free recovery flag before mutating canonical holdings.
     // A harmless extra refresh is preferable to an unscheduled successful import.
@@ -493,12 +548,14 @@ async function confirmImport() {
       }
       throw new Error(transactionResult.reason || 'holding_transaction_failed');
     }
+    recordCommitTiming();
     // The main page consumes the recovery flag on its next startup. If the
     // scheduled navigation is interrupted, a later open still triggers the
     // existing Gist retry and valuation refresh for this confirmed batch.
     setStatus('已保存确认持仓，正在返回主页面刷新估值…', { working: true });
     window.setTimeout(() => window.location.replace('./?ocr_import=1'), 180);
   } catch (error) {
+    recordCommitTiming();
     // If a write reached the verified-readback boundary but journal cleanup was
     // interrupted, retain the recovery flag. Bootstrap will settle the local
     // transaction before deciding whether a later Gist sync may run.
@@ -513,6 +570,15 @@ async function confirmImport() {
 }
 
 function chooseCandidate(event) {
+  const actionSelect = event.target.closest('[data-field="action"]');
+  if (actionSelect) {
+    const root = actionSelect.closest('[data-row-id]');
+    if (!root) return;
+    root.dataset.explicitSkip = actionSelect.value === 'skip' ? 'true' : 'false';
+    const row = state.rows.find(item => item.id === root.dataset.rowId);
+    if (row) row.explicitSkip = root.dataset.explicitSkip === 'true';
+    return;
+  }
   const select = event.target.closest('[data-field="candidate"]');
   if (!select || !select.value) return;
   const root = select.closest('[data-row-id]');
@@ -522,7 +588,7 @@ function chooseCandidate(event) {
   if (!candidate) return;
   root.querySelector('[data-field="code"]').value = candidate.code;
   root.querySelector('[data-field="name"]').value = candidate.name;
-  refreshManualCandidateState(root);
+  refreshManualCandidateState(root, { activateCandidate: true });
 }
 
 function existingHoldingForCode(code) {
@@ -534,18 +600,18 @@ function existingHoldingForCode(code) {
     : null;
 }
 
-function refreshManualCandidateState(root) {
+function refreshManualCandidateState(root, options = {}) {
   const code = root.querySelector('[data-field="code"]')?.value.trim() || '';
   const existing = existingHoldingForCode(code);
   const actionSelect = root.querySelector('[data-field="action"]');
   if (actionSelect) {
-    const selectedAction = actionSelect.value;
+    const selectedAction = options.activateCandidate
+      ? resolveCandidateSelectionAction(existing, root.dataset.explicitSkip === 'true')
+      : actionSelect.value;
     actionSelect.innerHTML = actionOptionsForExisting(existing, selectedAction);
   }
   const meta = root.querySelector('.ocr-candidate-meta');
-  if (meta) meta.textContent = existing
-    ? `当前：${existing.name || existing.code}，${existing.shares} 份`
-    : '尚未写入 FundVal';
+  if (meta) meta.textContent = existingHoldingHint(existing);
   const badge = root.querySelector('.ocr-match-badge');
   if (badge) {
     badge.classList.add('needs');
@@ -570,6 +636,8 @@ function requestFile() {
 
 function clearSensitiveSession() {
   activeSession += 1;
+  activeMatchSession?.clear();
+  activeMatchSession = null;
   element('ocr-image-input').value = '';
   element('ocr-import-body').textContent = '';
   state = { rows: [], catalogWarning: '' };

@@ -189,6 +189,28 @@ test('per-fund execution isolates a failure, records source health, and restores
   assert.equal(secondary.consecutiveFailures, 0);
 });
 
+test('a current generation records partial source coverage without throwing or opening the breaker', async () => {
+  const coordinator = new RefreshCoordinator({
+    now: () => STARTED_AT,
+    sources: [descriptor('primary')],
+    execute(context) {
+      return context.recordSourcePartial('primary', {
+        responseMs: 18,
+        reason: 'partial_1_of_2',
+      });
+    },
+  });
+
+  const result = await coordinator.request({ trigger: 'manual' });
+  assert.equal(result.status, 'completed');
+  assert.equal(result.result, true);
+  const health = getSourceHealth(coordinator.snapshot().sourceRegistry, 'primary');
+  assert.equal(health.status, SOURCE_HEALTH.DEGRADED);
+  assert.equal(health.consecutiveFailures, 0);
+  assert.equal(health.lastResponseMs, 18);
+  assert.equal(health.degradationReason, 'partial_1_of_2');
+});
+
 test('a completed generation accepts detached enrichment only until superseded', async () => {
   let firstContext;
   const commits = [];

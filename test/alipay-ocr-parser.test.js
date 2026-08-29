@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   AlipayHoldingParser,
+  buildFundMatchIndex,
+  createFundMatchSession,
   detectAlipayHoldingSourceEvidence,
   detectAlipayHoldingOcr,
   extractFundCode,
@@ -20,6 +22,45 @@ const catalog = [
   { code: '005844', name: '东方人工智能主题混合A' },
   { code: '005845', name: '东方人工智能主题混合C' }
 ];
+
+test('builds exact/share-class/trigram indexes once and narrows fuzzy Levenshtein work', () => {
+  const largeCatalog = [
+    ...catalog,
+    ...Array.from({ length: 600 }, (_, index) => ({
+      code: String(100000 + index),
+      name: `完全无关债券基金${index}A`,
+    })),
+  ];
+  const index = buildFundMatchIndex(largeCatalog);
+  assert.equal(index.byCode.get('005844').name, '东方人工智能主题混合A');
+  assert.equal(index.byExactNormalizedName.get('东方人工智能主题混合A').length, 1);
+  assert.equal(index.byBaseNameAndShareClass.get('东方人工智能主题混合\u0000A').length, 1);
+  assert.ok(index.trigramIndex.get('东方人').size >= 2);
+
+  const session = createFundMatchSession(largeCatalog, { fuzzyThreshold: 0.6 });
+  const match = session.match({ name: '东方人工智能主颢混合A' });
+  const metrics = session.metrics();
+  assert.equal(match.code, '005844');
+  assert.ok(metrics.lastFuzzyCandidateCount < largeCatalog.length / 4);
+  assert.ok(metrics.levenshteinComparisons <= 96);
+});
+
+test('fund match session memo avoids repeating fuzzy work and keeps share classes isolated', () => {
+  const session = createFundMatchSession(catalog, { fuzzyThreshold: 0.6 });
+  const first = session.match({ name: '东方人工智能主颢混合A' });
+  const comparisons = session.metrics().levenshteinComparisons;
+  const second = session.match({ name: '东方人工智能主颢混合A' });
+  assert.equal(first.code, '005844');
+  assert.deepEqual(second, first);
+  assert.equal(session.metrics().levenshteinComparisons, comparisons);
+  assert.equal(session.metrics().memoHits, 1);
+
+  const classless = session.match({ name: '东方人工智能主题混合' });
+  assert.equal(classless.status, 'needs_confirmation');
+  assert.deepEqual(classless.candidates.map(item => item.code), ['005844', '005845']);
+  session.clear();
+  assert.equal(session.metrics().memoSize, 0);
+});
 
 function block(text, x, y, width = 80, height = 18) {
   return { text, bbox: { x0: x, y0: y, x1: x + width, y1: y + height } };

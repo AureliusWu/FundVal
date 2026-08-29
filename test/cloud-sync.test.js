@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   canonicalCloudPayload,
+  finalizeCreatedArchiveState,
   makeCloudWritePayload,
   pullHoldingsCloud,
   reconcileCloudBridgePayload,
@@ -120,6 +121,33 @@ function fakeRemote(initial, options = {}) {
     },
   };
 }
+
+test('new archive finalization keeps edits made during upload pending', () => {
+  const uploaded = documentOf([holding('000001', { shares: 10 })]);
+  const current = documentOf([holding('000001', {
+    shares: 20,
+    revision: 2,
+    updatedAt: T2,
+  })], { updatedAt: T2 });
+  const changed = finalizeCreatedArchiveState(uploaded, current, {
+    retained: 'metadata',
+  }, { remoteSchema: 3, syncedAt: T2 });
+
+  assert.equal(changed.pending, true);
+  assert.equal(changed.meta.last_push_hash, canonicalHoldingsDocument(uploaded));
+  assert.equal(changed.meta.pending_hash, canonicalHoldingsDocument(current));
+  assert.equal(changed.meta.last_pull, T2);
+  assert.equal(changed.meta.last_remote_schema, 3);
+  assert.equal(changed.meta.retained, 'metadata');
+
+  const unchanged = finalizeCreatedArchiveState(current, current, {}, {
+    remoteSchema: 3,
+    syncedAt: T2,
+  });
+  assert.equal(unchanged.pending, false);
+  assert.equal(unchanged.meta.pending_hash, '');
+  assert.equal(unchanged.meta.last_push_hash, canonicalHoldingsDocument(current));
+});
 
 test('schema 2 sync backs up both sides but stays pull-only until an explicit V3 upgrade', async () => {
   const local = fakeLocal(documentOf([holding('000001', { costNav: null })]));

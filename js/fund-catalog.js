@@ -7,6 +7,7 @@ export const FUND_CATALOG_ERROR_MESSAGE = '基金目录暂不可用，请稍后�
 
 const CODE_RE = /^\d{6}$/;
 const pendingLoads = new Map();
+const loadedCatalogs = new Map();
 
 function text(value) {
   return String(value == null ? '' : value).trim();
@@ -135,12 +136,17 @@ export function loadFundCatalog(options = {}) {
   const url = sameOriginUrl(options.url || FUND_CATALOG_PATH, locationRef);
   const fetchFn = options.fetchFn || defaultFetch();
   if (!url || typeof fetchFn !== 'function') return Promise.reject(new FundCatalogError());
+  const loaded = loadedCatalogs.get(url);
+  if (loaded) return Promise.resolve(loaded);
   const existing = pendingLoads.get(url);
   if (existing) return existing;
   const promise = loadWithTimeout(fetchFn, url, timeoutValue(options.timeoutMs));
   pendingLoads.set(url, promise);
   promise.then(
-    () => pendingLoads.delete(url),
+    catalog => {
+      loadedCatalogs.set(url, catalog);
+      pendingLoads.delete(url);
+    },
     () => pendingLoads.delete(url)
   );
   return promise;

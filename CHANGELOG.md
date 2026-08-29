@@ -1,5 +1,19 @@
 # Changelog
 
+## 15.0.0 - 2026-08-29
+
+- 关闭基金代码与同代码股票碰撞：基金主报价链不再把证券 `stock/get` 结果当作净值，无法确认身份时保持 `-- / unavailable`。
+- 将东方财富、腾讯 JSONP 迁入无同源存储权限的 `sandbox="allow-scripts"` 隔离桥；主页面 CSP 只执行同源脚本，Bridge 请求、响应、代码、数量和有限数值均再次校验。
+- 对重仓证券代码、名称、占比和数组长度执行严格规范化并完整转义远端文本，补齐恶意 HTML/SVG/JavaScript fixture 回归。
+- 删除持仓后统一裁剪行情卡、详情、缓存和在途请求；启动只建立一个刷新 generation，主卡先显示，正式净值、重仓和海外模型在后台 enrichment。
+- 云同步、重仓、通知与 JSONP Bridge 改为按需 chunk；首页冷启动图从 52,241 B gzip 降至 51,597 B，硬门禁没有上调，并生成带 SHA-256 的 `js/app-chunks.json`。
+- 14:30 通知改为用户显式启用，且仅允许当日、10 分钟内、`realtime/delayed + intraday_estimate` 的有限涨跌（含 0）触发。
+- OCR 基金目录建立一次性精确/份额类别/trigram 索引与会话复用；未知成本继续为 `null / --`，冲突写入保持 fail-closed，性能账本不记录截图、原文或金融字段。
+- 增加本地只读数据代理、浏览器 E2E、PWA 离线/更新、恶意重仓、云同步读回不一致和 OCR 确认边界验证；Android MuMu/Brave 用真实长截图识别出 15 条候选（12 自动匹配、3 人工核对）。
+- 修复正式净值 UTC+8 日期偏差、正式净值/重仓异步返回顺序导致估值基准不一致、首次创建云归档期间并发本地编辑被误标为已同步，以及 partial 数据源记录错误；均补充回归测试。
+- 站点构建在未显式提供 `SOURCE_DATE_EPOCH` 时使用当前 Git 提交时间生成 OCR manifest，保证同一提交连续构建的发布指纹一致。
+- 物理 Android Chrome/PWA 与 iOS Safari/PWA 尚未执行，发布状态按方案记为 `BLOCKED_FOR_DEVICE_VALIDATION`，模拟器证据不替代真机门禁。
+
 ## 14.0.4 - 2026-08-29
 
 - 修复 OCR 初始化失败或 WebGPU 回退到 WASM 后识别失败时丢失后端诊断的问题；账本只保留固定枚举、布尔值和有界性能数值，不记录截图、OCR 原文、文件路径或底层错误。

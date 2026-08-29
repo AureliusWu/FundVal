@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { proxyFundData } from './dev-data-proxy.mjs';
 
 const root = resolve(fileURLToPath(new URL('../site/', import.meta.url)));
 const port = 4173;
@@ -18,7 +19,16 @@ const types = {
 };
 
 createServer(async (request, response) => {
-  const pathname = decodeURIComponent(new URL(request.url || '/', `http://${request.headers.host || '127.0.0.1'}`).pathname);
+  const requestUrl = new URL(request.url || '/', `http://${request.headers.host || '127.0.0.1'}`);
+  if (requestUrl.pathname.startsWith('/__fundval_dev/')) {
+    await proxyFundData(request, response, requestUrl);
+    return;
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    response.writeHead(405, { allow: 'GET, HEAD' }).end();
+    return;
+  }
+  const pathname = decodeURIComponent(requestUrl.pathname);
   const target = resolve(root, pathname === '/' ? 'index.html' : `.${pathname}`);
   if (relative(root, target).startsWith('..')) {
     response.writeHead(403).end();

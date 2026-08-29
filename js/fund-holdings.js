@@ -1,6 +1,6 @@
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
+import { fundDataApiUrl } from './config.js';
 
-const API = 'https://sinan-estimate-push.ligugu69.workers.dev/holdings';
 const TIMEOUT = 10000;
 
 function numberOrNaN(value) {
@@ -9,11 +9,21 @@ function numberOrNaN(value) {
   return Number.isFinite(number) ? number : NaN;
 }
 
+const HOLDING_CODE_PATTERN = /^(?:\d{5}|\d{6}|[A-Z][A-Z0-9.-]{0,9})$/;
+const UNSAFE_TEXT_PATTERN = /[<>\u0000-\u001f\u007f]/;
+
+function safeHoldingText(value, maximumLength) {
+  const text = String(value ?? '').trim();
+  if (!text || text.length > maximumLength || UNSAFE_TEXT_PATTERN.test(text)) return '';
+  return text;
+}
+
 export function normalizeHoldingRow(row) {
-  const code = String(row?.code || '').trim().toUpperCase();
-  const name = String(row?.name || '').trim();
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
+  const code = safeHoldingText(row.code, 12).toUpperCase();
+  const name = safeHoldingText(row.name, 80);
   const ratio = numberOrNaN(row?.ratio);
-  if (!code || !name || !Number.isFinite(ratio)) return null;
+  if (!HOLDING_CODE_PATTERN.test(code) || !name || !Number.isFinite(ratio) || ratio < 0 || ratio > 100) return null;
   return { code, name, ratio };
 }
 
@@ -26,7 +36,7 @@ export async function fetchFundHoldings(code, options = {}) {
   try {
     const query = new URLSearchParams({ code: fundCode });
     if (options.force) query.set('_', String(Date.now()));
-    const response = await fetch(`${options.api || API}?${query}`, {
+    const response = await fetch(`${options.api || fundDataApiUrl('holdings')}?${query}`, {
       cache: 'no-store',
       signal: requestSignal.signal,
     });

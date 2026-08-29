@@ -11,6 +11,47 @@ test('normalizes a disclosed holding without coercing missing ratios to zero', (
   assert.equal(normalizeHoldingRow({ code: '688361', name: '中科飞测', ratio: null }), null);
 });
 
+test('rejects malformed or executable holdings fields before they reach rendering', () => {
+  for (const row of [
+    { code: '<img src=x onerror=alert(1)>', name: '污染代码', ratio: 1 },
+    { code: '688361', name: '<svg onload=alert(1)>', ratio: 1 },
+    { code: '688361', name: '中科\u0000飞测', ratio: 1 },
+    { code: '688361', name: '中科飞测', ratio: -0.1 },
+    { code: '688361', name: '中科飞测', ratio: 100.1 },
+    { code: '688361', name: '中科飞测', ratio: Infinity },
+  ]) {
+    assert.equal(normalizeHoldingRow(row), null);
+  }
+
+  assert.deepEqual(normalizeHoldingRow({ code: '00700', name: '腾讯控股', ratio: 8.25 }), {
+    code: '00700', name: '腾讯控股', ratio: 8.25,
+  });
+  assert.deepEqual(normalizeHoldingRow({ code: 'BRK.B', name: 'Berkshire Hathaway', ratio: 3.5 }), {
+    code: 'BRK.B', name: 'Berkshire Hathaway', ratio: 3.5,
+  });
+});
+
+test('ignores unexpected rows and never returns more than ten validated holdings', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => Response.json({
+    report_date: '2026-06-30',
+    items: [
+      { code: '<img src=x onerror=alert(1)>', name: '污染代码', ratio: 9 },
+      ...Array.from({ length: 12 }, (_, index) => ({
+        code: String(600000 + index), name: `测试股票${index}`, ratio: index + 0.5,
+      })),
+    ],
+  });
+  try {
+    const result = await fetchFundHoldings('005844');
+    assert.equal(result.status, 'ok');
+    assert.equal(result.items.length, 10);
+    assert.ok(result.items.every(item => /^\d{6}$/.test(item.code)));
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test('fetches normalized holdings and preserves the disclosure date', async () => {
   const originalFetch = global.fetch;
   global.fetch = async (url) => {

@@ -6,6 +6,7 @@ import {
   getSourceHealth,
   isAbortedSourceFailure,
   recordSourceFailure,
+  recordSourcePartial,
   recordSourceSuccess,
   releaseSourceAttempt,
 } from './source-registry.js';
@@ -228,6 +229,12 @@ export class RefreshCoordinator {
         coordinator.registry = recordSourceSuccess(coordinator.registry, sourceId, details, nowFrom(coordinator.clock));
         coordinator.emitState();
         return getSourceHealth(coordinator.registry, sourceId);
+      },
+      recordSourcePartial(sourceId, details = {}) {
+        if (!coordinator.isCurrent(refresh) || refresh.signal.aborted) return false;
+        coordinator.registry = recordSourcePartial(coordinator.registry, sourceId, details, nowFrom(coordinator.clock));
+        coordinator.emitState();
+        return true;
       },
       recordSourceFailure(sourceId, failure = {}) {
         if (isAbortedSourceFailure(failure)) {

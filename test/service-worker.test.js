@@ -106,6 +106,8 @@ test('service worker isolates version caches, preserves old tabs during upgrades
 
   assert.match(source, /const CACHE_PREFIX = 'fuyu-v';/);
   assert.match(source, /BUILD_APP_SHELL_CORE_START[\s\S]*js\/storage\/gist-remote\.js[\s\S]*BUILD_APP_SHELL_CORE_END/);
+  assert.match(source, /\.\/quote-bridge\.html/);
+  assert.match(source, /\.\/js\/sandbox\/quote-bridge-runtime\.js/);
   assert.match(source, /key\.startsWith\(CACHE_PREFIX\) && key !== CACHE/);
   assert.doesNotMatch(source, /keys\.filter\(key => key !== CACHE\)/);
   assert.match(source, /if \(!previous\.length\)[\s\S]*await self\.clients\.claim\(\)/);
@@ -163,6 +165,8 @@ test('install reloads every versioned core asset instead of seeding from an olde
   assert.ok(harness.cacheAdds.length > 0);
   assert.ok(harness.cacheAdds.every(request => request instanceof Request && request.cache === 'reload'));
   assert.ok(harness.cacheAdds.some(request => request.url === 'https://example.test/FundVal/js/app.js'));
+  assert.ok(harness.cacheAdds.some(request => request.url === 'https://example.test/FundVal/quote-bridge.html'));
+  assert.ok(harness.cacheAdds.some(request => request.url === 'https://example.test/FundVal/js/sandbox/quote-bridge-runtime.js'));
 });
 
 test('service worker activation keeps the newest previous shell and delegates reload to the requesting page', async () => {

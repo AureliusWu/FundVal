@@ -47,6 +47,9 @@ jobs:
         test -f site/ocr-import.html
         test -f site/css/ocr.css
         test -s site/js/app-shell.js
+        test -s site/js/app-chunks.json
+        test -f site/quote-bridge.html
+        test -f site/js/sandbox/quote-bridge-runtime.js
         test -f site/js/version.js
         test -f site/sw.js
         test -s site/data/fund-catalog.json
@@ -73,6 +76,8 @@ jobs:
         test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.mjs
         test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm
         test -f site/THIRD_PARTY_NOTICES.md
+    - name: Run hermetic browser E2E
+      run: npm run test:e2e
     - name: Fingerprint release-critical files
       id: release_fingerprint
       shell: bash
@@ -124,6 +129,9 @@ jobs:
           base="${SITE_URL%/}"
           paths=(
             "js/app-shell.js"
+            "js/app-chunks.json"
+            "quote-bridge.html"
+            "js/sandbox/quote-bridge-runtime.js"
             "ocr-import.html"
             "js/ocr-import-page.js"
             "js/paddle-local-ocr.js"
@@ -152,6 +160,16 @@ jobs:
               --retry 12 --retry-all-errors --retry-delay 5 \
               "${base}/${path}?run=${GITHUB_RUN_ID}" > "$target"
           done
+          mapfile -t app_chunk_paths < <(node scripts/release-fingerprint.mjs \
+            --list-app-chunks "${smoke_dir}/release/js/app-chunks.json")
+          for path in "${app_chunk_paths[@]}"; do
+            target="${smoke_dir}/release/${path}"
+            mkdir -p "$(dirname "$target")"
+            curl --fail --silent --show-error --location \
+              --retry 12 --retry-all-errors --retry-delay 5 \
+              "${base}/${path}?run=${GITHUB_RUN_ID}" > "$target"
+          done
+          node scripts/release-fingerprint.mjs --verify-app-chunks-directory "${smoke_dir}/release"
           deployed_fingerprint="$(node scripts/release-fingerprint.mjs --directory "${smoke_dir}/release")"
           if [[ -z "$EXPECTED_RELEASE_FINGERPRINT" || "$deployed_fingerprint" != "$EXPECTED_RELEASE_FINGERPRINT" ]]; then
             echo "Deployed release-critical files do not match the built Pages artifact." >&2
@@ -165,9 +183,10 @@ jobs:
             "${base}/sw.js?run=${GITHUB_RUN_ID}" > "${smoke_dir}/sw.js"
           node --input-type=module --eval '
             import { readFileSync } from "node:fs";
-            const [indexPath, workerPath] = process.argv.slice(1);
+            const [indexPath, workerPath, chunkManifestPath] = process.argv.slice(1);
             const index = readFileSync(indexPath, "utf8");
             const worker = readFileSync(workerPath, "utf8");
+            const chunkManifest = JSON.parse(readFileSync(chunkManifestPath, "utf8"));
             const core = worker.slice(worker.indexOf("const CORE"), worker.indexOf("self.addEventListener"));
             if ((index.match(/src="js\/app-shell\.js"/g) || []).length !== 1 || index.includes("js/bootstrap.js")) {
               throw new Error("Deployed index does not exclusively load app-shell.js.");
@@ -176,6 +195,10 @@ jobs:
               || /\.\/js\/(?:bootstrap|app)\.js|\.\/js\/(?:runtime|storage)\//.test(core)) {
               throw new Error("Deployed Service Worker CORE still contains the source module graph.");
             }
+            if (!Array.isArray(chunkManifest.chunks)
+              || chunkManifest.chunks.some(chunk => !core.includes("./" + chunk.path))) {
+              throw new Error("Deployed Service Worker CORE is missing an app chunk from the release manifest.");
+            }
             const quote = String.fromCharCode(39);
             const reloadOption = "{ cache: " + quote + "reload" + quote + " }";
             const revalidateOption = "{ cache: " + quote + "no-cache" + quote + " }";
@@ -183,7 +206,8 @@ jobs:
               || !worker.includes("networkOnly(event.request, " + revalidateOption + ")")) {
               throw new Error("Deployed Service Worker is missing release-safe HTTP cache revalidation.");
             }
-          ' "${smoke_dir}/index.html" "${smoke_dir}/sw.js"
+          ' "${smoke_dir}/index.html" "${smoke_dir}/sw.js" \
+            "${smoke_dir}/release/js/app-chunks.json"
           curl --fail --silent --show-error --location \
             --retry 12 --retry-all-errors --retry-delay 5 \
             "${base}/js/ocr-import-page.js?run=${GITHUB_RUN_ID}" > "${smoke_dir}/ocr-import-page.js"

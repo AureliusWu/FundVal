@@ -1,16 +1,19 @@
 # 蜉蝣基金 (FundVal)
 
-当前源码候选：`14.0.4`；当前线上版本：`14.0.3`。v14.0.4 完成部署与生产 smoke 后再改记为已发布。
+当前版本：`15.0.0`。本版本完成可信架构重构；物理 Android/iOS 门禁仍未完成，因此发布状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
 
-## V14.0.4 维护桥架构
+## V15.0.0 可信架构
 
 - 页面先读本地缓存，再通过司南服务端代理批量刷新；单只失败不会阻塞或清空其他基金。
+- 基金报价链不再按基金代码调用同代码证券接口；任何无法确认身份的值保持 `null / --`，不得参与市值或收益计算。
+- 东方财富与腾讯 JSONP 仅能在 `quote-bridge.html` 的 `sandbox="allow-scripts"` 隔离页内执行；Bridge 没有 `allow-same-origin`，不能读取主持仓或 Gist PAT。主页面 CSP 只执行同源脚本，并再次校验 Bridge 返回的结构化数据。
+- 重仓证券代码、名称、占比、数量和来源元数据均在输入侧规范化，所有远端文本在输出侧转义；远端 HTML/SVG/JavaScript 字符串不会执行。
 - 启动前执行持仓与缓存一致性检查；主数据损坏时自动尝试从最近两份备份恢复。
 - 重复持仓按更新时间合并，同时间戳下删除标记优先，避免旧设备把已删除基金恢复回来。
 - 旧行情缓存只保留当前有效基金，并自动清理孤立的单基金净值缓存。
 - 浏览器存储写入失败时降级处理，不让配额、隐私模式或权限异常中断主程序。
 - 运行时错误与未处理 Promise 会记录到本地诊断日志，并自动脱敏 GitHub Token。
-- 页面先读明确标为旧数据的本地缓存，再从东方财富现行估值表按代码分页定位；单只失败不会阻塞或清空其他基金。
+- 启动只创建一个 refresh generation：缓存立即渲染，批量主报价先提交，正式净值、重仓、海外模型和详情随后按需 enrichment。
 - 打开页面、手动刷新、恢复前台和网络恢复都会发起新请求；刷新串行化，旧请求不会覆盖新请求。
 - 刷新按 A 股、港股、海外、黄金市场时段调度；上游只给日期时显示“延迟”，不以请求时间冒充行情时间。
 - 海外估值模型位于 `data/overseas-models.json`，结果保留模型版本、置信度和准确度台账。
@@ -18,15 +21,16 @@
 - 数据状态统一为：实时、延迟、旧数据、模型估算、最新正式净值、暂不可估值。
 - 官方盘中估值不可用时，国内基金按最新正式净值与十大重仓当日行情贡献估算；展示行情时间、覆盖率并明确说明不是官方净值。
 - Gist 永久保留旧版 `fuyu-holdings.json`，Schema 3 使用按设备隔离的 `fuyu-holdings-v3-*.json`；新版合并所有 V3 分片和较新的旧版变更，只写当前设备分片，旧客户端无法降写 revision、tombstone 或 note。同步前备份原始远端文件，PATCH 后必须读回规范化校验。
-- `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate。
+- 删除持仓会同步清理卡片、详情、行情缓存、元数据缓存和在途请求；刷新或重启后不会复活 tombstone。
+- `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate；生产构建生成 `js/app-chunks.json`，部署按每个 chunk 的字节数和 SHA-256 校验完整性。
 - 使用 ES Modules 和 Node 内置测试；基础行情页面保持零框架。支付宝截图导入以 `@paddleocr/paddleocr-js@0.4.2` + PP-OCRv6 tiny 为主引擎，仅在用户选择图片后按需加载同源静态资源；Tesseract 只保留为降级/回归链路。
-- 生产构建把首页启动模块图压成单一 `js/app-shell.js`，并以 v14.0.2 冷启动图的精确 +20% gzip 上限作为硬门禁；源码入口仍保持可调试的 ES Modules，OCR 资源不进入该包或 Service Worker `CORE`。
+- 生产构建保留真实动态 import 边界：云同步、通知、重仓和 Bridge 客户端按需加载。冷启动图为 149,279 B raw / 51,597 B gzip，低于 v14.0.4 的 52,241 B gzip 基线；门禁没有上调。OCR 资源不进入首屏或 Service Worker `CORE`。
 - 启动链、云同步、备选行情和海外模型配置均有超时与降级保护；不因单个悬挂请求卡住后续刷新。
 - 缓存与持仓指纹绑定，数量或成本变化后不会离线展示旧市值/收益；过期缓存明确标为“旧数据”。
 - 过季模型、未来时间、缺失时间或过期成分行情不会冒充实时估值，自动回退到最近正式净值。
 - 新增支付宝 / 蚂蚁财富基金持仓截图导入：图片在不加载主盘行情脚本、带严格同源 CSP 的独立页面本机预处理和识别，不上传、不写入本地存储/诊断日志；识别结果必须逐项确认后才会写入持仓。确认后的结构化持仓仍遵循用户已配置的 Gist 同步设置，截图和 OCR 原文不会上传。
-- 当前本地长截图验收使用 1440×9317 的真实支付宝持仓截图：重建 15 条记录，10 条自动匹配、5 条进入人工确认且默认跳过；持有金额、昨日收益、持有收益、持有收益率四类数值均重建 15/15。本机桌面 Chromium/IAB 完整处理约 18.3 秒，全程只请求同源 OCR 静态资源，未上传截图。
-- 当前 PaddleOCR 主链构建资源总量为 82,356,164 bytes（按 manifest 排除 Tesseract fallback 与许可证角色）；两条 OCR 链路均不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。`/assets/ocr/` 走 SW network-only，避免再复制约 82 MB 到 Cache Storage（浏览器仍可按 HTTP 头缓存）。前版生产 Pages 曾用同一真实长图复验到 15 条候选、10 条自动匹配、5 条人工核对；该历史证据不替代 v14.0.4 部署后 smoke，Android、iOS/已安装 PWA 实机仍为 `NOT_RUN`。
+- v15 在 MuMu Android/Brave 中用真实支付宝长截图完成本地识别：约 23.5 秒产生 15 条候选，12 条自动匹配、3 条要求人工核对；本次只识别未确认写入。该结果是模拟器证据，不替代物理 Android/iOS。
+- 当前 PaddleOCR 主链构建资源总量为 82,356,164 bytes（按 manifest 排除 Tesseract fallback 与许可证角色）；两条 OCR 链路均不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。`/assets/ocr/` 走 SW network-only，避免再复制约 82 MB 到 Cache Storage（浏览器仍可按 HTTP 头缓存）。v15 在 MuMu/Brave 使用同一真实长图得到 15 条候选、12 条自动匹配、3 条人工核对；该模拟器证据不替代 v15.0.0 生产 smoke 或物理 Android、iOS、已安装 PWA 验收。
 - OCR 只把“持有金额、累计收益”等字段作为快照核对信息。必须填写真实持有份额，才允许按 `（持有金额 − 累计收益）÷ 份额` 换算成本净值；不会按估值反推份额，也不会删除截图外持仓。
 - 基金目录为构建时生成的同源 `data/fund-catalog.json`；页面只在截图确认时按需读取该 JSON，不执行第三方 JSONP。
 - Android OCR 在选图前校验最新版浏览器所需能力，兼容系统文件选择器返回的空 MIME/通用二进制类型；识别期间采用单任务锁，避免重复点击并行启动多个高内存 Worker。
@@ -68,7 +72,9 @@ node --check js/resilience.js
 - `js/bootstrap.js`：启动顺序与启动前完整性检查。
 - `js/resilience.js`：自动恢复、缓存清理、错误日志和网络状态保护。
 - `js/integrity.js`：可测试的持仓、缓存与诊断纯函数。
-- `js/app.js`：全部业务逻辑。
+- `js/app.js`：页面与刷新编排；`js/runtime/` 保存刷新、通知、Bridge、远端 schema 和活动持仓边界。
+- `quote-bridge.html`、`js/sandbox/quote-bridge-runtime.js`：无法访问主页面同源存储的受限 JSONP 执行面。
+- `js/runtime/quote-bridge-client.js`：按需创建沙箱、校验消息来源和结构化响应。
 - `js/paddle-local-ocr.js`：File/Blob 仅本地校验、PaddleOCR/PP-OCRv6 tiny 分片识别及 Worker 受控释放。
 - `js/ocr-table-layout.js`：依据文字坐标重建支付宝持仓双列表格与四类数值字段。
 - `js/local-ocr.js`：Tesseract 本地预处理与降级/回归链路，不是 v14 长截图主引擎。
@@ -79,11 +85,10 @@ node --check js/resilience.js
 - `manifest.json`：PWA 名称、图标、启动配置。
 - `sw.js`：Service Worker 缓存和通知。
 
-## 数据源
+## 数据源与信任边界
 
-- 东方财富 FundGuZhi 估值表 JSONP：盘中估算主源（旧 `fundgz` 单基金接口已下线）。
-- 东方财富 push2：备选净值、净值日涨跌幅、涨跌额。
-- 东方财富 pingzhongdata：基金历史净值趋势，用于最新净值涨跌口径。
+- 司南 Worker `/estimates`：盘中估值与可验证正式净值的主要结构化 JSON 来源；本地开发只通过固定路由的同源只读代理访问，不能代理任意 URL。
+- 东方财富基金数据、净值趋势与腾讯行情：仅在隔离 JSONP Bridge 内执行；主页面只接收通过 operation、请求代码、字段长度和有限数值校验后的结果。
 - 东方财富 fundf10：十大重仓经只读 Worker 代理获取并保留披露截止日期；基金信息、费率来自基金详情元数据。
 - 腾讯行情：指数与海外模型成分行情。
 - 支付宝截图导入：图片和 OCR 在本机处理；基金名称/代码只与同源静态基金目录匹配。目录维护源为东方财富公开基金目录数据，构建前以 `npm run refresh:fund-catalog` 显式更新，不在用户导入时请求第三方脚本。
@@ -96,6 +101,7 @@ node --check js/resilience.js
 npm test
 npm run check
 npm run build
+npm run test:e2e
 npm run serve
 ```
 
