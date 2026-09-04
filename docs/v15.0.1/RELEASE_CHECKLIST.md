@@ -15,15 +15,15 @@
 - [x] `npm run test:e2e` — 8/8
 - [x] 发布关键文件指纹 — 提交后构建候选 `e74092ce191d8d5e2bdfacd47b2e0b6618554f80f332f4dcf41a454f2a534a9d`
 - [x] app-shell gzip 门禁与兼容脚本独立体积 — 51,598/52,241 B；兼容脚本 511 B gzip
-- [ ] `npm audit --audit-level=high` — 本地 registry endpoint 超时，等待 CI 门禁
+- [x] `npm audit --audit-level=high` — 本地 endpoint 曾超时；Actions 同一门禁通过
 
 ## 发布与生产
 
-- [ ] 提交并推送 `main`
-- [ ] GitHub Actions build/deploy 成功
-- [ ] 生产静态资源与构建指纹一致
-- [ ] 生产页面为 `V15.0.1` / `fuyu-v15.0.1`
-- [ ] MuMu Android 15 / Brave 生产 smoke
+- [x] 提交并推送 `main` — 应用提交 `4df72bc1b1b38cad5ca4ca1bb7541bc8864bc964`
+- [x] GitHub Actions build/deploy 成功 — run `33829421960`
+- [x] 生产静态资源与构建指纹一致 — 工作流生产下载比对通过
+- [x] 生产页面为 `V15.0.1` / `fuyu-v15.0.1`
+- [x] MuMu Android 15 / Brave 生产 smoke — 15.0.0→15.0.1、五项行情有限、Bridge sandbox 正确
 
 ## 仍保留的设备门禁
 

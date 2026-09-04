@@ -28,8 +28,8 @@
 | `npm run check` | `PASS` | 包含兼容脚本与发布脚本语法检查 |
 | `npm run build` | `PASS` | 连续两次产物体积一致；16 chunks / 180,728 B |
 | `npm run test:e2e` | `PASS` | 8/8，包含新 HTML + 旧 app-shell 组合测试 |
-| GitHub Pages 部署 | `PENDING` | 等待 CI 与生产指纹 |
-| MuMu 生产复验 | `PENDING` | 仅可记为模拟器验证 |
+| GitHub Pages 部署 | `PASS` | Actions `33829421960`：审计、测试、构建、E2E、指纹与生产 smoke 全通过 |
+| MuMu 生产复验 | `EMULATOR_PASS` | Brave 从 15.0.0 安全更新到 15.0.1；active cache 正确且无 waiting worker |
 | 物理 Android Chrome/PWA | `NOT_RUN` | `BLOCKED_FOR_DEVICE_VALIDATION` |
 | iOS Safari/PWA | `NOT_RUN` | `BLOCKED_FOR_DEVICE_VALIDATION` |
 
@@ -37,7 +37,18 @@
 
 兼容脚本是一个新的首屏同源请求，但不进入 app-shell chunk 图，也不加载 OCR、行情或第三方资源。其体积为 1,127 B raw / 511 B gzip；首页 chunk 冷启动图为 149,279 B raw / 51,598 B gzip，低于未上调的 52,241 B 门禁。连续两次构建的 chunk 名称与体积一致。
 
-本地 `npm audit --audit-level=high` 因 npm registry bulk advisory endpoint 超时而未形成结论；依赖未在本补丁中变更，GitHub Actions 仍会把同一高危审计作为发布阻断门禁。CI 未通过前不得记为发布完成。
+本地 `npm audit --audit-level=high` 曾因 npm registry bulk advisory endpoint 超时而未形成结论；依赖未在本补丁中变更。GitHub Actions 随后成功完成同一高危审计，未触发漏洞门禁。
+
+## 生产证据
+
+- 应用提交：`4df72bc1b1b38cad5ca4ca1bb7541bc8864bc964`。
+- GitHub Actions：[Build and Deploy 33829421960](https://github.com/AureliusWu/FundVal/actions/runs/33829421960)；build 与 deploy 均成功，工作流下载生产关键文件并与构建指纹逐字节比对。
+- 独立 HTTP 复核：`index.html`、`js/version.js`、`manifest.json`、`sw.js`、`js/update-compat.js`、`js/app-shell.js`、`js/app-chunks.json`、`quote-bridge.html` 均为 HTTP 200；线上版本为 `V15.0.1`，SW 为 `fuyu-v15.0.1`，兼容脚本位于 app-shell 前且在 CORE 中恰好一份。
+- MuMu Android 15 / Brave：从已运行的 15.0.0 点击“安全更新”后进入 15.0.1；`GET_VERSION` 返回 `fuyu-v15.0.1`、waiting worker 为空、缓存只保留 15.0.0 与 15.0.1。Bridge iframe 保持 `sandbox="allow-scripts"`。
+- 模拟器行情快照：黄金 9999 `967 / +1.03%`、上证 `3,966 / +0.62%`、沪深 300 `4,583 / +0.67%`、纳指 100 `29,482 / +1.16%`、标普 500 `7,748 / +1.06%`。更新后的首轮异步刷新短暂保持 `--`，约 10 秒后全部成为有限值；期间没有用 `0` 填充缺失数据。
+- 真实 v14 缓存壳与新版 HTML 的按钮断裂由确定性 Node 测试和 Playwright 组合测试覆盖；本轮生产来源已先人工诊断升级到 v15.0.0，因此没有伪造一次新的生产 v14→v15.0.1 实际迁移。
+
+发布状态为 `DEPLOYED / DEVICE_VALIDATION_PENDING`。MuMu 是模拟器证据，物理 Android 与 iOS 门禁仍未执行。
 
 ## 回滚
 
