@@ -1,5 +1,12 @@
 # Changelog
 
+## 15.0.1 - 2026-09-04
+
+- 修复已安装 v14 PWA 首次收到 v15 HTML 时可能仍执行旧 `app-shell.js`，导致新版 `data-action="apply-update"` 按钮与旧版全局更新函数断开、点击“安全更新”无响应的问题。
+- 新增独立同源 `js/update-compat.js`：仅在旧缓存脚本确实暴露 `applyPendingServiceWorkerUpdate` 时转交点击，完整复用旧版的未保存输入、云同步、跨标签页与刷新排空保护；当前 v15 委托事件路径不受拦截。
+- 将兼容脚本纳入 Service Worker `CORE`、发布指纹、构建不变量、CI 产物/生产 smoke、Node 回归与 Playwright 混合版本测试；不恢复 inline handler，不直接发送 `SKIP_WAITING`。
+- MuMu Android 15 / Brave 已复现 `v15 HTML + v14 JS` 混合态；手动激活 v15 Worker 后五项指数恢复，确认行情 Bridge 与数据源正常，问题位于升级过渡而非缺失值回填。模拟器证据不替代物理 Android/iOS 门禁。
+
 ## 15.0.0 - 2026-08-29
 
 - 关闭基金代码与同代码股票碰撞：基金主报价链不再把证券 `stock/get` 结果当作净值，无法确认身份时保持 `-- / unavailable`。

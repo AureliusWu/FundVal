@@ -24,6 +24,7 @@ test('production build emits a budgeted split homepage graph without OCR', async
   assert.match(build, /replaceExactlyOnce\([\s\S]*src="js\/bootstrap\.js"[\s\S]*src="\$\{APP_SHELL_FILENAME\}"/);
   assert.match(build, /\[APP_CHUNK_MANIFEST, \.\.\.generatedFiles\]\.sort\(\)\.map/);
   assert.match(build, /Built Service Worker did not replace the source module graph with every non-OCR homepage chunk/);
+  assert.match(build, /!core\.includes\("'\.\/js\/update-compat\.js'"\)/);
   assert.match(build, /'quote-bridge\.html'/);
   assert.match(build, /function resolveSiteSourceDateEpoch\(\)/);
   assert.match(build, /execFileSync\('git', \['log', '-1', '--format=%ct'\]/);
@@ -33,5 +34,6 @@ test('production build emits a budgeted split homepage graph without OCR', async
   const core = worker.slice(worker.indexOf('const CORE'), worker.indexOf('self.addEventListener'));
   assert.match(core, /\.\/quote-bridge\.html/);
   assert.match(core, /\.\/js\/sandbox\/quote-bridge-runtime\.js/);
+  assert.match(core, /\.\/js\/update-compat\.js/);
   assert.doesNotMatch(core, /assets\/ocr/);
 });

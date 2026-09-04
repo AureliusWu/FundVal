@@ -150,6 +150,7 @@ async function readPwaCacheState(page) {
           lazyPath,
           lazyCached: Boolean(await cache.match(`./${lazyPath}`)),
           bridgeCached: Boolean(await cache.match('./quote-bridge.html')),
+          updateCompatCached: Boolean(await cache.match('./js/update-compat.js')),
         };
       });
     } catch (error) {
@@ -334,6 +335,26 @@ test('OCR confirmation page loads and candidate selection respects explicit skip
   expect(network.blocked).toEqual([]);
 });
 
+test('new HTML can invoke the guarded updater exposed by a cached legacy app shell', async ({ context, page }) => {
+  await context.route('**/js/app-shell.js', route => route.fulfill({
+    status: 200,
+    contentType: 'text/javascript; charset=utf-8',
+    body: `
+      globalThis.__legacyUpdateCalls = 0;
+      globalThis.applyPendingServiceWorkerUpdate = function () {
+        globalThis.__legacyUpdateCalls += 1;
+      };
+      document.getElementById('update-banner').hidden = false;
+    `,
+  }));
+  await page.goto('/');
+  await expect(page.locator('#update-now-btn')).toBeVisible();
+
+  await page.locator('#update-now-btn').click();
+
+  await expect.poll(() => page.evaluate(() => globalThis.__legacyUpdateCalls)).toBe(1);
+});
+
 test('PWA installs the versioned shell, caches lazy chunks and reopens offline', async ({ browser }) => {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
   const page = await context.newPage();
@@ -345,6 +366,7 @@ test('PWA installs the versioned shell, caches lazy chunks and reopens offline',
     expect(state.lazyPath).toMatch(/^js\/chunks\/.+\.js$/);
     expect(state.lazyCached).toBe(true);
     expect(state.bridgeCached).toBe(true);
+    expect(state.updateCompatCached).toBe(true);
     await context.setOffline(true);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByText('蜉蝣基金', { exact: true })).toBeVisible();

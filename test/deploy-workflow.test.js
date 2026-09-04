@@ -13,9 +13,12 @@ test('deployment workflow uses least privilege, pinned Node 24 actions and depen
   assert.match(workflow, /test -s site\/js\/app-chunks\.json/);
   assert.match(workflow, /Run hermetic browser E2E[\s\S]*npm run test:e2e/);
   assert.match(workflow, /test -f site\/manifest\.json/);
+  assert.match(workflow, /test -s site\/js\/update-compat\.js/);
   assert.match(workflow, /paths=\([\s\S]*"js\/app-shell\.js"/);
+  assert.match(workflow, /paths=\([\s\S]*"js\/update-compat\.js"/);
   assert.match(workflow, /paths=\([\s\S]*"js\/ocr-import-page\.js"/);
   assert.match(workflow, /Deployed index does not exclusively load app-shell\.js/);
+  assert.match(workflow, /Deployed legacy update bridge is missing or loads after app-shell\.js/);
   assert.match(workflow, /Deployed Service Worker CORE still contains the source module graph/);
   assert.match(workflow, /release_fingerprint:\s*\$\{\{ steps\.release_fingerprint\.outputs\.value \}\}/);
   assert.match(workflow, /EXPECTED_RELEASE_FINGERPRINT:\s*\$\{\{ needs\.build\.outputs\.release_fingerprint \}\}/);
@@ -29,6 +32,7 @@ test('deployment workflow uses least privilege, pinned Node 24 actions and depen
   assert.match(workflow, /Deployed release-critical files do not match the built Pages artifact/);
   assert.match(workflow, /Deployed Service Worker is missing release-safe HTTP cache revalidation/);
   assert.match(workflow, /Deployed Service Worker CORE is missing an app chunk from the release manifest/);
+  assert.match(workflow, /Deployed Service Worker CORE is missing the legacy update bridge/);
   assert.match(workflow, /const quote = String\.fromCharCode\(39\)/);
   assert.doesNotMatch(workflow, /worker\.includes\("\{ cache: 'reload' \}"\)/);
   assert.match(workflow, /const revalidateOption = .*no-cache/);

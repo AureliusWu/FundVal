@@ -200,6 +200,7 @@ async function buildAppShell() {
   if (
     [APP_CHUNK_MANIFEST, ...generatedFiles].some(fileName => !core.includes(`'./${fileName}'`))
     || core.includes("'./js/bootstrap.js'")
+    || !core.includes("'./js/update-compat.js'")
     || OCR_BUNDLE_REFERENCE.test(core)
   ) {
     throw new Error('Built Service Worker did not replace the source module graph with every non-OCR homepage chunk.');

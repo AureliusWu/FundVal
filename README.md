@@ -1,8 +1,8 @@
 # 蜉蝣基金 (FundVal)
 
-当前版本：`15.0.0`。生产 Pages 已部署；物理 Android/iOS 门禁仍未完成，因此实体设备验收状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
+当前版本：`15.0.1`。生产 Pages 已部署；物理 Android/iOS 门禁仍未完成，因此实体设备验收状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
 
-## V15.0.0 可信架构
+## V15.0.1 可信架构
 
 - 页面先读本地缓存，再通过司南服务端代理批量刷新；单只失败不会阻塞或清空其他基金。
 - 基金报价链不再按基金代码调用同代码证券接口；任何无法确认身份的值保持 `null / --`，不得参与市值或收益计算。
@@ -23,8 +23,9 @@
 - Gist 永久保留旧版 `fuyu-holdings.json`，Schema 3 使用按设备隔离的 `fuyu-holdings-v3-*.json`；新版合并所有 V3 分片和较新的旧版变更，只写当前设备分片，旧客户端无法降写 revision、tombstone 或 note。同步前备份原始远端文件，PATCH 后必须读回规范化校验。
 - 删除持仓会同步清理卡片、详情、行情缓存、元数据缓存和在途请求；刷新或重启后不会复活 tombstone。
 - `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate；生产构建生成 `js/app-chunks.json`，部署按每个 chunk 的字节数和 SHA-256 校验完整性。
+- `js/update-compat.js` 只在旧版缓存脚本仍暴露受保护更新函数时桥接新版“安全更新”按钮；现代脚本中保持无操作，不复制或绕过未保存输入、云同步与多标签页门禁。
 - 使用 ES Modules 和 Node 内置测试；基础行情页面保持零框架。支付宝截图导入以 `@paddleocr/paddleocr-js@0.4.2` + PP-OCRv6 tiny 为主引擎，仅在用户选择图片后按需加载同源静态资源；Tesseract 只保留为降级/回归链路。
-- 生产构建保留真实动态 import 边界：云同步、通知、重仓和 Bridge 客户端按需加载。冷启动图为 149,279 B raw / 51,597 B gzip，低于 v14.0.4 的 52,241 B gzip 基线；门禁没有上调。OCR 资源不进入首屏或 Service Worker `CORE`。
+- 生产构建保留真实动态 import 边界：云同步、通知、重仓和 Bridge 客户端按需加载。冷启动图为 149,279 B raw / 51,598 B gzip，低于 v14.0.4 的 52,241 B gzip 基线；门禁没有上调。独立更新兼容脚本为 1,127 B raw / 511 B gzip，新增一个同源首屏请求；OCR 资源不进入首屏或 Service Worker `CORE`。
 - 启动链、云同步、备选行情和海外模型配置均有超时与降级保护；不因单个悬挂请求卡住后续刷新。
 - 缓存与持仓指纹绑定，数量或成本变化后不会离线展示旧市值/收益；过期缓存明确标为“旧数据”。
 - 过季模型、未来时间、缺失时间或过期成分行情不会冒充实时估值，自动回退到最近正式净值。

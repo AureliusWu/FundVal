@@ -51,6 +51,7 @@ jobs:
         test -f site/quote-bridge.html
         test -f site/js/sandbox/quote-bridge-runtime.js
         test -f site/js/version.js
+        test -s site/js/update-compat.js
         test -f site/sw.js
         test -s site/data/fund-catalog.json
         test -s site/assets/ocr/asset-manifest.json
@@ -130,6 +131,7 @@ jobs:
           paths=(
             "js/app-shell.js"
             "js/app-chunks.json"
+            "js/update-compat.js"
             "quote-bridge.html"
             "js/sandbox/quote-bridge-runtime.js"
             "ocr-import.html"
@@ -191,9 +193,18 @@ jobs:
             if ((index.match(/src="js\/app-shell\.js"/g) || []).length !== 1 || index.includes("js/bootstrap.js")) {
               throw new Error("Deployed index does not exclusively load app-shell.js.");
             }
+            const compatOffset = index.indexOf("src=\"js/update-compat.js\"");
+            const appOffset = index.indexOf("src=\"js/app-shell.js\"");
+            if ((index.match(/src="js\/update-compat\.js"/g) || []).length !== 1
+              || compatOffset < 0 || compatOffset > appOffset) {
+              throw new Error("Deployed legacy update bridge is missing or loads after app-shell.js.");
+            }
             if ((core.match(/\.\/js\/app-shell\.js/g) || []).length !== 1
               || /\.\/js\/(?:bootstrap|app)\.js|\.\/js\/(?:runtime|storage)\//.test(core)) {
               throw new Error("Deployed Service Worker CORE still contains the source module graph.");
+            }
+            if ((core.match(/\.\/js\/update-compat\.js/g) || []).length !== 1) {
+              throw new Error("Deployed Service Worker CORE is missing the legacy update bridge.");
             }
             if (!Array.isArray(chunkManifest.chunks)
               || chunkManifest.chunks.some(chunk => !core.includes("./" + chunk.path))) {

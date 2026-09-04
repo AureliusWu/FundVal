@@ -11,6 +11,7 @@ export const RELEASE_CRITICAL_PATHS = Object.freeze([
   'js/app-shell.js',
   'js/app-chunks.json',
   'js/version.js',
+  'js/update-compat.js',
   'quote-bridge.html',
   'js/sandbox/quote-bridge-runtime.js',
   'ocr-import.html',

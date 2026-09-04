@@ -17,6 +17,7 @@ import {
 assert.ok(RELEASE_CRITICAL_PATHS.includes('manifest.json'));
 assert.ok(RELEASE_CRITICAL_PATHS.includes('js/ocr/performance-ledger.js'));
 assert.ok(RELEASE_CRITICAL_PATHS.includes('js/app-chunks.json'));
+assert.ok(RELEASE_CRITICAL_PATHS.includes('js/update-compat.js'));
 assert.ok(RELEASE_CRITICAL_PATHS.includes('quote-bridge.html'));
 
 function digest(value) {
