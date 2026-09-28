@@ -1,6 +1,8 @@
 # 蜉蝣基金 (FundVal)
 
-当前源码候选：`15.0.2`；当前线上版本：`15.0.1`。物理 Android/iOS 门禁仍未完成，因此实体设备验收状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
+当前源码与线上版本：`15.0.2`，已通过 GitHub Pages 发布。物理 Android/iOS 门禁仍未完成，因此实体设备验收状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
+
+发布提交：`210433aec211da0da5c6b6a461bafdd094a2d123`；[GitHub Actions run 36377191275](https://github.com/AureliusWu/FundVal/actions/runs/36377191275) 已成功完成 build 与 deploy。
 
 ## V15.0.2 可信架构
 
@@ -25,13 +27,13 @@
 - `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate；生产构建生成 `js/app-chunks.json`，部署按每个 chunk 的字节数和 SHA-256 校验完整性。
 - `js/update-compat.js` 只在旧版缓存脚本仍暴露受保护更新函数时桥接新版“安全更新”按钮；现代脚本中保持无操作，不复制或绕过未保存输入、云同步与多标签页门禁。
 - 使用 ES Modules 和 Node 内置测试；基础行情页面保持零框架。支付宝截图导入以 `@paddleocr/paddleocr-js@0.4.2` + PP-OCRv6 tiny 为主引擎，仅在用户选择图片后按需加载同源静态资源；Tesseract 只保留为降级/回归链路。
-- 生产构建保留真实动态 import 边界：云同步、通知、重仓、持仓导入导出、诊断和 Bridge 客户端按需加载。v15.0.2 候选冷启动图为 51,941 B gzip，低于未上调的 52,241 B 门禁；全部非 OCR chunks 为 70,207 B gzip，相对 v15.0.1 历史基线增加 11.15%，作为 PWA 首次安装负担警告保留。OCR 资源不进入首屏或 Service Worker `CORE`。
+- 生产构建保留真实动态 import 边界：云同步、通知、重仓、持仓导入导出、诊断和 Bridge 客户端按需加载。v15.0.2 发布构建冷启动图为 51,941 B gzip，低于未上调的 52,241 B 门禁；全部非 OCR chunks 为 70,207 B gzip，相对 v15.0.1 历史基线增加 11.15%，作为 PWA 首次安装负担警告保留。OCR 资源不进入首屏或 Service Worker `CORE`。
 - 启动链、云同步、备选行情和海外模型配置均有超时与降级保护；不因单个悬挂请求卡住后续刷新。
 - 缓存与持仓指纹绑定，数量或成本变化后不会离线展示旧市值/收益；过期缓存明确标为“旧数据”。
 - 过季模型、未来时间、缺失时间或过期成分行情不会冒充实时估值，自动回退到最近正式净值。
 - 新增支付宝 / 蚂蚁财富基金持仓截图导入：图片在不加载主盘行情脚本、带严格同源 CSP 的独立页面本机预处理和识别，不上传、不写入本地存储/诊断日志；识别结果必须逐项确认后才会写入持仓。确认后的结构化持仓仍遵循用户已配置的 Gist 同步设置，截图和 OCR 原文不会上传。
 - v15 在 MuMu Android/Brave 中用真实支付宝长截图完成本地识别：约 23.5 秒产生 15 条候选，12 条自动匹配、3 条要求人工核对；本次只识别未确认写入。该结果是模拟器证据，不替代物理 Android/iOS。
-- 当前 PaddleOCR 主链构建资源总量为 82,356,164 bytes（按 manifest 排除 Tesseract fallback 与许可证角色）；两条 OCR 链路均不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。`/assets/ocr/` 走 SW network-only，避免再复制约 82 MB 到 Cache Storage（浏览器仍可按 HTTP 头缓存）。v15 在 MuMu/Brave 使用同一真实长图得到 15 条候选、12 条自动匹配、3 条人工核对；该模拟器证据不替代 v15.0.0 生产 smoke 或物理 Android、iOS、已安装 PWA 验收。
+- 当前 PaddleOCR 主链构建资源总量为 82,356,164 bytes（按 manifest 排除 Tesseract fallback 与许可证角色）；两条 OCR 链路均不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。`/assets/ocr/` 走 SW network-only，避免再复制约 82 MB 到 Cache Storage（浏览器仍可按 HTTP 头缓存）。
 - OCR 只把“持有金额、累计收益”等字段作为快照核对信息。必须填写真实持有份额，才允许按 `（持有金额 − 累计收益）÷ 份额` 换算成本净值；不会按估值反推份额，也不会删除截图外持仓。
 - 基金目录为构建时生成的同源 `data/fund-catalog.json`；页面只在截图确认时按需读取该 JSON，不执行第三方 JSONP。
 - Android OCR 在选图前校验最新版浏览器所需能力，兼容系统文件选择器返回的空 MIME/通用二进制类型；识别期间采用单任务锁，避免重复点击并行启动多个高内存 Worker。
@@ -41,9 +43,9 @@
 
 ```bash
 npm test
-node --check js/app.js
-node --check js/bootstrap.js
-node --check js/resilience.js
+npm run check
+npm run build
+npm run test:e2e
 ```
 
 个人基金盘中估值监控 PWA，托管于 [aureliuswu.github.io/FundVal](https://aureliuswu.github.io/FundVal/)。
@@ -55,7 +57,7 @@ node --check js/resilience.js
 ## 功能
 
 - 基金盘中估值、最新净值涨跌、持仓市值、今日盈亏。
-- QDII/海外基金：优先展示最新公布净值涨跌，海外模型仅作为下一净值估算辅助。
+- QDII/海外基金：存在合格且带真实市场时间的下一净值模型时，主列显示模型估算；模型缺失或过期时回退最新公布净值涨跌，详情保留两者的来源与日期。
 - 顶部指数/黄金行情条。
 - 多维排序：估值/净值涨跌、今日盈亏、市值、累计收益。
 - 基金卡片展开：通过只读代理展示带披露截止日期的十大重仓股、基金信息、费率。

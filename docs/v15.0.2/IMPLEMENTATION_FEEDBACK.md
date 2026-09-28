@@ -32,13 +32,25 @@
 
 本次抽查说明日期、基期和降级标签按契约传递，但上游最新日期分别只到 9 月 24 日和 9 月 23 日；这不是“9 月 28 日实时估值”。前端必须显示真实来源日期或旧/正式净值状态，不能按请求日续期。公开接口后续仍可能延迟或失效。
 
+## 发布结果（2026-09-28）
+
+- 发布提交：`210433aec211da0da5c6b6a461bafdd094a2d123`
+- GitHub Actions：run `36377191275`，build 与 deploy 均为 `success`
+- 生产地址：<https://aureliuswu.github.io/FundVal/>
+- 生产版本：页面、manifest、runtime 与 Service Worker 均为 `15.0.2`，缓存桶为 `fuyu-v15.0.2`
+- 生产文件：生成的版本、app shell 与 chunk 清单原始字节哈希一致；页面、manifest 和 SW 只受 Windows/Linux 换行差异影响，换行归一化后内容一致
+- 浏览器 smoke：生产首页正常显示；005844 显示 2026-09-24 正式净值 3.3437、基期 3.4145、-2.07%，012920 显示 2026-09-23 正式净值 3.8834、基期 3.9072、-0.61%，未把 2026-09-28 请求日伪装成行情日期
+- 降级 smoke：无效路径返回 404；OCR 清单、Paddle 引擎、Worker 与检测模型均可访问；生产工作流中的 OCR smoke 通过
+
+最终发布状态为 `RELEASED WITH WARNINGS`：部署本身已完成，警告仅来自非 OCR chunks 增长 11.15% 与物理 Android/iOS 尚未验收。
+
 ## 未覆盖边界
 
 - 物理 Android Chrome/PWA 与 iOS Safari/PWA 未执行。
 - 实际支付宝长图的设备识别率、模型冷下载与低内存行为仍需真机验收。
 - 完整交易所节假日、外汇和海外多日累计收益没有在本补丁中加入；无法证明时保持正式净值或 `--`。
-- 生产部署、真实 Gist 写入和已安装 PWA 升级状态以同目录发布检查表为准。
+- 真实 Gist/生产持仓写入、物理设备、既有已安装 PWA 的升级与离线状态，以及生产 console/network 深查仍未验证；生产部署状态以同目录发布检查表为准。
 
 ## 回滚原则
 
-如生产验证失败，原子回滚应用提交；`index.html`、`js/version.js`、`manifest.json`、`sw.js` 和生成的 app-shell 必须保持同一版本，不能只回滚其中一个文件。
+发布前回滚点为 `5e135b51ce2b9c0fbe37c4119b62cab4b1c33927`。如生产验证失败，执行 `git revert 210433aec211da0da5c6b6a461bafdd094a2d123`、推送 `main` 并等待 Pages 工作流完成；禁止 force reset。`index.html`、`js/version.js`、`manifest.json`、`sw.js` 和生成的 app-shell 必须保持同一版本，不能只回滚其中一个文件。
