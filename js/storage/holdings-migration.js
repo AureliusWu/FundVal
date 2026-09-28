@@ -21,7 +21,7 @@ function timestampOr(value, fallback) {
 function legacyNumber(value, field, { nullable = false } = {}) {
   if (nullable && (value == null || value === '')) return null;
   if (value == null || value === '') throw new HoldingSchemaError('invalid_legacy_number', `${field} is required`, { field });
-  if (typeof value === 'boolean') {
+  if (!['number', 'string'].includes(typeof value) || String(value).trim() === '') {
     throw new HoldingSchemaError('invalid_legacy_number', `${field} must be non-negative`, { field });
   }
   const number = Number(value);

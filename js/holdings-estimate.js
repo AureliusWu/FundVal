@@ -107,10 +107,11 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
 
   (stocks || []).forEach((stock) => {
     const ratio = Number(stock && stock.ratio);
-    const change = Number(stock && stock.change);
+    const rawChange = stock && stock.change;
+    const change = rawChange == null || typeof rawChange === 'boolean' || String(rawChange).trim() === '' ? NaN : Number(rawChange);
     const quoteMs = parseChinaQuoteTime(stock && stock.quoteTime);
     if (!Number.isFinite(ratio) || ratio <= 0 || !Number.isFinite(change) || !Number.isFinite(quoteMs)) return;
-    if (chinaDateKey(quoteMs) !== today) return;
+    if (chinaDateKey(quoteMs) !== today || quoteMs > now) return;
     usable.push({ ratio, change, quoteMs });
   });
 
@@ -140,18 +141,28 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
   };
 }
 
+export function latestOfficialNavBase(fund) {
+  return [
+    { nav: fund.latest_nav_move?.nav, date: fund.latest_nav_move?.date },
+    ...(fund.source_quote?.valueKind === 'official_nav'
+      ? [{ nav: fund.source_quote.value, date: fund.source_quote.officialNavDate }] : []),
+    ...(fund.est_kind === 'official_nav'
+      ? [{ nav: fund.est_nav, date: fund.value_date || fund.est_time }] : []),
+    { nav: fund.last_nav, date: fund.nav_date },
+  ].map(value => ({ nav: typeof value.nav === 'boolean' ? NaN : Number(value.nav), date: normalizeQuoteDate(value.date) }))
+    .filter(value => value.nav > 0 && Number.isFinite(value.nav) && value.date)
+    .sort((left, right) => right.date.localeCompare(left.date))[0];
+}
+
 export function applyHoldingsEstimate(fund, estimate) {
   if (!fund || !estimate || !estimate.available || !Number.isFinite(estimate.change)) return fund;
   if (fund.est_realtime === true && fund.est_kind !== 'official_nav') return fund;
 
-  const official = fund.latest_nav_move && Number.isFinite(Number(fund.latest_nav_move.nav))
-    ? { nav: Number(fund.latest_nav_move.nav), date: String(fund.latest_nav_move.date || '') }
-    : fund.est_kind === 'official_nav' && Number.isFinite(Number(fund.est_nav))
-      ? { nav: Number(fund.est_nav), date: String(fund.est_time || fund.nav_date || '') }
-      : Number.isFinite(Number(fund.last_nav))
-        ? { nav: Number(fund.last_nav), date: String(fund.nav_date || '') }
-        : null;
-  if (!official || official.nav <= 0) return fund;
+  const official = latestOfficialNavBase(fund);
+  const targetDate = normalizeQuoteDate(String(estimate.sourceTime || '').slice(0, 10));
+  // A one-session stock move cannot bridge missing NAV days, and must never be
+  // added a second time when that session is already in the published NAV.
+  if (!official || !targetDate || nextWeekdayDate(official.date) !== targetDate) return fund;
 
   fund.last_nav = official.nav;
   fund.nav_date = official.date;
@@ -162,6 +173,9 @@ export function applyHoldingsEstimate(fund, estimate) {
   fund.est_label = '重仓估算';
   fund.est_realtime = false;
   fund.est_holdings_model = true;
+  fund.est_holdings_base_nav = official.nav;
+  fund.est_holdings_base_date = official.date;
+  fund.est_holdings_target_date = targetDate;
   fund.est_holdings_coverage = estimate.coverage;
   fund.est_holdings_quote_count = estimate.quoteCount;
   fund.est_holdings_report_date = String(estimate.reportDate || '');
@@ -186,3 +200,4 @@ export function composeFundEnrichment(rawFund, options = {}) {
   }
   return fund;
 }
+import { nextWeekdayDate, normalizeQuoteDate } from './runtime/quote-contract.js';

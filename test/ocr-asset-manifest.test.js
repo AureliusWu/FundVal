@@ -150,6 +150,32 @@ test('runtime manifest loading binds to the exact browser runtime versions', asy
   );
 });
 
+for (const stage of ['fetch', 'body']) {
+  test(`manifest ${stage} timeout aborts even when the transport ignores cancellation`, async t => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    let fetchSignal;
+    const pending = loadOcrAssetManifest({ timeoutMs: 20, fetchImpl: async (_, options) => {
+      fetchSignal = options.signal;
+      if (stage === 'fetch') return new Promise(() => {});
+      return { ok: true, json: () => new Promise(() => {}) };
+    } });
+    const checked = assert.rejects(pending, error => error.code === 'fetch_timeout');
+    t.mock.timers.tick(20);
+    await checked;
+    assert.equal(fetchSignal.aborted, true);
+  });
+}
+
+test('manifest load honors cancellation and never starts an already cancelled fetch', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  let calls = 0;
+  await assert.rejects(loadOcrAssetManifest({ signal: controller.signal,
+    fetchImpl: () => { calls += 1; return new Promise(() => {}); },
+  }), error => error.code === 'aborted');
+  assert.equal(calls, 0);
+});
+
 test('OCR manifest timestamp uses SOURCE_DATE_EPOCH when supplied and current time otherwise', () => {
   assert.equal(resolveOcrManifestTimestamp('0'), '1970-01-01T00:00:00.000Z');
   assert.equal(resolveOcrManifestTimestamp('', Date.parse(FIXED_TIME)), FIXED_TIME);

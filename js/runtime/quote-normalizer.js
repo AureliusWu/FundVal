@@ -1,6 +1,7 @@
 import {
   compareQuotesByQuality,
   createQuoteEnvelope,
+  normalizeQuoteDate,
   parseQuoteTimestamp,
   quoteToLegacyFreshness,
   unavailableQuote,
@@ -106,7 +107,7 @@ function isWeekendCarryover(observedMs, nowMs, session) {
 
 function freshnessForRow(row, valueKind, observedAt, market, nowMs) {
   const hasValue = finite(row?.value_nav ?? row?.est_nav ?? row?.value, { positive: true }) != null;
-  const hasChange = finite(row?.estimate_change ?? row?.est_change ?? row?.changePct) != null;
+  const hasChange = finite(row?.value_change ?? row?.estimate_change ?? row?.est_change ?? row?.changePct) != null;
   if (!hasValue && !hasChange) return { status: 'unavailable', reasonCodes: [] };
   if (valueKind === 'official_nav') return { status: 'official', reasonCodes: [] };
   if (row?.stale || row?.est_model_stale || String(row?.status || '').toLowerCase() === 'stale') {
@@ -191,6 +192,11 @@ export function normalizeEstimateQuote(row = {}, options = {}) {
       : sourceTierFor(sourceId, 'primary'));
   const reasonCodes = diagnosticReasonCodes(row);
   const freshness = freshnessForRow(row, valueKind, observedAt, item.market, nowMs);
+  const baseNav = finite(row.base_nav ?? row.baseNav ?? row.last_nav, { positive: true });
+  const baseNavDate = normalizeQuoteDate(firstText(row.base_nav_date, row.baseNavDate, row.nav_date));
+  const isModel = ['model_estimate', 'holding_lookthrough_estimate'].includes(valueKind);
+  const targetDate = normalizeQuoteDate(firstText(row.value_date, row.targetDate,
+    isModel ? '' : text(observedAt).slice(0, 10)));
   reasonCodes.push(...freshness.reasonCodes);
   if (observedAt && parseQuoteTimestamp(observedAt) == null && /^\d{4}-\d{2}-\d{2}$/.test(observedAt)) {
     reasonCodes.push('source_time_date_only');
@@ -203,7 +209,10 @@ export function normalizeEstimateQuote(row = {}, options = {}) {
     ...item,
     valueKind,
     value: finite(row.value_nav ?? row.est_nav ?? row.value, { positive: true }),
-    changePct: finite(row.estimate_change ?? row.est_change ?? row.changePct),
+    changePct: finite(row.value_change ?? row.estimate_change ?? row.est_change ?? row.changePct),
+    baseNav,
+    baseNavDate,
+    targetDate,
     sourceId,
     sourceTier,
     observedAt,
@@ -229,6 +238,9 @@ export function normalizeOfficialNavQuote(move = {}, options = {}) {
     valueKind: 'official_nav',
     value: finite(move.nav, { positive: true }),
     changePct: finite(move.change),
+    baseNav: finite(move.prevNav, { positive: true }),
+    baseNavDate: move.prevDate,
+    targetDate: move.date,
     sourceId: canonicalSourceId(options.sourceId || 'eastmoney-official-nav'),
     sourceTier: 'secondary',
     observedAt: firstText(move.date) || null,
@@ -243,6 +255,13 @@ export function normalizeMarketModelQuote(fund = {}, options = {}) {
   return normalizeEstimateQuote({
     ...fund,
     kind: 'model_estimate',
+    value_nav: fund.est_nav,
+    value_change: fund.est_change,
+    base_nav: fund.est_model_base_nav,
+    base_nav_date: fund.est_model_base_date,
+    last_nav: fund.est_model_base_nav,
+    nav_date: fund.est_model_base_date,
+    value_date: fund.est_model_target_date,
     source: 'market-model',
     source_time: fund.est_model_time || fund.est_time,
     coverage: fund.est_model_weight,
@@ -256,9 +275,16 @@ export function normalizeHoldingLookthroughQuote(fund = {}, options = {}) {
   return normalizeEstimateQuote({
     ...fund,
     kind: 'holding_lookthrough_estimate',
+    value_nav: fund.est_nav,
+    value_change: fund.est_change,
+    base_nav: fund.est_holdings_base_nav,
+    base_nav_date: fund.est_holdings_base_date,
+    last_nav: fund.est_holdings_base_nav,
+    nav_date: fund.est_holdings_base_date,
+    value_date: fund.est_holdings_target_date,
     source: 'quarterly-holdings-model',
     source_time: fund.est_time,
-    coverage: fund.est_coverage,
+    coverage: fund.est_holdings_coverage ?? fund.est_coverage,
     confidence: fund.est_confidence,
     stale: fund.est_holdings_stale,
   }, options);
@@ -268,7 +294,7 @@ function dedupeQuotes(quotes) {
   const seen = new Set();
   return quotes.filter(quote => {
     if (!quote) return false;
-    const key = [quote.valueKind, quote.sourceId, quote.observedAt, quote.value, quote.changePct].join('|');
+    const key = [quote.valueKind, quote.sourceId, quote.observedAt, quote.value, quote.changePct, quote.baseNav, quote.baseNavDate, quote.targetDate].join('|');
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -280,7 +306,7 @@ export function buildFundQuoteCandidates(fund = {}, options = {}) {
   const context = { ...options, ...item };
   const quotes = [];
   if (fund.source_quote) quotes.push(normalizeExistingQuoteFreshness(fund.source_quote, options));
-  else quotes.push(normalizeEstimateQuote(fund, context));
+  else if (!fund.est_model && !fund.est_holdings_model) quotes.push(normalizeEstimateQuote(fund, context));
   if (fund.latest_nav_move) quotes.push(normalizeOfficialNavQuote(fund.latest_nav_move, context));
   if (fund.est_holdings_model) quotes.push(normalizeHoldingLookthroughQuote(fund, context));
   if (fund.est_model) quotes.push(normalizeMarketModelQuote(fund, context));

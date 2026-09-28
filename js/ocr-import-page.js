@@ -1,7 +1,6 @@
 import { createFundMatchSession, detectAlipayHoldingSourceEvidence, matchFundCandidate, normalizeFundName } from './alipay-ocr-parser.js';
 import { loadFundCatalog } from './fund-catalog.js';
 import {
-  applyHoldingImportPlan,
   createHoldingImportPlan,
   importPlanSummary,
   resolveCandidateSelectionAction,
@@ -16,7 +15,8 @@ import {
 } from './ocr/performance-ledger.js';
 import { runStartupIntegrityChecks } from './resilience.js';
 import { safeRemoveItem, safeSetItem } from './storage.js';
-import { loadHoldingsRepository, saveLegacyHoldingsTransaction } from './storage/holdings-repository.js';
+import { loadHoldingsRepository, withHoldingsLock } from './storage/holdings-repository.js';
+import { commitConfirmedImport } from './ocr/import-transaction.js';
 
 const CACHE_KEY = 'fuyu_funds_cache_v1';
 const OCR_IMPORT_PENDING_KEY = 'fuyu_ocr_import_pending_v1';
@@ -24,6 +24,7 @@ const OCR_IMPORT_PENDING_KEY = 'fuyu_ocr_import_pending_v1';
 let activeSession = 0;
 let paddleOcrModulePromise = null;
 let activeRecognitionTask = null;
+let importInProgress = false;
 let activeMatchSession = null;
 let state = { rows: [], catalogWarning: '' };
 
@@ -144,7 +145,7 @@ function setRecognitionControlsDisabled(disabled) {
 
 function beginRecognitionTask() {
   if (activeRecognitionTask) return null;
-  const task = { session: ++activeSession };
+  const task = { session: ++activeSession, controller: new AbortController() };
   activeRecognitionTask = task;
   setRecognitionControlsDisabled(true);
   return task;
@@ -156,18 +157,21 @@ function finishRecognitionTask(task) {
   setRecognitionControlsDisabled(false);
 }
 
-function currentHoldings() {
+async function currentHoldings() {
   try {
     // This page can be opened directly, so it must run the same conservative
     // integrity gate as the main entry before it ever writes a merged batch.
-    const checked = runStartupIntegrityChecks(globalThis.localStorage);
-    if (checked.preservePrimary) return null;
-    const loaded = loadHoldingsRepository(globalThis.localStorage, { cacheKey: CACHE_KEY });
-    if (!loaded.ok || !loaded.document || !Array.isArray(loaded.legacy)) return null;
-    return {
-      document: loaded.document,
-      holdings: loaded.legacy.map(item => ({ ...item })),
-    };
+    const result = await withHoldingsLock(() => {
+      const checked = runStartupIntegrityChecks(globalThis.localStorage);
+      if (checked.preservePrimary) return null;
+      const loaded = loadHoldingsRepository(globalThis.localStorage, { cacheKey: CACHE_KEY });
+      if (!loaded.ok || !loaded.document || !Array.isArray(loaded.legacy)) return null;
+      return {
+        document: loaded.document,
+        holdings: loaded.legacy.map(item => ({ ...item })),
+      };
+    });
+    return result?.document ? result : null;
   } catch (_) {
     return null;
   }
@@ -414,6 +418,7 @@ async function processSelectedFile(file) {
     const localOcr = await paddleOcrModulePromise;
     failureStage = 'recognition';
     const recognition = await localOcr.recognizeAlipayPaddleImage(file, {
+      signal: task.controller.signal,
       onProgress({ phase }) { setWorking(session, phase); },
     });
     mergeRecognitionPerformance(performanceRun, recognition?.performance);
@@ -457,7 +462,7 @@ async function processSelectedFile(file) {
     // separate local-storage integrity failure cannot erase a successful run.
     recordPerformanceOnce('none');
     failureStage = 'parse';
-    const holdingsSnapshot = currentHoldings();
+    const holdingsSnapshot = await currentHoldings();
     if (holdingsSnapshot == null) {
       state = { rows: [], catalogWarning: '' };
       element('ocr-import-body').innerHTML = '<div class="ocr-results-summary">无法安全读取现有持仓。请返回主页面完成数据恢复后再导入。</div>';
@@ -468,6 +473,7 @@ async function processSelectedFile(file) {
       rows: createHoldingImportPlan(parsed.holdings, holdingsSnapshot.holdings),
       catalogWarning,
       holdings: holdingsSnapshot.holdings,
+      baselineDocument: holdingsSnapshot.document,
       performanceEntry,
     };
     renderResults();
@@ -488,7 +494,7 @@ async function processSelectedFile(file) {
 }
 
 async function confirmImport() {
-  if (activeRecognitionTask) return;
+  if (activeRecognitionTask || importInProgress) return;
   if (!state.rows.length) return;
   if (!element('ocr-import-ack')?.checked) {
     setStatus('请先确认已核对基金身份和真实持有份额。', { error: true });
@@ -501,23 +507,8 @@ async function confirmImport() {
     setStatus('请修正标出的条目；未填写真实份额不会导入。', { error: true });
     return;
   }
-  const previousSnapshot = currentHoldings();
-  if (previousSnapshot == null) {
-    setStatus('无法安全读取现有持仓，未同步任何变更。', { error: true });
-    return;
-  }
-  const previousHoldings = previousSnapshot.holdings;
-  const result = applyHoldingImportPlan(previousHoldings, rows);
-  if (!result.ok) {
-    showValidationErrors(result.errors);
-    setStatus('请修正标出的条目后重试。', { error: true });
-    return;
-  }
-  if (!result.applied) {
-    setStatus('没有需要同步的持仓变更。');
-    return;
-  }
   const confirmButton = element('ocr-import-confirm');
+  importInProgress = true;
   confirmButton.disabled = true;
   let transactionResult = null;
   const commitStartedAt = monotonicNow();
@@ -533,20 +524,20 @@ async function confirmImport() {
   try {
     // Establish the data-free recovery flag before mutating canonical holdings.
     // A harmless extra refresh is preferable to an unscheduled successful import.
-    if (!safeSetItem(OCR_IMPORT_PENDING_KEY, '1')) throw new Error();
-    const restoreCodes = result.values
-      .filter(change => previousHoldings.some(item => item.code === change.code && item.deleted === true))
-      .map(change => change.code);
-    transactionResult = saveLegacyHoldingsTransaction(undefined, result.holdings, {
+    transactionResult = await commitConfirmedImport(globalThis.localStorage, rows, state.baselineDocument, {
       cacheKey: CACHE_KEY,
-      expectedDocument: previousSnapshot.document,
-      allowRestoreCodes: restoreCodes,
+      beforeSave: () => safeSetItem(OCR_IMPORT_PENDING_KEY, '1'),
     });
     if (!transactionResult.ok) {
       if (transactionResult.reason === 'stale_local_document') {
         throw new Error('holding_changed_elsewhere');
       }
       throw new Error(transactionResult.reason || 'holding_transaction_failed');
+    }
+    if (!transactionResult.applied) {
+      setStatus('没有需要同步的持仓变更。');
+      confirmButton.disabled = false;
+      return;
     }
     recordCommitTiming();
     // The main page consumes the recovery flag on its next startup. If the
@@ -566,6 +557,8 @@ async function confirmImport() {
       ? '持仓已在另一页面更新。为避免覆盖，请返回后重新识别并确认。'
       : '无法安全保存持仓，未同步任何变更。请稍后重试。', { error: true });
     confirmButton.disabled = false;
+  } finally {
+    importInProgress = false;
   }
 }
 
@@ -593,8 +586,7 @@ function chooseCandidate(event) {
 
 function existingHoldingForCode(code) {
   if (!/^\d{6}$/.test(String(code || '').trim())) return null;
-  const snapshot = Array.isArray(state.holdings) ? null : currentHoldings();
-  const holdings = Array.isArray(state.holdings) ? state.holdings : snapshot?.holdings;
+  const holdings = state.holdings;
   return Array.isArray(holdings)
     ? holdings.find(item => item.code === code && item.deleted !== true) || null
     : null;
@@ -636,6 +628,7 @@ function requestFile() {
 
 function clearSensitiveSession() {
   activeSession += 1;
+  activeRecognitionTask?.controller.abort();
   activeMatchSession?.clear();
   activeMatchSession = null;
   element('ocr-image-input').value = '';

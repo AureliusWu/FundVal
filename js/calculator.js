@@ -1,5 +1,5 @@
 const valid = value => Number.isFinite(value) && value > 0;
-const numberOrNaN = value => value == null || (typeof value === 'string' && value.trim() === '') ? NaN : Number(value);
+const numberOrNaN = value => value == null || typeof value === 'boolean' || (typeof value === 'string' && value.trim() === '') ? NaN : Number(value);
 
 export function normalizeFundEstimate(raw) {
   const last = numberOrNaN(raw?.dwjz);
@@ -11,32 +11,25 @@ export function normalizeFundEstimate(raw) {
 }
 
 export function calculateHolding(shares, cost, nav, baseNav) {
-  shares = Math.max(0, Number(shares) || 0);
+  shares = numberOrNaN(shares);
   const parsedCost = numberOrNaN(cost);
   const hasKnownCost = Number.isFinite(parsedCost) && parsedCost >= 0;
-  if (!valid(nav)) return { value: null, todayProfit: null, totalProfit: null, totalProfitRate: null };
+  if (!Number.isFinite(shares) || shares < 0 || !valid(nav)) return { value: null, todayProfit: null, totalProfit: null, totalProfitRate: null };
   const value = shares * nav;
-  const totalProfit = shares && hasKnownCost ? value - shares * parsedCost : null;
+  const totalProfit = shares > 0 && hasKnownCost ? value - shares * parsedCost : null;
   return {
     value,
-    todayProfit: shares && valid(baseNav) ? shares * (nav - baseNav) : null,
+    todayProfit: shares > 0 && valid(baseNav) ? shares * (nav - baseNav) : null,
     totalProfit,
-    totalProfitRate: shares && hasKnownCost && parsedCost > 0 ? totalProfit / (shares * parsedCost) * 100 : null
+    totalProfitRate: shares > 0 && hasKnownCost && parsedCost > 0 ? totalProfit / (shares * parsedCost) * 100 : null
   };
 }
 
 export function resolveQuoteBaseNav(fund = {}, quote = fund.quote) {
-  const positiveOrNull = value => {
-    const number = numberOrNaN(value);
-    return valid(number) ? number : null;
-  };
-  if (quote?.valueKind === 'official_nav') {
-    return positiveOrNull(fund.latest_nav_move?.prevNav) ?? positiveOrNull(fund.last_nav);
-  }
-  if (quote?.valueKind === 'model_estimate') {
-    return positiveOrNull(fund.est_model_base_nav) ?? positiveOrNull(fund.last_nav);
-  }
-  return positiveOrNull(fund.last_nav);
+  // Never borrow an enrichment's baseline for a different selected candidate.
+  // Older cached envelopes without a bound period retain NAV but no period P/L.
+  return valid(quote?.baseNav) && quote.baseNavDate && quote.targetDate
+    && quote.baseNavDate < quote.targetDate ? quote.baseNav : null;
 }
 
 export function chooseDisplayValue({ official, estimate, cached, overseas = false }) {

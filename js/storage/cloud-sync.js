@@ -138,15 +138,31 @@ export function canonicalCloudPayload(value, expectedSchema) {
  * pending instead of being silently marked as uploaded.
  */
 export function finalizeCreatedArchiveState(uploadedValue, currentValue, previousMeta = {}, details = {}) {
+  return finalizeCloudSyncMetadata(currentValue, previousMeta, {
+    ...details, uploadedDocument: uploadedValue, pending: false,
+  });
+}
+
+/**
+ * Call with the latest repository document while holding the origin-wide lock.
+ * A merged pull snapshot is not evidence that the same snapshot was uploaded.
+ * Keep an explicit pending bit for bridge convergence even when hashes match.
+ */
+export function finalizeCloudSyncMetadata(currentValue, previousMeta = {}, details = {}) {
+  const reference = details.uploadedDocument || details.pulledDocument;
+  if (!reference) throw new Error('verified sync snapshot required');
+  const uploadedValue = reference;
   const uploadedDocument = normalizeHoldingsDocumentV3(uploadedValue);
   const currentDocument = normalizeHoldingsDocumentV3(currentValue);
   const uploadedHash = canonicalHoldingsDocument(uploadedDocument);
   const currentHash = canonicalHoldingsDocument(currentDocument);
-  const pending = uploadedHash !== currentHash;
+  const pending = details.pending === true || uploadedHash !== currentHash;
   const meta = {
     ...(isObject(previousMeta) ? previousMeta : {}),
-    last_push_hash: uploadedHash,
+    last_push_hash: details.uploadedDocument || details.pending !== true
+      ? uploadedHash : String(previousMeta?.last_push_hash || ''),
     pending_hash: pending ? currentHash : '',
+    pending,
     last_remote_schema: Number.isSafeInteger(Number(details.remoteSchema))
       ? Number(details.remoteSchema)
       : HOLDINGS_SCHEMA_VERSION,
@@ -279,13 +295,17 @@ async function writeLocal(local, document, phase) {
 }
 
 async function markPending(local, pending, details) {
-  if (typeof local.markPending !== 'function') return { ok: true, persisted: false };
+  if (typeof local.markPending !== 'function') return { ok: true, persisted: false, pending };
   try {
     const result = await local.markPending(pending, details);
     if (result === false || result?.ok === false) {
       return { ok: false, reason: result?.reason || 'pending_marker_failed' };
     }
-    return { ok: true, persisted: true };
+    return {
+      ok: true, persisted: true,
+      pending: typeof result?.pending === 'boolean' ? result.pending : pending,
+      document: result?.document ? normalizeHoldingsDocumentV3(result.document) : null,
+    };
   } catch (error) {
     return { ok: false, reason: error?.code || 'pending_marker_failed', error };
   }
@@ -503,16 +523,16 @@ export async function synchronizeHoldingsCloud(options = {}) {
 
   return Object.freeze({
     ok: true,
-    reason: pending ? 'synced_with_pending_changes' : 'synced',
+    reason: pendingState.pending ? 'synced_with_pending_changes' : 'synced',
     patched: true,
     patchAcknowledged: true,
     remoteVerified: true,
-    pending,
+    pending: pendingState.pending,
     pendingPersisted: pendingState.persisted,
     writeSchema,
     sourceSchema: remoteParsed.sourceSchema,
     upgraded: writeSchema === HOLDINGS_SCHEMA_VERSION && remoteParsed.sourceSchema < HOLDINGS_SCHEMA_VERSION,
-    document: finalDocument,
+    document: pendingState.document || finalDocument,
     uploadedDocument: uploadDocument,
   });
 }
@@ -592,14 +612,14 @@ export async function pullHoldingsCloud(options = {}) {
 
   return Object.freeze({
     ok: true,
-    reason: pending ? 'pulled_with_pending_changes' : 'pulled',
+    reason: pendingState.pending ? 'pulled_with_pending_changes' : 'pulled',
     patched: false,
     patchAcknowledged: false,
     remoteVerified: true,
-    pending,
+    pending: pendingState.pending,
     pendingPersisted: pendingState.persisted,
     sourceSchema: remoteParsed.sourceSchema,
-    changed: mergedCanonical !== localCanonical,
-    document: finalDocument,
+    changed: canonicalHoldingsDocument(pendingState.document || finalDocument) !== localCanonical,
+    document: pendingState.document || finalDocument,
   });
 }

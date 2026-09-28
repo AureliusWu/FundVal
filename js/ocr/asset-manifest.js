@@ -155,19 +155,42 @@ export async function loadOcrAssetManifest({
   url = OCR_ASSET_MANIFEST_URL,
   engineVersion = OCR_ENGINE_VERSION,
   ortVersion = OCR_ORT_VERSION,
+  timeoutMs = 20_000,
+  signal,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new OcrAssetManifestError('fetch_unavailable');
-  let response;
+  const controller = new AbortController();
+  let timer;
+  let onAbort;
+  const cancelled = new Promise((_, reject) => {
+    onAbort = () => {
+      controller.abort();
+      reject(new OcrAssetManifestError('aborted'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new OcrAssetManifestError('fetch_timeout'));
+    }, Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 20_000);
+    if (signal?.aborted) onAbort();
+  });
   try {
-    response = await fetchImpl(url, { cache: 'no-store', credentials: 'same-origin' });
-  } catch (_) {
-    throw new OcrAssetManifestError('fetch_failed');
-  }
-  if (!response?.ok) throw new OcrAssetManifestError('fetch_failed');
-  try {
-    return validateOcrAssetManifest(await response.json(), { engineVersion, ortVersion });
+    return await Promise.race([cancelled, (async () => {
+      if (controller.signal.aborted) throw new OcrAssetManifestError('aborted');
+      let response;
+      try {
+        response = await fetchImpl(url, { cache: 'no-store', credentials: 'same-origin', signal: controller.signal });
+      } catch {
+        throw new OcrAssetManifestError('fetch_failed');
+      }
+      if (!response?.ok) throw new OcrAssetManifestError('fetch_failed');
+      return validateOcrAssetManifest(await response.json(), { engineVersion, ortVersion });
+    })()]);
   } catch (error) {
     if (error instanceof OcrAssetManifestError) throw error;
     throw new OcrAssetManifestError('manifest_invalid');
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onAbort);
   }
 }

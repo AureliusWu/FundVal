@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchFundHoldings, normalizeHoldingRow } from '../js/fund-holdings.js';
+import { readFile } from 'node:fs/promises';
+import { fetchFundHoldings, normalizeHoldingRow, holdingQuoteCode } from '../js/fund-holdings.js';
+import { formatChinaQuoteTime, normalizeTencentQuoteTime } from '../js/holdings-estimate.js';
 
 test('normalizes a disclosed holding without coercing missing ratios to zero', () => {
   assert.deepEqual(normalizeHoldingRow({ code: '688361', name: '中科飞测', ratio: '9.55' }), {
@@ -9,6 +11,59 @@ test('normalizes a disclosed holding without coercing missing ratios to zero', (
     ratio: 9.55,
   });
   assert.equal(normalizeHoldingRow({ code: '688361', name: '中科飞测', ratio: null }), null);
+});
+
+test('preserves mixed alphanumeric Japanese codes and explicit exchange identity', () => {
+  assert.deepEqual(normalizeHoldingRow({ code: '285A', name: 'Test Japan', ratio: 2, market: 'JP' }), {
+    code: '285A', name: 'Test Japan', ratio: 2, market: 'jp',
+  });
+  assert.equal(normalizeHoldingRow({ code: '285A', name: 'Test Japan', ratio: 2, market: '<script>' }).market, 'unknown');
+  assert.equal(holdingQuoteCode({ code: '285A', market: 'jp' }), 'jp285A');
+});
+
+test('numeric overseas holdings cannot borrow A-share quotes by matching code length', () => {
+  assert.equal(holdingQuoteCode({ code: '000660' }), '');
+  assert.equal(holdingQuoteCode({ code: '000660', market: 'kr' }), 'kr000660');
+  assert.equal(holdingQuoteCode({ code: '000660', market: 'kr' }, { allowMainland: true }), 'kr000660');
+  assert.equal(holdingQuoteCode({ code: '00700' }), '');
+  assert.equal(holdingQuoteCode({ code: '00700', market: 'hk' }), 'hk00700');
+  assert.equal(holdingQuoteCode({ code: 'BRK.B', market: 'us' }), 'usBRK_B');
+  assert.equal(holdingQuoteCode({ code: 'BRK.B' }), '');
+  assert.equal(holdingQuoteCode({ code: '688361' }, { allowMainland: true }), 'sh688361');
+  assert.equal(holdingQuoteCode({ code: '300750' }, { allowMainland: true }), 'sz300750');
+  assert.equal(holdingQuoteCode({ code: '000660', market: 'unknown' }, { allowMainland: true }), '');
+});
+
+test('app routes identical Korean and mainland codes independently and removes unidentified cached moves', async () => {
+  const source = await readFile(new URL('../js/app.js', import.meta.url), 'utf8');
+  const body = source.slice(source.indexOf('async function fetchHoldingsQuotes('), source.indexOf('function fmtQuoteNav('));
+  const fetchQuotes = new Function('loadFundHoldingsFeature', 'fundsData', 'holdings', 'classifyFundMarket',
+    'fetchWithTimeout', 'TIMING', 'parseNav', 'formatChinaQuoteTime', 'loadQuoteBridgeFeature', 'normalizeTencentQuoteTime',
+    `${body}\nreturn fetchHoldingsQuotes;`)(
+    async () => ({ holdingQuoteCode }), [{ code: '012920', name: 'Synthetic QDII' }], [], () => 'qdii',
+    async url => {
+      assert.match(url, /secids=0\.000660&/);
+      return Response.json({ data: { diff: [{ f12: '000660', f3: 3, f124: 1788822000 }] } });
+    }, { INDEX_JSONP_TIMEOUT: 100 }, Number, formatChinaQuoteTime,
+    async () => ({ securityQuotes: async codes => {
+      assert.deepEqual(codes, ['kr000660', 'jp285A']);
+      return { quotes: [
+        { code: 'kr000660', changePct: -2, sourceTimeRaw: '20260908145900' },
+        { code: 'jp285A', changePct: 1, sourceTimeRaw: '20260908145900' },
+      ] };
+    } }), normalizeTencentQuoteTime,
+  );
+  const stocks = [
+    { code: '000660', market: 'cn' }, { code: '000660', market: 'kr' }, { code: '285A', market: 'jp' },
+    { code: '000660', change: 99, quoteTime: '2026-09-08 13:59:00' },
+  ];
+  await fetchQuotes('012920', stocks);
+  assert.equal(stocks[0].change, 3);
+  assert.equal(stocks[1].change, -2);
+  assert.equal(stocks[2].change, 1);
+  assert.equal(stocks[1].quoteTime, '2026-09-08 13:59:00');
+  assert.equal(stocks[3].change, undefined);
+  assert.equal(stocks[3].quoteTime, undefined);
 });
 
 test('rejects malformed or executable holdings fields before they reach rendering', () => {

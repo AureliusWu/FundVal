@@ -32,7 +32,10 @@ const SAFE_WORKER_ERRORS = Object.freeze({
   'already-disposed': 'PaddleOCR worker has already been disposed.',
   'busy': 'PaddleOCR worker is already processing a local image.',
   'engine-failure': 'PaddleOCR worker operation failed.',
+  'timeout': 'PaddleOCR worker operation timed out. Please retry.',
+  'aborted': 'PaddleOCR worker operation was cancelled.',
 });
+const WORKER_TIMEOUTS = Object.freeze({ init: 180_000, predict: 90_000, dispose: 1_000 });
 
 function resolveSameOriginAsset(relativePath) {
   const assetUrl = new URL(relativePath, import.meta.url);
@@ -61,7 +64,7 @@ function isTransferableImageBitmap(image) {
   return typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap;
 }
 
-function createWorkerClient() {
+export function createWorkerClient({ signal, timeouts = WORKER_TIMEOUTS } = {}) {
   if (typeof Worker !== 'function') {
     throw toSafeWorkerError('unsupported-runtime');
   }
@@ -85,7 +88,10 @@ function createWorkerClient() {
 
   const rejectPending = code => {
     const safeError = toSafeWorkerError(code);
-    for (const request of pending.values()) request.reject(safeError);
+    for (const request of pending.values()) {
+      clearTimeout(request.timer);
+      request.reject(safeError);
+    }
     pending.clear();
   };
 
@@ -93,8 +99,12 @@ function createWorkerClient() {
     if (terminated) return;
     terminated = true;
     rejectPending(code);
+    signal?.removeEventListener('abort', onAbort);
+    worker.onmessage = worker.onerror = worker.onmessageerror = null;
     worker.terminate();
   };
+  const onAbort = () => terminate('aborted');
+  signal?.addEventListener('abort', onAbort, { once: true });
 
   worker.onmessage = event => {
     const response = event.data;
@@ -102,6 +112,7 @@ function createWorkerClient() {
     const request = pending.get(response.requestId);
     if (!request) return;
     pending.delete(response.requestId);
+    clearTimeout(request.timer);
     if (response.status === 'success') request.resolve(response.payload);
     else request.reject(toSafeWorkerError(response.errorCode));
   };
@@ -113,6 +124,7 @@ function createWorkerClient() {
     terminate('engine-failure');
   };
   worker.onmessageerror = () => terminate('engine-failure');
+  if (signal?.aborted) onAbort();
 
   return Object.freeze({
     request(type, payload = {}, transferables = []) {
@@ -120,11 +132,16 @@ function createWorkerClient() {
       const requestId = nextRequestId;
       nextRequestId += 1;
       return new Promise((resolve, reject) => {
-        pending.set(requestId, { resolve, reject });
+        const configured = timeouts[type];
+        const timeoutMs = Number.isFinite(configured) && configured > 0
+          ? configured : (WORKER_TIMEOUTS[type] || WORKER_TIMEOUTS.predict);
+        const timer = setTimeout(() => terminate('timeout'), timeoutMs);
+        pending.set(requestId, { resolve, reject, timer });
         try {
           worker.postMessage({ kind: REQUEST_KIND, requestId, type, payload }, transferables);
         } catch {
           pending.delete(requestId);
+          clearTimeout(timer);
           reject(toSafeWorkerError('engine-failure'));
         }
       });
@@ -304,8 +321,8 @@ function summarizePredictionMetrics(prediction) {
   }, { detectionMs: 0, recognitionMs: 0, blockCount: 0 });
 }
 
-function createPaddleWorkerBackend({ backend, assets }) {
-  const client = createWorkerClient();
+function createPaddleWorkerBackend({ backend, assets, signal }) {
+  const client = createWorkerClient({ signal });
   let initializationSummary = null;
   const cumulative = { detectionMs: 0, recognitionMs: 0, blockCount: 0 };
   let disposed = false;
@@ -339,6 +356,10 @@ function createPaddleWorkerBackend({ backend, assets }) {
     async dispose() {
       if (disposed) return;
       disposed = true;
+      if (signal?.aborted) {
+        client.terminate('already-disposed');
+        return;
+      }
       try {
         await client.request('dispose');
       } finally {
@@ -356,8 +377,13 @@ function createPaddleWorkerBackend({ backend, assets }) {
  */
 export async function createLocalPaddleOcr({
   onProgress,
+  signal,
   createEngine = options => new LocalOcrEngine(options),
 } = {}) {
+  const workerController = new AbortController();
+  const abortWorker = () => workerController.abort();
+  signal?.addEventListener('abort', abortWorker, { once: true });
+  if (signal?.aborted) abortWorker();
   const assets = Object.freeze({
     detection: resolveSameOriginAsset(LOCAL_MODEL_PATHS.detection),
     recognition: resolveSameOriginAsset(LOCAL_MODEL_PATHS.recognition),
@@ -370,10 +396,12 @@ export async function createLocalPaddleOcr({
       [OCR_BACKEND.WEBGPU]: () => createPaddleWorkerBackend({
         backend: OCR_BACKEND.WEBGPU,
         assets,
+        signal: workerController.signal,
       }),
       [OCR_BACKEND.WASM]: () => createPaddleWorkerBackend({
         backend: OCR_BACKEND.WASM,
         assets,
+        signal: workerController.signal,
       }),
     },
   });
@@ -383,6 +411,8 @@ export async function createLocalPaddleOcr({
     await engine.initialize();
   } catch (_) {
     const performance = enginePerformanceMetadata(engine);
+    abortWorker();
+    signal?.removeEventListener('abort', abortWorker);
     try { await engine.dispose?.(); } catch { /* cleanup must not mask the fixed public error */ }
     throw safePerformanceError(performance);
   }
@@ -415,6 +445,10 @@ export async function createLocalPaddleOcr({
     async dispose() {
       if (disposed) return;
       disposed = true;
+      // Abort outstanding worker requests before the engine waits for them.
+      // A silent worker must not hold image resources until predict's deadline.
+      abortWorker();
+      signal?.removeEventListener('abort', abortWorker);
       try {
         await engine.dispose();
       } finally {

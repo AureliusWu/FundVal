@@ -51,3 +51,28 @@ export function accuracyStats(rows) {
   const confidence = settled.length < 5 ? 'collecting' : settled.length < 20 ? 'low' : mae <= .5 && direction >= 70 ? 'high' : mae <= .8 ? 'medium' : 'low';
   return { samples: settled.length, mae, bias, directionRate: direction, p80: abs.length ? abs[Math.min(abs.length - 1, Math.ceil(abs.length * .8) - 1)] : null, confidence };
 }
+
+// Loaded only for an overseas fund or explicit export, never needed to paint
+// the homepage. The refresh coordinator guards the call after dynamic import.
+export function updateFundAccuracy(fund, { now = Date.now(), storage = defaultStorage() } = {}) {
+  let rows = loadAccuracy(storage);
+  const move = fund.latest_nav_move;
+  const recordedAt = new Date(now).toISOString();
+  if (move?.date && Number.isFinite(move.change)) {
+    rows = settlePredictions(rows, fund.code, move.date, move.change, recordedAt, move.prevDate || '');
+  }
+  const china = new Date(now + 8 * 3600_000);
+  const minute = china.getUTCHours() * 60 + china.getUTCMinutes();
+  const quote = fund.quote;
+  if (quote?.valueKind === 'model_estimate' && quote.status === 'model' && fund.est_model && !fund.est_model_stale
+      && quote.baseNavDate && quote.targetDate && Number.isFinite(quote.changePct) && minute >= 870) {
+    rows = recordPrediction(rows, {
+      code: fund.code, prediction_date: china.toISOString().slice(0, 10),
+      target_nav_date: quote.targetDate, base_nav_date: quote.baseNavDate,
+      model_version: fund.est_model_version || 'unknown', model_label: fund.est_model_label || '',
+      predicted_change: quote.changePct, confidence: fund.est_confidence || 'unknown', recorded_at: recordedAt,
+    });
+  }
+  saveAccuracy(rows, storage);
+  fund.accuracy = accuracyStats(rows.filter(row => row.code === fund.code));
+}

@@ -54,8 +54,8 @@ test('all current source kinds normalize to the same exact Quote Envelope shape'
   const quotes = [
     normalizeEstimateQuote({ est_nav: 1.01, est_change: 0, est_time: '2026-08-25 10:04', est_realtime: true, source: 'sinan-estimate-proxy' }, context),
     normalizeOfficialNavQuote({ nav: 1.01, change: 1, date: '2026-08-24' }, context),
-    normalizeMarketModelQuote({ est_nav: 1.02, est_change: 2, est_model: true, est_model_time: '2026-08-25 10:04', est_model_weight: 82, est_confidence: 'medium' }, context),
-    normalizeHoldingLookthroughQuote({ est_nav: 1.03, est_change: 3, est_holdings_model: true, est_time: '2026-08-25 10:04', est_coverage: 75 }, context),
+    normalizeMarketModelQuote({ est_nav: 1.02, est_change: 2, est_model: true, est_model_time: '2026-08-25 10:04', est_model_weight: 82, est_confidence: 'medium', est_model_base_nav: 1, est_model_base_date: '2026-08-24', est_model_target_date: '2026-08-25' }, context),
+    normalizeHoldingLookthroughQuote({ est_nav: 1.03, est_change: 3, est_holdings_model: true, est_time: '2026-08-25 10:04', est_coverage: 75, est_holdings_base_nav: 1, est_holdings_base_date: '2026-08-24', est_holdings_target_date: '2026-08-25' }, context),
   ];
   const keys = Object.keys(quotes[0]);
   quotes.forEach(quote => assert.deepEqual(Object.keys(quote), keys));
@@ -159,6 +159,7 @@ test('fund candidate builder keeps model and official candidates separately befo
   const fund = {
     code: '012920', name: '全球成长 QDII', est_nav: 4.1, est_change: 1.5,
     est_model: true, est_model_time: '2026-08-25 10:00', est_model_weight: 80,
+    est_model_base_nav: 4, est_model_base_date: '2026-08-24', est_model_target_date: '2026-08-25',
     latest_nav_move: { nav: 4, prevNav: 3.9, change: 2.56, date: '2026-08-22' },
   };
   const quotes = buildFundQuoteCandidates(fund, { fetchedAt: '2026-08-25T02:05:00Z', now: NOW });

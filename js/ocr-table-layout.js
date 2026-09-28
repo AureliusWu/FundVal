@@ -237,7 +237,12 @@ function columnForToken(token, columns) {
 
 function matchIsUsable(match) {
   if (!match || Array.isArray(match)) return false;
-  if (match.status && match.status !== 'matched') return false;
+  if (match.status && match.status !== 'matched') {
+    // Catalog-backed A/C ambiguity is a valid preview anchor, not a chosen
+    // identity. Keep its raw name and candidates for explicit confirmation.
+    return Array.isArray(match.candidates) && match.candidates.some(candidate =>
+      /^\d{6}$/.test(String(candidate?.code || '')) && cleanText(candidate?.name));
+  }
   if (match.matched === false) return false;
   const code = match.code ?? match.fund?.code;
   const name = match.name ?? match.fund?.name;
@@ -405,44 +410,45 @@ function buildNumericRecords(tokens, columns, typicalHeight) {
 }
 
 function buildRowDrafts(tokens, anchors, columns, typicalHeight, imageWidth) {
-  const records = buildNumericRecords(tokens, columns, typicalHeight);
-  const unusedAnchors = new Set(anchors);
-  const drafts = records.map(record => {
-    let anchor = null;
-    let distance = Infinity;
-    for (const candidate of unusedAnchors) {
-      const anchorY = (candidate.bbox.y0 + candidate.bbox.y1) / 2;
-      const candidateDistance = Math.abs(anchorY - record.topY);
-      if (candidateDistance < distance) {
-        anchor = candidate;
-        distance = candidateDistance;
-      }
-    }
-    if (distance > Math.max(70, typicalHeight * 4.5)) anchor = null;
-    if (anchor) unusedAnchors.delete(anchor);
-    const y0 = Math.max(0, record.y0 - typicalHeight * 0.8);
-    const y1 = record.y1 + typicalHeight * 0.8;
-    return {
-      name: anchor?.text || '',
-      match: anchor?.match || null,
-      bbox: anchor?.bbox || { x0: 0, y0, x1: columns.left.x1, y1 },
-      band: { y0, y1 },
-      _middle: record.middle,
-      _right: record.right,
-      _imageWidth: imageWidth
-    };
-  });
-
-  for (const anchor of unusedAnchors) {
+  const claimed = new Set();
+  const drafts = anchors.map((anchor, index) => {
     const y0 = Math.max(0, anchor.bbox.y0 - typicalHeight * 0.55);
-    const y1 = anchor.bbox.y1 + typicalHeight * 0.8;
-    drafts.push({
+    const y1 = Math.min(
+      anchor.bbox.y0 + typicalHeight * 4.8,
+      anchors[index + 1]?.bbox.y0 - typicalHeight * 0.55 || Infinity,
+    );
+    const inBand = tokens.filter(token => {
+      const y = tokenCenter(token).y;
+      return y >= y0 && y < y1;
+    });
+    const middle = numericEvidence(inBand, { name: 'middle', columns });
+    const right = numericEvidence(inBand, { name: 'right', columns });
+    for (const item of [...middle, ...right]) claimed.add(item.token.sourceIndex);
+    return {
       name: anchor.text,
       match: anchor.match,
       bbox: anchor.bbox,
       band: { y0, y1 },
-      _middle: [],
-      _right: [],
+      _topY: anchor.bbox.y0 + typicalHeight / 2,
+      _middle: middle,
+      _right: right,
+      _imageWidth: imageWidth,
+    };
+  });
+  // Only complete numeric-only records may create an unnamed preview. They
+  // cannot consume values already assigned to a catalog-backed name band.
+  const records = buildNumericRecords(tokens.filter(token => !claimed.has(token.sourceIndex)), columns, typicalHeight);
+  for (const record of records) {
+    const y0 = Math.max(0, record.y0 - typicalHeight * 0.8);
+    const y1 = record.y1 + typicalHeight * 0.8;
+    drafts.push({
+      name: '',
+      match: null,
+      bbox: { x0: 0, y0, x1: columns.left.x1, y1 },
+      band: { y0, y1 },
+      _topY: record.topY,
+      _middle: record.middle,
+      _right: record.right,
       _imageWidth: imageWidth
     });
   }
@@ -469,7 +475,7 @@ function blankFields() {
   return Object.fromEntries(FIELD_KEYS.map(key => [key, null]));
 }
 
-function fieldsFromEvidence(row, allowed) {
+function fieldsFromEvidence(row, allowed, typicalHeight) {
   const fields = blankFields();
   if (!allowed) return fields;
 
@@ -479,10 +485,12 @@ function fieldsFromEvidence(row, allowed) {
 
   // Assign only unambiguous visual slots. A third numeric token is evidence of
   // an ad/noise/merged row, so that column remains missing for human review.
-  if (middleAmounts.length === 1) fields.holdingAmount = middleAmounts[0].value;
-  if (middleAmounts.length === 2) {
-    fields.holdingAmount = middleAmounts[0].value;
-    fields.dailyProfit = middleAmounts[1].value;
+  if (middleAmounts.length <= 2) {
+    const top = middleAmounts.filter(item => Math.abs(numericCenter(item) - row._topY) <= typicalHeight * 0.85);
+    const bottom = middleAmounts.filter(item => numericCenter(item) - row._topY > typicalHeight * 0.85
+      && numericCenter(item) - row._topY <= typicalHeight * 3);
+    if (top.length === 1) fields.holdingAmount = top[0].value;
+    if (bottom.length === 1) fields.dailyProfit = bottom[0].value;
   }
   if (rightAmounts.length === 1) fields.holdingProfit = rightAmounts[0].value;
   if (rightPercents.length === 1) fields.holdingProfitRate = rightPercents[0].value;
@@ -550,7 +558,7 @@ function toPreviewRow(row, fields, semanticReliable, typicalHeight) {
  *
  * `matchFund(name, context)` is the only identity authority. It must return a
  * single matched catalog entry (for example `{ status: 'matched', code }`) or
- * a falsey/ambiguous value. The result is a preview; callers must still ask for
+ * catalog-backed ambiguous candidates. The result is a preview; callers must still ask for
  * true share quantities before any holding can be saved.
  */
 export function reconstructOcrTableLayout({ tokens = [], imageWidth, matchFund } = {}) {
@@ -559,11 +567,12 @@ export function reconstructOcrTableLayout({ tokens = [], imageWidth, matchFund }
   const typicalHeight = median(normalized.map(token => token.y1 - token.y0).filter(height => height > 0), 18);
   const columns = deriveColumns(width);
   const header = detectHeader(normalized, typicalHeight);
-  const anchors = width > 0 ? findAnchors(normalized, columns, typicalHeight, matchFund) : [];
-  const drafts = width > 0 ? buildRowDrafts(normalized, anchors, columns, typicalHeight, width) : [];
+  const tableTokens = header.reliable ? normalized.filter(token => token.y0 > header.y1) : normalized;
+  const anchors = width > 0 ? findAnchors(tableTokens, columns, typicalHeight, matchFund) : [];
+  const drafts = width > 0 ? buildRowDrafts(tableTokens, anchors, columns, typicalHeight, width) : [];
   const geometry = inspectGeometry(drafts, width, columns);
   const semanticReliable = header.reliable || geometry.reliable;
-  const previewRows = drafts.map(row => toPreviewRow(row, fieldsFromEvidence(row, semanticReliable), semanticReliable, typicalHeight));
+  const previewRows = drafts.map(row => toPreviewRow(row, fieldsFromEvidence(row, semanticReliable, typicalHeight), semanticReliable, typicalHeight));
   const importable = header.reliable && geometry.reliable && previewRows.length > 0;
 
   return {

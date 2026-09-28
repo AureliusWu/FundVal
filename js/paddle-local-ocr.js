@@ -39,8 +39,10 @@ const REQUIRED_BROWSER_CAPABILITIES = Object.freeze([
 export const PADDLE_ROW_OCR_REGION = Object.freeze({
   left: 0.02,
   right: 0.995,
-  top: 0.16,
-  bottom: 0.90,
+  // Holdings may occur anywhere in a stitched screenshot. Identity/header
+  // evidence belongs to layout parsing, never a percentage-of-image crop.
+  top: 0,
+  bottom: 1,
   tileHeight: 1500,
   overlap: 160,
 });
@@ -423,6 +425,7 @@ function sortTokensInReadingOrder(tokens) {
  */
 export async function recognizeAlipayPaddleImage(file, {
   onProgress,
+  signal,
   runtime = globalThis,
   loadAssetManifest = loadOcrAssetManifest,
   loadPaddleFactory = loadLocalPaddleFactory,
@@ -437,6 +440,7 @@ export async function recognizeAlipayPaddleImage(file, {
   let preprocessMs = 0;
   let failureStage = 'capability';
   try {
+    signal?.throwIfAborted();
     assertPaddleOcrBrowserCapabilities(runtime);
     failureStage = 'input';
     await verifyPaddleOcrImageSignature(file);
@@ -459,12 +463,14 @@ export async function recognizeAlipayPaddleImage(file, {
     await loadAssetManifest({
       engineVersion: OCR_ENGINE_VERSION,
       ortVersion: OCR_ORT_VERSION,
+      ...(signal ? { signal } : {}),
     });
     report(onProgress, 'loading-engine', 0.10);
     failureStage = 'initialization';
     const createLocalPaddleOcr = await loadPaddleFactory();
     report(onProgress, 'loading-models', 0.18);
     ocr = await createLocalPaddleOcr({
+      signal,
       onProgress(event) {
         if (event?.phase === 'initializing') report(onProgress, 'initializing', 0.19);
         if (event?.phase === 'webgpu-fallback') report(onProgress, 'webgpu-fallback', 0.19);
@@ -474,6 +480,7 @@ export async function recognizeAlipayPaddleImage(file, {
     const tokens = [];
     failureStage = 'recognition';
     for (let index = 0; index < tiles.length; index += 1) {
+      signal?.throwIfAborted();
       const tile = tiles[index];
       report(onProgress, 'recognizing', 0.20 + 0.78 * (index / tiles.length));
       const crop = await createBitmap(source, tile.x, tile.y, tile.width, tile.height);

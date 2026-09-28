@@ -10,6 +10,7 @@ import {
   HOLDINGS_V3_KEY,
   loadHoldingsRepository,
   recoverPendingRepositoryTransaction,
+  withHoldingsLock,
 } from './storage/holdings-repository.js';
 
 const FUNDS_CACHE_KEY = 'fuyu_funds_cache_v1';
@@ -70,6 +71,7 @@ function showSystemToast(message, { reloadOnClick = false, duration = 6000 } = {
   else render();
 }
 
+/** Synchronous implementation; browser callers must already hold the repository lock. */
 export function runStartupIntegrityChecks(storage = localStorage, now = Date.now()) {
   const nowISO = new Date(now).toISOString();
   const originalHoldingsRaw = safeGet(storage, HOLDINGS_V3_KEY)
@@ -81,6 +83,15 @@ export function runStartupIntegrityChecks(storage = localStorage, now = Date.now
     : { ok: false, reason: recovery.reason, recovered: false, legacy: [] };
 
   if (!loaded.ok) {
+    if (loaded.reason === 'future_schema_readonly') {
+      // Older code must not even rotate backups/diagnostic copies of a newer
+      // document: preserving all original bytes takes precedence over repair.
+      return {
+        holdings: [], recovered: false, recoverySource: loaded.reason,
+        preservePrimary: true, cacheRepaired: false, orphanCacheCount: 0,
+        transactionBlocked: true, readonly: true,
+      };
+    }
     const corruptRaw = safeGet(storage, HOLDINGS_V3_KEY) || safeGet(storage, HOLDINGS_V1_COMPAT_KEY) || '';
     if (corruptRaw) safeSet(storage, CORRUPT_HOLDINGS_KEY, String(corruptRaw).slice(0, 50000));
     safeSet(storage, RECOVERY_NOTICE_KEY, JSON.stringify({ time: nowISO, source: loaded.reason, manual: true }));
@@ -130,6 +141,10 @@ export function runStartupIntegrityChecks(storage = localStorage, now = Date.now
   };
 }
 
+export function runStartupIntegrityChecksLocked(storage = localStorage, now = Date.now(), options = {}) {
+  return withHoldingsLock(() => runStartupIntegrityChecks(storage, now), options);
+}
+
 export function installRuntimeGuards(storage = localStorage) {
   document.documentElement.dataset.network = navigator.onLine === false ? 'offline' : 'online';
 
@@ -150,9 +165,9 @@ export function installRuntimeGuards(storage = localStorage) {
     });
   });
 
-  window.addEventListener('storage', event => {
+  window.addEventListener('storage', async event => {
     if (![HOLDINGS_V1_COMPAT_KEY, HOLDINGS_V3_KEY, HOLDINGS_JOURNAL_KEY].includes(event.key)) return;
-    runStartupIntegrityChecks(storage);
+    await runStartupIntegrityChecksLocked(storage);
     showSystemToast('检测到其他页面更新持仓，点击刷新', { reloadOnClick: true, duration: 10000 });
   });
 

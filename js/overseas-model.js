@@ -1,4 +1,5 @@
 import { MODEL_URL, TIMING } from './config.js';
+import { nextWeekdayDate } from './runtime/quote-contract.js';
 
 const MAX_QUOTE_AGE_MS = 36 * 60 * 60 * 1000;
 const CODE_PATTERN = /^\d{6}$/;
@@ -10,6 +11,7 @@ function emptyConfig() {
 let config = emptyConfig();
 
 function finiteNumber(value, fallback = null) {
+  if (value == null || typeof value === 'boolean' || String(value).trim() === '') return fallback;
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
@@ -151,6 +153,37 @@ function modelIsPastQuarter(model, nowMs) {
   return currentQuarter != null && currentQuarter > modelQuarter + 1;
 }
 
+// quotes.time has already been normalized to China time by the quote adapter.
+// NAV dates follow the underlying market session, not China's overnight date.
+export function validateOverseasEstimatePeriod(model, quotes, baseNavDate, { now = Date.now() } = {}) {
+  const normalized = normalizeModel(model);
+  const expected = nextWeekdayDate(baseNavDate);
+  const nowMs = Number(now);
+  const invalid = reason => ({ valid: false, targetDate: null, reason });
+  if (!normalized || !expected || !Number.isFinite(nowMs)) return invalid('模型基期不明确');
+  let weight = 0;
+  for (const leg of normalized.legs) {
+    const quote = quotes instanceof Map ? quotes.get(leg.code) : quotes?.[leg.code];
+    const time = parseQuoteTime(quote?.time);
+    if (!Number.isFinite(quote?.change) || !time || time.timestamp > nowMs || nowMs - time.timestamp > MAX_QUOTE_AGE_MS) continue;
+    const code = leg.code.toLowerCase();
+    const timeZone = code.startsWith('us') ? 'America/New_York'
+      : code.startsWith('kr') ? 'Asia/Seoul'
+        : code.startsWith('jp') ? 'Asia/Tokyo'
+          : /^(sh|sz|hk|r_hk)|^au9999$/.test(code) ? 'Asia/Shanghai' : null;
+    if (!timeZone) return invalid('行情市场身份不明确');
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date(time.timestamp)).map(part => [part.type, part.value]));
+    const sessionDate = `${parts.year}-${parts.month}-${parts.day}`;
+    if (sessionDate !== expected) return invalid('行情交易日与净值基期不匹配');
+    weight += leg.weight;
+  }
+  return weight >= normalized.min_weight
+    ? { valid: true, targetDate: expected, reason: '' }
+    : invalid('匹配净值基期的行情覆盖不足');
+}
+
 export function calculateOverseasEstimate(model, quotes, now = new Date()) {
   const normalizedModel = normalizeModel(model);
   if (!normalizedModel) return { change: null, usableWeight: 0, confidence: null, stale: true, reason: '无可靠模型' };
@@ -161,7 +194,7 @@ export function calculateOverseasEstimate(model, quotes, now = new Date()) {
   const sourceTimes = [];
   const rejected = { missingTime: 0, future: 0, stale: 0 };
   for (const leg of legs) {
-    const quote = quotes instanceof Map ? quotes.get(leg.code) : quotes[leg.code];
+    const quote = quotes instanceof Map ? quotes.get(leg.code) : quotes?.[leg.code];
     if (!quote || !Number.isFinite(quote.change)) continue;
     const quoteTime = parseQuoteTime(quote.time);
     if (!quoteTime) { excludedWeight += leg.weight; rejected.missingTime += 1; continue; }

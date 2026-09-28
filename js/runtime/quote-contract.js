@@ -88,6 +88,23 @@ export function parseQuoteTimestamp(value) {
   return Number.isFinite(timestamp) ? timestamp : null;
 }
 
+export function normalizeQuoteDate(value) {
+  const date = text(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const timestamp = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === date ? date : null;
+}
+
+// Conservative period guard, not an exchange holiday calendar. A holiday gap
+// needs cumulative returns and is deliberately not treated as a one-day move.
+export function nextWeekdayDate(value) {
+  const date = normalizeQuoteDate(value);
+  if (!date) return null;
+  const next = new Date(`${date}T00:00:00Z`);
+  do { next.setUTCDate(next.getUTCDate() + 1); } while ([0, 6].includes(next.getUTCDay()));
+  return next.toISOString().slice(0, 10);
+}
+
 function validFetchedAt(value, nowMs) {
   const candidate = text(value);
   const timestamp = candidate ? Date.parse(candidate) : NaN;
@@ -106,6 +123,11 @@ export function createQuoteEnvelope(input = {}, { now = Date.now() } = {}) {
   const observedMs = parseQuoteTimestamp(observedAt);
   const value = nullableNumber(input.value);
   const changePct = nullableNumber(input.changePct);
+  const valueKind = normalizeEnum(input.valueKind, VALUE_KIND_SET, 'intraday_estimate');
+  const baseNav = nullableNumber(input.baseNav, { minimum: Number.MIN_VALUE });
+  const baseNavDate = normalizeQuoteDate(input.baseNavDate);
+  const targetDate = normalizeQuoteDate(input.targetDate);
+  const officialNavDate = normalizeQuoteDate(input.officialNavDate);
   const reasonCodes = normalizeReasonCodes(input.reasonCodes);
   let status = normalizeEnum(input.status, STATUS_SET, 'unavailable');
   let ageMs = observedMs == null ? null : Math.max(0, nowMs - observedMs);
@@ -117,6 +139,13 @@ export function createQuoteEnvelope(input = {}, { now = Date.now() } = {}) {
     status = 'stale';
     ageMs = null;
     reasonCodes.push(...normalizeReasonCodes('SOURCE_TIME_IN_FUTURE'));
+  } else if ((officialNavDate || targetDate) > new Date(nowMs + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)) {
+    status = 'stale';
+    reasonCodes.push('SOURCE_DATE_IN_FUTURE');
+  } else if (['model_estimate', 'holding_lookthrough_estimate'].includes(valueKind)
+    && (baseNav == null || !baseNavDate || !targetDate || baseNavDate >= targetDate)) {
+    status = 'stale';
+    reasonCodes.push('MODEL_PERIOD_UNBOUND');
   }
 
   return Object.freeze({
@@ -124,14 +153,17 @@ export function createQuoteEnvelope(input = {}, { now = Date.now() } = {}) {
     fundName: text(input.fundName) || undefined,
     market: normalizeEnum(input.market, MARKET_KIND_SET, 'unknown'),
     assetKind: normalizeEnum(input.assetKind, ASSET_KIND_SET, 'unknown'),
-    valueKind: normalizeEnum(input.valueKind, VALUE_KIND_SET, 'intraday_estimate'),
+    valueKind,
     value,
     changePct,
+    baseNav,
+    baseNavDate,
+    targetDate,
     sourceId: text(input.sourceId) || 'unknown',
     sourceTier: normalizeEnum(input.sourceTier, SOURCE_TIER_SET, 'secondary'),
     observedAt,
     fetchedAt: validFetchedAt(input.fetchedAt, nowMs),
-    officialNavDate: text(input.officialNavDate) || null,
+    officialNavDate,
     status,
     ageMs,
     coverage: nullableNumber(input.coverage, { minimum: 0, maximum: 100 }),
@@ -168,6 +200,11 @@ export function quoteIsUsable(quote) {
 }
 
 export function compareQuotesByQuality(left, right) {
+  if (left?.valueKind === 'official_nav' && right?.valueKind === 'official_nav'
+    && left.status === 'official' && right.status === 'official') {
+    const dateDifference = String(right.officialNavDate || '').localeCompare(String(left.officialNavDate || ''));
+    if (dateDifference) return dateDifference;
+  }
   const statusDifference = quoteStatusRank(right) - quoteStatusRank(left);
   if (statusDifference) return statusDifference;
   const tierDifference = (SOURCE_TIER_RANK[right?.sourceTier] || 0) - (SOURCE_TIER_RANK[left?.sourceTier] || 0);
@@ -175,6 +212,11 @@ export function compareQuotesByQuality(left, right) {
   const leftTime = parseQuoteTimestamp(left?.observedAt) || 0;
   const rightTime = parseQuoteTimestamp(right?.observedAt) || 0;
   if (leftTime !== rightTime) return rightTime - leftTime;
+  if (left?.value === right?.value && left?.targetDate === right?.targetDate) {
+    const completeness = quote => [quote?.changePct, quote?.baseNav, quote?.baseNavDate].filter(value => value != null).length;
+    const difference = completeness(right) - completeness(left);
+    if (difference) return difference;
+  }
   return String(left?.sourceId || '').localeCompare(String(right?.sourceId || ''));
 }
 

@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-28",
+  "project": "FundVal",
+  "version": "15.0.2",
+  "scope": "local release candidate; synthetic browser network; not production or physical-device acceptance",
+  "environment": {
+    "browser": "Playwright Chromium",
+    "viewport": { "width": 390, "height": 844 },
+    "sampleCount": 3,
+    "serviceWorkers": "blocked for timing samples; tested separately by PWA E2E",
+    "serverCacheControl": "no-store",
+    "historicalTimingBaseline": null
+  },
+  "samplesMs": [
+    { "coldReadyMs": 155.5, "warmReadyMs": 96.7999999821186, "saveUiMs": 74.8769999999995 },
+    { "coldReadyMs": 145.30000001192093, "warmReadyMs": 128.80000001192093, "saveUiMs": 70.26980000000003 },
+    { "coldReadyMs": 157.69999998807907, "warmReadyMs": 113.59999999403954, "saveUiMs": 81.41020000000026 }
+  ],
+  "summaryMsRounded": {
+    "coldReadyMs": { "median": 155.5, "worst": 157.7 },
+    "warmReadyMs": { "median": 113.6, "worst": 128.8 },
+    "saveUiMs": { "median": 74.9, "worst": 81.4 }
+  },
+  "gzipBytes": {
+    "source": "site/js/app-chunks.json",
+    "historicalBaselineVersion": "15.0.1",
+    "coldStart": { "baseline": 51598, "current": 51941, "budget": 52241, "increasePercentRounded": 0.66, "verdict": "PASS" },
+    "allNonOcrChunks": { "baseline": 63167, "current": 70207, "increasePercentRounded": 11.15, "verdict": "WARN" }
+  },
+  "releaseArtifact": {
+    "fingerprint": "2571bf9c52d79196f4f0043a911a4e588c40bcfda7bafd94431ccd35cad54e6e",
+    "appChunks": { "count": 22, "totalBytes": 195074 },
+    "ocrAssets": { "count": 23, "totalBytes": 88196906 }
+  },
+  "verification": {
+    "dependencyAudit": { "command": "npm audit --audit-level=high", "vulnerabilities": 0 },
+    "nodeTests": { "passed": 410, "failed": 0 },
+    "browserTests": { "passed": 12, "failed": 0 },
+    "syntaxCheck": "PASS",
+    "build": "PASS twice with identical fingerprint"
+  }
+}

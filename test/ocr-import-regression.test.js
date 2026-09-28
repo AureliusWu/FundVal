@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('OCR import runs in an isolated local-only document and remains confirmation-gated', async () => {
-  const [app, page, localOcr, paddleOcr, paddleEntry, layout, plan, catalog, ledger, index, importPage, build, workflow, sw] = await Promise.all([
+  const [app, page, localOcr, paddleOcr, paddleEntry, layout, plan, catalog, ledger, index, importPage, build, workflow, sw, transaction] = await Promise.all([
     readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/local-ocr.js', import.meta.url), 'utf8'),
@@ -18,6 +18,7 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
     readFile(new URL('../scripts/build-site.mjs', import.meta.url), 'utf8'),
     readFile(new URL('../.github/workflows/deploy.yml', import.meta.url), 'utf8'),
     readFile(new URL('../sw.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/ocr/import-transaction.js', import.meta.url), 'utf8'),
   ]);
 
   assert.match(app, /window\.location\.assign\('ocr-import\.html'\)/);
@@ -41,7 +42,7 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.match(page, /finally \{\s*finishRecognitionTask\(task\)/);
   assert.match(page, /recordOcrPerformance\(performanceRun\)/);
   assert.ok(
-    page.indexOf("recordPerformanceOnce('none')") < page.indexOf('const holdingsSnapshot = currentHoldings()'),
+    page.indexOf("recordPerformanceOnce('none')") < page.indexOf('const holdingsSnapshot = await currentHoldings()'),
     'successful OCR performance must be recorded before holdings integrity can fail'
   );
   assert.match(page, /recognition\.text = ''[\s\S]*recognition\.tokens = \[\]/);
@@ -59,14 +60,16 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.equal((paddleEntry.match(/new LocalOcrEngine\(/g) || []).length, 1);
   assert.doesNotMatch(page, /sourceHint\s*:/);
   assert.doesNotMatch(page, /document\.createElement\(['"]script|https?:\/\/qt\.gtimg|https?:\/\/fund\.eastmoney/i);
-  assert.match(page, /saveLegacyHoldingsTransaction\(undefined, result\.holdings/);
+  assert.match(page, /await commitConfirmedImport\(globalThis\.localStorage, rows, state\.baselineDocument/);
+  assert.match(transaction, /saveLegacyHoldingsTransaction\(storage, result\.holdings/);
   assert.match(page, /loadHoldingsRepository\(globalThis\.localStorage, \{ cacheKey: CACHE_KEY \}\)/);
-  assert.match(page, /expectedDocument:\s*previousSnapshot\.document/);
+  assert.match(page, /baselineDocument:\s*holdingsSnapshot\.document/);
+  assert.match(transaction, /expectedDocument:\s*loaded\.document/);
   assert.match(page, /holding_changed_elsewhere/);
   assert.match(page, /runStartupIntegrityChecks\(globalThis\.localStorage\)/);
   assert.match(page, /safeSetItem\(OCR_IMPORT_PENDING_KEY, '1'\)/);
   assert.ok(
-    page.indexOf("safeSetItem(OCR_IMPORT_PENDING_KEY, '1')") < page.indexOf('saveLegacyHoldingsTransaction(undefined, result.holdings'),
+    transaction.indexOf('beforeSave()') < transaction.indexOf('saveLegacyHoldingsTransaction(storage, result.holdings'),
     'the recoverable sync flag must be persisted before canonical holdings are changed'
   );
   assert.match(page, /if \(!transactionResult \|\| !\(transactionResult\.recoveryRequired \|\| transactionResult\.recovery_required\)\) \{\s*safeRemoveItem\(OCR_IMPORT_PENDING_KEY\)/);

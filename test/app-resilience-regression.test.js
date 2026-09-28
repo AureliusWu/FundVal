@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('app uses safe persistence, cache-to-holding binding, timeout and merge guards', async () => {
-  const [app, bootstrap, gistRemote, index] = await Promise.all([
+  const [app, bootstrap, gistRemote, index, diagnostics] = await Promise.all([
     readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/bootstrap.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/storage/gist-remote.js', import.meta.url), 'utf8'),
     readFile(new URL('../index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../js/runtime/diagnostics-ui.js', import.meta.url), 'utf8'),
   ]);
 
   assert.doesNotMatch(app, /localStorage\s*\./);
@@ -58,10 +59,11 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(app, /class=\"index-stale\">旧/);
   assert.match(app, /function refreshDiagnosticsCenter/);
   assert.match(app, /function copyDiagnosticsSummary/);
-  assert.match(app, /recentSafeDiagnostics[\s\S]*selectSafeDiagnosticEvents\(rows\)/);
-  assert.match(app, /normalizeOcrDiagnosticForDisplay\(latest\)/);
-  assert.match(app, /遥测异常/);
-  assert.doesNotMatch(app, /diagnosticsLastSummary[\s\S]{0,500}GIST_TOKEN_KEY/);
+  assert.match(app, /import\('\.\/runtime\/diagnostics-ui\.js'\)/);
+  assert.match(diagnostics, /recentSafeDiagnostics[\s\S]*selectSafeDiagnosticEvents\(rows\)/);
+  assert.match(diagnostics, /normalizeOcrDiagnosticForDisplay\(latest\)/);
+  assert.match(diagnostics, /遥测异常/);
+  assert.doesNotMatch(diagnostics, /GIST_TOKEN_KEY/);
   assert.doesNotMatch(app, /fund-name[^\n]+sourceTag|fund-name[^\n]+estimateTag/);
   assert.match(app, /const refreshCoordinator = new RefreshCoordinator/);
   assert.doesNotMatch(app, /refreshChain|refreshRequestId/);

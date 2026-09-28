@@ -207,6 +207,7 @@ export function toLegacyHoldings(value) {
     cost: holding.costNav,
     updated_at: holding.updatedAt,
     deleted: holding.deletedAt != null,
+    note: holding.note,
   }));
 }
 

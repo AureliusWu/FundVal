@@ -88,8 +88,8 @@ test('official NAV and holdings enrichment converge regardless of completion ord
   const officialNavMove = {
     prevNav: 3.3,
     nav: 3.5,
-    prevDate: '2026-08-28',
-    date: '2026-08-29',
+    prevDate: '2026-08-27',
+    date: '2026-08-28',
     change: 6.060606,
   };
   const holdingsEstimate = {
@@ -97,7 +97,7 @@ test('official NAV and holdings enrichment converge regardless of completion ord
     change: 2,
     coverage: 80,
     quoteCount: 10,
-    sourceTime: '2026-08-29 14:30:00',
+    sourceTime: '2026-08-31 14:30:00',
     reportDate: '2026-06-30',
   };
 
@@ -120,7 +120,7 @@ test('official NAV and holdings enrichment converge regardless of completion ord
   const officialFirst = settle(['official', 'holdings']);
   assert.deepEqual(holdingsFirst, officialFirst);
   assert.equal(holdingsFirst.last_nav, 3.5);
-  assert.equal(holdingsFirst.nav_date, '2026-08-29');
+  assert.equal(holdingsFirst.nav_date, '2026-08-28');
   assert.ok(Math.abs(holdingsFirst.est_nav - 3.57) < 1e-12);
   assert.equal(rawFund.latest_nav_move, undefined, 'primary quote snapshot must remain immutable');
 });

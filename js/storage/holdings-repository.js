@@ -21,6 +21,36 @@ export const HOLDINGS_PROJECTION_META_KEY = 'fuyu_holdings_projection_meta_v1';
 export const HOLDINGS_CLOUD_BACKUP_LATEST_KEY = 'fuyu_holdings_cloud_backup_latest_v1';
 export const HOLDINGS_CLOUD_BACKUP_PREVIOUS_KEY = 'fuyu_holdings_cloud_backup_previous_v1';
 const LEGACY_BACKUP_KEYS = ['fuyu_backup_latest', 'fuyu_backup_previous'];
+export const HOLDINGS_LOCK_NAME = 'fuyu_holdings_repository_v1';
+
+/**
+ * Every browser entry point must hold this origin-wide lock while calling the
+ * synchronous repository helpers below (including reads that may recover or
+ * migrate). Keep callbacks short and local: never wait for a network request,
+ * and never recursively acquire this non-reentrant lock. Unsupported browsers
+ * fail closed rather than substituting a process-local promise/mutex.
+ */
+export async function withHoldingsLock(callback, { locks = globalThis.navigator?.locks } = {}) {
+  if (typeof locks?.request !== 'function') {
+    return { ok: false, reason: 'storage_lock_unavailable', document: null, legacy: [] };
+  }
+  if (typeof callback !== 'function') return { ok: false, reason: 'storage_transaction_invalid' };
+  let entered = false;
+  try {
+    return await locks.request(HOLDINGS_LOCK_NAME, { mode: 'exclusive' }, async lock => {
+      if (!lock) return { ok: false, reason: 'storage_lock_unavailable', document: null, legacy: [] };
+      entered = true;
+      return await callback();
+    });
+  } catch (_) {
+    return {
+      ok: false,
+      reason: entered ? 'storage_transaction_failed' : 'storage_lock_failed',
+      document: null,
+      legacy: [],
+    };
+  }
+}
 
 function defaultStorage() {
   try { return globalThis.localStorage; }
@@ -44,6 +74,27 @@ function remove(storage, key) {
 
 function restoreRaw(storage, key, value) {
   return value == null ? remove(storage, key) : set(storage, key, value);
+}
+
+function futureSchema(raw) {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw);
+    const schema = Array.isArray(value) ? 1 : Number(value?.schema);
+    return Number.isSafeInteger(schema) && schema > HOLDINGS_SCHEMA_VERSION ? schema : null;
+  } catch (_) { return null; }
+}
+
+function futureRepositorySchema(storage) {
+  return futureSchema(get(storage, HOLDINGS_V3_KEY))
+    || futureSchema(get(storage, HOLDINGS_V1_COMPAT_KEY));
+}
+
+function readonlyFailure(schema) {
+  return {
+    ok: false, state: 'blocked', reason: 'future_schema_readonly', readonly: true,
+    sourceSchema: schema, document: null, legacy: [],
+  };
 }
 
 function nowISO(now) {
@@ -73,6 +124,7 @@ export function getOrCreateDeviceId(storage = defaultStorage(), generate = gener
 }
 
 export function backupRepositoryState(storage = defaultStorage(), options = {}) {
+  if (futureRepositorySchema(storage)) return false;
   const bundle = JSON.stringify({
     createdAt: nowISO(options.now),
     v3Raw: get(storage, HOLDINGS_V3_KEY),
@@ -85,6 +137,8 @@ export function backupRepositoryState(storage = defaultStorage(), options = {}) 
 }
 
 export function backupCloudSyncSnapshot(storage = defaultStorage(), snapshot, options = {}) {
+  const schema = futureRepositorySchema(storage);
+  if (schema) return readonlyFailure(schema);
   let raw;
   try {
     raw = JSON.stringify({
@@ -158,9 +212,14 @@ function clearJournal(storage) {
 
 /** Recover only when every persisted value still belongs to this journal. */
 export function recoverPendingRepositoryTransaction(storage = defaultStorage()) {
+  const schema = futureRepositorySchema(storage);
+  if (schema) return readonlyFailure(schema);
   const parsed = parseJournal(get(storage, HOLDINGS_JOURNAL_KEY));
   if (!parsed.ok) return { ok: false, state: 'blocked', reason: parsed.reason };
   if (!parsed.exists) return { ok: true, state: 'none' };
+  const journalSchema = [parsed.journal.previous, parsed.journal.next]
+    .flatMap(snapshot => [snapshot.v3Raw, snapshot.v1Raw]).map(futureSchema).find(Boolean);
+  if (journalSchema) return readonlyFailure(journalSchema);
   const current = transactionSnapshot(storage);
   if (sameSnapshot(current, parsed.journal.next)) {
     return clearJournal(storage)
@@ -187,6 +246,8 @@ export function recoverPendingRepositoryTransaction(storage = defaultStorage()) 
 }
 
 export function persistHoldingsDocument(storage = defaultStorage(), value, options = {}) {
+  const schema = futureRepositorySchema(storage);
+  if (schema) return readonlyFailure(schema);
   let document;
   try { document = normalizeHoldingsDocumentV3(value); }
   catch (error) { return { ok: false, reason: 'invalid_document', error }; }
@@ -242,16 +303,11 @@ export function persistHoldingsDocument(storage = defaultStorage(), value, optio
   }
   if (!set(storage, HOLDINGS_PROJECTION_META_KEY, projectionMetaRaw)
     || get(storage, HOLDINGS_PROJECTION_META_KEY) !== projectionMetaRaw) return rollback('projection_meta_write_failed');
+  // A failed transaction must never hand the uncommitted candidate to the UI.
+  // Restore the prior snapshot even if journal removal itself is unavailable;
+  // recovery can then safely recognize that the transaction was not applied.
+  if (!clearJournal(storage)) return rollback('journal_clear_failed');
   if (options.cacheKey) remove(storage, options.cacheKey);
-  if (!clearJournal(storage)) {
-    return {
-      ok: false,
-      reason: 'journal_clear_failed',
-      document: verifiedV3.document,
-      legacy: toLegacyHoldings(verifiedV3.document),
-      recoveryRequired: true,
-    };
-  }
   return { ok: true, reason: 'saved', document: verifiedV3.document, legacy: toLegacyHoldings(verifiedV3.document) };
 }
 
@@ -259,6 +315,7 @@ function recoverBackup(storage, raw) {
   if (!raw) return null;
   try {
     const bundle = JSON.parse(raw);
+    if (futureSchema(bundle.v3Raw) || futureSchema(bundle.v1Raw)) return null;
     for (const candidate of [bundle.v3Raw, bundle.v1Raw]) {
       if (candidate == null || candidate === '') continue;
       const parsed = parseAndMigrateHoldings(candidate);
@@ -295,7 +352,7 @@ function projectionBaseline(storage) {
 
 export function loadHoldingsRepository(storage = defaultStorage(), options = {}) {
   const recovery = recoverPendingRepositoryTransaction(storage);
-  if (!recovery.ok) return { ok: false, reason: recovery.reason, error: null, document: null, legacy: [] };
+  if (!recovery.ok) return { ...recovery, error: null, document: null, legacy: [] };
   let deviceId;
   try { deviceId = getOrCreateDeviceId(storage, options.generateDeviceId); }
   catch (error) { return { ok: false, reason: error.code || 'device_id_failed', error, document: null, legacy: [] }; }
@@ -384,6 +441,7 @@ export function reconcileLegacyHoldings(value, currentValue, options = {}) {
   const byCode = new Map(current.holdings.map(holding => [holding.fundCode, holding]));
   const seen = new Set();
   const allowRestoreCodes = new Set(options.allowRestoreCodes || []);
+  let anyChanged = false;
 
   for (const item of value) {
     const code = String(item?.code || item?.fundCode || '').trim();
@@ -393,15 +451,19 @@ export function reconcileLegacyHoldings(value, currentValue, options = {}) {
     const existing = byCode.get(code);
     const updatedAt = legacyTimestamp(item.updated_at || item.updatedAt, timestamp);
     const shares = Number(item.shares);
-    if (!Number.isFinite(shares) || shares < 0) throw new HoldingSchemaError('invalid_legacy_number', 'shares must be non-negative');
+    if (!['number', 'string'].includes(typeof item.shares) || String(item.shares).trim() === ''
+      || !Number.isFinite(shares) || shares < 0) throw new HoldingSchemaError('invalid_legacy_number', 'shares must be non-negative');
     const hasCost = Object.prototype.hasOwnProperty.call(item, 'cost') || Object.prototype.hasOwnProperty.call(item, 'costNav');
     const rawCost = Object.prototype.hasOwnProperty.call(item, 'costNav') ? item.costNav : item.cost;
     let costNav = !hasCost || rawCost == null || rawCost === '' ? null : Number(rawCost);
-    if (costNav != null && (!Number.isFinite(costNav) || costNav < 0)) throw new HoldingSchemaError('invalid_legacy_number', 'costNav must be non-negative or null');
+    if (costNav != null && (!['number', 'string'].includes(typeof rawCost) || String(rawCost).trim() === ''
+      || !Number.isFinite(costNav) || costNav < 0)) throw new HoldingSchemaError('invalid_legacy_number', 'costNav must be non-negative or null');
     if (existing?.costNav == null && costNav === 0 && updatedAt <= existing.updatedAt) costNav = null;
     const fundName = String(item.fundName || item.name || code).trim().slice(0, 120) || code;
     const deleted = item.deleted === true || item.deletedAt != null || item.deleted_at != null;
-    const note = item.note == null ? null : String(item.note).trim().slice(0, 500);
+    const note = Object.prototype.hasOwnProperty.call(item, 'note')
+      ? (item.note == null ? null : String(item.note).trim().slice(0, 500))
+      : (existing?.note ?? null);
 
     if (!existing) {
       byCode.set(code, normalizeHoldingRecordV3({
@@ -409,6 +471,7 @@ export function reconcileLegacyHoldings(value, currentValue, options = {}) {
         createdAt: updatedAt, updatedAt, deletedAt: deleted ? updatedAt : null,
         revision: 1, deviceId, note,
       }));
+      anyChanged = true;
       continue;
     }
 
@@ -422,6 +485,7 @@ export function reconcileLegacyHoldings(value, currentValue, options = {}) {
       || Boolean(existing.deletedAt) !== deleted
       || existing.note !== note;
     if (!changed) continue;
+    anyChanged = true;
     byCode.set(code, normalizeHoldingRecordV3({
       ...existing,
       fundName,
@@ -435,6 +499,9 @@ export function reconcileLegacyHoldings(value, currentValue, options = {}) {
     }));
   }
 
+  // Projection round-trips are reads, not edits. Preserve document timestamps,
+  // record revisions and device ownership when nothing actually changed.
+  if (!anyChanged) return current;
   const holdings = [...byCode.values()];
   const latest = holdings.reduce((result, holding) => holding.updatedAt > result ? holding.updatedAt : result, timestamp);
   return normalizeHoldingsDocumentV3({ schema: 3, updatedAt: latest, deviceId, holdings });

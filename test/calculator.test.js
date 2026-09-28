@@ -16,6 +16,18 @@ test('calculates holding profit consistently', () => {
   assert.equal(result.totalProfit, 10);
 });
 
+test('missing or invalid shares remain unknown rather than becoming a zero holding', () => {
+  for (const shares of [null, undefined, '', ' ', true, false, -1, NaN, Infinity, 'invalid']) {
+    assert.deepEqual(calculateHolding(shares, 1.2, 1.3, 1.25), {
+      value: null, todayProfit: null, totalProfit: null, totalProfitRate: null,
+    });
+  }
+  assert.deepEqual(calculateHolding(0, 1.2, 1.3, 1.25), {
+    value: 0, todayProfit: null, totalProfit: null, totalProfitRate: null,
+  });
+  assert.equal(calculateHolding('100', 1.2, 1.3, 1.25).value, 130);
+});
+
 test('keeps cumulative profit unknown when cost is missing without hiding daily profit', () => {
   for (const cost of [null, undefined, '', '   ']) {
     const result = calculateHolding(100, cost, 1.3, 1.25);
@@ -47,9 +59,12 @@ test('binds calculations to the base NAV that belongs to the selected quote', ()
     est_model_base_nav: 4.1,
     latest_nav_move: { nav: 4.1, prevNav: 4.05 },
   };
-  assert.equal(resolveQuoteBaseNav(fund, { valueKind: 'model_estimate' }), 4.1);
-  assert.equal(resolveQuoteBaseNav(fund, { valueKind: 'official_nav' }), 4.05);
-  assert.equal(resolveQuoteBaseNav(fund, { valueKind: 'intraday_estimate' }), 4);
+  const period = { baseNavDate: '2026-09-03', targetDate: '2026-09-04' };
+  assert.equal(resolveQuoteBaseNav(fund, { ...period, valueKind: 'model_estimate', baseNav: 3.8 }), 3.8);
+  assert.equal(resolveQuoteBaseNav(fund, { ...period, valueKind: 'official_nav', baseNav: 3.9 }), 3.9);
+  assert.equal(resolveQuoteBaseNav(fund, { ...period, valueKind: 'intraday_estimate', baseNav: 3.7 }), 3.7);
+  assert.equal(resolveQuoteBaseNav(fund, { valueKind: 'official_nav' }), null, 'old envelopes cannot borrow a different quote period');
+  assert.equal(resolveQuoteBaseNav(fund, { ...period, baseNav: 4, targetDate: period.baseNavDate }), null);
   assert.equal(resolveQuoteBaseNav({}, { valueKind: 'model_estimate' }), null);
 });
 

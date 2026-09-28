@@ -9,7 +9,7 @@ function numberOrNaN(value) {
   return Number.isFinite(number) ? number : NaN;
 }
 
-const HOLDING_CODE_PATTERN = /^(?:\d{5}|\d{6}|[A-Z][A-Z0-9.-]{0,9})$/;
+const HOLDING_CODE_PATTERN = /^[A-Z0-9][A-Z0-9.-]{0,11}$/;
 const UNSAFE_TEXT_PATTERN = /[<>\u0000-\u001f\u007f]/;
 
 function safeHoldingText(value, maximumLength) {
@@ -24,7 +24,25 @@ export function normalizeHoldingRow(row) {
   const name = safeHoldingText(row.name, 80);
   const ratio = numberOrNaN(row?.ratio);
   if (!HOLDING_CODE_PATTERN.test(code) || !name || !Number.isFinite(ratio) || ratio < 0 || ratio > 100) return null;
-  return { code, name, ratio };
+  const market = String(row.market || '').trim().toLowerCase();
+  return { code, name, ratio, ...(market ? { market: /^(cn|sh|sz|hk|us|jp|kr)$/.test(market) ? market : 'unknown' } : {}) };
+}
+
+// Unqualified numeric codes are shared by different exchanges. Only mainland
+// funds may use the legacy A-share inference; overseas disclosures need a market.
+export function holdingQuoteCode(row, { allowMainland = false } = {}) {
+  const code = String(row.code || '').toUpperCase();
+  const market = String(row.market || '').toLowerCase();
+  if (!market && !allowMainland) return '';
+  if (/^(cn|sh|sz)$/.test(market) || (!market && allowMainland)) {
+    if (!/^[036689]\d{5}$/.test(code)) return '';
+    return (market === 'sh' || market === 'sz' ? market : /^[69]/.test(code) ? 'sh' : 'sz') + code;
+  }
+  if (market === 'hk' && /^\d{5}$/.test(code)) return 'hk' + code;
+  if (market === 'kr' && /^\d{6}$/.test(code)) return 'kr' + code;
+  if (market === 'jp' && /^[A-Z0-9]{4,5}$/.test(code)) return 'jp' + code;
+  if (market === 'us' && /^[A-Z][A-Z0-9.]{0,9}$/.test(code)) return 'us' + code.replace(/\./g, '_');
+  return '';
 }
 
 export async function fetchFundHoldings(code, options = {}) {

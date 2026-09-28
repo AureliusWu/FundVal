@@ -2,21 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [app, bootstrap, ocr, migrations, serviceWorker, gistRemote] = await Promise.all([
+const [app, bootstrap, ocr, migrations, serviceWorker, gistRemote, holdingEdit, ocrTransaction] = await Promise.all([
   readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/bootstrap.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/migrations.js', import.meta.url), 'utf8'),
   readFile(new URL('../sw.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/storage/gist-remote.js', import.meta.url), 'utf8'),
+  readFile(new URL('../js/runtime/holding-edit.js', import.meta.url), 'utf8'),
+  readFile(new URL('../js/ocr/import-transaction.js', import.meta.url), 'utf8'),
 ]);
 
 test('all local holding mutations use the authoritative Schema 3 repository', () => {
-  assert.match(app, /saveLegacyHoldingsTransaction/);
+  assert.match(app, /await import\('\.\/runtime\/holding-edit\.js'\)/);
+  assert.match(app, /await commitHoldingEdit\(/);
+  assert.match(holdingEdit, /return withHoldingsLock\(/);
+  assert.match(holdingEdit, /saveLegacyHoldingsTransaction\(storage, candidate/);
+  assert.match(holdingEdit, /expectedDocument: loaded\.document/);
   assert.match(app, /persistHoldingsDocument/);
   assert.doesNotMatch(app, /function pruneOldTombstones/);
   assert.doesNotMatch(app, /safeSetItem\(STORAGE_KEY/);
-  assert.match(ocr, /saveLegacyHoldingsTransaction/);
+  assert.match(ocr, /from '\.\/ocr\/import-transaction\.js'/);
+  assert.match(ocrTransaction, /return withHoldingsLock\(/);
+  assert.match(ocrTransaction, /saveLegacyHoldingsTransaction\(storage, result\.holdings/);
+  assert.match(ocrTransaction, /expectedDocument: loaded\.document/);
   assert.doesNotMatch(ocr, /safeSetItem\([^\n]*fuyu_holdings_v1/);
 });
 
@@ -39,6 +48,7 @@ test('Gist PATCH has one guarded adapter entry and verified cloud orchestration'
 
 test('startup migrations remain local-only and offline cache includes Schema 3 runtime', () => {
   assert.match(bootstrap, /recoverPendingRepositoryTransaction/);
+  assert.match(bootstrap, /await withHoldingsLock\(/);
   assert.ok(bootstrap.indexOf('recoverPendingRepositoryTransaction') < bootstrap.indexOf('runLocalMigrations()'));
   assert.ok(bootstrap.indexOf('runLocalMigrations()') < bootstrap.indexOf('runStartupIntegrityChecks()'));
   assert.match(bootstrap, /if \(!migration\.ok\) throw/);

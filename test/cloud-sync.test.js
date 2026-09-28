@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   canonicalCloudPayload,
   finalizeCreatedArchiveState,
+  finalizeCloudSyncMetadata,
   makeCloudWritePayload,
   pullHoldingsCloud,
   reconcileCloudBridgePayload,
@@ -148,6 +149,57 @@ test('new archive finalization keeps edits made during upload pending', () => {
   assert.equal(unchanged.meta.pending_hash, '');
   assert.equal(unchanged.meta.last_push_hash, canonicalHoldingsDocument(current));
 });
+
+test('sync metadata compares the verified snapshot to the document re-read inside the lock', () => {
+  const uploaded = documentOf([holding('000001')]);
+  const current = documentOf([holding('000001', { shares: 20, revision: 2, updatedAt: T2 })]);
+  const final = finalizeCloudSyncMetadata(current, {}, { uploadedDocument: uploaded, pending: false, syncedAt: T2 });
+  assert.equal(final.pending, true);
+  assert.equal(final.meta.pending, true);
+  assert.equal(final.meta.pending_hash, canonicalHoldingsDocument(current));
+  assert.equal(final.meta.last_push_hash, canonicalHoldingsDocument(uploaded));
+
+  const settled = finalizeCloudSyncMetadata(current, final.meta, { uploadedDocument: current, pending: false });
+  assert.equal(settled.meta.pending, false);
+  assert.equal(settled.meta.pending_hash, '');
+});
+
+test('a pull snapshot requiring bridge convergence is never labelled uploaded merely because local hashes match', () => {
+  const current = documentOf([holding('000001')]);
+  const previousMeta = { last_push_hash: canonicalHoldingsDocument(current) };
+  const final = finalizeCloudSyncMetadata(current, previousMeta, {
+    pulledDocument: current, pending: true, remoteSchema: 3,
+  });
+  assert.equal(final.meta.pending, true);
+  assert.equal(final.meta.pending_hash, canonicalHoldingsDocument(current));
+  assert.equal(final.meta.last_push_hash, previousMeta.last_push_hash);
+});
+
+for (const operation of ['push', 'pull']) {
+  test(`${operation} preserves a concurrent edit made immediately before metadata finalization`, async () => {
+    const initial = documentOf([holding('000001')]);
+    const late = documentOf([holding('000001', { shares: 30, revision: 2, updatedAt: T2 })]);
+    const local = fakeLocal(initial);
+    const remote = fakeRemote(makeCloudWritePayload(initial, 3));
+    let metadata;
+    local.markPending = async (pending, details) => {
+      local.state.document = late;
+      const final = finalizeCloudSyncMetadata(local.state.document, {}, { ...details, pending });
+      metadata = final.meta;
+      return { ok: true, pending: final.pending, document: local.state.document };
+    };
+    const result = await (operation === 'push' ? synchronizeHoldingsCloud : pullHoldingsCloud)({
+      local, remote, deviceId: 'device:phone',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.pending, true);
+    assert.equal(result.document.holdings[0].shares, 30);
+    assert.equal(metadata.pending, true);
+    assert.equal(metadata.pending_hash, canonicalHoldingsDocument(late));
+    if (operation === 'pull') assert.equal(result.changed, true);
+    else assert.equal(result.uploadedDocument.holdings[0].shares, 10);
+  });
+}
 
 test('schema 2 sync backs up both sides but stays pull-only until an explicit V3 upgrade', async () => {
   const local = fakeLocal(documentOf([holding('000001', { costNav: null })]));

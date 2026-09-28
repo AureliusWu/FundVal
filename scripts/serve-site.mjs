@@ -19,7 +19,14 @@ const types = {
 };
 
 createServer(async (request, response) => {
-  const requestUrl = new URL(request.url || '/', `http://${request.headers.host || '127.0.0.1'}`);
+  let requestUrl, pathname;
+  try {
+    requestUrl = new URL(request.url || '/', `http://${request.headers.host || '127.0.0.1'}`);
+    pathname = decodeURIComponent(requestUrl.pathname);
+  } catch (_) {
+    response.writeHead(400).end();
+    return;
+  }
   if (requestUrl.pathname.startsWith('/__fundval_dev/')) {
     await proxyFundData(request, response, requestUrl);
     return;
@@ -28,7 +35,6 @@ createServer(async (request, response) => {
     response.writeHead(405, { allow: 'GET, HEAD' }).end();
     return;
   }
-  const pathname = decodeURIComponent(requestUrl.pathname);
   const target = resolve(root, pathname === '/' ? 'index.html' : `.${pathname}`);
   if (relative(root, target).startsWith('..')) {
     response.writeHead(403).end();

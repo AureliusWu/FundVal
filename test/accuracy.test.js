@@ -7,6 +7,7 @@ import {
   recordPrediction,
   saveAccuracy,
   settlePredictions,
+  updateFundAccuracy,
 } from '../js/accuracy.js';
 
 test('records once, settles and computes traceable accuracy', () => {
@@ -16,6 +17,24 @@ test('records once, settles and computes traceable accuracy', () => {
   rows = settlePredictions(rows, '012920', '2026-07-10', -0.8);
   assert.equal(accuracyStats(rows).mae, 0.19999999999999996);
   assert.equal(accuracyStats(rows).directionRate, 100);
+});
+
+test('the accuracy ledger binds the selected model period and never records a stale quote', () => {
+  let raw = null;
+  const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; } };
+  const fund = { code: '012920', est_model: true, est_model_stale: false, est_change: 99,
+    nav_date: '2026-09-01', est_model_version: 'test', quote: {
+      valueKind: 'model_estimate', status: 'model', changePct: 1.5,
+      baseNavDate: '2026-09-21', targetDate: '2026-09-22',
+    } };
+  updateFundAccuracy(fund, { now: Date.parse('2026-09-22T14:45:00+08:00'), storage });
+  const [prediction] = JSON.parse(raw);
+  assert.equal(prediction.predicted_change, 1.5);
+  assert.equal(prediction.base_nav_date, '2026-09-21');
+  assert.equal(prediction.target_nav_date, '2026-09-22');
+  raw = null;
+  updateFundAccuracy({ ...fund, quote: { ...fund.quote, status: 'stale' } }, { now: Date.parse('2026-09-23T14:45:00+08:00'), storage });
+  assert.deepEqual(JSON.parse(raw), []);
 });
 
 test('settles next-NAV predictions only against their recorded base NAV date', () => {

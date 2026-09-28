@@ -51,6 +51,9 @@ export class QuoteBridgeClient {
     this.pending = new Map();
     this.listening = false;
     this.destroyed = false;
+    this.queue = [];
+    this.running = false;
+    this.cancelFrameLoad = null;
     this.handleMessage = this.handleMessage.bind(this);
   }
 
@@ -79,6 +82,7 @@ export class QuoteBridgeClient {
         this.window.clearTimeout(timer);
         frame.removeEventListener('load', onLoad);
         frame.removeEventListener('error', onError);
+        this.cancelFrameLoad = null;
         if (error) {
           removeNode(frame);
           this.frame = null;
@@ -97,6 +101,7 @@ export class QuoteBridgeClient {
         finish();
       };
       const onError = () => finish(new QuoteBridgeError('bridge_unavailable', 'Quote bridge page failed to load'));
+      this.cancelFrameLoad = () => finish(new QuoteBridgeError('bridge_unavailable', 'Quote bridge load cancelled'));
 
       frame.hidden = true;
       frame.tabIndex = -1;
@@ -141,7 +146,56 @@ export class QuoteBridgeClient {
     pending.resolve(response.data);
   }
 
-  async request(operation, params, options = {}) {
+  request(operation, params, options = {}) {
+    if (this.destroyed || !this.window?.setTimeout || !this.document?.createElement || this.queue.length >= 100) {
+      return Promise.reject(new QuoteBridgeError('bridge_unavailable', 'Quote bridge is unavailable or busy'));
+    }
+    // Keep waiting work in the parent, not the JSONP realm. The per-source
+    // deadline begins only when dispatched. Queued cancellation never loads a
+    // remote script. A bounded queue deadline prevents starvation indefinitely.
+    return new Promise((resolve, reject) => {
+      const job = { operation, params, options, resolve, reject, cancelled: false };
+      const cancel = (code) => {
+        job.cancelled = true;
+        job.cleanup();
+        this.queue = this.queue.filter(item => item !== job);
+        reject(new QuoteBridgeError(code, 'Quote bridge queued request cancelled'));
+      };
+      const onAbort = () => cancel('aborted');
+      const timer = this.window.setTimeout(() => cancel('timeout'), 60_000);
+      job.cleanup = () => {
+        this.window.clearTimeout(timer);
+        options.signal?.removeEventListener('abort', onAbort);
+      };
+      options.signal?.addEventListener('abort', onAbort, { once: true });
+      if (options.signal?.aborted) { onAbort(); return; }
+      this.queue.push(job);
+      this.pump();
+    });
+  }
+
+  async pump() {
+    if (this.running || this.destroyed) return;
+    this.running = true;
+    try {
+      while (this.queue.length && !this.destroyed) {
+        const job = this.queue.shift();
+        job.cleanup();
+        if (job.cancelled) continue;
+        try { job.resolve(await this.dispatch(job.operation, job.params, job.options)); }
+        catch (error) { job.reject(error); }
+      }
+    } finally { this.running = false; }
+  }
+
+  resetFrame() {
+    this.cancelFrameLoad?.();
+    removeNode(this.frame);
+    this.frame = null;
+    this.framePromise = null;
+  }
+
+  async dispatch(operation, params, options = {}) {
     if (!BRIDGE_OPERATIONS.includes(operation)) {
       throw new QuoteBridgeError('unsupported_operation', 'Quote bridge operation is unsupported');
     }
@@ -154,7 +208,15 @@ export class QuoteBridgeClient {
       if (error instanceof RemoteSchemaError) throw new QuoteBridgeError(error.code, error.message);
       throw error;
     }
-    const frame = await this.ensureFrame();
+    const cancelLoad = () => this.cancelFrameLoad?.();
+    options.signal?.addEventListener('abort', cancelLoad, { once: true });
+    let frame;
+    try { frame = await this.ensureFrame(); }
+    catch (error) {
+      if (options.signal?.aborted) throw new QuoteBridgeError('aborted', 'Quote bridge request was aborted');
+      throw error;
+    } finally { options.signal?.removeEventListener('abort', cancelLoad); }
+    if (this.destroyed) throw new QuoteBridgeError('bridge_unavailable', 'Quote bridge client was destroyed');
     if (options.signal?.aborted) throw new QuoteBridgeError('aborted', 'Quote bridge request was aborted');
     const timeoutMs = requestTimeout(options.timeoutMs, this.timeoutMs);
 
@@ -169,6 +231,9 @@ export class QuoteBridgeClient {
         if (settled) return;
         settled = true;
         cleanup();
+        // Dropping the isolated document also stops its active JSONP task.
+        // Merely removing the parent Promise leaves it blocking later jobs.
+        if (callback === reject) this.resetFrame();
         callback(value);
       };
       const onAbort = () => finish(reject, new QuoteBridgeError('aborted', 'Quote bridge request was aborted'));
@@ -211,6 +276,10 @@ export class QuoteBridgeClient {
 
   destroy() {
     this.destroyed = true;
+    for (const job of this.queue.splice(0)) {
+      job.cleanup();
+      job.reject(new QuoteBridgeError('bridge_unavailable', 'Quote bridge client was destroyed'));
+    }
     for (const pending of this.pending.values()) {
       pending.reject(new QuoteBridgeError('bridge_unavailable', 'Quote bridge client was destroyed'));
     }
@@ -219,9 +288,7 @@ export class QuoteBridgeClient {
       this.window?.removeEventListener('message', this.handleMessage);
       this.listening = false;
     }
-    removeNode(this.frame);
-    this.frame = null;
-    this.framePromise = null;
+    this.resetFrame();
   }
 }
 

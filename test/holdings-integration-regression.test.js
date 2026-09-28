@@ -15,6 +15,9 @@ test('refresh renders the primary quote before asynchronously enriching it with 
   assert.match(source, /fields=f12,f3,f124/);
   assert.match(source, /normalizeTencentQuoteTime\(quote\.sourceTimeRaw, item\.quoteCode\)/);
   assert.match(source, /if \(!fund \|\| fund\.est_realtime !== false\) return;/);
-  assert.match(source, /if \(latestMove && latestMove\.date\) fund\.nav_date = latestMove\.date;/);
+  assert.match(source, /var official = latestOfficialNavBase\(fund\);/);
+  assert.match(source, /fund\.est_model_base_nav = modelBaseNav;/);
+  assert.match(source, /fund\.est_model_base_date = modelBaseDate;/);
+  assert.match(source, /fund\.est_model_target_date = period\.targetDate;/);
   assert.match(source, /最新可信数据 ['"] \+ createQuotePresentation\(latest\.quote, \{ now: Date\.now\(\) \}\)\.dataTimeLabel[\s\S]*今日 ['"] \+ todayCount/);
 });

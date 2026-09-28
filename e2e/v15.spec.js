@@ -116,6 +116,7 @@ async function openApp(page) {
   await page.goto('/');
   await expect(page.getByText('蜉蝣基金', { exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.__FUNDVAL_BOOTSTRAP_STATUS__?.migration)).toBe('ok');
+  await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
   await expect(page.locator('#fund-list .skeleton')).toHaveCount(0);
 }
 
@@ -165,6 +166,108 @@ async function readPwaCacheState(page) {
   }
   throw lastError || new Error('pwa_cache_state_unavailable');
 }
+
+test('a quota failure preserves both saved holding and editable draft', async ({ context, page }) => {
+  await installHermeticNetwork(context);
+  await openApp(page);
+  await addHoldingThroughUi(page);
+  await page.locator(`.holding-item[data-code="${TEST_FUND.code}"]`).click();
+  await page.locator('#i-shares').fill('999');
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key.includes('holdings_repository_backup')) throw new DOMException('Synthetic quota', 'QuotaExceededError');
+      return original.call(this, key, value);
+    };
+  });
+  await page.locator('#add-btn').click();
+  await expect(page.locator('#toast')).toContainText('保存失败');
+  await expect(page.locator('#i-shares')).toHaveValue('999');
+  await expect(page.locator('#holdings-list .h-detail')).toContainText('100份');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('fuyu_holdings_v3')).holdings[0].shares)).toBe(100);
+  await page.locator('#cancel-edit-btn').click();
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
+  await page.locator('#nav-edit').click();
+  await expect(page.locator('#holdings-list .h-detail')).toContainText('100份');
+});
+
+test('stale editor cannot overwrite another tab and navigation preserves its draft', async ({ context, page }) => {
+  await installHermeticNetwork(context);
+  await openApp(page);
+  await addHoldingThroughUi(page);
+  await page.locator(`.holding-item[data-code="${TEST_FUND.code}"]`).click();
+  await page.locator('#i-shares').fill('999');
+  await page.locator('#nav-market').click();
+  await page.locator('#nav-edit').click();
+  await expect(page.locator('#i-shares')).toHaveValue('999');
+
+  const second = await context.newPage();
+  await openApp(second);
+  await second.locator('#nav-edit').click();
+  await second.locator(`.holding-item[data-code="${TEST_FUND.code}"]`).click();
+  await second.locator('#i-shares').fill('200');
+  await second.locator('#add-btn').click();
+  await expect(second.locator('#holdings-list .h-detail')).toContainText('200份');
+  await page.locator('#add-btn').click();
+  await expect(page.locator('#toast')).toContainText('未覆盖新数据');
+  await expect(page.locator('#i-shares')).toHaveValue('999');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('fuyu_holdings_v3')).holdings[0].shares)).toBe(200);
+  await second.close();
+});
+
+test('lazy diagnostics and export keep working without loading OCR assets', async ({ context, page }) => {
+  const network = await installHermeticNetwork(context);
+  const requests = [];
+  page.on('request', request => requests.push(request.url()));
+  await openApp(page);
+  await addHoldingThroughUi(page);
+  await page.locator('#diagnostics-center').evaluate(element => { element.open = true; });
+  await expect(page.locator('#diagnostics-content')).toContainText('持仓 Schema');
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('[data-action="export-data"]').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('fuyu-holdings.json');
+  expect(requests.some(url => /assets\/ocr|paddle-local-ocr/.test(url))).toBe(false);
+  expect(network.gistWrites).toHaveLength(0);
+});
+
+test('local mobile cold/warm readiness and holding save stay within the interaction budget', async ({ browser }, testInfo) => {
+  const samples = [];
+  for (let sample = 0; sample < 3; sample += 1) {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    await installHermeticNetwork(context);
+    await context.addInitScript(() => {
+      const observer = new MutationObserver(() => {
+        if (document.documentElement?.dataset.appReady !== 'true') return;
+        window.__E2E_READY_MS__ = performance.now();
+        observer.disconnect();
+      });
+      observer.observe(document, { attributes: true, subtree: true, attributeFilter: ['data-app-ready'] });
+    });
+    const page = await context.newPage();
+    await page.goto(LOCAL_ORIGIN);
+    await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
+    const cold = await page.evaluate(() => window.__E2E_READY_MS__);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
+    const warm = await page.evaluate(() => window.__E2E_READY_MS__);
+    await page.locator('#nav-edit').click();
+    await page.locator('#i-code').fill(TEST_FUND.code);
+    await page.locator('#i-name').fill(TEST_FUND.name);
+    await page.locator('#i-shares').fill(TEST_FUND.shares);
+    await page.locator('#i-cost').fill(TEST_FUND.cost);
+    const start = performance.now();
+    await page.locator('#add-btn').click();
+    await expect(page.locator('#holdings-list .h-detail')).toContainText('100份');
+    const save = performance.now() - start;
+    samples.push({ coldReadyMs: cold, warmReadyMs: warm, saveUiMs: save });
+    expect(Math.max(cold, warm, save)).toBeLessThan(3000);
+    await context.close();
+  }
+  console.log('LOCAL_PERFORMANCE ' + JSON.stringify(samples));
+  await testInfo.attach('local-performance.json', { body: JSON.stringify({ viewport: '390x844', network: 'hermetic local no-store, no real providers', samples }, null, 2), contentType: 'application/json' });
+});
 
 test('app starts and a holding survives add/reload/delete/reload through the UI', async ({ context, page }) => {
   const network = await installHermeticNetwork(context);

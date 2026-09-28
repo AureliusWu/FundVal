@@ -83,15 +83,15 @@ test('plans bounded whole-row tiles for the long holdings-list region', () => {
   const tiles = planPaddleRowOcrTiles(1440, 9317);
   assert.equal(tiles[0].x, 28);
   assert.equal(tiles[0].right, 1433);
-  assert.equal(tiles[0].y, 1490);
-  assert.equal(tiles.at(-1).bottom, 8386);
-  assert.equal(tiles.at(-1).coreBottom, 8386);
-  assert.equal(tiles.length, 6);
+  assert.equal(tiles[0].y, 0);
+  assert.equal(tiles.at(-1).bottom, 9317);
+  assert.equal(tiles.at(-1).coreBottom, 9317);
+  assert.equal(tiles.length, 7);
   assert.deepEqual(PADDLE_ROW_OCR_REGION, {
     left: 0.02,
     right: 0.995,
-    top: 0.16,
-    bottom: 0.90,
+    top: 0,
+    bottom: 1,
     tileHeight: 1500,
     overlap: 160,
   });
@@ -103,6 +103,13 @@ test('plans bounded whole-row tiles for the long holdings-list region', () => {
       assert.equal(tile.y - tiles[index - 1].y, 1340);
       assert.equal(tiles[index - 1].coreBottom, tile.coreTop);
     }
+  }
+  // Rows near either end must have exactly one owner, including overlap seams.
+  for (const y of [1, 100, 1400, 8000, 9300]) {
+    const owners = tiles.filter(tile => paddleItemIsInTileCore({
+      poly: [[40, y - tile.y], [120, y - tile.y], [120, y - tile.y + 2], [40, y - tile.y + 2]],
+    }, tile));
+    assert.equal(owners.length, 1, `row at ${y} has one OCR tile owner`);
   }
 });
 

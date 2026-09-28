@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHoldingImportPlan } from '../js/holding-import-plan.js';
 import {
   dedupeOcrTableTokens,
   parseStrictOcrNumber,
@@ -168,3 +169,50 @@ test('retains an unnamed numeric record for explicit manual confirmation instead
   assert.equal(result.previewRows[1].holdingAmount, 3440.91);
   assert.equal(result.previewRows[1].holdingProfitRate, 1.2);
 });
+
+test('keeps A/C ambiguity as a preview candidate without choosing a fund identity', () => {
+  const candidates = [
+    { code: '001001', name: '合成成长混合A' },
+    { code: '001002', name: '合成成长混合C' },
+  ];
+  const result = reconstructOcrTableLayout({
+    imageWidth: 1440,
+    matchFund: name => name === '合成成长混合'
+      ? { status: 'ambiguous', candidates } : null,
+    tokens: [...tableHeader(), token('合成成长混合', 50, 180, 350, 204),
+      token('100.00', 670, 180), token('-1.00', 670, 220),
+      token('-10.00', 1110, 180), token('-9.09%', 1110, 220)],
+  });
+  assert.equal(result.previewRows.length, 1);
+  assert.equal(result.previewRows[0].holdingAmount, 100);
+  const [plan] = createHoldingImportPlan(result.previewRows, []);
+  assert.equal(plan.code, '');
+  assert.equal(plan.action, 'skip');
+  assert.equal(plan.matchStatus, 'ambiguous');
+  assert.deepEqual(plan.matchCandidates, candidates);
+});
+
+for (const missing of ['holdingAmount', 'dailyProfit', 'holdingProfit', 'holdingProfitRate']) {
+  test(`missing ${missing} stays null without losing or shifting the other visual fields`, () => {
+    const evidence = {
+      holdingAmount: token('100.00', 670, 180),
+      dailyProfit: token('-1.00', 670, 220),
+      holdingProfit: token('-10.00', 1110, 180),
+      holdingProfitRate: token('-9.09%', 1110, 220),
+    };
+    const expected = { holdingAmount: 100, dailyProfit: -1, holdingProfit: -10, holdingProfitRate: -9.09 };
+    const result = reconstructOcrTableLayout({ imageWidth: 1440, matchFund,
+      tokens: [...tableHeader(), token('财通成长优选混合C', 50, 180, 350, 204),
+        ...Object.entries(evidence).filter(([field]) => field !== missing).map(([, value]) => value),
+        token('东方人工智能主题混合A', 50, 340, 350, 364),
+        token('500.00', 670, 340), token('+5.00', 670, 380),
+        token('+50.00', 1110, 340), token('+11.11%', 1110, 380)],
+    });
+    assert.equal(result.previewRows.length, 2);
+    for (const [field, value] of Object.entries(expected)) {
+      assert.equal(result.previewRows[0][field], field === missing ? null : value, field);
+    }
+    assert.equal(result.previewRows[1].holdingAmount, 500);
+    assert.equal(result.previewRows[1].dailyProfit, 5);
+  });
+}
