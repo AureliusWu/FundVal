@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { createConnection, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, posix, relative, resolve, sep, win32 } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -12,6 +12,39 @@ const V15_REFERENCE = '40e68edab9cb3fba0b17338dc3672a82d13ad17e';
 let LOCAL_ORIGIN = 'http://127.0.0.1:4173';
 const FIXED_TIME = '2026-09-30T06:00:00.000Z';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
+
+export async function discoverNpmCli({
+  platform = process.platform,
+  nodeExecutable = process.execPath,
+  environment = process.env,
+  realpathFn = realpath,
+} = {}) {
+  const paths = platform === 'win32' ? win32 : posix;
+  const candidates = [];
+  if (environment.npm_execpath) candidates.push(environment.npm_execpath);
+  const pathValue = Object.entries(environment).find(([key]) => key.toLowerCase() === 'path')?.[1] || '';
+  for (const rawDirectory of pathValue.split(platform === 'win32' ? ';' : ':')) {
+    const directory = rawDirectory.trim().replace(/^"(.*)"$/, '$1');
+    if (!directory) continue;
+    // POSIX npm is usually a symlink to npm-cli.js. On Windows npm.cmd/ps1
+    // cannot safely be spawned without a shell; discover their adjacent JS CLI.
+    candidates.push(paths.resolve(directory, 'npm'));
+    candidates.push(paths.resolve(directory, 'node_modules', 'npm', 'bin', 'npm-cli.js'));
+    candidates.push(paths.resolve(directory, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'));
+  }
+  const nodeDirectory = paths.dirname(nodeExecutable);
+  candidates.push(paths.resolve(nodeDirectory, 'node_modules', 'npm', 'bin', 'npm-cli.js'));
+  candidates.push(paths.resolve(nodeDirectory, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'));
+  for (const candidate of [...new Set(candidates)]) {
+    try {
+      const cli = await realpathFn(candidate);
+      if (paths.basename(cli).toLowerCase() === 'npm-cli.js') return cli;
+    } catch (error) {
+      if (!['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'].includes(error.code)) throw error;
+    }
+  }
+  throw new Error('Cannot locate npm-cli.js from npm_execpath, PATH or the installed Node runtime. Install npm alongside Node or run the collector through npm.');
+}
 
 export function parseNodeSummary(output) {
   const result = {};
@@ -287,7 +320,7 @@ async function main(args) {
   // site, and deployable artifacts must not contain hidden baseline logs.
   const evidence = resolve(dirname(reportPath), 'baseline-evidence', collectedAt.replace(/[:.]/g, '-'));
   const epoch = await git(['show', '-s', '--format=%ct', reference]);
-  const npmCli = process.env.npm_execpath || resolve(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
+  const npmCli = await discoverNpmCli();
   const npm = (command, extra = []) => run(process.execPath, [npmCli, ...command, ...extra], { cwd: snapshot, env: { SOURCE_DATE_EPOCH: epoch, FORCE_COLOR: '0', NO_COLOR: '1' } });
   await mkdir(evidence, { recursive: true });
   const results = {};
