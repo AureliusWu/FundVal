@@ -21,7 +21,7 @@
   "dependencies": {
     "@paddleocr/paddleocr-js": "0.4.2",
     "@tesseract.js-data/chi_sim": "1.0.0",
-    "onnxruntime-web": "1.27.0",
+    "onnxruntime-web": "1.30.0",
     "tesseract.js": "7.0.0",
     "tesseract.js-core": "7.0.0"
   },
