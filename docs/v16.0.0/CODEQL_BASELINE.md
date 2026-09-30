@@ -16,7 +16,7 @@
 
 PR workflow API的 `headSha` 指向PR源提交，实际checkout/artifact/CodeQL使用merge SHA，以上分别记录，不能混为同一SHA。两份都是审查候选，事件/分支不满足生产发布要求，不能部署。产物摘要来自Actions API；不是生产产物验证。
 
-默认main尚无首次扫描结果时，默认ref的alerts API可能返回404 “no analysis found”；因此必须显式查询feature和PR ref。未扫描main不能描述为“main零告警”。PR存在独立的 **CodeQL analysis** 检查失败，不能凭candidate/codeql job成功直接合并。
+默认 main 尚无首次扫描结果时，默认 ref 的 alerts API 可能返回 404 “no analysis found”；因此必须显式查询 feature 和 PR ref。未扫描 main 不能描述为“main 零告警”。首轮 PR 的独立 **CodeQL analysis** 检查失败；后续已复扫成功，见本文件修复记录。不能凭 candidate/codeql job 成功直接判断安全扫描通过。
 
 ## M0新增告警：必须先闭环
 
@@ -27,7 +27,7 @@ PR workflow API的 `headSha` 指向PR源提交，实际checkout/artifact/CodeQL�
 
 本地定向候选测试：5通过、0失败、1跳过；跳过项为Windows账号无法创建文件symlink，Linux CI必须实际执行该用例。已覆盖同一archive快照被三次tar stdin消费、原字节往返、篡改摘要/来源、PR候选不可部署以及恶意attempt。语法检查和diff检查通过。
 
-以上“已修复”只指工作树实现与本地测试，不提前宣称GitHub告警已关闭。后续应记录修复提交、Actions run、analysis ID和PR CodeQL analysis终态；没有这些证据时M0仍为pending。
+上表是首次处置记录，当时的“已修复”仅指工作树实现与本地测试。后续真实复扫证据与 GitHub fixed 状态见下方记录；不得把这个过程描述为首次扫描即通过。
 
 ## 首次扫描中的5项已有代码告警
 
@@ -41,9 +41,16 @@ PR workflow API的 `headSha` 指向PR源提交，实际checkout/artifact/CodeQL�
 | [#5](https://github.com/AureliusWu/FundVal/security/code-scanning/5) | `js/http-to-file-access` / medium | `scripts/refresh-fund-catalog.mjs:65` | 本功能本来就把公开HTTP目录转换成静态JSON；代码已限定写入目标为data/fund-catalog.json并解析6位code。需核对字段长度/总行数/输出大小与目录路径约束，以结构化输出证据评估，不以“写HTTP结果”为由直接禁用目录维护。 |
 | [#7](https://github.com/AureliusWu/FundVal/security/code-scanning/7) | `js/missing-origin-check` / medium | `sw.js:68` | message handler可触发SKIP_WAITING和通知，缺少显式origin/client校验。浏览器已有同源注册边界，但应复核所有消息调用者，并添加同源且受scope约束的client/source校验，保留脏输入更新保护。 |
 
+## 修复与复扫记录
+
+- 修复提交：`f514f4c9ba05fa28aa2a08225a2c6bcfe53be130`；push run `36686511009` 的完整 candidate/CodeQL 成功，analysis `1864983327`（分支）/`1864982756`（PR）分别为五项既有/零项新增。告警 #4/#6 状态为 fixed，没有手工 dismiss 或扫描排除。
+- 最新提交：`f4a71c8e89dbb0d16c6b5a57c6ff78e39b71e4dc`；push run `36687586037`、PR run `36687592688` 及独立 CodeQL 检查全部 success。
+- 最新分支 analysis `1865035626`：五项既有，error 为空；最新 PR analysis `1865035398`：零项新增，error 为空，103 条规则。PR 实际 merge SHA 为 `8ba58f9d28845e5e80b5b0530cb444014c891d03`。
+- push artifact `11084167560`、PR artifact `11084661788` 均真实存在。两者仍是 feature/PR 审查候选，不满足部署 main 条件。
+
 ## M0退出判断
 
 - 新流水线确实执行了完整candidate与CodeQL，产物真实存在且可溯源：已证实。
-- PR新增2项CodeQL finding：工作树补丁和本地回归通过，真实复扫仍待执行。
-- PR CodeQL analysis需成功/无新增未处理告警，方可判断M0退出；已有5项必须进入后续工程问题清单。
+- PR 新增两项 CodeQL finding：实现、本地回归和真实复扫均已闭环；已有五项必须进入后续工程问题清单。
+- 安全扫描门禁满足。M0 仍需完成 collector 跨平台审阅修复、受保护合并和 main 候选字节验证。
 - 生产部署、main候选原样发布、设备/PWA验收不属于本次CI成功证据；未执行。

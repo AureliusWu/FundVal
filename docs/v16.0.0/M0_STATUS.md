@@ -2,7 +2,7 @@
 
 > 更新日期：2026-09-30（Asia/Shanghai）
 > 业务基线：v15.0.2 / `40e68edab9cb3fba0b17338dc3672a82d13ad17e`
-> 当前阶段：M0 本地实现及真实 CI 已执行；新增 CodeQL 告警修复及候选验证待完成
+> 当前阶段：M0 本地与 PR CI 已通过；基线脚本跨平台审阅修复、合并及 main 候选验证进行中
 > v16 生产发布：未执行
 
 ## 已执行的 GitHub 设置
@@ -43,7 +43,9 @@ gh api repos/AureliusWu/FundVal/environments/github-pages
 
 GitHub 流水线已在 [M0 PR #10](https://github.com/AureliusWu/FundVal/pull/10) 首次验证。提交 `ba3346c977f5ec29a15785ee517dbe89291dbce7` 的 push run `36685686499` 和 PR run `36685696104` 均完成，`candidate`、`codeql` 作业均成功。PR 候选记录实际 merge SHA，不能把它冒充为 head SHA 或可部署主线候选。
 
-CodeQL 分析另外报告了两个新增脚本告警，自动 `CodeQL` 检查失败。作业成功只说明扫描完成，尚不代表安全门禁通过；修复重扫前不得合并。原有业务代码的五个发现另行审计，详见 `CODEQL_BASELINE.md`。
+首次 CodeQL 分析另外报告了两个新增脚本告警，自动 `CodeQL` 检查失败。提交 `f514f4c9ba05fa28aa2a08225a2c6bcfe53be130` 修复后，两项均被扫描标记为 fixed（没有排除规则或 dismiss）；最新 `f4a71c8e89dbb0d16c6b5a57c6ff78e39b71e4dc` 的 push run `36687586037`、PR run `36687592688` 的 candidate、codeql 和独立 CodeQL 检查均成功。PR analysis `1865035398` 没有新增发现；分支 analysis `1865035626` 保留五项既有业务发现，详见 `CODEQL_BASELINE.md`。
+
+期间 PR run `36686518090` 的跨标签页 stale-editor E2E 发生一次间歇失败（拒绝提示断言未出现，尚未运行到最终持仓断言），不能推断为已经证实数据被覆盖。原始用例本机连续 10 次通过；新增仅含合成数据的现场诊断后本机 3/3、最新 push/PR 12/12 通过。业务写入逻辑及拒绝覆盖断言未修改，没有自动 retry；此观察项继续进入 M1/M4 回归，不宣称业务 Bug 已修复。
 
 ## v15.0.2 可重复基线
 
@@ -106,9 +108,10 @@ Coverage 的分母仅包括 Node 运行实际导入的 `js/**/*.js`，不包含 
 - [x] CI/Deploy 分离实现已落入工作区。
 - [x] Node/npm 与安装脚本策略已固定。
 - [x] 基线工具辅助测试通过。
-- [x] 当前 M0 工作区完整门禁：主任务实测 Node 419/419、语法扫描 133 文件、两次 build 指纹一致（`9f7045d03e263b213c74901ed710e4dd4e6f2a39e206173af3daaa6b6a4c0509`）、隔离端口 E2E 12/12；冷 gzip 51,941 B、总非 OCR gzip 70,207 B。
-- [x] M0 PR 的真实 `candidate` / `codeql` 作业通过（首轮）。
-- [ ] 新增 CodeQL 告警修复并通过重扫，PR 可合并。
+- [x] `f4a71c8` 本地门禁：Node 421 项（420 通过、0 失败、1 个 Windows symlink 权限跳过；Linux CI 实际执行）、语法扫描 134 文件、两次 build 指纹一致（`1b66e1fceed57efe43706536490010787b96c4a6fde488eccb2c9a04abd77945`）；冷 gzip 51,941 B、总非 OCR gzip 70,207 B。指纹包含提交相关构建元数据，不能和不同 SHA 直接判为业务漂移。
+- [x] M0 PR 的真实 `candidate` / `codeql` / CodeQL analysis 均通过（最新 push / PR）。
+- [x] 新增 CodeQL 告警修复并通过真实重扫。
+- [ ] 跨平台 npm 发现审阅项闭环，按受保护 PR 路径合并（不使用 admin bypass）。
 - [ ] 候选清单可追溯至同一 SHA / run，且部署路径验证通过。
 
 以下保持 `NOT_RUN`：三类物理设备、实际长图 OCR 耗时、真实双设备合成 Gist 写读、已安装 v15→v16 升级、生产性能与真实上游请求数、独立网络/服务端/主线程时延分解。
