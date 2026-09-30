@@ -2,7 +2,7 @@
 
 > 更新日期：2026-09-30（Asia/Shanghai）
 > 业务基线：v15.0.2 / `40e68edab9cb3fba0b17338dc3672a82d13ad17e`
-> 当前阶段：M0 本地实现及 GitHub 设置已执行，真实 CI 验证待完成
+> 当前阶段：M0 本地实现及真实 CI 已执行；新增 CodeQL 告警修复及候选验证待完成
 > v16 生产发布：未执行
 
 ## 已执行的 GitHub 设置
@@ -41,7 +41,9 @@ gh api repos/AureliusWu/FundVal/environments/github-pages
 - `scripts/check-source.mjs`：扫描所有业务、脚本、测试及 E2E JavaScript，避免旧手工文件清单漏掉新模块。
 - `serve-site`/Playwright/E2E 支持独立端口，避免复用其它项目的开发服务。
 
-GitHub 流水线的行为要在 M0 PR 上验证；本文件初次生成时该证据仍为 `PENDING`。
+GitHub 流水线已在 [M0 PR #10](https://github.com/AureliusWu/FundVal/pull/10) 首次验证。提交 `ba3346c977f5ec29a15785ee517dbe89291dbce7` 的 push run `36685686499` 和 PR run `36685696104` 均完成，`candidate`、`codeql` 作业均成功。PR 候选记录实际 merge SHA，不能把它冒充为 head SHA 或可部署主线候选。
+
+CodeQL 分析另外报告了两个新增脚本告警，自动 `CodeQL` 检查失败。作业成功只说明扫描完成，尚不代表安全门禁通过；修复重扫前不得合并。原有业务代码的五个发现另行审计，详见 `CODEQL_BASELINE.md`。
 
 ## v15.0.2 可重复基线
 
@@ -105,7 +107,8 @@ Coverage 的分母仅包括 Node 运行实际导入的 `js/**/*.js`，不包含 
 - [x] Node/npm 与安装脚本策略已固定。
 - [x] 基线工具辅助测试通过。
 - [x] 当前 M0 工作区完整门禁：主任务实测 Node 419/419、语法扫描 133 文件、两次 build 指纹一致（`9f7045d03e263b213c74901ed710e4dd4e6f2a39e206173af3daaa6b6a4c0509`）、隔离端口 E2E 12/12；冷 gzip 51,941 B、总非 OCR gzip 70,207 B。
-- [ ] M0 PR 的真实 `candidate` / `codeql` 通过。
+- [x] M0 PR 的真实 `candidate` / `codeql` 作业通过（首轮）。
+- [ ] 新增 CodeQL 告警修复并通过重扫，PR 可合并。
 - [ ] 候选清单可追溯至同一 SHA / run，且部署路径验证通过。
 
 以下保持 `NOT_RUN`：三类物理设备、实际长图 OCR 耗时、真实双设备合成 Gist 写读、已安装 v15→v16 升级、生产性能与真实上游请求数、独立网络/服务端/主线程时延分解。

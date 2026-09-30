@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createCandidate, inventorySite, validateCandidateManifest, verifyAndExtractCandidate } from '../scripts/release-candidate.mjs';
@@ -22,9 +22,37 @@ test('candidate provenance rejects failed, fork, PR, branch, mismatched SHA and 
     { status: 'in_progress' }, { conclusion: 'failure' }, { event: 'pull_request' },
     { head_branch: 'feature/v16' }, { head_sha: 'b'.repeat(40) }, { id: 456 }, { workflow_id: 89 },
     { path: '.github/workflows/untrusted.yml' }, { run_attempt: 0 },
+    { run_attempt: '1' }, { run_attempt: '1\nsha=injected' }, { run_attempt: Number.MAX_SAFE_INTEGER },
+    { run_attempt: NaN }, { run_attempt: Infinity }, { run_attempt: 1.5 },
     { repository: { full_name: 'Other/FundVal' } }, { head_repository: { full_name: 'Fork/FundVal' } },
   ]) assert.throws(() => validateCandidateRun({ ...verifiedRun, ...mutation }, expected));
   assert.throws(() => validateCandidateRun(verifiedRun, { ...expected, sha: '$(echo invalid)' }));
+});
+
+test('candidate verifier consumes one archive snapshot through stdin for all tar operations', async () => {
+  const source = await readFile(new URL('../scripts/release-candidate.mjs', import.meta.url), 'utf8');
+  const verifier = source.slice(source.indexOf('export async function verifyAndExtractCandidate'), source.indexOf('\nasync function main'));
+  assert.equal((verifier.match(/readBoundedRegularFile\(archive,/g) || []).length, 1);
+  assert.match(verifier, /createHash\('sha256'\)\.update\(archiveBytes\)/);
+  for (const mode of ['-tf', '-tvf', '-xf']) {
+    assert.ok(verifier.includes(`['${mode}', '-']`) || verifier.includes(`['${mode}', '-', '-C', destination]`));
+  }
+  assert.equal((verifier.match(/input: archiveBytes/g) || []).length, 3);
+  assert.doesNotMatch(verifier, /\['-\w+f', archive/);
+});
+
+test('candidate verifier rejects symlinked bundle files before parsing them', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'fundval-symlink-'));
+  try {
+    await mkdir(join(directory, 'bundle'));
+    await writeFile(join(directory, 'metadata.json'), '{}');
+    try { await symlink(join(directory, 'metadata.json'), join(directory, 'bundle', 'candidate.json'), 'file'); }
+    catch (error) {
+      if (['EPERM', 'EACCES'].includes(error.code)) { t.skip('Windows account cannot create a test symlink.'); return; }
+      throw error;
+    }
+    await assert.rejects(() => verifyAndExtractCandidate({ ...origin, bundle: join(directory, 'bundle'), output: join(directory, 'bad') }));
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
 test('candidate packing and extraction preserve every byte and reject modified archive or provenance', async () => {

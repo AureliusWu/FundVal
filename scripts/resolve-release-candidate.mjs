@@ -5,16 +5,20 @@ import { pathToFileURL } from 'node:url';
 
 export function validateCandidateRun(run, { repository, sha, runId, workflowId }) {
   const sameRepository = value => typeof value === 'string' && value.toLowerCase() === repository.toLowerCase();
+  const attempt = Number(run?.run_attempt);
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository || '')
     || !/^[0-9a-f]{40}$/.test(sha || '') || !/^[1-9]\d*$/.test(String(runId || ''))
     || String(run?.id) !== String(runId) || run.workflow_id !== workflowId
     || run.path !== '.github/workflows/ci.yml' || !sameRepository(run.repository?.full_name)
     || !sameRepository(run.head_repository?.full_name) || run.event !== 'push'
     || run.head_branch !== 'main' || run.head_sha !== sha || run.status !== 'completed'
-    || run.conclusion !== 'success' || !Number.isInteger(run.run_attempt) || run.run_attempt < 1) {
+    || run.conclusion !== 'success' || typeof run.run_attempt !== 'number'
+    || !Number.isSafeInteger(attempt) || attempt < 1 || attempt > 1_000_000) {
     throw new Error('Release requires a successful origin main-push CI run for the exact requested SHA.');
   }
-  return { sha, runId: String(runId), attempt: String(run.run_attempt), artifactName: `fundval-candidate-${sha}-${run.run_attempt}` };
+  // Only bounded numeric conversion is carried into the Actions output file;
+  // never append any raw API string or arbitrary response property.
+  return { sha, runId: String(runId), attempt: String(attempt), artifactName: `fundval-candidate-${sha}-${attempt}` };
 }
 
 export function assertMainAncestor(sha) {

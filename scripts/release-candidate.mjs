@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { createReadStream } from 'node:fs';
-import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
+import { constants, createReadStream } from 'node:fs';
+import { lstat, mkdir, open, readdir, realpath, writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -30,6 +30,26 @@ async function hashFile(path) {
   const hash = createHash('sha256');
   for await (const bytes of createReadStream(path)) hash.update(bytes);
   return hash.digest('hex');
+}
+
+async function readBoundedRegularFile(path, maximumBytes) {
+  // Open first, then validate/read through that descriptor. O_NOFOLLOW guards
+  // Linux CI; checking path/descriptor identity also retains Windows support.
+  const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
+  try {
+    const metadata = await handle.stat();
+    const pathMetadata = await lstat(path);
+    if (!metadata.isFile() || !pathMetadata.isFile() || pathMetadata.isSymbolicLink()
+      || metadata.ino !== pathMetadata.ino || metadata.dev !== pathMetadata.dev) {
+      throw new Error('Candidate bundle must contain stable regular files.');
+    }
+    if (metadata.size > maximumBytes) throw new Error('Candidate bundle exceeds size limits.');
+    const bytes = await handle.readFile();
+    if (bytes.length > maximumBytes || bytes.length !== metadata.size) {
+      throw new Error('Candidate bundle changed while reading or exceeds size limits.');
+    }
+    return bytes;
+  } finally { await handle.close(); }
 }
 
 function inventoryHash(files) {
@@ -123,16 +143,14 @@ export async function verifyAndExtractCandidate({ bundle, output, ...expected })
   const root = await realpath(resolve(bundle));
   const metadataPath = resolve(root, 'candidate.json');
   const archive = resolve(root, 'site.tar');
-  for (const path of [metadataPath, archive]) {
-    const metadata = await lstat(path);
-    if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error('Candidate bundle must contain regular files.');
-  }
-  if ((await lstat(metadataPath)).size > 2 * 1024 * 1024
-    || (await lstat(archive)).size > MAX_SITE_BYTES + 10 * 1024 * 1024) throw new Error('Candidate bundle exceeds size limits.');
-  const manifest = validateCandidateManifest(JSON.parse(await readFile(metadataPath, 'utf8')), expected);
-  if (await hashFile(archive) !== manifest.archiveSha256) throw new Error('Candidate archive checksum does not match.');
-  const names = execFileSync('tar', ['-tf', archive], { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }).trim().split(/\r?\n/);
-  const types = execFileSync('tar', ['-tvf', archive], { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }).trim().split(/\r?\n/);
+  const metadataBytes = await readBoundedRegularFile(metadataPath, 2 * 1024 * 1024);
+  const manifest = validateCandidateManifest(JSON.parse(metadataBytes.toString('utf8')), expected);
+  // All tar operations consume the same verified bytes. Never reopen the
+  // archive path after validation, even if another process replaces it.
+  const archiveBytes = await readBoundedRegularFile(archive, MAX_SITE_BYTES + 10 * 1024 * 1024);
+  if (createHash('sha256').update(archiveBytes).digest('hex') !== manifest.archiveSha256) throw new Error('Candidate archive checksum does not match.');
+  const names = execFileSync('tar', ['-tf', '-'], { input: archiveBytes, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }).trim().split(/\r?\n/);
+  const types = execFileSync('tar', ['-tvf', '-'], { input: archiveBytes, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }).trim().split(/\r?\n/);
   if (types.some(line => !line.startsWith('-')) || names.length !== manifest.site.files.length
     || names.some((name, index) => safePath(name) !== manifest.site.files[index].path)) {
     throw new Error('Candidate archive contains unexpected entries or links.');
@@ -140,7 +158,7 @@ export async function verifyAndExtractCandidate({ bundle, output, ...expected })
   const destination = resolve(output);
   await mkdir(destination, { recursive: true });
   if ((await readdir(destination)).length) throw new Error('Candidate extraction requires an empty directory.');
-  execFileSync('tar', ['-xf', archive, '-C', destination], { stdio: ['ignore', 'pipe', 'pipe'] });
+  execFileSync('tar', ['-xf', '-', '-C', destination], { input: archiveBytes, stdio: ['pipe', 'pipe', 'pipe'] });
   const actual = await inventorySite(destination);
   if (JSON.stringify(actual) !== JSON.stringify(manifest.site)) throw new Error('Extracted candidate differs from verified site inventory.');
   return manifest;
