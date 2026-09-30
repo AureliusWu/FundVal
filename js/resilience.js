@@ -165,9 +165,11 @@ export function installRuntimeGuards(storage = localStorage) {
     });
   });
 
-  window.addEventListener('storage', async event => {
+  window.addEventListener('storage', event => {
     if (![HOLDINGS_V1_COMPAT_KEY, HOLDINGS_V3_KEY, HOLDINGS_JOURNAL_KEY].includes(event.key)) return;
-    await runStartupIntegrityChecksLocked(storage);
+    // Other renderers may not yet have received every transaction key. A
+    // notification is not authority to recover or roll back that mixed view.
+    // Keep recovery at explicit startup/transaction entry points, never here.
     showSystemToast('检测到其他页面更新持仓，点击刷新', { reloadOnClick: true, duration: 10000 });
   });
 
