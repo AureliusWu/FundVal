@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "entry": "js/app-shell.js",
+  "coldStart": [
+    "js/app-shell.js",
+    "js/chunks/app-DgP4oxmM.js",
+    "js/chunks/holdings-migration-BVo-d7Iv.js",
+    "js/chunks/holdings-repository-BbMmpyu7.js",
+    "js/chunks/holdings-repository-CoYyTMS-.js",
+    "js/chunks/integrity-CJAe5H6x.js",
+    "js/chunks/market-session-C4Qck8lr.js",
+    "js/chunks/migrations-CgE33IzI.js",
+    "js/chunks/preload-helper-BATLnrmA.js",
+    "js/chunks/quote-contract-CUIUvWLX.js",
+    "js/chunks/request-signal-BCGn3P_R.js",
+    "js/chunks/storage-DsTl1pFx.js"
+  ],
+  "lazy": [
+    "js/chunks/accuracy-Co8-y6gy.js",
+    "js/chunks/cloud-sync-D5DHLvmq.js",
+    "js/chunks/cloud-sync-DimBuTvw.js",
+    "js/chunks/diagnostics-ui-C7FSVVSY.js",
+    "js/chunks/fund-holdings-CSIRCS9i.js",
+    "js/chunks/gist-remote-tCc5b2_f.js",
+    "js/chunks/holding-edit-DDl9jXA_.js",
+    "js/chunks/holdings-transfer-CogvE5Jm.js",
+    "js/chunks/notification-controller-75ECh38Y.js",
+    "js/chunks/quote-bridge-client-BBboYKt6.js"
+  ],
+  "chunks": [
+    {
+      "path": "js/app-shell.js",
+      "role": "cold",
+      "bytes": 5490,
+      "gzipBytes": 2398,
+      "sha256": "7663f00c624c787bb6d24f439cd55f036bab45d2b7cea01e462cbf0eafa87f7c"
+    },
+    {
+      "path": "js/chunks/accuracy-Co8-y6gy.js",
+      "role": "lazy",
+      "bytes": 2494,
+      "gzipBytes": 1167,
+      "sha256": "18c049041202169b8fc94843879a8f67fe2db8ced16e8b270f67608e079b9138"
+    },
+    {
+      "path": "js/chunks/app-DgP4oxmM.js",
+      "role": "cold",
+      "bytes": 104511,
+      "gzipBytes": 34344,
+      "sha256": "ef08b93b61b9a80f47755344c57fc24e1a13d49f48abe488f215b9d5eeabee1c"
+    },
+    {
+      "path": "js/chunks/cloud-sync-D5DHLvmq.js",
+      "role": "lazy",
+      "bytes": 383,
+      "gzipBytes": 237,
+      "sha256": "3c92d284cd4f7a9e8fd09b0fbfa54cc8b59868631dd18e46562d6a120f0d350f"
+    },
+    {
+      "path": "js/chunks/cloud-sync-DimBuTvw.js",
+      "role": "lazy",
+      "bytes": 10684,
+      "gzipBytes": 3146,
+      "sha256": "0785d46c6cbc0f271ae4c4752e272f9d9d1d6c6a17fc63876e2ea160ba15f3e7"
+    },
+    {
+      "path": "js/chunks/diagnostics-ui-C7FSVVSY.js",
+      "role": "lazy",
+      "bytes": 4680,
+      "gzipBytes": 2537,
+      "sha256": "f7b7659c6d3ae066c9b96cc3ca48990d0764900eb6ded20dce7988432241c8a8"
+    },
+    {
+      "path": "js/chunks/fund-holdings-CSIRCS9i.js",
+      "role": "lazy",
+      "bytes": 1959,
+      "gzipBytes": 1073,
+      "sha256": "885ce1b05569a6385d93b5a74bba9725e056303662132ee4275809f917765155"
+    },
+    {
+      "path": "js/chunks/gist-remote-tCc5b2_f.js",
+      "role": "lazy",
+      "bytes": 3533,
+      "gzipBytes": 1663,
+      "sha256": "61371360f6e23c4d71f30ce625964eedc8dc3735c338d9f56259dd47a6362948"
+    },
+    {
+      "path": "js/chunks/holding-edit-DDl9jXA_.js",
+      "role": "lazy",
+      "bytes": 977,
+      "gzipBytes": 539,
+      "sha256": "3a9653ece92f4334610ef84c95239d34f4d586ce867fe0e4d8c11c87c9a57ca1"
+    },
+    {
+      "path": "js/chunks/holdings-migration-BVo-d7Iv.js",
+      "role": "cold",
+      "bytes": 10296,
+      "gzipBytes": 3175,
+      "sha256": "5f1a0f3da2038085b2643c86dfff0297afc7266c23f911dca0635f177e6ecd0b"
+    },
+    {
+      "path": "js/chunks/holdings-repository-BbMmpyu7.js",
+      "role": "cold",
+      "bytes": 133,
+      "gzipBytes": 129,
+      "sha256": "cd97a30f74d721e969932ccc8487632c6e2daf10bf497ea032bc70a9cfb06bfd"
+    },
+    {
+      "path": "js/chunks/holdings-repository-CoYyTMS-.js",
+      "role": "cold",
+      "bytes": 11987,
+      "gzipBytes": 3714,
+      "sha256": "59407cb6c4aafd8c221ce44f5492584d0e276caf9913149d34852effd5a872b7"
+    },
+    {
+      "path": "js/chunks/holdings-transfer-CogvE5Jm.js",
+      "role": "lazy",
+      "bytes": 2971,
+      "gzipBytes": 1671,
+      "sha256": "ea26958cb65ebd96f3f317b79a279fc8ffaaf951664aba64e05dc6b9c66894b1"
+    },
+    {
+      "path": "js/chunks/integrity-CJAe5H6x.js",
+      "role": "cold",
+      "bytes": 3169,
+      "gzipBytes": 1428,
+      "sha256": "1220ed29e741b5c2f638f43e83d846bacfe18d485a330f29e70c14a8d56f3dd3"
+    },
+    {
+      "path": "js/chunks/market-session-C4Qck8lr.js",
+      "role": "cold",
+      "bytes": 3484,
+      "gzipBytes": 1648,
+      "sha256": "ab5913bdb5c4fbdf5f5ccbb94a633a738374eaa6f88e3a72ae0c3902cc70ec0c"
+    },
+    {
+      "path": "js/chunks/migrations-CgE33IzI.js",
+      "role": "cold",
+      "bytes": 1033,
+      "gzipBytes": 547,
+      "sha256": "1ce0a156cddeb88ce4c8d0be82bafe23ebc134d782384b4954ffae0343c14884"
+    },
+    {
+      "path": "js/chunks/notification-controller-75ECh38Y.js",
+      "role": "lazy",
+      "bytes": 4720,
+      "gzipBytes": 2122,
+      "sha256": "1c0495329360e7ff7a65387e770f0aef9ef56db6553c76d2336c4d8de2f61d43"
+    },
+    {
+      "path": "js/chunks/preload-helper-BATLnrmA.js",
+      "role": "cold",
+      "bytes": 1223,
+      "gzipBytes": 704,
+      "sha256": "045499e00b1a634114a93b13ccd0bfada8c5b22ebe6c496475743615f316421c"
+    },
+    {
+      "path": "js/chunks/quote-bridge-client-BBboYKt6.js",
+      "role": "lazy",
+      "bytes": 12880,
+      "gzipBytes": 4111,
+      "sha256": "722f2b24200db53cc961ae12230b27b9d5ea5394923aa24ef500c1779b0dd488"
+    },
+    {
+      "path": "js/chunks/quote-contract-CUIUvWLX.js",
+      "role": "cold",
+      "bytes": 5791,
+      "gzipBytes": 2373,
+      "sha256": "ed74159e931a5138fc79c8e6b57109d1653131b8ad6fb494ed8cede5b7c18b25"
+    },
+    {
+      "path": "js/chunks/request-signal-BCGn3P_R.js",
+      "role": "cold",
+      "bytes": 1805,
+      "gzipBytes": 1038,
+      "sha256": "ccfc36398df221a2d2de057565ddadba0ca10016acd79f99082574390df24187"
+    },
+    {
+      "path": "js/chunks/storage-DsTl1pFx.js",
+      "role": "cold",
+      "bytes": 871,
+      "gzipBytes": 443,
+      "sha256": "ce89ba2967434683fb374c4dafd3021f40661d04f71c0d85a253ec36e55a5546"
+    }
+  ]
+}

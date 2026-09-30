@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-09-30",
+  "npm_default": "ignore-scripts=true",
+  "packages": [
+    {"path":"node_modules/esbuild","version":"0.28.2","integrity":"sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==","execution":"esbuild-only","reason":"Only node node_modules/esbuild/install.js runs explicitly after policy validation; installs/verifies the build binary."},
+    {"path":"node_modules/fsevents","version":"2.3.3","integrity":"sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==","execution":"disabled","reason":"Optional macOS native node-gyp install; not required by the static build or Linux CI."},
+    {"path":"node_modules/playwright/node_modules/fsevents","version":"2.3.2","integrity":"sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==","execution":"disabled","reason":"Optional macOS native node-gyp install; browser installation is a separate explicit Playwright command."},
+    {"path":"node_modules/protobufjs","version":"7.6.5","integrity":"sha512-/FPD0nUc9jH6rfFjji9IBqOz4pcSE3CsT1m7Ep6Mdb0LxSUMj8hgl6GomOvZzpNpAqqGaXA0P3VSrZLFzIhQrw==","execution":"disabled","reason":"postinstall modifies package artifacts; shipped distribution is sufficient for the OCR bundle, which must pass build/E2E."},
+    {"path":"node_modules/tesseract.js","version":"7.0.0","integrity":"sha512-exPBkd+z+wM1BuMkx/Bjv43OeLBxhL5kKWsz/9JY+DXcXdiBjiAch0V49QR3oAJqCaL5qURE0vx9Eo+G5YE7mA==","execution":"disabled","reason":"opencollective-postinstall donation message; unnecessary for runtime."}
+  ]
+}

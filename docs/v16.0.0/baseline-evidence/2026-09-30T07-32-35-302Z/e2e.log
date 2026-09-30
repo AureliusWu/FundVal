@@ -1,0 +1,25 @@
+
+> fuyu-fund@15.0.2 test:e2e
+> playwright test -c playwright.config.mjs
+
+
+Running 12 tests using 1 worker
+
+  ok  1 e2e\v15.spec.js:170:1 › a quota failure preserves both saved holding and editable draft (4.7s)
+  ok  2 e2e\v15.spec.js:195:1 › stale editor cannot overwrite another tab and navigation preserves its draft (28.4s)
+  ok  3 e2e\v15.spec.js:219:1 › lazy diagnostics and export keep working without loading OCR assets (1.6s)
+LOCAL_PERFORMANCE [{"coldReadyMs":315,"warmReadyMs":187,"saveUiMs":113.24319999999716},{"coldReadyMs":363.80000001192093,"warmReadyMs":300.60000002384186,"saveUiMs":143.35289999999804},{"coldReadyMs":279.89999997615814,"warmReadyMs":243.19999998807907,"saveUiMs":91.96839999999793}]
+  ok  4 e2e\v15.spec.js:235:1 › local mobile cold/warm readiness and holding save stay within the interaction budget (15.8s)
+  ok  5 e2e\v15.spec.js:272:1 › app starts and a holding survives add/reload/delete/reload through the UI (4.6s)
+  ok  6 e2e\v15.spec.js:301:1 › quote bridge uses an opaque-origin scripts-only sandbox (13.9s)
+  ok  7 e2e\v15.spec.js:323:1 › malicious remote holding fields are rejected before detail DOM rendering (4.4s)
+  ok  8 e2e\v15.spec.js:342:1 › an estimate outage never falls back to an identically numbered stock quote (1.4s)
+  ok  9 e2e\v15.spec.js:359:1 › cloud synchronization fails closed when a PATCH readback does not match (939ms)
+  ok 10 e2e\v15.spec.js:398:1 › OCR confirmation page loads and candidate selection respects explicit skip (1.2s)
+  ok 11 e2e\v15.spec.js:441:1 › new HTML can invoke the guarded updater exposed by a cached legacy app shell (1.3s)
+  ok 12 e2e\v15.spec.js:461:1 › PWA installs the versioned shell, caches lazy chunks and reopens offline (2.1s)
+
+  12 passed (1.6m)
+
+(node:24748) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

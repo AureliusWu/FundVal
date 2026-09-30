@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { proxyFundData } from './dev-data-proxy.mjs';
 
 const root = resolve(fileURLToPath(new URL('../site/', import.meta.url)));
-const port = 4173;
+const port = Number(process.env.FUNDVAL_E2E_PORT || 4173);
+if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Invalid FundVal server port.');
 const types = {
   '.css': 'text/css; charset=utf-8',
   '.gz': 'application/gzip',

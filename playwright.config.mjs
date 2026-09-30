@@ -1,5 +1,9 @@
 import { defineConfig } from '@playwright/test';
 
+const port = Number(process.env.FUNDVAL_E2E_PORT || 4173);
+if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Invalid FundVal E2E port.');
+const origin = `http://127.0.0.1:${port}`;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -11,7 +15,7 @@ export default defineConfig({
   reporter: [['list']],
   outputDir: './site/.playwright-results',
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: origin,
     channel: 'chrome',
     headless: true,
     serviceWorkers: 'block',
@@ -20,8 +24,8 @@ export default defineConfig({
   },
   webServer: {
     command: 'npm run serve',
-    url: 'http://127.0.0.1:4173/',
-    reuseExistingServer: true,
+    url: `${origin}/`,
+    reuseExistingServer: false,
     timeout: 30_000,
   },
 });

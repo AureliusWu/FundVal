@@ -1,0 +1,152 @@
+name: FundVal CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fundval-ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    name: candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Pin npm runtime
+        run: |
+          npm install --global npm@11.9.0 --ignore-scripts --registry=https://registry.npmjs.org
+          test "$(node --version)" = v24.14.0
+          test "$(npm --version)" = 11.9.0
+      - name: Install reviewed locked dependencies
+        run: |
+          node scripts/dependency-install-policy.mjs
+          npm ci --ignore-scripts --registry=https://registry.npmjs.org
+          node scripts/dependency-install-policy.mjs
+          node node_modules/esbuild/install.js
+      - name: Audit dependencies
+        run: npm audit --audit-level=high --registry=https://registry.npmjs.org
+      - name: Test and syntax check
+        run: |
+          npm test
+          npm run check
+      - name: Build static Pages candidate
+        run: npm run build
+      - name: Verify Pages artifact
+        shell: bash
+        run: |
+          test -f site/index.html
+          test -f site/manifest.json
+          test -f site/ocr-import.html
+          test -f site/css/ocr.css
+          test -s site/js/app-shell.js
+          test -s site/js/app-chunks.json
+          test -f site/quote-bridge.html
+          test -f site/js/sandbox/quote-bridge-runtime.js
+          test -f site/js/version.js
+          test -s site/js/update-compat.js
+          test -f site/sw.js
+          test -s site/data/fund-catalog.json
+          test -s site/assets/ocr/asset-manifest.json
+          test -f site/assets/ocr/tesseract/tesseract.esm.min.js
+          test -f site/assets/ocr/tesseract/worker.min.js
+          test -f site/assets/ocr/tesseract-core/tesseract-core-lstm.wasm.js
+          test -f site/assets/ocr/tessdata/chi_sim.traineddata.gz
+          test -f site/assets/ocr/licenses/tesseract.js-APACHE-2.0.txt
+          test -f site/assets/ocr/licenses/tesseract.js-core-APACHE-2.0.txt
+          test -f site/assets/ocr/licenses/paddleocr-APACHE-2.0.txt
+          test -f site/assets/ocr/licenses/opencv-js-APACHE-2.0.txt
+          test -f site/assets/ocr/licenses/js-yaml-MIT.txt
+          test -f site/assets/ocr/licenses/onnxruntime-web-MIT.txt
+          test -f site/assets/ocr/licenses/clipper-lib-BSL-1.0.txt
+          test -f site/assets/ocr/licenses/chi_sim-MIT.txt
+          test -f site/assets/ocr/paddle/engine/paddle-ocr-engine.mjs
+          test -f site/assets/ocr/paddle/engine/assets/fundval-paddle-worker.js
+          test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar
+          test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar
+          test -f site/assets/ocr/paddle/models/integrity.json
+          test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.mjs
+          test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.wasm
+          test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.mjs
+          test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm
+          test -f site/THIRD_PARTY_NOTICES.md
+          node scripts/release-fingerprint.mjs --verify-app-chunks-directory site
+          node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr
+      - name: Install Chrome for E2E
+        run: npx --no-install playwright install --with-deps chrome
+      - name: Run hermetic browser E2E
+        run: npm run test:e2e
+      - name: Preserve failed synthetic E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fundval-e2e-failure-${{ github.sha }}-${{ github.run_attempt }}
+          path: site/.playwright-results/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Seal immutable candidate
+        shell: bash
+        env:
+          CANDIDATE_REPOSITORY: ${{ github.repository }}
+          CANDIDATE_SHA: ${{ github.sha }}
+          CANDIDATE_RUN_ID: ${{ github.run_id }}
+          CANDIDATE_ATTEMPT: ${{ github.run_attempt }}
+          CANDIDATE_EVENT: ${{ github.event_name }}
+          CANDIDATE_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          fingerprint="$(node scripts/release-fingerprint.mjs --directory site)"
+          node scripts/release-candidate.mjs create --site site --output "$RUNNER_TEMP/candidate" \
+            --repository "$CANDIDATE_REPOSITORY" --sha "$CANDIDATE_SHA" \
+            --run-id "$CANDIDATE_RUN_ID" --attempt "$CANDIDATE_ATTEMPT" \
+            --event "$CANDIDATE_EVENT" --branch "$CANDIDATE_BRANCH" \
+            --release-fingerprint "$fingerprint" --npm "$(npm --version)"
+      - name: Upload immutable candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fundval-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/candidate/site.tar
+            ${{ runner.temp }}/candidate/candidate.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  codeql:
+    name: codeql
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          config-file: ./.github/codeql-config.yml
+      - name: Analyze source security
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          category: /language:javascript-typescript

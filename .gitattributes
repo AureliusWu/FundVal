@@ -1,0 +1,3 @@
+# Preserve generated baseline evidence byte-for-byte so recorded hashes remain valid.
+docs/v16.0.0/baseline-evidence/** -text
+docs/v16.0.0/baseline-evidence/**/*.log -diff
