@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const LOCAL_ORIGIN = 'http://127.0.0.1:4173';
+const LOCAL_ORIGIN = `http://127.0.0.1:${Number(process.env.FUNDVAL_E2E_PORT || 4173)}`;
 const WORKER_HOST = 'sinan-estimate-push.ligugu69.workers.dev';
 const TEST_FUND = Object.freeze({
   code: '005844',

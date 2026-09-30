@@ -16,7 +16,7 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
     readFile(new URL('../index.html', import.meta.url), 'utf8'),
     readFile(new URL('../ocr-import.html', import.meta.url), 'utf8'),
     readFile(new URL('../scripts/build-site.mjs', import.meta.url), 'utf8'),
-    readFile(new URL('../.github/workflows/deploy.yml', import.meta.url), 'utf8'),
+    Promise.all(['ci.yml', 'deploy.yml'].map(name => readFile(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8'))).then(parts => parts.join('\n')),
     readFile(new URL('../sw.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/ocr/import-transaction.js', import.meta.url), 'utf8'),
   ]);

@@ -1,0 +1,148 @@
+{
+  "engine": "paddleocr-js",
+  "engine_version": "0.4.2",
+  "model": "PP-OCRv6-tiny",
+  "model_hash": "ebbe9964854acf5cdc594070d2e99ef9bf9b9ecbce33889cec8aa0bfe372e3fb",
+  "ort_version": "1.27.0",
+  "generated_at": "2026-09-28T04:32:37.000Z",
+  "assets": [
+    {
+      "path": "licenses/chi_sim-MIT.txt",
+      "role": "license",
+      "bytes": 1130,
+      "sha256": "d4abcbba3aca53e6dc9f6cb93d341cde7afa9354d1418801f79adc1583b1835d"
+    },
+    {
+      "path": "licenses/clipper-lib-BSL-1.0.txt",
+      "role": "license",
+      "bytes": 1336,
+      "sha256": "f2ea7b69dc83c80a1297730a363df4c366846a01c377d3e2056bdad3f57403ff"
+    },
+    {
+      "path": "licenses/js-yaml-MIT.txt",
+      "role": "license",
+      "bytes": 1084,
+      "sha256": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550"
+    },
+    {
+      "path": "licenses/onnxruntime-web-MIT.txt",
+      "role": "license",
+      "bytes": 1150,
+      "sha256": "472bc2497257f8ec3e40255d277af9b978a3f6c954094c121c5f65297f235a02"
+    },
+    {
+      "path": "licenses/opencv-js-APACHE-2.0.txt",
+      "role": "license",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "licenses/paddleocr-APACHE-2.0.txt",
+      "role": "license",
+      "bytes": 11357,
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "path": "licenses/tesseract.js-APACHE-2.0.txt",
+      "role": "license",
+      "bytes": 11357,
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "path": "licenses/tesseract.js-core-APACHE-2.0.txt",
+      "role": "license",
+      "bytes": 11358,
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+    },
+    {
+      "path": "paddle/engine/assets/fundval-paddle-worker.js",
+      "role": "worker",
+      "bytes": 11341572,
+      "sha256": "49305ac2e8f22367569cb491fc71cfbb21173cc88627715ea537fec20345ae10"
+    },
+    {
+      "path": "paddle/engine/paddle-ocr-engine.mjs",
+      "role": "engine",
+      "bytes": 16118,
+      "sha256": "5147cec17983cf50ede6b7e8ce45ec971d2a8f99754a52f300e55785a24cd143"
+    },
+    {
+      "path": "paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar",
+      "role": "model",
+      "bytes": 1792000,
+      "sha256": "ff6ab415b0a6e0c488550f2fb5d5046f1719848df220b2dc21b56402a65bc05d"
+    },
+    {
+      "path": "paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar",
+      "role": "model",
+      "bytes": 4526080,
+      "sha256": "1e13b22717b1edd89d4cde4fda272b6c17d5b505c97c2baea99da1a3a2d54b29"
+    },
+    {
+      "path": "paddle/models/integrity.json",
+      "role": "model_metadata",
+      "bytes": 453,
+      "sha256": "9af4d039344eba710071909aba3dfa20fa76547c6404a1f156cb167804bf5916"
+    },
+    {
+      "path": "paddle/ort/ort-wasm-simd-threaded.asyncify.mjs",
+      "role": "runtime",
+      "bytes": 47507,
+      "sha256": "7236653b8565da4046e459cd0e274123419a1d9f1f8f18fd36c28058346ca655"
+    },
+    {
+      "path": "paddle/ort/ort-wasm-simd-threaded.asyncify.wasm",
+      "role": "runtime",
+      "bytes": 24254953,
+      "sha256": "7e83cd6cee77e478bc96a7e91b198144fb5e4126287daf1f9b54bb195ebcd55a"
+    },
+    {
+      "path": "paddle/ort/ort-wasm-simd-threaded.jsep.mjs",
+      "role": "runtime",
+      "bytes": 46614,
+      "sha256": "3ee381d20a80f51a788a1c4a5872f6f1d047538dd4342f4af00062de5f9ea4c6"
+    },
+    {
+      "path": "paddle/ort/ort-wasm-simd-threaded.jsep.wasm",
+      "role": "runtime",
+      "bytes": 26827543,
+      "sha256": "78feeeb3d08f6bcee94d938ed322f69073bb8076b5f9d34697a574ffba8deb48"
+    },
+    {
+      "path": "paddle/ort/ort-wasm-simd-threaded.mjs",
+      "role": "runtime",
+      "bytes": 24180,
+      "sha256": "0a1e718d99c41b22c21f2520ff4f9e883a6b5533856e398d21816ee8eb8185d3"
+    },
+    {
+      "path": "paddle/ort/ort-wasm-simd-threaded.wasm",
+      "role": "runtime",
+      "bytes": 13479978,
+      "sha256": "d1ab1b94b16a65b29d710d0b587b29e7bed336827577623913479b8afe8113e6"
+    },
+    {
+      "path": "tessdata/chi_sim.traineddata.gz",
+      "role": "fallback",
+      "bytes": 1718768,
+      "sha256": "b8a23f10c7de500891eb458a8adc9cc58ab7f242f08b7d149f5e9aea4ad5db7c"
+    },
+    {
+      "path": "tesseract-core/tesseract-core-lstm.wasm.js",
+      "role": "fallback",
+      "bytes": 3896484,
+      "sha256": "eef5f8b2f8e20e150680b20adaec4a60babafee3adbe8a94583c81fee46e8680"
+    },
+    {
+      "path": "tesseract/tesseract.esm.min.js",
+      "role": "fallback",
+      "bytes": 63220,
+      "sha256": "64871d76c75609fd5413b88a8171e2ef40deedd77d5875ba23df104b2d05eb29"
+    },
+    {
+      "path": "tesseract/worker.min.js",
+      "role": "fallback",
+      "bytes": 111307,
+      "sha256": "576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d"
+    }
+  ]
+}

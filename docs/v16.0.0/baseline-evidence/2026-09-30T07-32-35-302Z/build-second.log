@@ -1,0 +1,28 @@
+
+> fuyu-fund@15.0.2 build
+> node scripts/build-site.mjs
+
+Built js/app-shell.js: 5490 bytes raw, 2398 bytes gzip (cold).
+Built js/chunks/accuracy-Co8-y6gy.js: 2494 bytes raw, 1167 bytes gzip (lazy).
+Built js/chunks/app-DgP4oxmM.js: 104511 bytes raw, 34344 bytes gzip (cold).
+Built js/chunks/cloud-sync-D5DHLvmq.js: 383 bytes raw, 237 bytes gzip (lazy).
+Built js/chunks/cloud-sync-DimBuTvw.js: 10684 bytes raw, 3146 bytes gzip (lazy).
+Built js/chunks/diagnostics-ui-C7FSVVSY.js: 4680 bytes raw, 2537 bytes gzip (lazy).
+Built js/chunks/fund-holdings-CSIRCS9i.js: 1959 bytes raw, 1073 bytes gzip (lazy).
+Built js/chunks/gist-remote-tCc5b2_f.js: 3533 bytes raw, 1663 bytes gzip (lazy).
+Built js/chunks/holding-edit-DDl9jXA_.js: 977 bytes raw, 539 bytes gzip (lazy).
+Built js/chunks/holdings-migration-BVo-d7Iv.js: 10296 bytes raw, 3175 bytes gzip (cold).
+Built js/chunks/holdings-repository-BbMmpyu7.js: 133 bytes raw, 129 bytes gzip (cold).
+Built js/chunks/holdings-repository-CoYyTMS-.js: 11987 bytes raw, 3714 bytes gzip (cold).
+Built js/chunks/holdings-transfer-CogvE5Jm.js: 2971 bytes raw, 1671 bytes gzip (lazy).
+Built js/chunks/integrity-CJAe5H6x.js: 3169 bytes raw, 1428 bytes gzip (cold).
+Built js/chunks/market-session-C4Qck8lr.js: 3484 bytes raw, 1648 bytes gzip (cold).
+Built js/chunks/migrations-CgE33IzI.js: 1033 bytes raw, 547 bytes gzip (cold).
+Built js/chunks/notification-controller-75ECh38Y.js: 4720 bytes raw, 2122 bytes gzip (lazy).
+Built js/chunks/preload-helper-BATLnrmA.js: 1223 bytes raw, 704 bytes gzip (cold).
+Built js/chunks/quote-bridge-client-BBboYKt6.js: 12880 bytes raw, 4111 bytes gzip (lazy).
+Built js/chunks/quote-contract-CUIUvWLX.js: 5791 bytes raw, 2373 bytes gzip (cold).
+Built js/chunks/request-signal-BCGn3P_R.js: 1805 bytes raw, 1038 bytes gzip (cold).
+Built js/chunks/storage-DsTl1pFx.js: 871 bytes raw, 443 bytes gzip (cold).
+Homepage cold-start gzip: 51941/52241 bytes; all chunks: 70207 bytes gzip.
+

@@ -1,100 +1,90 @@
-name: Build and Deploy
+name: Deploy verified candidate
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      candidate_run_id:
+        description: Successful FundVal CI main-push run ID
+        required: true
+        type: string
+      candidate_sha:
+        description: Exact 40-character candidate commit SHA
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: fundval-pages-${{ github.ref }}
-  cancel-in-progress: true
+  group: fundval-production-pages
+  cancel-in-progress: false
 
 jobs:
-  build:
+  verify:
+    name: verify candidate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      release_fingerprint: ${{ steps.release_fingerprint.outputs.value }}
     permissions:
       contents: read
-    
+      actions: read
+    outputs:
+      sha: ${{ steps.provenance.outputs.sha }}
+      release_fingerprint: ${{ steps.release_fingerprint.outputs.value }}
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-      with:
-        node-version: 24
-        cache: npm
-    - name: Install locked dependencies
-      run: npm ci
-    - name: Audit dependencies
-      run: npm audit --audit-level=high --registry=https://registry.npmjs.org
-    - name: Test and syntax check
-      run: |
-        npm test
-        npm run check
-    - name: Build static Pages artifact
-      run: npm run build
-    - name: Verify Pages artifact
-      shell: bash
-      run: |
-        test -f site/index.html
-        test -f site/manifest.json
-        test -f site/ocr-import.html
-        test -f site/css/ocr.css
-        test -s site/js/app-shell.js
-        test -s site/js/app-chunks.json
-        test -f site/quote-bridge.html
-        test -f site/js/sandbox/quote-bridge-runtime.js
-        test -f site/js/version.js
-        test -s site/js/update-compat.js
-        test -f site/sw.js
-        test -s site/data/fund-catalog.json
-        test -s site/assets/ocr/asset-manifest.json
-        test -f site/assets/ocr/tesseract/tesseract.esm.min.js
-        test -f site/assets/ocr/tesseract/worker.min.js
-        test -f site/assets/ocr/tesseract-core/tesseract-core-lstm.wasm.js
-        test -f site/assets/ocr/tessdata/chi_sim.traineddata.gz
-        test -f site/assets/ocr/licenses/tesseract.js-APACHE-2.0.txt
-        test -f site/assets/ocr/licenses/tesseract.js-core-APACHE-2.0.txt
-        test -f site/assets/ocr/licenses/paddleocr-APACHE-2.0.txt
-        test -f site/assets/ocr/licenses/opencv-js-APACHE-2.0.txt
-        test -f site/assets/ocr/licenses/js-yaml-MIT.txt
-        test -f site/assets/ocr/licenses/onnxruntime-web-MIT.txt
-        test -f site/assets/ocr/licenses/clipper-lib-BSL-1.0.txt
-        test -f site/assets/ocr/licenses/chi_sim-MIT.txt
-        test -f site/assets/ocr/paddle/engine/paddle-ocr-engine.mjs
-        test -f site/assets/ocr/paddle/engine/assets/fundval-paddle-worker.js
-        test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar
-        test -f site/assets/ocr/paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar
-        test -f site/assets/ocr/paddle/models/integrity.json
-        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.mjs
-        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.wasm
-        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.mjs
-        test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm
-        test -f site/THIRD_PARTY_NOTICES.md
-    - name: Run hermetic browser E2E
-      run: npm run test:e2e
-    - name: Fingerprint release-critical files
-      id: release_fingerprint
-      shell: bash
-      run: |
-        set -euo pipefail
-        fingerprint="$(node scripts/release-fingerprint.mjs --directory site)"
-        test -n "$fingerprint"
-        echo "value=${fingerprint}" >> "$GITHUB_OUTPUT"
-    - name: Upload Pages artifact
-      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-      with:
-        path: site
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.14.0
+      - name: Verify origin CI provenance and protected main ancestry
+        id: provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: node scripts/resolve-release-candidate.mjs
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: ${{ steps.provenance.outputs.artifact_name }}
+          path: ${{ runner.temp }}/candidate
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.provenance.outputs.run_id }}
+      - name: Verify archive and every candidate file before extraction
+        shell: bash
+        env:
+          CANDIDATE_REPOSITORY: ${{ github.repository }}
+          CANDIDATE_SHA: ${{ steps.provenance.outputs.sha }}
+          CANDIDATE_RUN_ID: ${{ steps.provenance.outputs.run_id }}
+          CANDIDATE_ATTEMPT: ${{ steps.provenance.outputs.attempt }}
+        run: |
+          node scripts/release-candidate.mjs verify --bundle "$RUNNER_TEMP/candidate" --output site \
+            --repository "$CANDIDATE_REPOSITORY" --sha "$CANDIDATE_SHA" \
+            --run-id "$CANDIDATE_RUN_ID" --attempt "$CANDIDATE_ATTEMPT"
+      - name: Check candidate release fingerprint
+        id: release_fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          fingerprint="$(node scripts/release-fingerprint.mjs --directory site)"
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const manifest = JSON.parse(readFileSync(process.argv[1], "utf8"));
+            if (manifest.releaseFingerprint !== process.argv[2]) throw new Error("Candidate release fingerprint mismatch.");
+          ' "$RUNNER_TEMP/candidate/candidate.json" "$fingerprint"
+          node scripts/release-fingerprint.mjs --verify-app-chunks-directory site
+          node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr
+          echo "value=${fingerprint}" >> "$GITHUB_OUTPUT"
+      - name: Repackage unchanged verified bytes for Pages
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
 
   deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
+    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -107,10 +97,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.verify.outputs.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version: 24.14.0
       - name: Verify Pages publishing mode
         shell: bash
         env:
@@ -124,7 +115,7 @@ jobs:
         shell: bash
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
-          EXPECTED_RELEASE_FINGERPRINT: ${{ needs.build.outputs.release_fingerprint }}
+          EXPECTED_RELEASE_FINGERPRINT: ${{ needs.verify.outputs.release_fingerprint }}
         run: |
           set -euo pipefail
           base="${SITE_URL%/}"

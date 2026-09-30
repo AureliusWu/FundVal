@@ -1,0 +1,1628 @@
+{
+  "schemaVersion": 1,
+  "project": "FundVal",
+  "version": "15.0.2",
+  "collectedAt": "2026-09-30T07:32:35.302Z",
+  "referenceCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+  "sourceSnapshot": "LF-normalized git archive of the reference commit; original tests and build configuration, not current governance edits; isolated localhost port substitution only",
+  "workingContext": {
+    "head": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "statusBefore": "M .github/workflows/deploy.yml\n M e2e/v15.spec.js\n M package-lock.json\n M package.json\n M playwright.config.mjs\n M scripts/serve-site.mjs\n?? .github/codeql-config.yml\n?? .github/dependency-install-policy.json\n?? .github/workflows/ci.yml\n?? .node-version\n?? .npmrc\n?? docs/v16.0.0/\n?? scripts/check-source.mjs\n?? scripts/collect-baseline.mjs\n?? scripts/dependency-install-policy.mjs\n?? scripts/release-candidate.mjs\n?? scripts/resolve-release-candidate.mjs\n?? test/baseline-collector.test.js",
+    "statusAfter": "M .github/workflows/deploy.yml\n M e2e/v15.spec.js\n M package-lock.json\n M package.json\n M playwright.config.mjs\n M scripts/serve-site.mjs\n M test/deploy-workflow.test.js\n M test/ocr-import-regression.test.js\n?? .github/codeql-config.yml\n?? .github/dependency-install-policy.json\n?? .github/workflows/ci.yml\n?? .node-version\n?? .npmrc\n?? docs/v16.0.0/\n?? scripts/check-source.mjs\n?? scripts/collect-baseline.mjs\n?? scripts/dependency-install-policy.mjs\n?? scripts/release-candidate.mjs\n?? scripts/resolve-release-candidate.mjs\n?? test/baseline-collector.test.js\n?? test/release-candidate.test.js",
+    "sourceDateEpoch": 1790569957
+  },
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v24.14.0",
+    "npm": "11.9.0",
+    "transport": {
+      "localOrigin": "http://127.0.0.1:5304",
+      "changedSnapshotPaths": [
+        "scripts/serve-site.mjs",
+        "playwright.config.mjs",
+        "e2e/v15.spec.js"
+      ],
+      "scope": "Only fixed localhost port literals replaced; test assertions, fixtures and app/business modules unchanged."
+    },
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "browser": "Installed desktop Chrome via Playwright; physical Android/iOS NOT_RUN",
+    "installedDependencies": {
+      "@paddleocr/paddleocr-js": "0.4.2",
+      "@tesseract.js-data/chi_sim": "1.0.0",
+      "onnxruntime-web": "1.27.0",
+      "tesseract.js": "7.0.0",
+      "tesseract.js-core": "7.0.0",
+      "@playwright/test": "1.62.1",
+      "esbuild": "0.28.2",
+      "vite": "8.2.2"
+    },
+    "lockfileSha256Normalized": "bee46bdc3098dd585b4347847121c2c76615d99171a87ec8d19d9a23b5111c82"
+  },
+  "gates": {
+    "unit": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 7357.5116,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/unit.log",
+      "logSha256": "698c89c9864a4eb86c67cc1438c16486fa06f5f4008421fd94f12759e6547688",
+      "summary": {
+        "tests": 410,
+        "suites": 0,
+        "pass": 410,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 5930.8304
+      }
+    },
+    "check": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 21200.259099999996,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/check.log",
+      "logSha256": "8143437c1c6642258bf7d210c199077b22fd4a38f0699388fa41cfbc58c775bc"
+    },
+    "coverage": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 17077.1541,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/coverage.log",
+      "logSha256": "80da6c92e51428219d3404836ee543a326d7942694007f342168ba251286880a",
+      "report": {
+        "status": "MEASURED",
+        "scope": "Node test runner; imported js/**/*.js modules only; app.js/browser DOM and unimported modules are not included in the denominator.",
+        "line": 89.83,
+        "branch": 76.82,
+        "functions": 92.57,
+        "modules": [
+          {
+            "basename": "accuracy.js",
+            "line": 97.44,
+            "branch": 87.04,
+            "functions": 90.48
+          },
+          {
+            "basename": "alipay-ocr-parser.js",
+            "line": 96.08,
+            "branch": 84.41,
+            "functions": 98.11
+          },
+          {
+            "basename": "calculator.js",
+            "line": 97.96,
+            "branch": 77.36,
+            "functions": 100
+          },
+          {
+            "basename": "config.js",
+            "line": 96.88,
+            "branch": 73.33,
+            "functions": 100
+          },
+          {
+            "basename": "eastmoney-estimate.js",
+            "line": 100,
+            "branch": 82.81,
+            "functions": 100
+          },
+          {
+            "basename": "freshness.js",
+            "line": 100,
+            "branch": 82.05,
+            "functions": 100
+          },
+          {
+            "basename": "fund-catalog.js",
+            "line": 93.46,
+            "branch": 72.37,
+            "functions": 83.33
+          },
+          {
+            "basename": "fund-holdings.js",
+            "line": 100,
+            "branch": 84.85,
+            "functions": 100
+          },
+          {
+            "basename": "holding-import-plan.js",
+            "line": 91.35,
+            "branch": 82.3,
+            "functions": 91.3
+          },
+          {
+            "basename": "holdings-estimate.js",
+            "line": 100,
+            "branch": 78.02,
+            "functions": 100
+          },
+          {
+            "basename": "integrity.js",
+            "line": 91.19,
+            "branch": 75.38,
+            "functions": 100
+          },
+          {
+            "basename": "local-ocr.js",
+            "line": 59.51,
+            "branch": 66.67,
+            "functions": 67.86
+          },
+          {
+            "basename": "migrations.js",
+            "line": 30.3,
+            "branch": 100,
+            "functions": 0
+          },
+          {
+            "basename": "notification-controller.js",
+            "line": 22.58,
+            "branch": 73.33,
+            "functions": 37.5
+          },
+          {
+            "basename": "ocr-table-layout.js",
+            "line": 97.32,
+            "branch": 78.76,
+            "functions": 97.73
+          },
+          {
+            "basename": "asset-manifest.js",
+            "line": 86.73,
+            "branch": 70.43,
+            "functions": 100
+          },
+          {
+            "basename": "capability.js",
+            "line": 98.23,
+            "branch": 81.82,
+            "functions": 93.75
+          },
+          {
+            "basename": "engine.js",
+            "line": 91.28,
+            "branch": 76.47,
+            "functions": 96.3
+          },
+          {
+            "basename": "import-transaction.js",
+            "line": 100,
+            "branch": 72.73,
+            "functions": 100
+          },
+          {
+            "basename": "performance-ledger.js",
+            "line": 90.43,
+            "branch": 73.33,
+            "functions": 86.67
+          },
+          {
+            "basename": "overseas-model.js",
+            "line": 99.57,
+            "branch": 70,
+            "functions": 96
+          },
+          {
+            "basename": "paddle-local-ocr.js",
+            "line": 94.57,
+            "branch": 66.67,
+            "functions": 89.8
+          },
+          {
+            "basename": "resilience.js",
+            "line": 65.97,
+            "branch": 60,
+            "functions": 69.23
+          },
+          {
+            "basename": "active-holdings.js",
+            "line": 100,
+            "branch": 71.43,
+            "functions": 100
+          },
+          {
+            "basename": "holding-edit.js",
+            "line": 100,
+            "branch": 79.41,
+            "functions": 100
+          },
+          {
+            "basename": "holdings-transfer.js",
+            "line": 97.44,
+            "branch": 83.02,
+            "functions": 100
+          },
+          {
+            "basename": "index-quote.js",
+            "line": 100,
+            "branch": 94.74,
+            "functions": 100
+          },
+          {
+            "basename": "market-session.js",
+            "line": 97.74,
+            "branch": 80.21,
+            "functions": 100
+          },
+          {
+            "basename": "notification-policy.js",
+            "line": 98.36,
+            "branch": 91.49,
+            "functions": 100
+          },
+          {
+            "basename": "quote-bridge-client.js",
+            "line": 89.23,
+            "branch": 74.11,
+            "functions": 84.21
+          },
+          {
+            "basename": "quote-contract.js",
+            "line": 93.46,
+            "branch": 76.56,
+            "functions": 90
+          },
+          {
+            "basename": "quote-normalizer.js",
+            "line": 98.84,
+            "branch": 85.99,
+            "functions": 95.45
+          },
+          {
+            "basename": "quote-presentation.js",
+            "line": 99.52,
+            "branch": 76.42,
+            "functions": 100
+          },
+          {
+            "basename": "refresh-coordinator.js",
+            "line": 92.98,
+            "branch": 76.34,
+            "functions": 85.29
+          },
+          {
+            "basename": "refresh-generation.js",
+            "line": 100,
+            "branch": 76.19,
+            "functions": 100
+          },
+          {
+            "basename": "remote-schema.js",
+            "line": 91.72,
+            "branch": 75.76,
+            "functions": 100
+          },
+          {
+            "basename": "request-signal.js",
+            "line": 100,
+            "branch": 78.26,
+            "functions": 100
+          },
+          {
+            "basename": "source-registry.js",
+            "line": 98.77,
+            "branch": 80,
+            "functions": 100
+          },
+          {
+            "basename": "quote-bridge-runtime.js",
+            "line": 77.6,
+            "branch": 68.1,
+            "functions": 75
+          },
+          {
+            "basename": "storage.js",
+            "line": 96.39,
+            "branch": 59.52,
+            "functions": 91.67
+          },
+          {
+            "basename": "cloud-sync.js",
+            "line": 81.6,
+            "branch": 67.01,
+            "functions": 100
+          },
+          {
+            "basename": "gist-remote.js",
+            "line": 89.56,
+            "branch": 48.21,
+            "functions": 85.71
+          },
+          {
+            "basename": "holdings-migration.js",
+            "line": 93.95,
+            "branch": 73.51,
+            "functions": 100
+          },
+          {
+            "basename": "holdings-repository.js",
+            "line": 89.67,
+            "branch": 83.01,
+            "functions": 97.37
+          },
+          {
+            "basename": "holdings-schema.js",
+            "line": 91.89,
+            "branch": 80.91,
+            "functions": 100
+          },
+          {
+            "basename": "version.js",
+            "line": 100,
+            "branch": 100,
+            "functions": 100
+          }
+        ]
+      }
+    },
+    "audit-default": {
+      "status": "FAIL",
+      "exitCode": 1,
+      "durationMs": 3796.564099999996,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/audit-default.log",
+      "logSha256": "13a8b9a41a4ec5cda32b4d6974e2702442c7d9fa956411f33bdcf85f53f87e82"
+    },
+    "audit-official": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 11946.931900000003,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/audit-official.log",
+      "logSha256": "502f6a2f4e8ca142359cc7947ddc22f25eda4b49923adfad1a77e9676edb9521"
+    },
+    "build-first": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 9200.814400000003,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/build-first.log",
+      "logSha256": "352892df9d1d7c4b78099b7c086a87f8c1c2e6209c6663adfc5da3c6c1418eb6"
+    },
+    "build-second": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 7448.080700000006,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/build-second.log",
+      "logSha256": "352892df9d1d7c4b78099b7c086a87f8c1c2e6209c6663adfc5da3c6c1418eb6"
+    },
+    "e2e": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 98785.6398,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/e2e.log",
+      "logSha256": "8037307d25bb36bbf402273e4cc69b3638ee8362b0d9796c97d33ffad88e1871",
+      "passed": 12,
+      "failed": 0
+    },
+    "auditOfficial": {
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 11946.931900000003,
+      "evidence": "docs/v16.0.0/baseline-evidence/2026-09-30T07-32-35-302Z/audit-official.log",
+      "logSha256": "502f6a2f4e8ca142359cc7947ddc22f25eda4b49923adfad1a77e9676edb9521",
+      "command": "npm audit --audit-level=high --registry=https://registry.npmjs.org --json",
+      "metadata": {
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "dependencies": {
+          "prod": 38,
+          "dev": 71,
+          "optional": 54,
+          "peer": 0,
+          "peerOptional": 0,
+          "total": 108
+        }
+      }
+    },
+    "deterministicBuild": {
+      "status": "PASS",
+      "firstSha256": "2c63d3cadd9a9253216378fc38b2c40a67511d75f2fb3b189d737849210322d0",
+      "secondSha256": "2c63d3cadd9a9253216378fc38b2c40a67511d75f2fb3b189d737849210322d0",
+      "normalizedSha256": "2c63d3cadd9a9253216378fc38b2c40a67511d75f2fb3b189d737849210322d0",
+      "scope": "All regular generated site files, before browser-test result artifacts."
+    }
+  },
+  "artifact": {
+    "criticalFingerprint": "cf5bc1251a84f358a79a884a860d575d0685af9b792c06313a05c87ab8c7fb9e",
+    "fileCount": 110,
+    "totalBytes": 92344588,
+    "sha256": "2c63d3cadd9a9253216378fc38b2c40a67511d75f2fb3b189d737849210322d0",
+    "normalizedSha256": "2c63d3cadd9a9253216378fc38b2c40a67511d75f2fb3b189d737849210322d0",
+    "files": [
+      {
+        "path": "THIRD_PARTY_NOTICES.md",
+        "bytes": 5087,
+        "sha256": "bef9e56ebf4060637466ea8a22d61bb9040334bb14cae2bfb210c5bf68cf7bc9",
+        "normalizedSha256": "bef9e56ebf4060637466ea8a22d61bb9040334bb14cae2bfb210c5bf68cf7bc9"
+      },
+      {
+        "path": "assets/ocr/asset-manifest.json",
+        "bytes": 4820,
+        "sha256": "1dc32a5a1acae43e1d00b8adf674d19a7ca6dc01a7e50d2e7d0c5ca2c9de9e71",
+        "normalizedSha256": "1dc32a5a1acae43e1d00b8adf674d19a7ca6dc01a7e50d2e7d0c5ca2c9de9e71"
+      },
+      {
+        "path": "assets/ocr/licenses/chi_sim-MIT.txt",
+        "bytes": 1130,
+        "sha256": "d4abcbba3aca53e6dc9f6cb93d341cde7afa9354d1418801f79adc1583b1835d",
+        "normalizedSha256": "d4abcbba3aca53e6dc9f6cb93d341cde7afa9354d1418801f79adc1583b1835d"
+      },
+      {
+        "path": "assets/ocr/licenses/clipper-lib-BSL-1.0.txt",
+        "bytes": 1336,
+        "sha256": "f2ea7b69dc83c80a1297730a363df4c366846a01c377d3e2056bdad3f57403ff",
+        "normalizedSha256": "f2ea7b69dc83c80a1297730a363df4c366846a01c377d3e2056bdad3f57403ff"
+      },
+      {
+        "path": "assets/ocr/licenses/js-yaml-MIT.txt",
+        "bytes": 1084,
+        "sha256": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550",
+        "normalizedSha256": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550"
+      },
+      {
+        "path": "assets/ocr/licenses/onnxruntime-web-MIT.txt",
+        "bytes": 1150,
+        "sha256": "472bc2497257f8ec3e40255d277af9b978a3f6c954094c121c5f65297f235a02",
+        "normalizedSha256": "472bc2497257f8ec3e40255d277af9b978a3f6c954094c121c5f65297f235a02"
+      },
+      {
+        "path": "assets/ocr/licenses/opencv-js-APACHE-2.0.txt",
+        "bytes": 11357,
+        "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "normalizedSha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      {
+        "path": "assets/ocr/licenses/paddleocr-APACHE-2.0.txt",
+        "bytes": 11357,
+        "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+        "normalizedSha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+      },
+      {
+        "path": "assets/ocr/licenses/tesseract.js-APACHE-2.0.txt",
+        "bytes": 11357,
+        "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+        "normalizedSha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+      },
+      {
+        "path": "assets/ocr/licenses/tesseract.js-core-APACHE-2.0.txt",
+        "bytes": 11358,
+        "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+        "normalizedSha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+      },
+      {
+        "path": "assets/ocr/paddle/engine/assets/fundval-paddle-worker.js",
+        "bytes": 11341572,
+        "sha256": "49305ac2e8f22367569cb491fc71cfbb21173cc88627715ea537fec20345ae10",
+        "normalizedSha256": "49305ac2e8f22367569cb491fc71cfbb21173cc88627715ea537fec20345ae10"
+      },
+      {
+        "path": "assets/ocr/paddle/engine/paddle-ocr-engine.mjs",
+        "bytes": 16118,
+        "sha256": "5147cec17983cf50ede6b7e8ce45ec971d2a8f99754a52f300e55785a24cd143",
+        "normalizedSha256": "5147cec17983cf50ede6b7e8ce45ec971d2a8f99754a52f300e55785a24cd143"
+      },
+      {
+        "path": "assets/ocr/paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar",
+        "bytes": 1792000,
+        "sha256": "ff6ab415b0a6e0c488550f2fb5d5046f1719848df220b2dc21b56402a65bc05d",
+        "normalizedSha256": "ff6ab415b0a6e0c488550f2fb5d5046f1719848df220b2dc21b56402a65bc05d"
+      },
+      {
+        "path": "assets/ocr/paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar",
+        "bytes": 4526080,
+        "sha256": "1e13b22717b1edd89d4cde4fda272b6c17d5b505c97c2baea99da1a3a2d54b29",
+        "normalizedSha256": "1e13b22717b1edd89d4cde4fda272b6c17d5b505c97c2baea99da1a3a2d54b29"
+      },
+      {
+        "path": "assets/ocr/paddle/models/integrity.json",
+        "bytes": 453,
+        "sha256": "9af4d039344eba710071909aba3dfa20fa76547c6404a1f156cb167804bf5916",
+        "normalizedSha256": "9af4d039344eba710071909aba3dfa20fa76547c6404a1f156cb167804bf5916"
+      },
+      {
+        "path": "assets/ocr/paddle/ort/ort-wasm-simd-threaded.asyncify.mjs",
+        "bytes": 47507,
+        "sha256": "7236653b8565da4046e459cd0e274123419a1d9f1f8f18fd36c28058346ca655",
+        "normalizedSha256": "7236653b8565da4046e459cd0e274123419a1d9f1f8f18fd36c28058346ca655"
+      },
+      {
+        "path": "assets/ocr/paddle/ort/ort-wasm-simd-threaded.asyncify.wasm",
+        "bytes": 24254953,
+        "sha256": "7e83cd6cee77e478bc96a7e91b198144fb5e4126287daf1f9b54bb195ebcd55a",
+        "normalizedSha256": "7e83cd6cee77e478bc96a7e91b198144fb5e4126287daf1f9b54bb195ebcd55a"
+      },
+      {
+        "path": "assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.mjs",
+        "bytes": 46614,
+        "sha256": "3ee381d20a80f51a788a1c4a5872f6f1d047538dd4342f4af00062de5f9ea4c6",
+        "normalizedSha256": "3ee381d20a80f51a788a1c4a5872f6f1d047538dd4342f4af00062de5f9ea4c6"
+      },
+      {
+        "path": "assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm",
+        "bytes": 26827543,
+        "sha256": "78feeeb3d08f6bcee94d938ed322f69073bb8076b5f9d34697a574ffba8deb48",
+        "normalizedSha256": "78feeeb3d08f6bcee94d938ed322f69073bb8076b5f9d34697a574ffba8deb48"
+      },
+      {
+        "path": "assets/ocr/paddle/ort/ort-wasm-simd-threaded.mjs",
+        "bytes": 24180,
+        "sha256": "0a1e718d99c41b22c21f2520ff4f9e883a6b5533856e398d21816ee8eb8185d3",
+        "normalizedSha256": "0a1e718d99c41b22c21f2520ff4f9e883a6b5533856e398d21816ee8eb8185d3"
+      },
+      {
+        "path": "assets/ocr/paddle/ort/ort-wasm-simd-threaded.wasm",
+        "bytes": 13479978,
+        "sha256": "d1ab1b94b16a65b29d710d0b587b29e7bed336827577623913479b8afe8113e6",
+        "normalizedSha256": "d1ab1b94b16a65b29d710d0b587b29e7bed336827577623913479b8afe8113e6"
+      },
+      {
+        "path": "assets/ocr/tessdata/chi_sim.traineddata.gz",
+        "bytes": 1718768,
+        "sha256": "b8a23f10c7de500891eb458a8adc9cc58ab7f242f08b7d149f5e9aea4ad5db7c",
+        "normalizedSha256": "b8a23f10c7de500891eb458a8adc9cc58ab7f242f08b7d149f5e9aea4ad5db7c"
+      },
+      {
+        "path": "assets/ocr/tesseract-core/tesseract-core-lstm.wasm.js",
+        "bytes": 3896484,
+        "sha256": "eef5f8b2f8e20e150680b20adaec4a60babafee3adbe8a94583c81fee46e8680",
+        "normalizedSha256": "eef5f8b2f8e20e150680b20adaec4a60babafee3adbe8a94583c81fee46e8680"
+      },
+      {
+        "path": "assets/ocr/tesseract/tesseract.esm.min.js",
+        "bytes": 63220,
+        "sha256": "64871d76c75609fd5413b88a8171e2ef40deedd77d5875ba23df104b2d05eb29",
+        "normalizedSha256": "64871d76c75609fd5413b88a8171e2ef40deedd77d5875ba23df104b2d05eb29"
+      },
+      {
+        "path": "assets/ocr/tesseract/worker.min.js",
+        "bytes": 111307,
+        "sha256": "576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d",
+        "normalizedSha256": "576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d"
+      },
+      {
+        "path": "css/ocr.css",
+        "bytes": 4928,
+        "sha256": "6fc4c382c778fd66e7935a1fda6b6a8edfae272d604b083acd4230bbca2397a7",
+        "normalizedSha256": "6fc4c382c778fd66e7935a1fda6b6a8edfae272d604b083acd4230bbca2397a7"
+      },
+      {
+        "path": "css/style.css",
+        "bytes": 23238,
+        "sha256": "c374519357040216a4c194392ede681e0d46849bceba529ffac7a42791871288",
+        "normalizedSha256": "c374519357040216a4c194392ede681e0d46849bceba529ffac7a42791871288"
+      },
+      {
+        "path": "data/fund-catalog.json",
+        "bytes": 2822600,
+        "sha256": "f18f3a34d8425ffffd3bc9d9cbbe95fe564bcf01e1605278a38b685313e6304d",
+        "normalizedSha256": "f18f3a34d8425ffffd3bc9d9cbbe95fe564bcf01e1605278a38b685313e6304d"
+      },
+      {
+        "path": "data/overseas-models.json",
+        "bytes": 3565,
+        "sha256": "e216c9391a12c0e626fcc2261b10f08829fb2867faa6c70527a1c64810d24b27",
+        "normalizedSha256": "e216c9391a12c0e626fcc2261b10f08829fb2867faa6c70527a1c64810d24b27"
+      },
+      {
+        "path": "icon-192.png",
+        "bytes": 59753,
+        "sha256": "bf6f935338019fb521f4db9723812bb9687ef7f342ef84290ad275491ebf45cb",
+        "normalizedSha256": "bf6f935338019fb521f4db9723812bb9687ef7f342ef84290ad275491ebf45cb"
+      },
+      {
+        "path": "icon-512.png",
+        "bytes": 428860,
+        "sha256": "3799f5f0d1aa171029e2d936a3a90beae9433126c66add16ed90ab0a7b203b59",
+        "normalizedSha256": "3799f5f0d1aa171029e2d936a3a90beae9433126c66add16ed90ab0a7b203b59"
+      },
+      {
+        "path": "index.html",
+        "bytes": 8809,
+        "sha256": "a33555f4ea99c0dcc1add504d4c61ddba5843a115f799752921547987dc2861d",
+        "normalizedSha256": "a33555f4ea99c0dcc1add504d4c61ddba5843a115f799752921547987dc2861d"
+      },
+      {
+        "path": "js/accuracy.js",
+        "bytes": 4345,
+        "sha256": "eed3f70300a5cd43c387052512bcfc5bf99b574c94f56e74cafba2a59c998581",
+        "normalizedSha256": "eed3f70300a5cd43c387052512bcfc5bf99b574c94f56e74cafba2a59c998581"
+      },
+      {
+        "path": "js/alipay-ocr-parser.js",
+        "bytes": 38672,
+        "sha256": "488081cd2e3f417f5ec08364780c4d5d75b1f67e252b205f0b5e6cc3eb7b14e3",
+        "normalizedSha256": "488081cd2e3f417f5ec08364780c4d5d75b1f67e252b205f0b5e6cc3eb7b14e3"
+      },
+      {
+        "path": "js/app-chunks.json",
+        "bytes": 5790,
+        "sha256": "412acd824494d72c12482f88791e4b1d6769c41451b1a5efdd2960ce64414d15",
+        "normalizedSha256": "412acd824494d72c12482f88791e4b1d6769c41451b1a5efdd2960ce64414d15"
+      },
+      {
+        "path": "js/app-shell.js",
+        "bytes": 5490,
+        "sha256": "7663f00c624c787bb6d24f439cd55f036bab45d2b7cea01e462cbf0eafa87f7c",
+        "normalizedSha256": "7663f00c624c787bb6d24f439cd55f036bab45d2b7cea01e462cbf0eafa87f7c"
+      },
+      {
+        "path": "js/app.js",
+        "bytes": 115505,
+        "sha256": "665cf30f0c3a5ae2951da78de3798d099be136bb0b970ae673cfd5a36e233be3",
+        "normalizedSha256": "665cf30f0c3a5ae2951da78de3798d099be136bb0b970ae673cfd5a36e233be3"
+      },
+      {
+        "path": "js/bootstrap.js",
+        "bytes": 1660,
+        "sha256": "83c0da8b352fea957c825ecc16371e0b69e23f979d94ffe5ae323b8fb75556e8",
+        "normalizedSha256": "83c0da8b352fea957c825ecc16371e0b69e23f979d94ffe5ae323b8fb75556e8"
+      },
+      {
+        "path": "js/calculator.js",
+        "bytes": 2898,
+        "sha256": "38c755b7c2415fa5d53de47a252a6f42b44773a3737d7bd200d6f6370b8334c8",
+        "normalizedSha256": "38c755b7c2415fa5d53de47a252a6f42b44773a3737d7bd200d6f6370b8334c8"
+      },
+      {
+        "path": "js/chunks/accuracy-Co8-y6gy.js",
+        "bytes": 2494,
+        "sha256": "18c049041202169b8fc94843879a8f67fe2db8ced16e8b270f67608e079b9138",
+        "normalizedSha256": "18c049041202169b8fc94843879a8f67fe2db8ced16e8b270f67608e079b9138"
+      },
+      {
+        "path": "js/chunks/app-DgP4oxmM.js",
+        "bytes": 104511,
+        "sha256": "ef08b93b61b9a80f47755344c57fc24e1a13d49f48abe488f215b9d5eeabee1c",
+        "normalizedSha256": "ef08b93b61b9a80f47755344c57fc24e1a13d49f48abe488f215b9d5eeabee1c"
+      },
+      {
+        "path": "js/chunks/cloud-sync-D5DHLvmq.js",
+        "bytes": 383,
+        "sha256": "3c92d284cd4f7a9e8fd09b0fbfa54cc8b59868631dd18e46562d6a120f0d350f",
+        "normalizedSha256": "3c92d284cd4f7a9e8fd09b0fbfa54cc8b59868631dd18e46562d6a120f0d350f"
+      },
+      {
+        "path": "js/chunks/cloud-sync-DimBuTvw.js",
+        "bytes": 10684,
+        "sha256": "0785d46c6cbc0f271ae4c4752e272f9d9d1d6c6a17fc63876e2ea160ba15f3e7",
+        "normalizedSha256": "0785d46c6cbc0f271ae4c4752e272f9d9d1d6c6a17fc63876e2ea160ba15f3e7"
+      },
+      {
+        "path": "js/chunks/diagnostics-ui-C7FSVVSY.js",
+        "bytes": 4680,
+        "sha256": "f7b7659c6d3ae066c9b96cc3ca48990d0764900eb6ded20dce7988432241c8a8",
+        "normalizedSha256": "f7b7659c6d3ae066c9b96cc3ca48990d0764900eb6ded20dce7988432241c8a8"
+      },
+      {
+        "path": "js/chunks/fund-holdings-CSIRCS9i.js",
+        "bytes": 1959,
+        "sha256": "885ce1b05569a6385d93b5a74bba9725e056303662132ee4275809f917765155",
+        "normalizedSha256": "885ce1b05569a6385d93b5a74bba9725e056303662132ee4275809f917765155"
+      },
+      {
+        "path": "js/chunks/gist-remote-tCc5b2_f.js",
+        "bytes": 3533,
+        "sha256": "61371360f6e23c4d71f30ce625964eedc8dc3735c338d9f56259dd47a6362948",
+        "normalizedSha256": "61371360f6e23c4d71f30ce625964eedc8dc3735c338d9f56259dd47a6362948"
+      },
+      {
+        "path": "js/chunks/holding-edit-DDl9jXA_.js",
+        "bytes": 977,
+        "sha256": "3a9653ece92f4334610ef84c95239d34f4d586ce867fe0e4d8c11c87c9a57ca1",
+        "normalizedSha256": "3a9653ece92f4334610ef84c95239d34f4d586ce867fe0e4d8c11c87c9a57ca1"
+      },
+      {
+        "path": "js/chunks/holdings-migration-BVo-d7Iv.js",
+        "bytes": 10296,
+        "sha256": "5f1a0f3da2038085b2643c86dfff0297afc7266c23f911dca0635f177e6ecd0b",
+        "normalizedSha256": "5f1a0f3da2038085b2643c86dfff0297afc7266c23f911dca0635f177e6ecd0b"
+      },
+      {
+        "path": "js/chunks/holdings-repository-BbMmpyu7.js",
+        "bytes": 133,
+        "sha256": "cd97a30f74d721e969932ccc8487632c6e2daf10bf497ea032bc70a9cfb06bfd",
+        "normalizedSha256": "cd97a30f74d721e969932ccc8487632c6e2daf10bf497ea032bc70a9cfb06bfd"
+      },
+      {
+        "path": "js/chunks/holdings-repository-CoYyTMS-.js",
+        "bytes": 11987,
+        "sha256": "59407cb6c4aafd8c221ce44f5492584d0e276caf9913149d34852effd5a872b7",
+        "normalizedSha256": "59407cb6c4aafd8c221ce44f5492584d0e276caf9913149d34852effd5a872b7"
+      },
+      {
+        "path": "js/chunks/holdings-transfer-CogvE5Jm.js",
+        "bytes": 2971,
+        "sha256": "ea26958cb65ebd96f3f317b79a279fc8ffaaf951664aba64e05dc6b9c66894b1",
+        "normalizedSha256": "ea26958cb65ebd96f3f317b79a279fc8ffaaf951664aba64e05dc6b9c66894b1"
+      },
+      {
+        "path": "js/chunks/integrity-CJAe5H6x.js",
+        "bytes": 3169,
+        "sha256": "1220ed29e741b5c2f638f43e83d846bacfe18d485a330f29e70c14a8d56f3dd3",
+        "normalizedSha256": "1220ed29e741b5c2f638f43e83d846bacfe18d485a330f29e70c14a8d56f3dd3"
+      },
+      {
+        "path": "js/chunks/market-session-C4Qck8lr.js",
+        "bytes": 3484,
+        "sha256": "ab5913bdb5c4fbdf5f5ccbb94a633a738374eaa6f88e3a72ae0c3902cc70ec0c",
+        "normalizedSha256": "ab5913bdb5c4fbdf5f5ccbb94a633a738374eaa6f88e3a72ae0c3902cc70ec0c"
+      },
+      {
+        "path": "js/chunks/migrations-CgE33IzI.js",
+        "bytes": 1033,
+        "sha256": "1ce0a156cddeb88ce4c8d0be82bafe23ebc134d782384b4954ffae0343c14884",
+        "normalizedSha256": "1ce0a156cddeb88ce4c8d0be82bafe23ebc134d782384b4954ffae0343c14884"
+      },
+      {
+        "path": "js/chunks/notification-controller-75ECh38Y.js",
+        "bytes": 4720,
+        "sha256": "1c0495329360e7ff7a65387e770f0aef9ef56db6553c76d2336c4d8de2f61d43",
+        "normalizedSha256": "1c0495329360e7ff7a65387e770f0aef9ef56db6553c76d2336c4d8de2f61d43"
+      },
+      {
+        "path": "js/chunks/preload-helper-BATLnrmA.js",
+        "bytes": 1223,
+        "sha256": "045499e00b1a634114a93b13ccd0bfada8c5b22ebe6c496475743615f316421c",
+        "normalizedSha256": "045499e00b1a634114a93b13ccd0bfada8c5b22ebe6c496475743615f316421c"
+      },
+      {
+        "path": "js/chunks/quote-bridge-client-BBboYKt6.js",
+        "bytes": 12880,
+        "sha256": "722f2b24200db53cc961ae12230b27b9d5ea5394923aa24ef500c1779b0dd488",
+        "normalizedSha256": "722f2b24200db53cc961ae12230b27b9d5ea5394923aa24ef500c1779b0dd488"
+      },
+      {
+        "path": "js/chunks/quote-contract-CUIUvWLX.js",
+        "bytes": 5791,
+        "sha256": "ed74159e931a5138fc79c8e6b57109d1653131b8ad6fb494ed8cede5b7c18b25",
+        "normalizedSha256": "ed74159e931a5138fc79c8e6b57109d1653131b8ad6fb494ed8cede5b7c18b25"
+      },
+      {
+        "path": "js/chunks/request-signal-BCGn3P_R.js",
+        "bytes": 1805,
+        "sha256": "ccfc36398df221a2d2de057565ddadba0ca10016acd79f99082574390df24187",
+        "normalizedSha256": "ccfc36398df221a2d2de057565ddadba0ca10016acd79f99082574390df24187"
+      },
+      {
+        "path": "js/chunks/storage-DsTl1pFx.js",
+        "bytes": 871,
+        "sha256": "ce89ba2967434683fb374c4dafd3021f40661d04f71c0d85a253ec36e55a5546",
+        "normalizedSha256": "ce89ba2967434683fb374c4dafd3021f40661d04f71c0d85a253ec36e55a5546"
+      },
+      {
+        "path": "js/config.js",
+        "bytes": 1405,
+        "sha256": "5a89e448341269ebaff6619080a183bb18843a73db5f8f9caa5c9a3de415edb7",
+        "normalizedSha256": "5a89e448341269ebaff6619080a183bb18843a73db5f8f9caa5c9a3de415edb7"
+      },
+      {
+        "path": "js/eastmoney-estimate.js",
+        "bytes": 4635,
+        "sha256": "5208399d3e79113b3386649fcf3210e7d83a3fbb07cafd36aa301a15a669247c",
+        "normalizedSha256": "5208399d3e79113b3386649fcf3210e7d83a3fbb07cafd36aa301a15a669247c"
+      },
+      {
+        "path": "js/freshness.js",
+        "bytes": 3027,
+        "sha256": "60b2a769c54c490223ddf63b26df65601402501ebd0c4665db710d3eb699c75a",
+        "normalizedSha256": "60b2a769c54c490223ddf63b26df65601402501ebd0c4665db710d3eb699c75a"
+      },
+      {
+        "path": "js/fund-catalog.js",
+        "bytes": 5626,
+        "sha256": "ad5fa394a62c96924b8ec4a77b6b14324ee47593149c49afa2b37cab8b54234a",
+        "normalizedSha256": "ad5fa394a62c96924b8ec4a77b6b14324ee47593149c49afa2b37cab8b54234a"
+      },
+      {
+        "path": "js/fund-holdings.js",
+        "bytes": 3443,
+        "sha256": "aae54dcbdae36c7214ba451bd34eb52402d2864c540c7bc7d1fd0d02567c9e4c",
+        "normalizedSha256": "aae54dcbdae36c7214ba451bd34eb52402d2864c540c7bc7d1fd0d02567c9e4c"
+      },
+      {
+        "path": "js/holding-import-plan.js",
+        "bytes": 7379,
+        "sha256": "88cd1cb39ee95b33d7172c28147e473d136555d71c1c0d82fa20b487fed9df13",
+        "normalizedSha256": "88cd1cb39ee95b33d7172c28147e473d136555d71c1c0d82fa20b487fed9df13"
+      },
+      {
+        "path": "js/holdings-estimate.js",
+        "bytes": 8333,
+        "sha256": "a7841e039dd0d840b26849023ce89a733610d2107a02a320f9439e1cf196589b",
+        "normalizedSha256": "a7841e039dd0d840b26849023ce89a733610d2107a02a320f9439e1cf196589b"
+      },
+      {
+        "path": "js/integrity.js",
+        "bytes": 10825,
+        "sha256": "95fb7613a440dc03d1064a954ba6358fc1565c021b1996d4f2c426dbcf233e04",
+        "normalizedSha256": "95fb7613a440dc03d1064a954ba6358fc1565c021b1996d4f2c426dbcf233e04"
+      },
+      {
+        "path": "js/local-ocr.js",
+        "bytes": 16364,
+        "sha256": "ebb56a897275ba4e7872710a7c720eb160e3965621f77e1c139055fa290fa5cf",
+        "normalizedSha256": "ebb56a897275ba4e7872710a7c720eb160e3965621f77e1c139055fa290fa5cf"
+      },
+      {
+        "path": "js/migrations.js",
+        "bytes": 2481,
+        "sha256": "35ff5a925b2a89df343aef3ffdf571e548868a383c49986c6ded616e7ff661ac",
+        "normalizedSha256": "35ff5a925b2a89df343aef3ffdf571e548868a383c49986c6ded616e7ff661ac"
+      },
+      {
+        "path": "js/notifications/notification-controller.js",
+        "bytes": 4259,
+        "sha256": "5489c88cc178c62756adb49d7cde61d23dc992f6d9136d1ec805aaf06cc28f59",
+        "normalizedSha256": "5489c88cc178c62756adb49d7cde61d23dc992f6d9136d1ec805aaf06cc28f59"
+      },
+      {
+        "path": "js/ocr-import-page.js",
+        "bytes": 28240,
+        "sha256": "58a1854b5057e177cf132d8d9b37cb210caa53015f07ad5723b42deb07f57828",
+        "normalizedSha256": "58a1854b5057e177cf132d8d9b37cb210caa53015f07ad5723b42deb07f57828"
+      },
+      {
+        "path": "js/ocr-table-layout.js",
+        "bytes": 23825,
+        "sha256": "a4f66d35529f34dbfe2becd4dd4bd6af8305352e37df75d5de5f01906a4845bc",
+        "normalizedSha256": "a4f66d35529f34dbfe2becd4dd4bd6af8305352e37df75d5de5f01906a4845bc"
+      },
+      {
+        "path": "js/ocr/asset-manifest.js",
+        "bytes": 8376,
+        "sha256": "12e72b31def30cf5dd938778f59101a256864fbce24cfd4bafd77588a5102af8",
+        "normalizedSha256": "12e72b31def30cf5dd938778f59101a256864fbce24cfd4bafd77588a5102af8"
+      },
+      {
+        "path": "js/ocr/capability.js",
+        "bytes": 4109,
+        "sha256": "9fcddb87d652b3fa7a6668c165b792326e9c60fd3e2bb25e3f2098cc92a51b47",
+        "normalizedSha256": "9fcddb87d652b3fa7a6668c165b792326e9c60fd3e2bb25e3f2098cc92a51b47"
+      },
+      {
+        "path": "js/ocr/engine.js",
+        "bytes": 12008,
+        "sha256": "4e302c6bc4e20af0c2920b4abd836be3206158b562831e1fb128d82e5f704059",
+        "normalizedSha256": "4e302c6bc4e20af0c2920b4abd836be3206158b562831e1fb128d82e5f704059"
+      },
+      {
+        "path": "js/ocr/import-transaction.js",
+        "bytes": 2017,
+        "sha256": "b9662d2969b21cf706f6c8c733e541ace9ff8001a2ea5fc53dc5a8afc7dfc112",
+        "normalizedSha256": "b9662d2969b21cf706f6c8c733e541ace9ff8001a2ea5fc53dc5a8afc7dfc112"
+      },
+      {
+        "path": "js/ocr/performance-ledger.js",
+        "bytes": 9215,
+        "sha256": "0bc268e7bc1684d23d9ddea23e686e9cbe306849523b801f5928c135be089743",
+        "normalizedSha256": "0bc268e7bc1684d23d9ddea23e686e9cbe306849523b801f5928c135be089743"
+      },
+      {
+        "path": "js/overseas-model.js",
+        "bytes": 10222,
+        "sha256": "c5bf03338c627e1797aa2965caba0767846a7548f792515f63171fbcde9511d0",
+        "normalizedSha256": "c5bf03338c627e1797aa2965caba0767846a7548f792515f63171fbcde9511d0"
+      },
+      {
+        "path": "js/paddle-local-ocr.js",
+        "bytes": 21830,
+        "sha256": "3dd0785105f8690f16d1cff90422c9aa6f79b33f130e2077bbd07c4168f32d5b",
+        "normalizedSha256": "3dd0785105f8690f16d1cff90422c9aa6f79b33f130e2077bbd07c4168f32d5b"
+      },
+      {
+        "path": "js/resilience.js",
+        "bytes": 6913,
+        "sha256": "b39604a6472a672e01f67f58245e2f84e4131352049f6fe25ed36f9425d12b6b",
+        "normalizedSha256": "b39604a6472a672e01f67f58245e2f84e4131352049f6fe25ed36f9425d12b6b"
+      },
+      {
+        "path": "js/runtime/active-holdings.js",
+        "bytes": 687,
+        "sha256": "3372ed0320f2803d6be01678f8120bbb5006fc01d526179ccfbf02597f305fba",
+        "normalizedSha256": "3372ed0320f2803d6be01678f8120bbb5006fc01d526179ccfbf02597f305fba"
+      },
+      {
+        "path": "js/runtime/diagnostics-ui.js",
+        "bytes": 7540,
+        "sha256": "847d1b6fae51c75231ff111e15357cd5d6825fd7413a8070d0eef3f84e1df66e",
+        "normalizedSha256": "847d1b6fae51c75231ff111e15357cd5d6825fd7413a8070d0eef3f84e1df66e"
+      },
+      {
+        "path": "js/runtime/holding-edit.js",
+        "bytes": 1768,
+        "sha256": "fdd153e0e80e0cfc25ddd96686b6ad29f1958c8529580d5ddd6e90c1d484a64a",
+        "normalizedSha256": "fdd153e0e80e0cfc25ddd96686b6ad29f1958c8529580d5ddd6e90c1d484a64a"
+      },
+      {
+        "path": "js/runtime/holdings-transfer.js",
+        "bytes": 5455,
+        "sha256": "d93390c96aa08f3f1174c5ff6fa4c82c673e9fa468606963230c50fd16c2bcc5",
+        "normalizedSha256": "d93390c96aa08f3f1174c5ff6fa4c82c673e9fa468606963230c50fd16c2bcc5"
+      },
+      {
+        "path": "js/runtime/index-quote.js",
+        "bytes": 1225,
+        "sha256": "f8c7ec61d048b0973242178f541c4605b5b6c7dd36974db3ead065569fc811be",
+        "normalizedSha256": "f8c7ec61d048b0973242178f541c4605b5b6c7dd36974db3ead065569fc811be"
+      },
+      {
+        "path": "js/runtime/market-session.js",
+        "bytes": 6188,
+        "sha256": "2055fcbac75f954c11a0a06d8b5ff8bc2185bc536dc204ee69524c95ba0747b6",
+        "normalizedSha256": "2055fcbac75f954c11a0a06d8b5ff8bc2185bc536dc204ee69524c95ba0747b6"
+      },
+      {
+        "path": "js/runtime/notification-policy.js",
+        "bytes": 4618,
+        "sha256": "f7b3941548d72df0717269bc0ad3279273d8aca2bf5414e5f4a7194af0e7ee60",
+        "normalizedSha256": "f7b3941548d72df0717269bc0ad3279273d8aca2bf5414e5f4a7194af0e7ee60"
+      },
+      {
+        "path": "js/runtime/quote-bridge-client.js",
+        "bytes": 11084,
+        "sha256": "1f30ccc4210c809b183a44d4963b71bc6dca553ebcddffe575e714b7243ab40c",
+        "normalizedSha256": "1f30ccc4210c809b183a44d4963b71bc6dca553ebcddffe575e714b7243ab40c"
+      },
+      {
+        "path": "js/runtime/quote-contract.js",
+        "bytes": 10517,
+        "sha256": "c5b19b4cd37a013d0a0d0eb2c0ccad8b14b8c27b8e84031fcff14f07a3714623",
+        "normalizedSha256": "c5b19b4cd37a013d0a0d0eb2c0ccad8b14b8c27b8e84031fcff14f07a3714623"
+      },
+      {
+        "path": "js/runtime/quote-normalizer.js",
+        "bytes": 14584,
+        "sha256": "78acaa8d5087a5129ca3d28636390786a903fb7713240197d38ef29269c50f31",
+        "normalizedSha256": "78acaa8d5087a5129ca3d28636390786a903fb7713240197d38ef29269c50f31"
+      },
+      {
+        "path": "js/runtime/quote-presentation.js",
+        "bytes": 8391,
+        "sha256": "8d4b14b7399514b29da232df9c870bcfc4fdf33f9faac6b81f7a00277ffcc623",
+        "normalizedSha256": "8d4b14b7399514b29da232df9c870bcfc4fdf33f9faac6b81f7a00277ffcc623"
+      },
+      {
+        "path": "js/runtime/refresh-coordinator.js",
+        "bytes": 13263,
+        "sha256": "088cf558a229731d64e0e824ccbb6319f91e9d0b678af7c651575d5468ce36c4",
+        "normalizedSha256": "088cf558a229731d64e0e824ccbb6319f91e9d0b678af7c651575d5468ce36c4"
+      },
+      {
+        "path": "js/runtime/refresh-generation.js",
+        "bytes": 1575,
+        "sha256": "5dbfde625ee4caab0db63b6af0c016096dea7bab8cf199a3e932eda1d9cccaea",
+        "normalizedSha256": "5dbfde625ee4caab0db63b6af0c016096dea7bab8cf199a3e932eda1d9cccaea"
+      },
+      {
+        "path": "js/runtime/remote-schema.js",
+        "bytes": 11744,
+        "sha256": "54b03f570335324849101847a6f07589213ee2b3b949a50c2764e21ffbb3cab0",
+        "normalizedSha256": "54b03f570335324849101847a6f07589213ee2b3b949a50c2764e21ffbb3cab0"
+      },
+      {
+        "path": "js/runtime/request-signal.js",
+        "bytes": 1787,
+        "sha256": "3dbb61e56051422627f6b9d9a6d20d6fb99adb17a7f8c1eff1ea8cf6aa3b5e50",
+        "normalizedSha256": "3dbb61e56051422627f6b9d9a6d20d6fb99adb17a7f8c1eff1ea8cf6aa3b5e50"
+      },
+      {
+        "path": "js/runtime/source-registry.js",
+        "bytes": 19098,
+        "sha256": "4060ade3806b60f4f208c5526d734b3f5c6bdb8e026f7ff4e03ef3a10bd03506",
+        "normalizedSha256": "4060ade3806b60f4f208c5526d734b3f5c6bdb8e026f7ff4e03ef3a10bd03506"
+      },
+      {
+        "path": "js/sandbox/quote-bridge-runtime.js",
+        "bytes": 14301,
+        "sha256": "c101b1ce3cf77b109eedf28cd9b3733e0264c1958d37721628fcdbe0273eea2e",
+        "normalizedSha256": "c101b1ce3cf77b109eedf28cd9b3733e0264c1958d37721628fcdbe0273eea2e"
+      },
+      {
+        "path": "js/storage.js",
+        "bytes": 3012,
+        "sha256": "72acaf42c23e9230f17b7b2289c8ded1a7bc19b8b7ff9680627cbfe34c9048e3",
+        "normalizedSha256": "72acaf42c23e9230f17b7b2289c8ded1a7bc19b8b7ff9680627cbfe34c9048e3"
+      },
+      {
+        "path": "js/storage/cloud-sync.js",
+        "bytes": 24063,
+        "sha256": "411123b806536e68925e1011a3dca8f0488963b92cf34953a6ae45794f295a4f",
+        "normalizedSha256": "411123b806536e68925e1011a3dca8f0488963b92cf34953a6ae45794f295a4f"
+      },
+      {
+        "path": "js/storage/gist-remote.js",
+        "bytes": 6662,
+        "sha256": "d8638b33ce988eda9446593986bfc3c0cfbdb883d3302978e2ee10d51fd404f0",
+        "normalizedSha256": "d8638b33ce988eda9446593986bfc3c0cfbdb883d3302978e2ee10d51fd404f0"
+      },
+      {
+        "path": "js/storage/holdings-migration.js",
+        "bytes": 12621,
+        "sha256": "e32e94aa7959b517b38c2f2cf3619ad7c436ac9c7fbf988fe2b839d1ab96257a",
+        "normalizedSha256": "e32e94aa7959b517b38c2f2cf3619ad7c436ac9c7fbf988fe2b839d1ab96257a"
+      },
+      {
+        "path": "js/storage/holdings-repository.js",
+        "bytes": 23468,
+        "sha256": "48772b48eb19d1eddfe7f2385c06847a1b8437835c8d062f7a74442b06680f8d",
+        "normalizedSha256": "48772b48eb19d1eddfe7f2385c06847a1b8437835c8d062f7a74442b06680f8d"
+      },
+      {
+        "path": "js/storage/holdings-schema.js",
+        "bytes": 9666,
+        "sha256": "d8723c475ecb0ccb2d7a85139fcf29c81a58e8d0b69e870e1a261918079f3257",
+        "normalizedSha256": "d8723c475ecb0ccb2d7a85139fcf29c81a58e8d0b69e870e1a261918079f3257"
+      },
+      {
+        "path": "js/update-compat.js",
+        "bytes": 1127,
+        "sha256": "c435d4952b21804a8597fc7a38d94700565b47c51f5b705fdfccbecfeb539625",
+        "normalizedSha256": "c435d4952b21804a8597fc7a38d94700565b47c51f5b705fdfccbecfeb539625"
+      },
+      {
+        "path": "js/version.js",
+        "bytes": 37,
+        "sha256": "56ab690292d6fe5432eefeb68f4fbee19c785a244f02f7194321e5b7f9d4b260",
+        "normalizedSha256": "56ab690292d6fe5432eefeb68f4fbee19c785a244f02f7194321e5b7f9d4b260"
+      },
+      {
+        "path": "manifest.json",
+        "bytes": 568,
+        "sha256": "f13ceefc3994920a2e16a0330ee0007b48b84c5b744cb09690b70d028ba0eb70",
+        "normalizedSha256": "f13ceefc3994920a2e16a0330ee0007b48b84c5b744cb09690b70d028ba0eb70"
+      },
+      {
+        "path": "ocr-import.html",
+        "bytes": 2365,
+        "sha256": "f0e61dd2c0675de98f8a8984818f9910f234b77d4af478ac3f1527b19e06262d",
+        "normalizedSha256": "f0e61dd2c0675de98f8a8984818f9910f234b77d4af478ac3f1527b19e06262d"
+      },
+      {
+        "path": "quote-bridge.html",
+        "bytes": 614,
+        "sha256": "86321dc9938924b7cf853275db7ec8991ed7b300fbb04daa2d149ef5e3133b33",
+        "normalizedSha256": "86321dc9938924b7cf853275db7ec8991ed7b300fbb04daa2d149ef5e3133b33"
+      },
+      {
+        "path": "sw.js",
+        "bytes": 9518,
+        "sha256": "ca5d18dc90743560404cde6bc2b9b2754b4a21d021d14bc598653f765ffede16",
+        "normalizedSha256": "ca5d18dc90743560404cde6bc2b9b2754b4a21d021d14bc598653f765ffede16"
+      }
+    ]
+  },
+  "bundle": {
+    "coldStartGzipBytes": 51941,
+    "hardBudgetGzipBytes": 52241,
+    "allNonOcrGzipBytes": 70207,
+    "verified": {
+      "chunkCount": 22,
+      "totalBytes": 195074
+    },
+    "manifest": {
+      "schema": 1,
+      "entry": "js/app-shell.js",
+      "coldStart": [
+        "js/app-shell.js",
+        "js/chunks/app-DgP4oxmM.js",
+        "js/chunks/holdings-migration-BVo-d7Iv.js",
+        "js/chunks/holdings-repository-BbMmpyu7.js",
+        "js/chunks/holdings-repository-CoYyTMS-.js",
+        "js/chunks/integrity-CJAe5H6x.js",
+        "js/chunks/market-session-C4Qck8lr.js",
+        "js/chunks/migrations-CgE33IzI.js",
+        "js/chunks/preload-helper-BATLnrmA.js",
+        "js/chunks/quote-contract-CUIUvWLX.js",
+        "js/chunks/request-signal-BCGn3P_R.js",
+        "js/chunks/storage-DsTl1pFx.js"
+      ],
+      "lazy": [
+        "js/chunks/accuracy-Co8-y6gy.js",
+        "js/chunks/cloud-sync-D5DHLvmq.js",
+        "js/chunks/cloud-sync-DimBuTvw.js",
+        "js/chunks/diagnostics-ui-C7FSVVSY.js",
+        "js/chunks/fund-holdings-CSIRCS9i.js",
+        "js/chunks/gist-remote-tCc5b2_f.js",
+        "js/chunks/holding-edit-DDl9jXA_.js",
+        "js/chunks/holdings-transfer-CogvE5Jm.js",
+        "js/chunks/notification-controller-75ECh38Y.js",
+        "js/chunks/quote-bridge-client-BBboYKt6.js"
+      ],
+      "chunks": [
+        {
+          "path": "js/app-shell.js",
+          "role": "cold",
+          "bytes": 5490,
+          "gzipBytes": 2398,
+          "sha256": "7663f00c624c787bb6d24f439cd55f036bab45d2b7cea01e462cbf0eafa87f7c"
+        },
+        {
+          "path": "js/chunks/accuracy-Co8-y6gy.js",
+          "role": "lazy",
+          "bytes": 2494,
+          "gzipBytes": 1167,
+          "sha256": "18c049041202169b8fc94843879a8f67fe2db8ced16e8b270f67608e079b9138"
+        },
+        {
+          "path": "js/chunks/app-DgP4oxmM.js",
+          "role": "cold",
+          "bytes": 104511,
+          "gzipBytes": 34344,
+          "sha256": "ef08b93b61b9a80f47755344c57fc24e1a13d49f48abe488f215b9d5eeabee1c"
+        },
+        {
+          "path": "js/chunks/cloud-sync-D5DHLvmq.js",
+          "role": "lazy",
+          "bytes": 383,
+          "gzipBytes": 237,
+          "sha256": "3c92d284cd4f7a9e8fd09b0fbfa54cc8b59868631dd18e46562d6a120f0d350f"
+        },
+        {
+          "path": "js/chunks/cloud-sync-DimBuTvw.js",
+          "role": "lazy",
+          "bytes": 10684,
+          "gzipBytes": 3146,
+          "sha256": "0785d46c6cbc0f271ae4c4752e272f9d9d1d6c6a17fc63876e2ea160ba15f3e7"
+        },
+        {
+          "path": "js/chunks/diagnostics-ui-C7FSVVSY.js",
+          "role": "lazy",
+          "bytes": 4680,
+          "gzipBytes": 2537,
+          "sha256": "f7b7659c6d3ae066c9b96cc3ca48990d0764900eb6ded20dce7988432241c8a8"
+        },
+        {
+          "path": "js/chunks/fund-holdings-CSIRCS9i.js",
+          "role": "lazy",
+          "bytes": 1959,
+          "gzipBytes": 1073,
+          "sha256": "885ce1b05569a6385d93b5a74bba9725e056303662132ee4275809f917765155"
+        },
+        {
+          "path": "js/chunks/gist-remote-tCc5b2_f.js",
+          "role": "lazy",
+          "bytes": 3533,
+          "gzipBytes": 1663,
+          "sha256": "61371360f6e23c4d71f30ce625964eedc8dc3735c338d9f56259dd47a6362948"
+        },
+        {
+          "path": "js/chunks/holding-edit-DDl9jXA_.js",
+          "role": "lazy",
+          "bytes": 977,
+          "gzipBytes": 539,
+          "sha256": "3a9653ece92f4334610ef84c95239d34f4d586ce867fe0e4d8c11c87c9a57ca1"
+        },
+        {
+          "path": "js/chunks/holdings-migration-BVo-d7Iv.js",
+          "role": "cold",
+          "bytes": 10296,
+          "gzipBytes": 3175,
+          "sha256": "5f1a0f3da2038085b2643c86dfff0297afc7266c23f911dca0635f177e6ecd0b"
+        },
+        {
+          "path": "js/chunks/holdings-repository-BbMmpyu7.js",
+          "role": "cold",
+          "bytes": 133,
+          "gzipBytes": 129,
+          "sha256": "cd97a30f74d721e969932ccc8487632c6e2daf10bf497ea032bc70a9cfb06bfd"
+        },
+        {
+          "path": "js/chunks/holdings-repository-CoYyTMS-.js",
+          "role": "cold",
+          "bytes": 11987,
+          "gzipBytes": 3714,
+          "sha256": "59407cb6c4aafd8c221ce44f5492584d0e276caf9913149d34852effd5a872b7"
+        },
+        {
+          "path": "js/chunks/holdings-transfer-CogvE5Jm.js",
+          "role": "lazy",
+          "bytes": 2971,
+          "gzipBytes": 1671,
+          "sha256": "ea26958cb65ebd96f3f317b79a279fc8ffaaf951664aba64e05dc6b9c66894b1"
+        },
+        {
+          "path": "js/chunks/integrity-CJAe5H6x.js",
+          "role": "cold",
+          "bytes": 3169,
+          "gzipBytes": 1428,
+          "sha256": "1220ed29e741b5c2f638f43e83d846bacfe18d485a330f29e70c14a8d56f3dd3"
+        },
+        {
+          "path": "js/chunks/market-session-C4Qck8lr.js",
+          "role": "cold",
+          "bytes": 3484,
+          "gzipBytes": 1648,
+          "sha256": "ab5913bdb5c4fbdf5f5ccbb94a633a738374eaa6f88e3a72ae0c3902cc70ec0c"
+        },
+        {
+          "path": "js/chunks/migrations-CgE33IzI.js",
+          "role": "cold",
+          "bytes": 1033,
+          "gzipBytes": 547,
+          "sha256": "1ce0a156cddeb88ce4c8d0be82bafe23ebc134d782384b4954ffae0343c14884"
+        },
+        {
+          "path": "js/chunks/notification-controller-75ECh38Y.js",
+          "role": "lazy",
+          "bytes": 4720,
+          "gzipBytes": 2122,
+          "sha256": "1c0495329360e7ff7a65387e770f0aef9ef56db6553c76d2336c4d8de2f61d43"
+        },
+        {
+          "path": "js/chunks/preload-helper-BATLnrmA.js",
+          "role": "cold",
+          "bytes": 1223,
+          "gzipBytes": 704,
+          "sha256": "045499e00b1a634114a93b13ccd0bfada8c5b22ebe6c496475743615f316421c"
+        },
+        {
+          "path": "js/chunks/quote-bridge-client-BBboYKt6.js",
+          "role": "lazy",
+          "bytes": 12880,
+          "gzipBytes": 4111,
+          "sha256": "722f2b24200db53cc961ae12230b27b9d5ea5394923aa24ef500c1779b0dd488"
+        },
+        {
+          "path": "js/chunks/quote-contract-CUIUvWLX.js",
+          "role": "cold",
+          "bytes": 5791,
+          "gzipBytes": 2373,
+          "sha256": "ed74159e931a5138fc79c8e6b57109d1653131b8ad6fb494ed8cede5b7c18b25"
+        },
+        {
+          "path": "js/chunks/request-signal-BCGn3P_R.js",
+          "role": "cold",
+          "bytes": 1805,
+          "gzipBytes": 1038,
+          "sha256": "ccfc36398df221a2d2de057565ddadba0ca10016acd79f99082574390df24187"
+        },
+        {
+          "path": "js/chunks/storage-DsTl1pFx.js",
+          "role": "cold",
+          "bytes": 871,
+          "gzipBytes": 443,
+          "sha256": "ce89ba2967434683fb374c4dafd3021f40661d04f71c0d85a253ec36e55a5546"
+        }
+      ]
+    }
+  },
+  "ocr": {
+    "verified": {
+      "assetCount": 23,
+      "totalBytes": 88196906
+    },
+    "roleBytes": {
+      "license": 50129,
+      "worker": 11341572,
+      "engine": 16118,
+      "model": 6318080,
+      "model_metadata": 453,
+      "runtime": 64680775,
+      "fallback": 5789779
+    },
+    "actualRecognitionDuration": {
+      "status": "NOT_RUN",
+      "reason": "This collection does not execute a real OCR engine or process private screenshots."
+    },
+    "manifest": {
+      "engine": "paddleocr-js",
+      "engine_version": "0.4.2",
+      "model": "PP-OCRv6-tiny",
+      "model_hash": "ebbe9964854acf5cdc594070d2e99ef9bf9b9ecbce33889cec8aa0bfe372e3fb",
+      "ort_version": "1.27.0",
+      "generated_at": "2026-09-28T04:32:37.000Z",
+      "assets": [
+        {
+          "path": "licenses/chi_sim-MIT.txt",
+          "role": "license",
+          "bytes": 1130,
+          "sha256": "d4abcbba3aca53e6dc9f6cb93d341cde7afa9354d1418801f79adc1583b1835d"
+        },
+        {
+          "path": "licenses/clipper-lib-BSL-1.0.txt",
+          "role": "license",
+          "bytes": 1336,
+          "sha256": "f2ea7b69dc83c80a1297730a363df4c366846a01c377d3e2056bdad3f57403ff"
+        },
+        {
+          "path": "licenses/js-yaml-MIT.txt",
+          "role": "license",
+          "bytes": 1084,
+          "sha256": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550"
+        },
+        {
+          "path": "licenses/onnxruntime-web-MIT.txt",
+          "role": "license",
+          "bytes": 1150,
+          "sha256": "472bc2497257f8ec3e40255d277af9b978a3f6c954094c121c5f65297f235a02"
+        },
+        {
+          "path": "licenses/opencv-js-APACHE-2.0.txt",
+          "role": "license",
+          "bytes": 11357,
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "path": "licenses/paddleocr-APACHE-2.0.txt",
+          "role": "license",
+          "bytes": 11357,
+          "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+        },
+        {
+          "path": "licenses/tesseract.js-APACHE-2.0.txt",
+          "role": "license",
+          "bytes": 11357,
+          "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+        },
+        {
+          "path": "licenses/tesseract.js-core-APACHE-2.0.txt",
+          "role": "license",
+          "bytes": 11358,
+          "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+        },
+        {
+          "path": "paddle/engine/assets/fundval-paddle-worker.js",
+          "role": "worker",
+          "bytes": 11341572,
+          "sha256": "49305ac2e8f22367569cb491fc71cfbb21173cc88627715ea537fec20345ae10"
+        },
+        {
+          "path": "paddle/engine/paddle-ocr-engine.mjs",
+          "role": "engine",
+          "bytes": 16118,
+          "sha256": "5147cec17983cf50ede6b7e8ce45ec971d2a8f99754a52f300e55785a24cd143"
+        },
+        {
+          "path": "paddle/models/PP-OCRv6_tiny_det_onnx_infer.tar",
+          "role": "model",
+          "bytes": 1792000,
+          "sha256": "ff6ab415b0a6e0c488550f2fb5d5046f1719848df220b2dc21b56402a65bc05d"
+        },
+        {
+          "path": "paddle/models/PP-OCRv6_tiny_rec_onnx_infer.tar",
+          "role": "model",
+          "bytes": 4526080,
+          "sha256": "1e13b22717b1edd89d4cde4fda272b6c17d5b505c97c2baea99da1a3a2d54b29"
+        },
+        {
+          "path": "paddle/models/integrity.json",
+          "role": "model_metadata",
+          "bytes": 453,
+          "sha256": "9af4d039344eba710071909aba3dfa20fa76547c6404a1f156cb167804bf5916"
+        },
+        {
+          "path": "paddle/ort/ort-wasm-simd-threaded.asyncify.mjs",
+          "role": "runtime",
+          "bytes": 47507,
+          "sha256": "7236653b8565da4046e459cd0e274123419a1d9f1f8f18fd36c28058346ca655"
+        },
+        {
+          "path": "paddle/ort/ort-wasm-simd-threaded.asyncify.wasm",
+          "role": "runtime",
+          "bytes": 24254953,
+          "sha256": "7e83cd6cee77e478bc96a7e91b198144fb5e4126287daf1f9b54bb195ebcd55a"
+        },
+        {
+          "path": "paddle/ort/ort-wasm-simd-threaded.jsep.mjs",
+          "role": "runtime",
+          "bytes": 46614,
+          "sha256": "3ee381d20a80f51a788a1c4a5872f6f1d047538dd4342f4af00062de5f9ea4c6"
+        },
+        {
+          "path": "paddle/ort/ort-wasm-simd-threaded.jsep.wasm",
+          "role": "runtime",
+          "bytes": 26827543,
+          "sha256": "78feeeb3d08f6bcee94d938ed322f69073bb8076b5f9d34697a574ffba8deb48"
+        },
+        {
+          "path": "paddle/ort/ort-wasm-simd-threaded.mjs",
+          "role": "runtime",
+          "bytes": 24180,
+          "sha256": "0a1e718d99c41b22c21f2520ff4f9e883a6b5533856e398d21816ee8eb8185d3"
+        },
+        {
+          "path": "paddle/ort/ort-wasm-simd-threaded.wasm",
+          "role": "runtime",
+          "bytes": 13479978,
+          "sha256": "d1ab1b94b16a65b29d710d0b587b29e7bed336827577623913479b8afe8113e6"
+        },
+        {
+          "path": "tessdata/chi_sim.traineddata.gz",
+          "role": "fallback",
+          "bytes": 1718768,
+          "sha256": "b8a23f10c7de500891eb458a8adc9cc58ab7f242f08b7d149f5e9aea4ad5db7c"
+        },
+        {
+          "path": "tesseract-core/tesseract-core-lstm.wasm.js",
+          "role": "fallback",
+          "bytes": 3896484,
+          "sha256": "eef5f8b2f8e20e150680b20adaec4a60babafee3adbe8a94583c81fee46e8680"
+        },
+        {
+          "path": "tesseract/tesseract.esm.min.js",
+          "role": "fallback",
+          "bytes": 63220,
+          "sha256": "64871d76c75609fd5413b88a8171e2ef40deedd77d5875ba23df104b2d05eb29"
+        },
+        {
+          "path": "tesseract/worker.min.js",
+          "role": "fallback",
+          "bytes": 111307,
+          "sha256": "576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d"
+        }
+      ]
+    }
+  },
+  "performance": {
+    "scope": "Hermetic local no-store browser readiness and UI save; timings include desktop environment scheduling, not production network/service latency.",
+    "samplesMs": [
+      {
+        "coldReadyMs": 315,
+        "warmReadyMs": 187,
+        "saveUiMs": 113.24319999999716
+      },
+      {
+        "coldReadyMs": 363.80000001192093,
+        "warmReadyMs": 300.60000002384186,
+        "saveUiMs": 143.35289999999804
+      },
+      {
+        "coldReadyMs": 279.89999997615814,
+        "warmReadyMs": 243.19999998807907,
+        "saveUiMs": 91.96839999999793
+      }
+    ],
+    "summary": {
+      "coldReadyMs": {
+        "samples": 3,
+        "median": 315,
+        "maximum": 363.80000001192093,
+        "p95": null,
+        "p95Reason": "Three observations do not support a stable p95 estimate."
+      },
+      "warmReadyMs": {
+        "samples": 3,
+        "median": 243.19999998807907,
+        "maximum": 300.60000002384186,
+        "p95": null,
+        "p95Reason": "Three observations do not support a stable p95 estimate."
+      },
+      "saveUiMs": {
+        "samples": 3,
+        "median": 113.24319999999716,
+        "maximum": 143.35289999999804,
+        "p95": null,
+        "p95Reason": "Three observations do not support a stable p95 estimate."
+      }
+    },
+    "network": {
+      "status": "MEASURED",
+      "scope": "Three synthetic holdings; 390x844 desktop Chrome; real third-party requests intercepted; successful official NAV and 10-row holdings fixtures; no production Gist or physical-device evidence.",
+      "fixedChinaTime": "2026-09-30 14:00:00",
+      "phaseDefinition": {
+        "coldStartup": "Fresh context seeded with legacy holdings, no quote cache; includes index and app-shell reads.",
+        "warmManualRefresh": "Same tab after startup/enrichment settled; ordinary pull-to-refresh within TTL; excludes unrelated startup index reads."
+      },
+      "samples": [
+        {
+          "coldStartup": {
+            "totalRequests": 36,
+            "dataRequests": 8,
+            "categories": {
+              "estimateBatch": 1,
+              "holdingsSnapshot": 1,
+              "indexQuotes": 2,
+              "officialNav": 3,
+              "otherExternalBlocked": 7,
+              "sameOriginStatic": 21,
+              "securityQuotes": 1
+            }
+          },
+          "warmManualRefresh": {
+            "totalRequests": 11,
+            "dataRequests": 7,
+            "categories": {
+              "estimateBatch": 1,
+              "holdingsSnapshot": 1,
+              "indexQuotes": 1,
+              "officialNav": 3,
+              "otherExternalBlocked": 4,
+              "securityQuotes": 1
+            }
+          }
+        },
+        {
+          "coldStartup": {
+            "totalRequests": 36,
+            "dataRequests": 8,
+            "categories": {
+              "estimateBatch": 1,
+              "holdingsSnapshot": 1,
+              "indexQuotes": 2,
+              "officialNav": 3,
+              "otherExternalBlocked": 7,
+              "sameOriginStatic": 21,
+              "securityQuotes": 1
+            }
+          },
+          "warmManualRefresh": {
+            "totalRequests": 11,
+            "dataRequests": 7,
+            "categories": {
+              "estimateBatch": 1,
+              "holdingsSnapshot": 1,
+              "indexQuotes": 1,
+              "officialNav": 3,
+              "otherExternalBlocked": 4,
+              "securityQuotes": 1
+            }
+          }
+        },
+        {
+          "coldStartup": {
+            "totalRequests": 36,
+            "dataRequests": 8,
+            "categories": {
+              "estimateBatch": 1,
+              "holdingsSnapshot": 1,
+              "indexQuotes": 2,
+              "officialNav": 3,
+              "otherExternalBlocked": 7,
+              "sameOriginStatic": 21,
+              "securityQuotes": 1
+            }
+          },
+          "warmManualRefresh": {
+            "totalRequests": 11,
+            "dataRequests": 7,
+            "categories": {
+              "estimateBatch": 1,
+              "holdingsSnapshot": 1,
+              "indexQuotes": 1,
+              "officialNav": 3,
+              "otherExternalBlocked": 4,
+              "securityQuotes": 1
+            }
+          }
+        }
+      ],
+      "measuredAt": "2026-09-30T07:39:37.219Z",
+      "transport": {
+        "localOrigin": "http://127.0.0.1:2386",
+        "changedSnapshotPaths": [
+          "scripts/serve-site.mjs",
+          "playwright.config.mjs",
+          "e2e/v15.spec.js"
+        ],
+        "scope": "Only fixed localhost port literals replaced; test assertions, fixtures and app/business modules unchanged."
+      }
+    },
+    "latencyBreakdown": {
+      "status": "NOT_RUN",
+      "reason": "Current instrumentation does not independently measure server, real upstream network, renderer CPU and main-thread time."
+    },
+    "networkAttempts": [
+      {
+        "status": "FAILED_MEASUREMENT",
+        "reason": "Baseline wait deadline exceeded."
+      }
+    ]
+  },
+  "notRun": [
+    "Physical Android 4GB",
+    "Physical Android >=8GB and installed PWA",
+    "Physical iOS Safari and Home Screen PWA",
+    "Real two-device synthetic Gist read/write",
+    "Installed v15.0.2 -> v16 PWA update",
+    "Actual long-screenshot OCR timing",
+    "Production performance/request counts"
+  ]
+}

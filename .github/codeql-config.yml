@@ -1,0 +1,13 @@
+name: FundVal security queries
+queries:
+  - uses: security-extended
+paths:
+  - js
+  - scripts
+  - sw.js
+paths-ignore:
+  - node_modules
+  - site
+  - vendor
+  - test
+  - e2e
