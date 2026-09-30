@@ -2,7 +2,7 @@
 
 > 更新日期：2026-09-30（Asia/Shanghai）
 > 业务基线：v15.0.2 / `40e68edab9cb3fba0b17338dc3672a82d13ad17e`
-> 当前阶段：M0 本地与 PR CI 已通过；基线脚本跨平台审阅修复、合并及 main 候选验证进行中
+> 当前阶段：M0 治理与历史基线已建立；跨标签页数据安全阻断需先修复，尚未合并或退出
 > v16 生产发布：未执行
 
 ## 已执行的 GitHub 设置
@@ -11,7 +11,7 @@
 
 | 设置 | 当前读回结果 |
 | --- | --- |
-| `main` 必需状态检查 | `candidate`、`codeql` |
+| `main` 必需状态检查 | `candidate`、`codeql`（GitHub Actions App 15368）与独立 `CodeQL`（GitHub Advanced Security App 57789） |
 | 必须基于最新主线 | `required_status_checks.strict=true` |
 | 管理员同样受保护 | `enforce_admins.enabled=true` |
 | PR 路径 | 已启用；单人仓库批准数为 0，保留自主 PR 合并路径 |
@@ -45,7 +45,21 @@ GitHub 流水线已在 [M0 PR #10](https://github.com/AureliusWu/FundVal/pull/10
 
 首次 CodeQL 分析另外报告了两个新增脚本告警，自动 `CodeQL` 检查失败。提交 `f514f4c9ba05fa28aa2a08225a2c6bcfe53be130` 修复后，两项均被扫描标记为 fixed（没有排除规则或 dismiss）；最新 `f4a71c8e89dbb0d16c6b5a57c6ff78e39b71e4dc` 的 push run `36687586037`、PR run `36687592688` 的 candidate、codeql 和独立 CodeQL 检查均成功。PR analysis `1865035398` 没有新增发现；分支 analysis `1865035626` 保留五项既有业务发现，详见 `CODEQL_BASELINE.md`。
 
-期间 PR run `36686518090` 的跨标签页 stale-editor E2E 发生一次间歇失败（拒绝提示断言未出现，尚未运行到最终持仓断言），不能推断为已经证实数据被覆盖。原始用例本机连续 10 次通过；新增仅含合成数据的现场诊断后本机 3/3、最新 push/PR 12/12 通过。业务写入逻辑及拒绝覆盖断言未修改，没有自动 retry；此观察项继续进入 M1/M4 回归，不宣称业务 Bug 已修复。
+期间 PR run `36686518090` 的跨标签页 stale-editor E2E 发生一次间歇失败（拒绝提示断言未出现，尚未运行到最终持仓断言），当时不能推断为数据被覆盖。原始用例本机连续 10 次通过；仅加合成现场诊断后本机 3/3、`f4a71c8` push/PR 12/12 通过。后续提交 `aeabb3ee06fae3fe473d20c15a08429fca53fc77` 的 push run `36689157478` 成功，但 PR run `36689162082` 再次失败；不得靠选用成功 run 宣称退出。
+
+## M0 新发现的数据安全阻断
+
+失败 artifact `11084488282` 的 trace 证明第二页真正点击“保存修改”，200 份输入进入保存中状态，随后 UI 短暂显示“200份 / 已保存”并清空表单，但 canonical/legacy 最终均回到原始 100 份、revision 1、原始时间。第一页旧草稿保存尚未执行，不是旧草稿覆盖，也不是点击未命中。该失败没有生产数据或真实 Gist 写入。
+
+静态风险链：`js/resilience.js` 对 journal/V3/V1 的每个 storage event 调用可写 startup recovery；`js/storage/holdings-repository.js` 对 previous/next 混合视图恢复 previous。Web Lock 串行回调不等于跨 renderer 多键视图已收齐，延迟视图可能触发旧快照回写。
+
+`test/runtime-storage-events.test.js` 已用独立 authoritative/renderer 合成 Map 与串行 fake Web Locks 先红复现：7 项中 6 失败，三类 delayed event 均实际产生 `200 → 100` 覆写，没有 stale-save 操作。最小补丁后 7/7；相关恢复/事务测试 26/26；完整 Node 433 项（432 通过、0 失败、1 平台跳过）、check 135 文件通过。测试同时断言全部 committed bytes、revision 与日期不变，通知不读取仓储、不获取写锁、不改变任何存储。原生 trace 与条件性纯内存复现分别记录，不把内存模型冒充已捕获的完整 Chromium IPC 序列。
+
+顺序执行例外只针对这个 M0 新发现的门禁阻断：先红测试 → 最小数据安全预备修复 → 重跑 M0 全部门禁，再开始 M1。最小修复边界为运行时 storage event 只通知刷新、不执行恢复写入；显式启动、迁移和用户事务恢复仍保留。修复提交必须独立列出，不再宣称该提交“业务完全未改”；v15.0.2 隔离历史基线及业务回滚点不改。其余 M1～M6 工作不提前实施。
+
+追加的原生 storage/lock 详细 hook 仅在 `FUNDVAL_E2E_TRACE_STORAGE=1` 时启用，用于合成现场取证；默认 CI 不启用，避免同步诊断读取和 callback 包装影响竞态时序。原有拒绝覆盖、草稿及最终持仓断言保留；不加入自动 retry、固定 sleep 或延长超时。
+
+独立安全预备修复提交：`8b97e69`（runtime 通知只读 + 合成 red/green tests）。重建 cold gzip 51,905 / 52,241 B、全部非 OCR gzip 70,171 B；默认无详细 hook 的跨标签页场景本机连续 10/10。完整默认 E2E、最终 SHA CI 与 main 候选验证仍待收尾。
 
 ## v15.0.2 可重复基线
 
@@ -111,7 +125,9 @@ Coverage 的分母仅包括 Node 运行实际导入的 `js/**/*.js`，不包含 
 - [x] `f4a71c8` 本地门禁：Node 421 项（420 通过、0 失败、1 个 Windows symlink 权限跳过；Linux CI 实际执行）、语法扫描 134 文件、两次 build 指纹一致（`1b66e1fceed57efe43706536490010787b96c4a6fde488eccb2c9a04abd77945`）；冷 gzip 51,941 B、总非 OCR gzip 70,207 B。指纹包含提交相关构建元数据，不能和不同 SHA 直接判为业务漂移。
 - [x] M0 PR 的真实 `candidate` / `codeql` / CodeQL analysis 均通过（最新 push / PR）。
 - [x] 新增 CodeQL 告警修复并通过真实重扫。
-- [ ] 跨平台 npm 发现审阅项闭环，按受保护 PR 路径合并（不使用 admin bypass）。
+- [x] 跨平台 npm 发现审阅项闭环：`b3d37c3`，8 项回归通过，已回复并解决审阅 thread。
+- [ ] 跨标签页预备修复先红后绿、原始 E2E 及真实 CI 再验收。
+- [ ] 按受保护 PR 路径合并（不使用 admin bypass）。
 - [ ] 候选清单可追溯至同一 SHA / run，且部署路径验证通过。
 
 以下保持 `NOT_RUN`：三类物理设备、实际长图 OCR 耗时、真实双设备合成 Gist 写读、已安装 v15→v16 升级、生产性能与真实上游请求数、独立网络/服务端/主线程时延分解。

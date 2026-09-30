@@ -196,6 +196,118 @@ test('stale editor cannot overwrite another tab and navigation preserves its dra
   const evidence = [];
   let second = null;
   const navigations = { first: 0, second: 0 };
+  if (process.env.FUNDVAL_E2E_TRACE_STORAGE === '1') await context.addInitScript(({ origin, fund }) => {
+    // Observe this fresh context's synthetic fixture only. Do not persist,
+    // emit raw storage, change storage semantics, or add waits/retries.
+    if (location.origin !== origin || window !== window.top) return;
+    const keys = {
+      v3: 'fuyu_holdings_v3', v1: 'fuyu_holdings_v1',
+      projection: 'fuyu_holdings_projection_meta_v1',
+      journal: 'fuyu_holdings_repository_journal_v1',
+    };
+    const observed = new Set(Object.values(keys));
+    const originalGet = Storage.prototype.getItem;
+    const originalSet = Storage.prototype.setItem;
+    const originalRemove = Storage.prototype.removeItem;
+    const mutations = [];
+    window.__E2E_SYNTHETIC_STORAGE_EVENTS__ = mutations;
+    let sequence = 0;
+    let lockSequence = 0;
+    let activeLock = null;
+    const parse = raw => {
+      if (raw == null) return null;
+      try { return JSON.parse(raw); } catch (_) { return { malformed: true }; }
+    };
+    const rows = (value, legacy = false) => {
+      if (value == null) return null;
+      const holdings = legacy ? value : value?.holdings;
+      if (!Array.isArray(holdings) || !holdings.every(row => (
+        (legacy ? row?.code : row?.fundCode) === fund.code
+        && (legacy ? row?.name : row?.fundName) === fund.name
+      ))) return { unexpectedFixture: true };
+      return holdings.map(row => ({
+        shares: typeof row.shares === 'number' && Number.isFinite(row.shares) ? row.shares : null,
+        revision: Number.isSafeInteger(row.revision) ? row.revision : null,
+      }));
+    };
+    const snapshot = value => value ? {
+      canonical: rows(parse(value.v3Raw)), legacy: rows(parse(value.v1Raw), true),
+    } : null;
+    const state = () => {
+      const read = key => originalGet.call(localStorage, key);
+      const v3 = read(keys.v3);
+      const v1 = read(keys.v1);
+      const projectionRaw = read(keys.projection);
+      const projection = parse(projectionRaw);
+      const journal = parse(read(keys.journal));
+      const matches = candidate => Boolean(candidate && candidate.v3Raw === v3
+        && candidate.v1Raw === v1 && candidate.projectionMetaRaw === projectionRaw);
+      return {
+        canonical: rows(parse(v3)), legacy: rows(parse(v1), true),
+        projection: projection ? {
+          version: Number.isSafeInteger(projection.version) ? projection.version : null,
+          matchesCanonical: projection.v3Canonical === v3,
+          matchesLegacy: projection.v1Raw === v1,
+        } : null,
+        journal: journal ? {
+          version: Number.isSafeInteger(journal.version) ? journal.version : null,
+          state: journal.state === 'prepared' ? 'prepared' : 'invalid',
+          previous: snapshot(journal.previous), next: snapshot(journal.next),
+          matchesPrevious: matches(journal.previous), matchesNext: matches(journal.next),
+        } : null,
+      };
+    };
+    const safeState = () => {
+      try { return state(); } catch (_) { return { unreadable: true }; }
+    };
+    const stack = () => String(new Error().stack || '').split('\n').slice(1, 9)
+      .map(line => line.replace(/[?#][^\s)]*/g, '')).join('\n');
+    const record = entry => {
+      if (mutations.length < 2000) mutations.push({
+        sequence: ++sequence, at: performance.timeOrigin + performance.now(),
+        activeLock, ...entry,
+      });
+    };
+    for (const [method, original] of [['setItem', originalSet], ['removeItem', originalRemove]]) {
+      Storage.prototype[method] = function(key, ...args) {
+        if (this !== localStorage || !observed.has(key)) return original.call(this, key, ...args);
+        const before = safeState();
+        const callStack = stack();
+        try {
+          const result = original.call(this, key, ...args);
+          record({ operation: method, key, before, after: safeState(), stack: callStack });
+          return result;
+        } catch (error) {
+          record({ operation: method, key, before, after: safeState(), error: error?.name, stack: callStack });
+          throw error;
+        }
+      };
+    }
+    const locks = navigator.locks;
+    if (typeof locks?.request === 'function') {
+      const originalRequest = locks.request;
+      locks.request = function(name, ...args) {
+        const callbackIndex = args.length - 1;
+        const callback = args[callbackIndex];
+        if (name !== 'fuyu_holdings_repository_v1' || typeof callback !== 'function') {
+          return originalRequest.call(this, name, ...args);
+        }
+        const lockId = ++lockSequence;
+        const callStack = stack();
+        record({ operation: 'lock-request', lockId, state: safeState(), stack: callStack });
+        args[callbackIndex] = async function(...callbackArgs) {
+          activeLock = lockId;
+          record({ operation: 'lock-enter', lockId, granted: Boolean(callbackArgs[0]), state: safeState(), stack: callStack });
+          try { return await callback.apply(this, callbackArgs); }
+          finally {
+            record({ operation: 'lock-exit', lockId, state: safeState(), stack: callStack });
+            activeLock = null;
+          }
+        };
+        return originalRequest.call(this, name, ...args);
+      };
+    }
+  }, { origin: LOCAL_ORIGIN, fund: TEST_FUND });
   page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations.first += 1; });
   const observeSyntheticSaveClicks = target => target.evaluate(() => {
     window.__E2E_SYNTHETIC_SAVE_CLICKS__ = 0;
@@ -203,7 +315,7 @@ test('stale editor cannot overwrite another tab and navigation preserves its dra
       if (event.target?.closest('#add-btn')) window.__E2E_SYNTHETIC_SAVE_CLICKS__ += 1;
     }, true);
   });
-  const readSyntheticEditorEvidence = target => target.evaluate(fund => {
+  const readSyntheticEditorEvidence = (target, includeStorageEvents = false) => target.evaluate(({ fund, includeStorageEvents }) => {
     const parse = raw => {
       if (raw == null) return null;
       try { return JSON.parse(raw); } catch (_) { return { malformed: true }; }
@@ -239,15 +351,16 @@ test('stale editor cannot overwrite another tab and navigation preserves its dra
       toast: document.getElementById('toast')?.textContent || null,
       toastVisible: document.getElementById('toast')?.classList.contains('show') || false,
       saveClickCount: window.__E2E_SYNTHETIC_SAVE_CLICKS__ ?? null,
+      storageEvents: includeStorageEvents ? window.__E2E_SYNTHETIC_STORAGE_EVENTS__ : undefined,
       visible: document.visibilityState,
     };
-  }, TEST_FUND);
+  }, { fund: TEST_FUND, includeStorageEvents });
   const capture = async phase => {
     evidence.push({
       phase,
       mainFrameNavigations: { ...navigations },
-      first: await readSyntheticEditorEvidence(page),
-      second: second && !second.isClosed() ? await readSyntheticEditorEvidence(second) : null,
+      first: await readSyntheticEditorEvidence(page, phase === 'final'),
+      second: second && !second.isClosed() ? await readSyntheticEditorEvidence(second, phase === 'final') : null,
     });
   };
   try {
@@ -287,7 +400,24 @@ test('stale editor cannot overwrite another tab and navigation preserves its dra
     await capture('first-stale-save-rejected');
   } finally {
     await capture('final').catch(() => evidence.push({ phase: 'final', unreadable: true }));
-    console.log(`LOCAL_STALE_EDITOR_EVIDENCE ${JSON.stringify(evidence)}`);
+    const withoutStorageEvents = value => {
+      if (!value) return value;
+      const { storageEvents: _events, ...summary } = value;
+      return summary;
+    };
+    console.log(`LOCAL_STALE_EDITOR_EVIDENCE ${JSON.stringify(evidence.map(entry => ({
+      ...entry, first: withoutStorageEvents(entry.first), second: withoutStorageEvents(entry.second),
+    })))}`);
+    const final = evidence.at(-1);
+    const transactionSummary = value => (value?.storageEvents || []).map(entry => {
+      const { stack: _stack, ...summary } = entry;
+      return summary;
+    });
+    if (process.env.FUNDVAL_E2E_TRACE_STORAGE === '1') {
+      console.log(`LOCAL_STALE_TRANSACTION_EVENTS ${JSON.stringify({
+        first: transactionSummary(final?.first), second: transactionSummary(final?.second),
+      })}`);
+    }
     await testInfo.attach('synthetic-stale-editor-evidence', {
       body: Buffer.from(JSON.stringify(evidence, null, 2)), contentType: 'application/json',
     });

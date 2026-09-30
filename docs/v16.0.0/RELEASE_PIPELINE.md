@@ -20,7 +20,7 @@ protected main 的成功 push CI
   → 部署 + 原有生产资源/发布指纹/OCR完整性smoke
 ```
 
-`main` push 不再触发生产部署。分支、PR、手动 CI 候选可供审查和真机测试，但生产入口只接受本仓库 `main` push 产生且整个 CI workflow 已成功的候选。`candidate` 和 `codeql` 为固定状态检查名称；CodeQL 使用 JavaScript/TypeScript `security-extended` 实际分析。
+`main` push 不再触发生产部署。分支、PR、手动 CI 候选可供审查和真机测试，但生产入口只接受本仓库 `main` push 产生且整个 CI workflow 已成功的候选。`candidate` 和 `codeql` 为固定 Actions 状态检查名称；独立 `CodeQL` analysis 也为必需状态检查，不能仅以扫描上传作业成功代替安全分析门禁。CodeQL 使用 JavaScript/TypeScript `security-extended` 实际分析。
 
 CodeQL job 成功只代表扫描执行/上传成功，不能等同于“无漏洞”；必须再查看 code scanning alerts 并在反馈中记录实际结果。不能以旧主线 CI 成功替代本次新流水线的真实运行。
 
@@ -68,7 +68,7 @@ node scripts/release-candidate.mjs verify --bundle <候选目录> --output <空�
 
 需要核对实际GitHub设置，而非仅凭YAML推断：
 
-- `main` 要求 PR，strict required checks 为 `candidate`、`codeql`，禁止 force push/删除，管理员也遵守保护；单维护者仓库不设置无法满足的第二人审批。
+- `main` 要求 PR，strict required checks 为 `candidate`、`codeql`（App 15368）与独立 `CodeQL`（App 57789），禁止 force push/删除，管理员也遵守保护；单维护者仓库不设置无法满足的第二人审批。
 - `github-pages` 环境禁止管理员绕过，部署分支限定受保护主分支；显式 `workflow_dispatch` 是发布入口，当前不增加额外的 required reviewers。
 - Pages `build_type=workflow`；Actions权限足以读产物、执行CodeQL和部署。
 - 第一次候选CI须在GitHub实际完成，产物可下载且SHA/attempt/全站清单匹配；生产部署仍等M6设备/RC门禁。
