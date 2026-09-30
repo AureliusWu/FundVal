@@ -92,6 +92,15 @@ jobs:
         run: npx --no-install playwright install --with-deps chrome
       - name: Run hermetic browser E2E
         run: npm run test:e2e
+      - name: Preserve failed synthetic E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fundval-e2e-failure-${{ github.sha }}-${{ github.run_attempt }}
+          path: site/.playwright-results/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
       - name: Seal immutable candidate
         shell: bash
         env:

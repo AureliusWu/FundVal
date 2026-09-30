@@ -25,6 +25,9 @@ test('CI validates every branch and PR, seals review candidates and has no produ
   assert.match(workflow, /name: fundval-candidate-\$\{\{ github\.sha \}\}-\$\{\{ github\.run_attempt \}\}/);
   assert.match(workflow, /CANDIDATE_EVENT: \$\{\{ github\.event_name \}\}/);
   assert.match(workflow, /CANDIDATE_BRANCH: \$\{\{ github\.head_ref \|\| github\.ref_name \}\}/);
+  assert.match(workflow, /Preserve failed synthetic E2E diagnostics\s*\n\s+if: failure\(\)/);
+  assert.match(workflow, /name: fundval-e2e-failure-\$\{\{ github\.sha \}\}-\$\{\{ github\.run_attempt \}\}/);
+  assert.match(workflow, /path: site\/\.playwright-results\/\s*\n\s+include-hidden-files: true/);
   assert.doesNotMatch(workflow, /if:.*refs\/heads\/main/);
   assert.match(workflow, /github\/codeql-action\/init@[0-9a-f]{40}/);
   assert.match(workflow, /github\/codeql-action\/analyze@[0-9a-f]{40}/);

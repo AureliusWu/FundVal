@@ -192,28 +192,107 @@ test('a quota failure preserves both saved holding and editable draft', async ({
   await expect(page.locator('#holdings-list .h-detail')).toContainText('100份');
 });
 
-test('stale editor cannot overwrite another tab and navigation preserves its draft', async ({ context, page }) => {
-  await installHermeticNetwork(context);
-  await openApp(page);
-  await addHoldingThroughUi(page);
-  await page.locator(`.holding-item[data-code="${TEST_FUND.code}"]`).click();
-  await page.locator('#i-shares').fill('999');
-  await page.locator('#nav-market').click();
-  await page.locator('#nav-edit').click();
-  await expect(page.locator('#i-shares')).toHaveValue('999');
+test('stale editor cannot overwrite another tab and navigation preserves its draft', async ({ context, page }, testInfo) => {
+  const evidence = [];
+  let second = null;
+  const navigations = { first: 0, second: 0 };
+  page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations.first += 1; });
+  const observeSyntheticSaveClicks = target => target.evaluate(() => {
+    window.__E2E_SYNTHETIC_SAVE_CLICKS__ = 0;
+    document.addEventListener('click', event => {
+      if (event.target?.closest('#add-btn')) window.__E2E_SYNTHETIC_SAVE_CLICKS__ += 1;
+    }, true);
+  });
+  const readSyntheticEditorEvidence = target => target.evaluate(fund => {
+    const parse = raw => {
+      if (raw == null) return null;
+      try { return JSON.parse(raw); } catch (_) { return { malformed: true }; }
+    };
+    const v3Raw = localStorage.getItem('fuyu_holdings_v3');
+    const v1Raw = localStorage.getItem('fuyu_holdings_v1');
+    const canonical = parse(v3Raw);
+    const legacy = parse(v1Raw);
+    const projection = parse(localStorage.getItem('fuyu_holdings_projection_meta_v1'));
+    // This diagnostic is limited to this new browser context's synthetic
+    // fixture. Refuse to emit any unexpected holdings or raw storage contents.
+    const canonicalSynthetic = Array.isArray(canonical?.holdings)
+      && canonical.holdings.every(row => row.fundCode === fund.code && row.fundName === fund.name);
+    const legacySynthetic = Array.isArray(legacy)
+      && legacy.every(row => row.code === fund.code && row.name === fund.name);
+    if ((canonical && !canonicalSynthetic) || (legacy && !legacySynthetic)) {
+      return { unexpectedFixture: true };
+    }
+    const input = id => document.getElementById(id)?.value ?? null;
+    const save = document.getElementById('add-btn');
+    return {
+      canonical,
+      canonicalHolding: canonical?.holdings.find(row => row.fundCode === fund.code) || null,
+      legacy,
+      projection: projection ? {
+        version: projection.version,
+        matchesCanonical: projection.v3Canonical === v3Raw,
+        matchesLegacy: projection.v1Raw === v1Raw,
+      } : null,
+      journalPresent: localStorage.getItem('fuyu_holdings_repository_journal_v1') !== null,
+      input: { code: input('i-code'), name: input('i-name'), shares: input('i-shares'), cost: input('i-cost') },
+      saveButton: { enabled: Boolean(save && !save.disabled), text: save?.textContent || null },
+      toast: document.getElementById('toast')?.textContent || null,
+      toastVisible: document.getElementById('toast')?.classList.contains('show') || false,
+      saveClickCount: window.__E2E_SYNTHETIC_SAVE_CLICKS__ ?? null,
+      visible: document.visibilityState,
+    };
+  }, TEST_FUND);
+  const capture = async phase => {
+    evidence.push({
+      phase,
+      mainFrameNavigations: { ...navigations },
+      first: await readSyntheticEditorEvidence(page),
+      second: second && !second.isClosed() ? await readSyntheticEditorEvidence(second) : null,
+    });
+  };
+  try {
+    await installHermeticNetwork(context);
+    await openApp(page);
+    await observeSyntheticSaveClicks(page);
+    await addHoldingThroughUi(page);
+    await capture('initial-save-returned');
+    await page.locator(`.holding-item[data-code="${TEST_FUND.code}"]`).click();
+    await page.locator('#i-shares').fill('999');
+    await page.locator('#nav-market').click();
+    await page.locator('#nav-edit').click();
+    await expect(page.locator('#i-shares')).toHaveValue('999');
 
-  const second = await context.newPage();
-  await openApp(second);
-  await second.locator('#nav-edit').click();
-  await second.locator(`.holding-item[data-code="${TEST_FUND.code}"]`).click();
-  await second.locator('#i-shares').fill('200');
-  await second.locator('#add-btn').click();
-  await expect(second.locator('#holdings-list .h-detail')).toContainText('200份');
-  await page.locator('#add-btn').click();
-  await expect(page.locator('#toast')).toContainText('未覆盖新数据');
-  await expect(page.locator('#i-shares')).toHaveValue('999');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('fuyu_holdings_v3')).holdings[0].shares)).toBe(200);
-  await second.close();
+    await capture('first-draft-opened-and-navigation-returned');
+    second = await context.newPage();
+    second.on('framenavigated', frame => { if (frame === second.mainFrame()) navigations.second += 1; });
+    await openApp(second);
+    await observeSyntheticSaveClicks(second);
+    await second.locator('#nav-edit').click();
+    await second.locator(`.holding-item[data-code="${TEST_FUND.code}"]`).click();
+    await second.locator('#i-shares').fill('200');
+    await capture('before-second-save');
+    await second.locator('#add-btn').click();
+    await expect.poll(async () => (await readSyntheticEditorEvidence(second)).canonicalHolding?.shares,
+      { message: 'second tab must have durably committed the synthetic 200-share record' }).toBe(200);
+    await expect(second.locator('#holdings-list .h-detail')).toContainText('200份');
+    await capture('after-second-canonical-save');
+    // Capture first-tab storage without waiting for cross-renderer propagation
+    // or mutating it; preserve the original concurrent stale-save window.
+    await capture('before-first-stale-save');
+    await page.locator('#add-btn').click();
+    await capture('first-stale-save-click-returned');
+    await expect(page.locator('#toast')).toContainText('未覆盖新数据');
+    await expect(page.locator('#i-shares')).toHaveValue('999');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('fuyu_holdings_v3')).holdings[0].shares)).toBe(200);
+    await capture('first-stale-save-rejected');
+  } finally {
+    await capture('final').catch(() => evidence.push({ phase: 'final', unreadable: true }));
+    console.log(`LOCAL_STALE_EDITOR_EVIDENCE ${JSON.stringify(evidence)}`);
+    await testInfo.attach('synthetic-stale-editor-evidence', {
+      body: Buffer.from(JSON.stringify(evidence, null, 2)), contentType: 'application/json',
+    });
+    await second?.close();
+  }
 });
 
 test('lazy diagnostics and export keep working without loading OCR assets', async ({ context, page }) => {
