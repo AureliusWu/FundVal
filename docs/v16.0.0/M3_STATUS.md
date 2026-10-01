@@ -107,7 +107,21 @@
 2. 同机性能与 p95 相对门禁证据尚不完整。桌面 3 秒绝对交互预算通过不等于 v16 相对性能门禁通过。
 3. 手动详情仍存在旧独立行情获取路径，与刷新 generation union 不完全统一；旧东方财富详情映射未使用新 f13+f12 全集合分配，应在后续行为测试下复用新批次层，不直接大改 UI/事务。
 4. 较旧的 US 指数虽然本代刚获取，因真实 observedAt 与 seed freshness 严格检查，模型仍可能另取一次兼容行情；必须保留旧时间与模型区间保护后再优化，不能把新请求时间当观察时间。
-5. GitHub protected CI、immutable candidate 下载验证、CodeQL 本阶段证据尚未完成；仅本地绿不能代表它们通过。draft PR 可保存检查点，但不意味着允许 M3 EXIT 或生产部署。
+5. 业务提交的 GitHub 分支 / PR CI 与分支产物内容核对通过，见第 6 节；正式主线 candidate 验证仍未满足。draft PR 可保存检查点，但不意味着允许 M3 EXIT 或生产部署。
 6. M4 多档案同步合同、M5 OCR 导入/解码/取消/PWA 合同、M6 三类物理设备与同一产物发布继续按原顺序，未跳过。外部 fund-compass Worker 未修改，v2 服务未协同上线。
 
 任何历史 M0/M2 生产、候选、真机与实际 durable write 证据边界仍保持。此检查点不改变生产版本，也不声明 v16 完成。
+
+## 6. 业务检查点的 GitHub 与分支产物证据
+
+- 业务提交 `83d1c7084ae4ddd1d7aaf7d205e5bea59dd4252b` 已推送；[PR #12](https://github.com/AureliusWu/FundVal/pull/12) 保持 draft，不 merge、不 deploy。后续仅证据文档提交不改变此处绑定的业务 SHA。
+- [push CI 36882454412](https://github.com/AureliusWu/FundVal/actions/runs/36882454412)，attempt 1，candidate/codeql success；[PR CI 36882516199](https://github.com/AureliusWu/FundVal/actions/runs/36882516199) 亦 success。push Linux：673/673、0 skip/fail、syntax 167、E2E 19/19（33.4 s）、audit 0；cold 44,311 / 52,241 B、all 83,371 B。
+- 独立 CodeQL check success。分支 analysis 1874954365 对应业务 SHA，103 rules、3 results，error/warning 为空；workflow green 不代表这 3 个既有 finding 已修复。main 保护的 candidate/codeql/CodeQL App 检查、strict 要求不变。
+- open findings 仍为 #7（SW origin）、#5（catalog HTTP→file）、#3（Paddle 文件系统 race），与 M2 记录相同。CI 另有 Ubuntu runner 即将迁移、锁定 upload-artifact action 的 Node 20→24 强制运行提示；不是测试失败，也未在 M3 临时升级 Actions。
+- 下载 push artifact 11171094845，原名 `fundval-candidate-83d1c7084ae4ddd1d7aaf7d205e5bea59dd4252b-1`。官方 `release-candidate.mjs verify` **exit 1**：`Candidate provenance or manifest is invalid.` 因为 branch 不是 main；这是正确拒绝，不改 manifest / 脚本 / gate，不描述为正式候选通过，也不能部署。
+- 在另一个安全 Temp 目录对原 tar 做只读内容审查：提取前检查全路径 / regular files / 禁止 links，使用同一组已算 hash 的 tar 字节；127 文件 / 92,496,895 B 的路径、字节与 SHA 逐项与原清单一致。官方 inventory、app/OCR 模块函数核对内容，不替代 main-only provenance gate。
+- 内层 tar 92,600,320 B，SHA256 `b3da8bef4eea32da7e2db0f029f1161e376329093b1d0f4d3857614a182b8553`；site inventory FP `0ded93bc9bd6f42decf7f37227b2866e8b4d31645554023a608f0d211d60026a`；关键 release FP `4ec488fca67a2412e14c8b8609b0b99ba3ce1c99a03c521109024892e62dba25`。
+- 24 app chunks / 246,489 B、23 OCR assets / 88,196,906 B 校验通过，逐 chunk 实算 gzip 与 manifest 一致。此 release FP 与前述 ebd463c 工作树本地 FP 不同（构建绑定提交日期不同），不是声称同一 main candidate。
+- 外 ZIP size 92,623,491 B / digest `3303bf4e4b3629563d845b2429748c4f4f14edd137c1180931f05f821d05c221` 仅为 API 声明，没有独立验证外 ZIP 摘要。
+
+完整机器证据见 [M3_FEATURE_CANDIDATE.json](M3_FEATURE_CANDIDATE.json)。**分支内容完整 ≠ 主线 provenance 通过 ≠ all gzip 门禁通过 ≠ M3 EXIT ≠ 发布**。

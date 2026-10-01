@@ -1,0 +1,209 @@
+{
+  "status": "FEATURE_CONTENT_CONSISTENT_NOT_DEPLOYABLE",
+  "identity": {
+    "schema": 1,
+    "repository": "AureliusWu/FundVal",
+    "sha": "83d1c7084ae4ddd1d7aaf7d205e5bea59dd4252b",
+    "runId": "36882454412",
+    "attempt": "1",
+    "workflow": ".github/workflows/ci.yml",
+    "event": "push",
+    "branch": "codex/v16.0.0-refresh-plan"
+  },
+  "officialMainOnlyCli": {
+    "exitCode": 1,
+    "expectedRejection": "Candidate provenance or manifest is invalid."
+  },
+  "archiveBytes": 92600320,
+  "archiveSha256": "b3da8bef4eea32da7e2db0f029f1161e376329093b1d0f4d3857614a182b8553",
+  "fileCount": 127,
+  "totalFileBytes": 92496895,
+  "siteFingerprint": "0ded93bc9bd6f42decf7f37227b2866e8b4d31645554023a608f0d211d60026a",
+  "releaseFingerprint": "4ec488fca67a2412e14c8b8609b0b99ba3ce1c99a03c521109024892e62dba25",
+  "app": {
+    "chunkCount": 24,
+    "totalBytes": 246489
+  },
+  "ocr": {
+    "assetCount": 23,
+    "totalBytes": 88196906
+  },
+  "gzipChecks": [
+    {
+      "path": "js/app-shell.js",
+      "role": "cold",
+      "gzipBytes": 2232
+    },
+    {
+      "path": "js/chunks/accuracy-7tvtw11z.js",
+      "role": "lazy",
+      "gzipBytes": 111
+    },
+    {
+      "path": "js/chunks/app-SUNa2d-F.js",
+      "role": "cold",
+      "gzipBytes": 57
+    },
+    {
+      "path": "js/chunks/business-runtime-D1j9e0Ha.js",
+      "role": "lazy",
+      "gzipBytes": 27729
+    },
+    {
+      "path": "js/chunks/cloud-archive-ui-BQ8i1GjD.js",
+      "role": "lazy",
+      "gzipBytes": 92
+    },
+    {
+      "path": "js/chunks/cloud-BaQb62qV.js",
+      "role": "lazy",
+      "gzipBytes": 6489
+    },
+    {
+      "path": "js/chunks/cloud-sync-ZowuInzA.js",
+      "role": "lazy",
+      "gzipBytes": 236
+    },
+    {
+      "path": "js/chunks/diagnostics-BGg1lOK_.js",
+      "role": "lazy",
+      "gzipBytes": 2862
+    },
+    {
+      "path": "js/chunks/diagnostics-ui-BQ4nxgES.js",
+      "role": "lazy",
+      "gzipBytes": 90
+    },
+    {
+      "path": "js/chunks/eastmoney-estimate-Dy0yNVcC.js",
+      "role": "lazy",
+      "gzipBytes": 116
+    },
+    {
+      "path": "js/chunks/fund-holdings-BZANf5wO.js",
+      "role": "lazy",
+      "gzipBytes": 136
+    },
+    {
+      "path": "js/chunks/fund-model-enrichment-hA30JhYJ.js",
+      "role": "lazy",
+      "gzipBytes": 146
+    },
+    {
+      "path": "js/chunks/gist-remote-DerS7pyL.js",
+      "role": "lazy",
+      "gzipBytes": 240
+    },
+    {
+      "path": "js/chunks/holding-edit-LUZgukKs.js",
+      "role": "lazy",
+      "gzipBytes": 97
+    },
+    {
+      "path": "js/chunks/holdings-estimate-DcHQYCkE.js",
+      "role": "lazy",
+      "gzipBytes": 221
+    },
+    {
+      "path": "js/chunks/holdings-repository-Dmmj_JdS.js",
+      "role": "cold",
+      "gzipBytes": 131
+    },
+    {
+      "path": "js/chunks/holdings-transfer-BAdrbcuw.js",
+      "role": "lazy",
+      "gzipBytes": 102
+    },
+    {
+      "path": "js/chunks/migrations-BxVbZ7RF.js",
+      "role": "cold",
+      "gzipBytes": 94
+    },
+    {
+      "path": "js/chunks/notification-controller-S2Nfn0p6.js",
+      "role": "lazy",
+      "gzipBytes": 105
+    },
+    {
+      "path": "js/chunks/post-integrity-BFU6nNE3.js",
+      "role": "cold",
+      "gzipBytes": 33418
+    },
+    {
+      "path": "js/chunks/quote-bridge-client-DtkBnsFQ.js",
+      "role": "lazy",
+      "gzipBytes": 102
+    },
+    {
+      "path": "js/chunks/quote-diagnostics-DSQA_r1t.js",
+      "role": "lazy",
+      "gzipBytes": 89
+    },
+    {
+      "path": "js/chunks/refresh-execution-Dq8LCPBX.js",
+      "role": "lazy",
+      "gzipBytes": 97
+    },
+    {
+      "path": "js/chunks/startup-pure-DAh-Bh3e.js",
+      "role": "cold",
+      "gzipBytes": 8379
+    }
+  ],
+  "coldGzipBytes": 44311,
+  "allNonOcrGzipBytes": 83371,
+  "inspectionDirectory": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-m3-feature-candidate-ec4e202cbd504380bc16b192e23c82e3\\inspected-feature-site",
+  "mainOnlyVerifiedSiteRemainsEmpty": true,
+  "outerArtifactZipDigest": {
+    "status": "API_DECLARED_ONLY_NOT_INDEPENDENTLY_HASHED",
+    "declared": "sha256:3303bf4e4b3629563d845b2429748c4f4f14edd137c1180931f05f821d05c221"
+  },
+  "inspectedAt": "2026-10-01T15:19:03.869Z",
+  "remoteChecks": {
+    "runId": "36882454412",
+    "event": "push",
+    "branch": "codex/v16.0.0-refresh-plan",
+    "sha": "83d1c7084ae4ddd1d7aaf7d205e5bea59dd4252b",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "candidate": "success",
+    "codeqlJob": "success",
+    "linuxNode": {
+      "tests": 673,
+      "pass": 673,
+      "fail": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 167,
+    "e2e": {
+      "pass": 19,
+      "durationSeconds": 33.4
+    },
+    "dependencyAuditVulnerabilities": 0,
+    "independentCodeQLCheck": "success",
+    "pullRequestRun": {
+      "id": "36882516199",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "mainRequiredChecksReadback": {
+      "strict": true,
+      "contexts": [
+        "candidate",
+        "codeql",
+        "CodeQL"
+      ]
+    }
+  },
+  "gates": {
+    "coldGzipHardBudget": "PASS",
+    "coldGzipLimit": 52241,
+    "allNonOcrGzipLimit": 77227.7,
+    "allNonOcrGzip": "FAIL",
+    "officialMainOnlyCandidateVerification": "CORRECTLY_REJECTED_FEATURE_BRANCH",
+    "deployable": false
+  }
+}
