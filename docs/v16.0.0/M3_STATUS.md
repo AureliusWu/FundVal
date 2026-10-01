@@ -59,7 +59,7 @@
 
 新增浏览器用例运行真正的 bootstrap、app、opaque Bridge、HTTP/JSONP 与 Storage；只 mock 外部响应，不复制刷新业务。腾讯 US fixture 使用交易所当地真实收盘时间（9/28 16:00 EDT → 中国 9/29 04:00），不会用请求的中国 14:30 伪造美股时间。晚响应测试仅忽略已经脱离文档的旧 Bridge iframe 请求等待，不降低请求超时或取消 UI/cache 断言。
 
-## 3. 本地验证
+## 3. 此前刷新图检查点的本地验证（最新结果见第 7 节）
 
 | 检查 | 实际结果 |
 | --- | --- |
@@ -103,11 +103,11 @@
 
 ## 5. 未完成与下一步
 
-1. **M3 不退出、不合并为完成阶段**：all 非 OCR gzip 至少还需减少 6,144 B；继续用等价策略/纯函数复用压缩，不放松金融数值、缓存来源、scope 复制/二次验证或 Worker zoned timestamp guards。
+1. **M3 不退出、不合并为完成阶段**：最新 all 非 OCR gzip 为 83,330 B，至少还需减少 6,103 B；继续用等价策略/纯函数复用压缩，不放松金融数值、缓存来源、scope 复制/二次验证或 Worker zoned timestamp guards。
 2. 同机性能与 p95 相对门禁证据尚不完整。桌面 3 秒绝对交互预算通过不等于 v16 相对性能门禁通过。
-3. 手动详情仍存在旧独立行情获取路径，与刷新 generation union 不完全统一；旧东方财富详情映射未使用新 f13+f12 全集合分配，应在后续行为测试下复用新批次层，不直接大改 UI/事务。
-4. 较旧的 US 指数虽然本代刚获取，因真实 observedAt 与 seed freshness 严格检查，模型仍可能另取一次兼容行情；必须保留旧时间与模型区间保护后再优化，不能把新请求时间当观察时间。
-5. 业务提交的 GitHub 分支 / PR CI 与分支产物内容核对通过，见第 6 节；正式主线 candidate 验证仍未满足。draft PR 可保存检查点，但不意味着允许 M3 EXIT 或生产部署。
+3. 旧手动详情行情路径、裸 f12 映射与 US 模型专属重复获取已在第 7 节修复。仍有 **P2 暖详情时间陈旧风险**：`js/app.js:1274` 的 `fetchFundDetails` 对已有有限 change / 非空 quoteTime 的缓存只检查字段存在，未按时间解析与年龄判断；独立复核用实际函数合成复现了 28.5 小时旧涨跌仍保留、详情行情请求 0 次。长驻 PWA 跨日且主刷新失败时，可能继续展示旧重仓涨跌，详情表也未单独标记行情日期；昨日行情仍被重仓估值计算器排除，不扩大为“昨日值参与今日估值”的结论。后续应先以真实时间 / 跨日失败场景建立行为测试，再给旧行情明确状态或重新获取；不得把请求时间改写成行情时间。
+4. 共享资源策略与缓存边界已复用，但总包体积仍 FAIL；不同构建参数的尝试没有作为已证明的性能优化采纳。Intl 计数测试证明的是 formatter 构造复用，不是生产页面 p95 改善。
+5. 此前业务 SHA 的 GitHub 分支 / PR CI 与分支产物内容核对通过，见第 6 节；第 7 节新业务需独立检查对应 SHA 的 CI，不能继承旧结果。正式主线 candidate 验证仍未满足。draft PR 可保存检查点，但不意味着允许 M3 EXIT 或生产部署。
 6. M4 多档案同步合同、M5 OCR 导入/解码/取消/PWA 合同、M6 三类物理设备与同一产物发布继续按原顺序，未跳过。外部 fund-compass Worker 未修改，v2 服务未协同上线。
 
 任何历史 M0/M2 生产、候选、真机与实际 durable write 证据边界仍保持。此检查点不改变生产版本，也不声明 v16 完成。
@@ -125,3 +125,34 @@
 - 外 ZIP size 92,623,491 B / digest `3303bf4e4b3629563d845b2429748c4f4f14edd137c1180931f05f821d05c221` 仅为 API 声明，没有独立验证外 ZIP 摘要。
 
 完整机器证据见 [M3_FEATURE_CANDIDATE.json](M3_FEATURE_CANDIDATE.json)。**分支内容完整 ≠ 主线 provenance 通过 ≠ all gzip 门禁通过 ≠ M3 EXIT ≠ 发布**。
+
+## 7. 2026-10-01：详情 / 模型复用与时区热路径细化检查点
+
+本节绑定本地已测试工作树：base HEAD `07271f7ed1d6f6ab58ac6c27dc2d4c507369aaf2`，测试时包含未提交业务修改。第 3 / 4 / 6 节保留为历史快照，不将旧 SHA 的 CI、指纹或性能样本替换为本次证据。机器结果与 10 个修改业务模块的 LF-normalized hash 见 [M3_REFINEMENTS.json](M3_REFINEMENTS.json)。版本仍为 15.0.2。
+
+### 已完成的等价修复
+
+- **手动详情复用实际批次层**：`js/app.js` 删除旧独立东方财富 / 腾讯解析路径，统一调用 `executeDetailSecurityQuotes`。冷详情使用真实 `RefreshCoordinator` 与只读 generation scope；外部取消、切换 / 关闭详情、新刷新都阻止晚结果与旧缓存写入。活动刷新期间的详情等待其完成并消费该代已获取的重仓 / 行情，不再独立获取相同 union。东方财富严格匹配 f13+f12，腾讯保留交易所当地时间转换；错误 / 未识别 / future / null 不补 0。缓存有披露但没有完整行情字段时，也会补取行情。新增详情行为测试 24 项、真实页面回归 1 项。
+- **新获取指数与真实行情时间分离**：`security-quote-batch.js` 消费完整、严格校验且 acquisition TTL 未过期的指数 envelope；只有实际选中的 US 模型专属腿可以复用至多 36 小时的真实前收盘。共享证券需求 / 默认裸 seed 仍保留 60 秒与状态限制；不会把旧值标成今日实时，也不会制造新健康 probe。实际海外计算器继续校验 NAV base / target / exchange session / 36 小时范围。新增 16 项测试涵盖 envelope 篡改、source/tier/identity、空值与真实 0、精确 TTL / 36 小时边界、取消及共享证券不放宽。
+- **复用时区 formatter**：`holdings-estimate.js` 与 `overseas-model.js` 使用已有 `zonedTimeParts` 缓存，保留原三轮 UTC 求解与美日韩市场日期规则，没有改成固定时差。10 项测试覆盖美股冬夏 / DST 邻近日、日韩跨日跨年、真实模型区间、未来时间及精确年龄边界。旧两轮每轮 420 次 formatter 构造的计数用例先 RED；新暖轮为 0 次，冷轮每个所需时区至多一次。
+- **诊断与真实 MarketClock 一致**：`diagnostics-ui.js` 使用真实 `marketClock`、同一显式 now；10/1 境内假日不显示交易中，过期 / 不可用日历不猜测开市。保留旧 `marketSession` 导出兼容契约，不改诊断隐私、健康数据与写入规则。新增 6 项定向测试：先 1 pass / 5 fail，修复后 6/6。
+- **资源策略单一来源**：新增 lazy `refresh-resource-policy.js`，计划、缓存与执行复用固定 identity/source/tier/TTL，不减少 payload 二次验证。5 项新测试保护完整策略、不可变数组、sorted/unique 50+1 边界及拒绝未知 key。其首次缺少模块导致 RED 仅是新契约的入口证据，不描述为修复 5 个已有业务 Bug。
+
+### 本地验证结果
+
+| 检查 | 实际结果 |
+| --- | --- |
+| `npm test` | 734 项；733 pass、0 fail、1 Windows symlink skip；不把 skip 算通过 |
+| `npm run check` | 173 个 JavaScript 源码 / 测试语法通过 |
+| `npm run build`（连续两次） | 均通过；25 app chunks / 244,782 B raw |
+| cold gzip | 44,012 / 52,241 B：PASS；较第 3 节减少 299 B |
+| all 非 OCR gzip | **83,330 B > 77,227.7 B：FAIL**；较第 3 节仅减少 41 B，至少仍需减少 6,103 B |
+| `npm run test:e2e`，12437 | 20/20；30.3 秒；桌面 Chrome、合成数据，无用户档案云写入 |
+| `npm audit --audit-level=high --registry=https://registry.npmjs.org` | 0 vulnerabilities；未改 registry 配置 / 依赖 |
+| app / OCR 官方内容校验 | 25 chunks / 244,782 B；23 assets / 88,196,906 B；均通过 |
+| 独立只读复核 | 69 项针对性测试通过，0 skip / fail；未发现本轮新增可复现 P0/P1；上述 P2 仍开放 |
+| Git diff 空白检查 | 通过；CRLF 提示不是源码差异或 build 失败 |
+
+两次同一未提交工作树 / SOURCE_DATE_EPOCH `1790868176` 的关键发布集指纹均为 `4648acf3fb53619cf1f1cfbd28eead9b58668c1f413b2b4e49792ca191429ea6`。它不是提交后 CI artifact 指纹、正式 main candidate 或生产完整目录证明。
+
+本次完整浏览器套件附带 3 组 cold / warm / save 样本，仅用于本地 3 秒绝对断言；没有与旧版隔离配对采样，不据此替换第 4 节的历史同机样本，也不宣称生产 p95 / 因果改善。**all-gzip RED，relative p95 未验证，M3 仍 IN PROGRESS**。只提交 / 推送 draft PR 检查点，不 merge、不 dispatch deploy、不提前启动 M4/M5/M6，也不更新版本号。

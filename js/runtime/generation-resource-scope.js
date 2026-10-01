@@ -121,7 +121,7 @@ export function createGenerationResourceScope({ context, plan, now = Date.now } 
     return false;
   }
 
-  return Object.freeze({ acquire, dispatch, stageCache, flushCache,
+  return Object.freeze({ acquire, dispatch, stageCache, flushCache, assertCurrent: requireCurrent,
     commitUi(operation) { return current() ? context.commit(operation) : Object.freeze({ committed: false }); },
     snapshot() { return Object.freeze({ generation: context.generation, planned: resources.size,
       staged: staged.size, ...counters, providers: Object.freeze({ ...providers }) }); },

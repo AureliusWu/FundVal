@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "project": "FundVal",
+  "milestone": "M3",
+  "status": "IN_PROGRESS_NOT_RELEASED",
+  "version": "15.0.2",
+  "evidenceDate": "2026-10-01",
+  "workingContext": {
+    "branch": "codex/v16.0.0-refresh-plan",
+    "protectedMainSha": "154139d78b0e226fd99ec9a3009c1e63c06925ca",
+    "testedWorkTreeBaseSha": "07271f7ed1d6f6ab58ac6c27dc2d4c507369aaf2",
+    "dirtyBusinessChangesWhenTested": true,
+    "sourceDateEpoch": 1790868176,
+    "pr": "https://github.com/AureliusWu/FundVal/pull/12",
+    "prStateWhenInspected": "OPEN_DRAFT",
+    "scope": "Local tested worktree; not new commit CI, main candidate, production or physical-device evidence."
+  },
+  "environment": {
+    "platform": "win32",
+    "node": "v24.14.0",
+    "npm": "11.9.0",
+    "chrome": "154.0.8037.93",
+    "e2ePort": 12437,
+    "data": "Hermetic synthetic fixtures; no actual Gist holdings writes or OCR uploads."
+  },
+  "sourceEvidence": {
+    "scope": "Ten modified business modules, not an entire repository fingerprint.",
+    "normalization": "CRLF to LF only",
+    "files": [
+      { "path": "js/app.js", "sha256": "b125db4edca59fbcc05a79c9fa8e628ae47888b99fe24ebc2b18e0984861011a" },
+      { "path": "js/holdings-estimate.js", "sha256": "72dadaf00f44e8e388044b7bfada6af4eb2b6f1de75056b16803ee32c7a9dcf2" },
+      { "path": "js/overseas-model.js", "sha256": "cb2e87885434d1b7b415a4588897173673b9fb24527fd3c77cfb76023f438e38" },
+      { "path": "js/runtime/diagnostics-ui.js", "sha256": "79b9135190b62170cf3ec6a302034b8e9822d402bc83200754b6c6cf9f579b6a" },
+      { "path": "js/runtime/generation-resource-scope.js", "sha256": "66bdb6c89399ded70f9566a0f797a842f74ee8095cbce2447db96b80f7f959ff" },
+      { "path": "js/runtime/refresh-execution.js", "sha256": "2217d27d83f9be144436f60228822b68c01973ec287e83d1836aac093116d265" },
+      { "path": "js/runtime/refresh-plan.js", "sha256": "c7afbfd988d4d46d9d5152fb8fb6e6a2e5c3c1ffc1865a21c3236c6a7e02d94d" },
+      { "path": "js/runtime/refresh-resource-cache.js", "sha256": "7f0103a803f83b31df0631cb3a7c53949e7f80259c909becf4eccc6ce0fb6231" },
+      { "path": "js/runtime/refresh-resource-policy.js", "sha256": "2071a40d189c0bce39e2ce367296c02f3cd1139ee24f9713d216023ec4de51b3" },
+      { "path": "js/runtime/security-quote-batch.js", "sha256": "4eb21a28571a494fb098e64c4ef47bbe80cf94af8620a4d6ed5207ff155fe3fd" }
+    ],
+    "sourceFingerprint": "c9351a07261f60ecdf030faf1bf049d041a0898d26a46740f936979eb17ad3fa"
+  },
+  "verification": {
+    "unit": { "status": "PASS_WITH_ONE_ENVIRONMENT_SKIP", "tests": 734, "pass": 733, "fail": 0, "skipped": 1, "skipReason": "Windows symlink capability; must separately inspect Linux CI skip count." },
+    "syntax": { "status": "PASS", "files": 173 },
+    "build": { "status": "PASS", "consecutiveBuilds": 2, "appChunks": 25, "appRawBytes": 244782, "releaseFingerprints": ["4648acf3fb53619cf1f1cfbd28eead9b58668c1f413b2b4e49792ca191429ea6", "4648acf3fb53619cf1f1cfbd28eead9b58668c1f413b2b4e49792ca191429ea6"], "deterministicCriticalReleaseSet": true, "sameTestedDirtyWorktree": true },
+    "appContentVerifier": { "status": "PASS", "chunks": 25, "bytes": 244782 },
+    "ocrContentVerifier": { "status": "PASS", "assets": 23, "bytes": 88196906 },
+    "e2e": { "status": "PASS", "pass": 20, "durationSeconds": 30.3, "physicalDevice": false },
+    "independentReview": { "status": "CONDITIONALLY_TRUSTED", "targetedTests": 69, "pass": 69, "fail": 0, "skipped": 0, "newReproducibleP0P1Found": false, "knownP2Reproduced": "Actual fetchFundDetails function retains 28.5-hour-old quote fields and performs zero detail quote acquisitions; model still excludes yesterday quotes." },
+    "dependencyAudit": { "status": "PASS", "registry": "https://registry.npmjs.org", "vulnerabilities": 0, "registryConfigChanged": false },
+    "diffWhitespace": "PASS"
+  },
+  "bundle": {
+    "gzipDefinition": "Sum of per-app-chunk gzip bytes, including cold and lazy app chunks; OCR excluded; not full network transfer bytes.",
+    "previousBusinessSha": "83d1c7084ae4ddd1d7aaf7d205e5bea59dd4252b",
+    "previousColdGzipBytes": 44311,
+    "coldGzipBytes": 44012,
+    "coldGzipLimit": 52241,
+    "coldGzipChangeBytes": -299,
+    "coldGzipGate": "PASS",
+    "previousAllNonOcrGzipBytes": 83371,
+    "allNonOcrGzipBytes": 83330,
+    "allNonOcrGzipLimit": 77227.7,
+    "allNonOcrGzipChangeBytes": -41,
+    "minimumWholeBytesToRemove": 6103,
+    "allNonOcrGzipGate": "FAIL",
+    "isolatedPolicySavingMeasured": false,
+    "budgetChanged": false
+  },
+  "performance": {
+    "status": "ABSOLUTE_LOCAL_ASSERTIONS_ONLY_NOT_RELATIVE_P95",
+    "sampleSource": "Three measurements emitted by the full E2E suite; not a new quiet paired baseline comparison.",
+    "samplesMs": [
+      { "cold": 147.2, "warm": 104.4, "save": 59.1835 },
+      { "cold": 144.1, "warm": 136.5, "save": 73.2268 },
+      { "cold": 143, "warm": 163.6, "save": 58.2873 }
+    ],
+    "localThreeSecondAssertions": "PASS",
+    "p95": null,
+    "relativeP95Gate": "UNVERIFIED",
+    "productionLatency": "NOT_MEASURED",
+    "networkServerMainThreadDecomposition": "NOT_MEASURED",
+    "formatterEvidence": "Old count contract: 420 constructions per wave. New cached formatters: at most once per required zone in a cold wave and zero in the following warm wave; not a page latency measurement."
+  },
+  "remaining": [
+    "All non-OCR gzip budget FAIL; M3 cannot exit or merge.",
+    "Relative p95 and network/server/main-thread evidence incomplete.",
+    "P2 warm detail quote cache checks field presence, not quoteTime age; long-lived cross-day PWA plus refresh failure can retain old holdings changes.",
+    "Current business commit CI not yet bound by this local evidence; old CI cannot be inherited.",
+    "No formal main candidate, production deployment, physical Android/iOS/PWA acceptance or real durable multi-browser cloud writes."
+  ],
+  "unchangedBoundaries": [
+    "Startup integrity and migration before app; schema 3, tombstones, device shards, legacy preservation and Web Lock.",
+    "Fixed source/tier/TTL/identity cache contracts, null-versus-zero semantics, actual source times and overseas model NAV intervals.",
+    "Opaque allow-scripts Bridge allowlist and no full-origin sandbox.",
+    "Paddle 0.4.2, OCR models, local-only image privacy and lazy loading.",
+    "Main-only candidate and deployment guards; draft PR only; version unchanged until M6."
+  ],
+  "gates": { "m3Exit": "NOT_SATISFIED", "mergeAuthorizedAtThisCheckpoint": false, "deployable": false, "productionTouched": false, "m4M5M6Started": false }
+}

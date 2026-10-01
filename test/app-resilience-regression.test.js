@@ -31,9 +31,12 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(app, /import\('\.\/runtime\/quote-bridge-client\.js'\)/);
   assert.match(app, /function fetchLatestNavMoveRaw[\s\S]*bridge\.officialFundData/);
   assert.match(app, /return bridge\[operation\]\(codes, \{ signal, timeoutMs: TIMING\.INDEX_JSONP_TIMEOUT \}\)/);
-  assert.match(app, /function fetchTencentHoldingQuotes[\s\S]*bridge\.securityQuotes/);
+  assert.match(app, /function fetchHoldingsQuotes[\s\S]*quotes\.executeDetailSecurityQuotes/);
+  assert.match(app, /fetchEastmoney: fetchSecurityEastmoney, fetchBridge: fetchSecurityBridge/);
+  assert.doesNotMatch(app, /fetchTencentHoldingQuotes|fetchAStockHoldingQuotes|changeMap\[item\.f12\]/);
   assert.match(app, /indices: async \(codes, signal\) =>[\s\S]*bridge\.indexQuotes\(codes, \{ signal, timeoutMs: TIMING\.INDEX_JSONP_TIMEOUT \}\)/);
-  assert.match(app, /bridge: async \(operation, codes, signal\) =>[\s\S]*bridge\[operation\]\(codes, \{ signal, timeoutMs: TIMING\.INDEX_JSONP_TIMEOUT \}\)/);
+  assert.match(app, /bridge: fetchSecurityBridge/);
+  assert.match(app, /function fetchSecurityBridge[\s\S]*bridge\[operation\]\(codes, \{ signal, timeoutMs: TIMING\.INDEX_JSONP_TIMEOUT \}\)/);
   assert.match(securities, /\['overseasComponents', modelMissing, BRIDGE_LIMITS\.overseasCodes\]/);
   assert.match(securities, /\['securityQuotes', securityMissing, BRIDGE_LIMITS\.securityCodes\]/);
   assert.match(securities, /scope\.dispatch\('tencent-market-quote', signal => fetchBridge\(operation, permitted, signal\)\)/);

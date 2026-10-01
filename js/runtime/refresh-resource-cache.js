@@ -6,9 +6,8 @@ import { normalizeExistingQuoteFreshness } from './quote-normalizer.js';
 import { chinaDateKey } from './market-clock.js';
 import { validateHoldingSet, contractText } from './holding-set-contract.js';
 import { canonicalSourceId, getDataSourceDescriptor } from './source-registry.js';
+import { refreshResourcePolicy as resource, policyOwn as own, policyRecord as record, policyEpoch as epoch } from './refresh-resource-policy.js';
 
-const INDEX_CODES = ['sh000001', 'sh000300', 'usINX', 'usNDX'];
-const INDEX_KEY = `indices:${INDEX_CODES.join(',')}`;
 const META_FIELDS = ['scale', 'manager', 'managerWorkTime', 'managerId', 'sourceRate', 'currentRate'];
 const ROW_FIELDS = ('code name type status source kind source_status last_nav est_nav est_change nav_date est_time '
   + 'source_time source_time_precision est_label est_kind est_realtime est_note is_fallback value_date base_nav_date '
@@ -20,31 +19,11 @@ const ROW_KINDS = { intraday_estimate: 'intraday_estimate', estimate: 'intraday_
   qdii_next_nav_estimate: 'model_estimate', overseas_model: 'model_estimate', holdings_model: 'holding_lookthrough_estimate' };
 const SKIP_DATA_FIELDS = new Set(['_cached', 'message', 'quoteCandidates']);
 const PRICE_STATUSES = new Set(['current', 'stale', 'closed', 'delayed']);
-const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
-const record = value => value != null && typeof value === 'object' && !Array.isArray(value);
-const epoch = value => Number.isSafeInteger(value) && value >= 0 && value <= 8.64e15;
 const at = value => value instanceof Date ? value.getTime() : value;
 const positive = value => typeof value === 'number' && Number.isFinite(value) && value > 0;
 const optionalNumber = value => value === null || typeof value === 'number' && Number.isFinite(value);
 const safeString = value => typeof value === 'string' && (value === '' || contractText(value, 300) === value);
 const select = (value, fields) => Object.fromEntries(fields.filter(key => own(value, key)).map(key => [key, value[key]]));
-
-function resource(key) {
-  if (typeof key !== 'string') return null;
-  const fund = /^(nav|holdings|meta):(\d{6})$/.exec(key);
-  if (fund) return { kind: fund[1], code: fund[2], ttlMs: TTL[{ nav: 'OFFICIAL_NAV', holdings: 'HOLDINGS', meta: 'FUND_META' }[fund[1]]],
-    source: fund[1] === 'holdings' ? 'sinan-holdings-proxy' : 'eastmoney-official-nav', tier: fund[1] === 'holdings' ? 'primary' : 'secondary' };
-  if (key === 'gold:AU9999') return { kind: 'gold', code: 'AU9999', ttlMs: TTL.GOLD, source: 'eastmoney-security-quote', tier: 'secondary' };
-  if (key === INDEX_KEY) return { kind: 'indices', codes: INDEX_CODES, ttlMs: TTL.INDEX, source: 'tencent-market-quote', tier: 'secondary' };
-  if (key.startsWith('estimates:')) {
-    const codes = key.slice(10).split(',');
-    if (codes.length && codes.length <= 50 && codes.every(code => /^\d{6}$/.test(code))
-      && new Set(codes).size === codes.length && [...codes].sort().join(',') === codes.join(',')) {
-      return { kind: 'estimates', codes, ttlMs: TTL.INTRADAY, source: 'sinan-estimate-proxy', tier: 'primary' };
-    }
-  }
-  return null;
-}
 
 function metadata(value) {
   return record(value) && Object.keys(value).every(key => META_FIELDS.includes(key) && safeString(value[key]));

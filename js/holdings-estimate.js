@@ -1,5 +1,5 @@
 import { normalizeQuoteDate, nullableNumber, parseQuoteTimestamp } from './runtime/quote-contract.js';
-import { chinaDateKey, isSingleMarketSession } from './runtime/market-clock.js';
+import { chinaDateKey, isSingleMarketSession, zonedTimeParts } from './runtime/market-clock.js';
 import { validateHoldingSet } from './runtime/holding-set-contract.js';
 
 const MIN_COVERAGE = 50;
@@ -23,21 +23,11 @@ export function parseTencentQuoteTime(value) {
 function localTimeInZoneToUtc(parts, timeZone) {
   const target = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
   let guess = target;
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  });
   for (let index = 0; index < 3; index += 1) {
-    const actual = Object.fromEntries(formatter.formatToParts(new Date(guess))
-      .filter((part) => part.type !== 'literal')
-      .map((part) => [part.type, Number(part.value)]));
-    const represented = Date.UTC(actual.year, actual.month - 1, actual.day, actual.hour, actual.minute, actual.second);
+    const actual = zonedTimeParts(guess, timeZone);
+    if (!actual) return NaN;
+    const [year, month, day] = actual.dateKey.split('-').map(Number);
+    const represented = Date.UTC(year, month - 1, day, actual.hour, actual.minute, actual.second);
     guess += target - represented;
   }
   return guess;

@@ -1,7 +1,8 @@
 import { MODEL_URL, TIMING } from './config.js';
 import { nextWeekdayDate } from './runtime/quote-contract.js';
+import { zonedTimeParts } from './runtime/market-clock.js';
 
-const MAX_QUOTE_AGE_MS = 36 * 60 * 60 * 1000;
+export const MAX_QUOTE_AGE_MS = 36 * 60 * 60 * 1000;
 const CODE_PATTERN = /^\d{6}$/;
 
 function emptyConfig() {
@@ -172,10 +173,7 @@ export function validateOverseasEstimatePeriod(model, quotes, baseNavDate, { now
         : code.startsWith('jp') ? 'Asia/Tokyo'
           : /^(sh|sz|hk|r_hk)|^au9999$/.test(code) ? 'Asia/Shanghai' : null;
     if (!timeZone) return invalid('行情市场身份不明确');
-    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
-      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(new Date(time.timestamp)).map(part => [part.type, part.value]));
-    const sessionDate = `${parts.year}-${parts.month}-${parts.day}`;
+    const sessionDate = zonedTimeParts(time.timestamp, timeZone)?.dateKey;
     if (sessionDate !== expected) return invalid('行情交易日与净值基期不匹配');
     weight += leg.weight;
   }

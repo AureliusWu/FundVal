@@ -287,6 +287,33 @@ test('two funds share one union securities batch instead of one batch per fund',
   expect(harness.state.gistWrites).toEqual([]);
 });
 
+test('a detail opened during refresh consumes the existing generation disclosure and quote union', async ({ context, page }) => {
+  const harness = await installHarness(context, { holdFirstEstimate: true });
+  await page.goto('/');
+  await harness.ready(page);
+  await expect.poll(() => typeof harness.state.heldEstimate).toBe('function');
+  try {
+    const toggle = page.locator(`#fund-toggle-${HOLDINGS[0].code}`);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await harness.settle(page, { allowHeld: true });
+    expect(harness.requests('cold', 'holdings')).toHaveLength(1);
+    expect(harness.requests('cold', 'eastmoneySecurities')).toHaveLength(1);
+    await harness.phase(page, 'detailWaiting');
+    await harness.state.heldEstimate();
+    harness.state.heldEstimate = null;
+    await harness.settle(page);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.holdings-table')).toContainText('合成股票1');
+    expect(harness.requests('detailWaiting', 'holdings')).toHaveLength(0);
+    expect(harness.requests('detailWaiting', 'eastmoneySecurities')).toHaveLength(0);
+    expect(harness.requests('detailWaiting', 'tencent')).toHaveLength(0);
+    expect(harness.state.gistWrites).toEqual([]);
+  } finally {
+    if (harness.state.heldEstimate) await harness.state.heldEstimate();
+  }
+});
+
 test('all providers failing cannot renew the aggregate cache timestamp or bytes', async ({ context, page }) => {
   const harness = await installHarness(context);
   await page.goto('/');

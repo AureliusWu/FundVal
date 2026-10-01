@@ -3,15 +3,11 @@ import { classifyFundMarket } from '../freshness.js';
 import { activeHoldingCodes } from './active-holdings.js';
 import { validateBridgeParams } from './remote-schema.js';
 import { WORKER_REQUEST_LIMIT } from './worker-contract.js';
+import { REFRESH_INDEX_KEY, refreshResourcePolicy, policyOwn as own, policyRecord as isRecord, policyEpoch as isEpoch } from './refresh-resource-policy.js';
 
-const INDEX_CODES = Object.freeze(['sh000001', 'sh000300', 'usINX', 'usNDX']);
 const HOLDINGS_MARKETS = new Set(['cn', 'cn-index', 'hk']);
 const SOURCE_TIERS = new Set(['primary', 'secondary', 'model', 'cache']);
 const USABLE_STATUSES = new Set(['realtime', 'delayed', 'closed', 'current', 'ok', 'latest_official']);
-const MAX_EPOCH = 8_640_000_000_000_000;
-const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
-const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const isEpoch = value => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= MAX_EPOCH;
 
 function requireGeneration(generation) {
   if (typeof generation !== 'number' || !Number.isSafeInteger(generation) || generation <= 0) {
@@ -70,7 +66,10 @@ export function createRefreshPlan({
   const primary = [];
   const stable = [];
 
-  function add(resource, isStable, eligible = true) {
+  function add(key, isStable, eligible = true) {
+    const policy = refreshResourcePolicy(key);
+    const resource = { key, kind: policy.kind, provider: policy.source,
+      [policy.codes ? 'codes' : 'code']: policy.codes || policy.code, ttlMs: policy.ttlMs };
     let decision;
     if (!eligible) decision = { action: 'skip', reason: 'market_ineligible' };
     else if (isStable && forcedStable.has(resource.key)) decision = { action: 'fetch', reason: 'force_stable' };
@@ -84,19 +83,19 @@ export function createRefreshPlan({
     const codes = [...activeCodes].sort();
     for (let index = 0; index < codes.length; index += WORKER_REQUEST_LIMIT) {
       const batch = codes.slice(index, index + WORKER_REQUEST_LIMIT);
-      add({ key: `estimates:${batch.join(',')}`, kind: 'estimates', provider: 'sinan-estimate-proxy', codes: batch, ttlMs: TTL.INTRADAY }, false);
+      add(`estimates:${batch.join(',')}`, false);
     }
   }
-  add({ key: `indices:${INDEX_CODES.join(',')}`, kind: 'indices', provider: 'tencent-market-quote', codes: [...INDEX_CODES], ttlMs: TTL.INDEX }, false);
-  add({ key: 'gold:AU9999', kind: 'gold', provider: 'eastmoney-security-quote', code: 'AU9999', ttlMs: TTL.GOLD }, false);
+  add(REFRESH_INDEX_KEY, false);
+  add('gold:AU9999', false);
 
   for (const code of activeCodes) {
     const holding = activeHoldings.find(item => item?.deleted !== true && !item?.deletedAt
       && String(item?.code ?? item?.fundCode ?? '').trim() === code);
-    add({ key: `nav:${code}`, kind: 'nav', provider: 'eastmoney-official-nav', code, ttlMs: TTL.OFFICIAL_NAV }, true);
-    add({ key: `holdings:${code}`, kind: 'holdings', provider: 'sinan-holdings-proxy', code, ttlMs: TTL.HOLDINGS }, true,
+    add(`nav:${code}`, true);
+    add(`holdings:${code}`, true,
       HOLDINGS_MARKETS.has(classifyFundMarket(holding?.name)));
-    add({ key: `meta:${code}`, kind: 'meta', provider: 'eastmoney-official-nav', code, ttlMs: TTL.FUND_META }, true);
+    add(`meta:${code}`, true);
   }
 
   // Reserve phase-B scope keys now, while waiting for validated disclosures

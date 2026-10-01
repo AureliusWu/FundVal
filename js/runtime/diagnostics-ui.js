@@ -2,9 +2,10 @@ import { APP_VERSION } from '../version.js';
 import { safeGetItem, safeStorageKeys } from '../storage.js';
 import { normalizeOcrDiagnosticForDisplay, selectSafeDiagnosticEvents } from '../integrity.js';
 import { HOLDINGS_BACKUP_LATEST_KEY } from '../storage/holdings-repository.js';
-import { classifyMarketKind, marketSession } from './market-session.js';
+import { classifyMarketKind } from './market-session.js';
+import { marketClock } from './market-clock.js';
 
-export function createDiagnosticsCenter({ getHoldings, getHoldingsDocument, refreshCoordinator, showToast, esc }) {
+export function createDiagnosticsCenter({ getHoldings, getHoldingsDocument, refreshCoordinator, showToast, esc, now = Date.now }) {
 let diagnosticsLastSummary = '';
 
 function diagnosticJson(key, fallback) {
@@ -58,13 +59,14 @@ function ocrDiagnosticSummary() {
 }
 
 function marketDiagnosticSummary() {
+  var current = now();
   var markets = new Set(getHoldings().filter(function(item) { return !item.deleted; }).map(function(item) {
     return classifyMarketKind(item.name || '');
   }));
   if (!markets.size) markets.add('cn');
   var stateLabels = { open: '交易中', break: '休市中', preopen: '盘前', closed: '已收盘', holiday: '节假日', unknown: '未知' };
   return Array.from(markets).sort().map(function(market) {
-    var state = marketSession(market, new Date()).marketState;
+    var state = marketClock(market, current).marketState;
     return market + ' ' + (stateLabels[state] || state);
   }).join('；');
 }

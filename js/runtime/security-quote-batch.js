@@ -2,6 +2,13 @@ import { TTL } from '../config.js';
 import { chinaTimeParts } from './market-clock.js';
 import { nullableNumber, parseQuoteTimestamp } from './quote-contract.js';
 import { BRIDGE_LIMITS, validateBridgeParams, validateBridgeOperationData } from './remote-schema.js';
+import { RefreshCoordinator } from './refresh-coordinator.js';
+import { createSecurityQuotePlan } from './refresh-plan.js';
+import { createGenerationResourceScope } from './generation-resource-scope.js';
+import { throwIfAborted } from './request-signal.js';
+import { validateRefreshResourceEntry } from './refresh-resource-cache.js';
+import { REFRESH_INDEX_KEY } from './refresh-resource-policy.js';
+import { MAX_QUOTE_AGE_MS } from '../overseas-model.js';
 
 const MAINLAND_CODE = /^(sh|sz)\d{6}$/;
 const SEED_INDEX_CODES = new Set(['usINX', 'usNDX']);
@@ -86,13 +93,15 @@ function bridgeQuotes(payload, operation, requested, normalizeTime, now) {
   return out;
 }
 
-function seedQuote(seed, now) {
-  if (!record(seed) || (Object.prototype.hasOwnProperty.call(seed, 'status') && !SEED_STATUSES.has(seed.status))) return null;
+function seedQuote(seed, now, acquired = false) {
+  if (!record(seed) || (Object.prototype.hasOwnProperty.call(seed, 'status')
+    && !SEED_STATUSES.has(seed.status) && !(acquired && seed.status === 'stale'))) return null;
   const price = nullableNumber(seed.price, { minimum: Number.MIN_VALUE, maximum: 1e15 });
   const changePct = nullableNumber(seed.changePct, { minimum: -1e6, maximum: 1e6 });
   const source = Object.prototype.hasOwnProperty.call(seed, 'sourceTime') ? seed.sourceTime : seed.observedAt;
   const timestamp = parseQuoteTimestamp(source), at = clock(now);
-  if (price == null || changePct == null || timestamp == null || timestamp <= 0 || timestamp > at || at - timestamp >= TTL.INDEX) return null;
+  if (price == null || changePct == null || timestamp == null || timestamp <= 0 || timestamp > at
+    || (acquired ? at - timestamp > MAX_QUOTE_AGE_MS : at - timestamp >= TTL.INDEX)) return null;
   const sourceTime = chinaText(timestamp);
   return sourceTime ? { price, changePct, sourceTime } : null;
 }
@@ -108,6 +117,7 @@ export async function executeSecurityQuotePlan({
   fetchBridge,
   normalizeTime,
   seedQuotes = {},
+  indexEntry,
   canAcquireModels = () => true,
   onModelAcquisition = () => {},
   now = Date.now,
@@ -120,12 +130,19 @@ export async function executeSecurityQuotePlan({
     throw new TypeError('Security quote plan belongs to another generation.');
   }
   clock(now);
+  scope.assertCurrent?.();
   const securityCodes = demandCodes('securityQuotes', plan.securityCodes);
   const modelCodes = demandCodes('overseasComponents', plan.modelCodes);
   const demanded = [...new Set([...securityCodes, ...modelCodes])].sort();
   const acquired = {};
   const securities = new Set(securityCodes);
   const requestedModels = new Set();
+  // This is a validated acquisition envelope, not a caller's "fresh" flag.
+  // Reuse the real prior US close for models only; its UI status and source
+  // clock stay untouched and the model's base/target interval guard still runs.
+  const index = validateRefreshResourceEntry(REFRESH_INDEX_KEY, indexEntry, { now: clock(now) });
+  const acquiredIndices = index?.cacheState === 'fresh'
+    ? Object.fromEntries(index.payload.quotes.map(quote => [quote.code, quote])) : {};
 
   function permittedBatch(codes) {
     const exclusive = codes.filter(code => modelCodes.includes(code) && !securities.has(code));
@@ -136,8 +153,9 @@ export async function executeSecurityQuotePlan({
   }
 
   for (const code of demanded) {
-    if (!SEED_INDEX_CODES.has(code) || !record(seedQuotes) || !Object.prototype.hasOwnProperty.call(seedQuotes, code)) continue;
-    const value = seedQuote(seedQuotes[code], now);
+    if (!SEED_INDEX_CODES.has(code)) continue;
+    const value = acquiredIndices[code] && seedQuote(acquiredIndices[code], now, modelCodes.includes(code) && !securities.has(code))
+      || (record(seedQuotes) && Object.prototype.hasOwnProperty.call(seedQuotes, code) && seedQuote(seedQuotes[code], now));
     if (value) acquired[code] = value;
   }
 
@@ -179,7 +197,29 @@ export async function executeSecurityQuotePlan({
     const value = acquired[code];
     if (value) modelQuotes[code] = { ...value };
   }
+  scope.assertCurrent?.();
   if (requestedModels.size) onModelAcquisition({ requestedCodes: [...requestedModels],
     acquiredCodes: [...requestedModels].filter(code => acquired[code]) });
   return { securityQuotes, modelQuotes };
+}
+
+/** A cold interactive detail owns a real, read-only generation, never cache writes. */
+export async function executeDetailSecurityQuotes({ items, signal, now = Date.now, ...clients } = {}) {
+  throwIfAborted(signal);
+  const coordinator = new RefreshCoordinator({ now, execute(context) {
+    throwIfAborted(signal);
+    const plan = createSecurityQuotePlan({ generation: context.generation,
+      snapshots: [{ validated: true, status: 'ok', items }] });
+    const scope = createGenerationResourceScope({ context, now,
+      plan: { generation: context.generation, resources: [] } });
+    return executeSecurityQuotePlan({ ...clients, plan, scope, now });
+  } });
+  const cancel = () => coordinator.stop('detail_cancelled');
+  signal?.addEventListener('abort', cancel, { once: true });
+  try {
+    const outcome = await coordinator.request({ trigger: 'detail' });
+    throwIfAborted(signal);
+    if (outcome.status === 'failed') throw outcome.error;
+    return outcome.result?.securityQuotes || {};
+  } finally { signal?.removeEventListener('abort', cancel); }
 }

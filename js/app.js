@@ -100,6 +100,15 @@ let notificationControllerPromise = null;
 let quoteDiagnosticsRuntime = null;
 let quoteDiagnosticsPromise = null;
 let detailToggleGeneration = 0;
+let detailController = null;
+let detailRefreshGeneration = null;
+let securityQuoteModulePromise = null;
+
+function loadSecurityQuoteFeature() {
+  if (!securityQuoteModulePromise) securityQuoteModulePromise = import('./runtime/security-quote-batch.js')
+    .catch(error => { securityQuoteModulePromise = null; throw error; });
+  return securityQuoteModulePromise;
+}
 
 function loadQuoteBridgeFeature() {
   if (!quoteBridgePromise) {
@@ -137,7 +146,6 @@ function loadHoldingsEstimateFeature() {
   return holdingsEstimateModulePromise;
 }
 function normalizeTencentQuoteTime(...args) { return holdingsEstimateRuntime.normalizeTencentQuoteTime(...args); }
-function formatChinaQuoteTime(...args) { return holdingsEstimateRuntime.formatChinaQuoteTime(...args); }
 
 function loadCloudSyncFeature() {
   if (!cloudSyncModulePromise) cloudSyncModulePromise = import('./storage/cloud-sync.js');
@@ -864,6 +872,7 @@ function commitRefreshFailure(context, holding, error) {
 async function runRefresh(context, options) {
   try {
     requireCurrentRefresh(context);
+    if (detailRefreshGeneration !== context.generation) detailController?.abort('refresh_started');
     reconcileActiveFundState({ render: false, persistCache: false });
     const snapshot = holdings.filter(h => !h.deleted).map(h => ({ ...h }));
     context.commit(() => {
@@ -905,18 +914,8 @@ async function runRefresh(context, options) {
           now: Date.now(), reportDate, requireCurrentReport: true,
         }),
         normalizeTime: normalizeTencentQuoteTime,
-        eastmoney: async (codes, signal) => {
-          const secids = codes.map(code => (code.startsWith('sh') ? '1.' : '0.') + code.slice(2));
-          const response = await fetchWithTimeout(
-            'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f13,f2,f3,f124&secids=' + secids.join(',') + '&_=' + Date.now(),
-            { signal }, TIMING.INDEX_JSONP_TIMEOUT);
-          if (!response.ok) throw new Error('证券行情 HTTP ' + response.status);
-          return response.json();
-        },
-        bridge: async (operation, codes, signal) => {
-          const bridge = await loadQuoteBridgeFeature();
-          return bridge[operation](codes, { signal, timeoutMs: TIMING.INDEX_JSONP_TIMEOUT });
-        },
+        eastmoney: fetchSecurityEastmoney,
+        bridge: fetchSecurityBridge,
         indices: async (codes, signal) => {
           const bridge = await loadQuoteBridgeFeature();
           const result = await bridge.indexQuotes(codes, { signal, timeoutMs: TIMING.INDEX_JSONP_TIMEOUT });
@@ -1188,6 +1187,7 @@ async function loadFundHoldings(code, options) {
   var request = loadFundHoldingsFeature().then(function(module) {
     return module.fetchFundHoldings(code, { signal: opts.signal, force: opts.force });
   }).then(function(result) {
+    throwIfAborted(opts.signal);
     var metadata = {
       status: result.status,
       reportDate: result.reportDate,
@@ -1218,6 +1218,10 @@ async function loadFundHoldings(code, options) {
 
 async function toggleFundDetail(code) {
   const generation = ++detailToggleGeneration;
+  detailController?.abort('detail_changed');
+  detailController = new AbortController();
+  detailRefreshGeneration = refreshCoordinator.snapshot().currentGeneration;
+  const signal = detailController.signal;
   if (expandedFund === code) {
     expandedFund = null;
     loadingDetails = null;
@@ -1239,29 +1243,39 @@ async function toggleFundDetail(code) {
   }
   expandedFund = code;
   renderFundList(fundsData);
-  if (loadingDetails !== code) fetchFundDetails(code);
+  fetchFundDetails(code, signal).catch(error => {
+    if (!isRefreshAbort(error, signal)) showToast('基金详情暂不可用，请重试');
+  });
 }
 
 // ── 顺序加载基金详情（重仓股 → 基金类型 → 费率） ──
-async function fetchFundDetails(code) {
+async function fetchFundDetails(code, signal) {
   loadingDetails = code;
   try {
+    // A detail opened during refresh consumes that generation's disclosure and
+    // quote union, instead of racing it with a second set of provider requests.
+    if (refreshCoordinator.activePromise) await refreshCoordinator.activePromise;
+    throwIfAborted(signal);
+    if (expandedFund !== code) return;
     // 1. 重仓股：通过服务端代理补齐东方财富要求的 Referer。
     if (holdingsCache[code] === undefined) {
       try {
-        await loadFundHoldings(code);
+        await loadFundHoldings(code, { signal });
       } catch(e) {
+        throwIfAborted(signal);
         holdingsCache[code] = [];
         holdingsMetaCache[code] = { status: 'error', reportDate: '', source: '' };
       }
+      throwIfAborted(signal);
       if (expandedFund !== code) return;
       renderFundList(fundsData);
-
-      if (holdingsCache[code].length) {
-        await fetchHoldingsQuotes(code, holdingsCache[code]);
-        if (expandedFund !== code) return;
-        renderFundList(fundsData);
-      }
+    }
+    const stocks = holdingsCache[code];
+    if (stocks?.length && stocks.some(stock => !Number.isFinite(stock.change) || !stock.quoteTime)) {
+      await fetchHoldingsQuotes(code, stocks, signal);
+      throwIfAborted(signal);
+      if (expandedFund !== code) return;
+      renderFundList(fundsData);
     }
 
     // 2. 基金信息：来自已加载的 pingzhongdata。旧 jjxx 接口目前返回残缺脚本。
@@ -1308,82 +1322,35 @@ function inferFundType(name) {
 
 // ── 重仓股实时涨跌幅（jjcc 接口本身只有「占净值比例」，不含涨跌幅，需额外查一次行情） ──
 async function fetchHoldingsQuotes(code, stocks, signal) {
-  await loadHoldingsEstimateFeature();
-  var module = await loadFundHoldingsFeature();
-  var fund = fundsData.find(function(item) { return item.code === code; }) || holdings.find(function(item) { return item.code === code; });
-  var allowMainland = Boolean(fund?.name) && ['cn', 'cn-index'].includes(classifyFundMarket(fund.name));
-  stocks.forEach(function(stock) {
-    stock.quoteCode = module.holdingQuoteCode(stock, { allowMainland: allowMainland });
-    if (!stock.quoteCode) { delete stock.change; delete stock.quoteTime; }
+  const [module, quotes] = await Promise.all([loadFundHoldingsFeature(), loadSecurityQuoteFeature(), loadHoldingsEstimateFeature()]);
+  throwIfAborted(signal);
+  const fund = fundsData.find(item => item.code === code) || holdings.find(item => item.code === code);
+  const allowMainland = Boolean(fund?.name) && ['cn', 'cn-index'].includes(classifyFundMarket(fund.name));
+  const items = stocks.map(stock => ({ ...stock, quoteCode: module.holdingQuoteCode(stock, { allowMainland }) }));
+  const acquired = await quotes.executeDetailSecurityQuotes({ items, signal, now: Date.now,
+    fetchEastmoney: fetchSecurityEastmoney, fetchBridge: fetchSecurityBridge, normalizeTime: normalizeTencentQuoteTime });
+  throwIfAborted(signal);
+  items.forEach((item, index) => {
+    const stock = stocks[index];
+    stock.quoteCode = item.quoteCode;
+    delete stock.change;
+    delete stock.quoteTime;
+    if (acquired[item.quoteCode]) Object.assign(stock, acquired[item.quoteCode]);
   });
-  await fetchAStockHoldingQuotes(stocks, signal);
-  var missing = stocks.filter(function(stock) {
-    return !Number.isFinite(stock.change) || !stock.quoteTime;
-  });
-  if (missing.length) await fetchTencentHoldingQuotes(missing, signal);
 }
 
-async function fetchAStockHoldingQuotes(stocks, signal) {
-  var aStocks = stocks.filter(function(s) { return /^(sh|sz)\d{6}$/.test(s.quoteCode); });
-  if (!aStocks.length) return;
-  var secids = aStocks.map(function(s) { return (s.quoteCode.startsWith('sh') ? '1.' : '0.') + s.code; });
-  try {
-    var resp = await fetchWithTimeout(
-      'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f3,f124&secids=' + secids.join(',') + '&_=' + Date.now(),
-      { signal: signal },
-      TIMING.INDEX_JSONP_TIMEOUT);
-    if (!resp.ok) return;
-    var json = await resp.json();
-    var diff = json && json.data && json.data.diff;
-    if (!diff) return;
-    var list = Array.isArray(diff) ? diff : Object.keys(diff).map(function(k) { return diff[k]; });
-    var changeMap = {};
-    list.forEach(function(item) {
-      changeMap[item.f12] = {
-        change: parseNav(item.f3),
-        quoteTime: formatChinaQuoteTime(item.f124)
-      };
-    });
-    aStocks.forEach(function(s) {
-      var quote = changeMap[s.code];
-      if (quote && Number.isFinite(quote.change)) {
-        s.change = quote.change;
-        s.quoteTime = quote.quoteTime;
-      }
-    });
-  } catch(e) {
-    if (signal && signal.aborted) throw e;
-    // 静默失败，涨跌幅列保持 '--'
-  }
+async function fetchSecurityEastmoney(codes, signal) {
+  const secids = codes.map(code => (code.startsWith('sh') ? '1.' : '0.') + code.slice(2));
+  const response = await fetchWithTimeout(
+    'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f13,f2,f3,f124&secids=' + secids.join(',') + '&_=' + Date.now(),
+    { signal }, TIMING.INDEX_JSONP_TIMEOUT);
+  if (!response.ok) throw new Error('证券行情 HTTP ' + response.status);
+  return response.json();
 }
 
-async function fetchTencentHoldingQuotes(stocks, signal) {
-  var items = stocks.map(function(s) {
-    return { stock: s, quoteCode: s.quoteCode };
-  }).filter(function(item) { return item.quoteCode; });
-
-  if (!items.length) return;
-  try {
-    const bridge = await loadQuoteBridgeFeature();
-    const result = await bridge.securityQuotes(items.map(function(item) { return item.quoteCode; }), {
-      signal: signal,
-      timeoutMs: TIMING.INDEX_JSONP_TIMEOUT,
-    });
-    const byCode = new Map(result.quotes.map(function(quote) { return [quote.code, quote]; }));
-    items.forEach(function(item) {
-      const quote = byCode.get(item.quoteCode);
-      if (quote && quote.changePct != null) {
-        item.stock.change = quote.changePct;
-        item.stock.quoteTime = normalizeTencentQuoteTime(quote.sourceTimeRaw, item.quoteCode);
-      }
-    });
-  } catch (error) {
-    if (signal && signal.aborted) {
-      const abort = new Error('重仓行情请求已取消');
-      abort.name = 'AbortError';
-      throw abort;
-    }
-  }
+async function fetchSecurityBridge(operation, codes, signal) {
+  const bridge = await loadQuoteBridgeFeature();
+  return bridge[operation](codes, { signal, timeoutMs: TIMING.INDEX_JSONP_TIMEOUT });
 }
 
 function fmtQuoteNav(value) {

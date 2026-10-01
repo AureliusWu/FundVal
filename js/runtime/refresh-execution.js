@@ -7,8 +7,7 @@ import { createRefreshPlan, createSecurityQuotePlan } from './refresh-plan.js';
 import { createGenerationResourceScope } from './generation-resource-scope.js';
 import { makeRefreshResourceEntry, readRefreshResources, serializeRefreshAggregate, validateRefreshResourceEntry } from './refresh-resource-cache.js';
 import { executeSecurityQuotePlan } from './security-quote-batch.js';
-
-const INDEX_KEY = 'indices:sh000001,sh000300,usINX,usNDX';
+import { REFRESH_INDEX_KEY as INDEX_KEY, refreshResourcePolicy } from './refresh-resource-policy.js';
 
 function limited(maximum) {
   let running = 0;
@@ -120,7 +119,7 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
   const indices = acquireEntry(INDEX_KEY, async () => {
     const quotes = await scope.dispatch('tencent-market-quote', signal => clients.indices(plan.resources.find(r => r.key === INDEX_KEY).codes, signal));
     const sourceDate = quotes.map(quote => chinaDateKey(parseQuoteTimestamp(quote.observedAt))).filter(Boolean).sort().at(-1);
-    return makeRefreshResourceEntry(INDEX_KEY, { codes: ['sh000001', 'sh000300', 'usINX', 'usNDX'], quotes,
+    return makeRefreshResourceEntry(INDEX_KEY, { codes: refreshResourcePolicy(INDEX_KEY).codes, quotes,
       status: quotes.length < 4 ? 'partial' : 'ok', source: 'tencent-market-quote' },
       { now: now(), sourceDate });
   }).catch(error => { if (isRefreshAbort(error, context.signal)) throw error; return cached.entries[INDEX_KEY] || null; });
@@ -196,17 +195,15 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
     current();
     const securityPlan = createSecurityQuotePlan({ generation: context.generation,
       snapshots: rows.filter(Boolean), selectedModels: models });
-    const seedQuotes = {};
     // Unrelated slow gold/index providers must not block domestic holdings.
     const indexEntry = securityPlan.modelCodes.some(code => ['usINX', 'usNDX'].includes(code)) ? await indices : null;
     const goldEntry = securityPlan.goldRequired ? await gold : null;
     current();
-    indexEntry?.payload.quotes.forEach(quote => { seedQuotes[quote.code] = { ...quote, sourceTime: quote.observedAt }; });
     let modelClaim = null, modelProbeAt = null, modelProbeUsed = false, modelStartedAt = null;
     let result;
     try {
       result = await scope.acquire('securities:union', () => executeSecurityQuotePlan({ plan: securityPlan, scope,
-        fetchEastmoney: clients.eastmoney, fetchBridge: clients.bridge, normalizeTime: clients.normalizeTime, seedQuotes, now,
+        fetchEastmoney: clients.eastmoney, fetchBridge: clients.bridge, normalizeTime: clients.normalizeTime, indexEntry, now,
         canAcquireModels() {
           current();
           if (!modelClaim) {
