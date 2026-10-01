@@ -235,4 +235,3 @@ function createCloudLocalAdapter(gistId) {
 }
   return { createCloudArchive, uploadToCloud, downloadFromCloud, clearCloudConfig, createCloudLocalAdapter };
 }
-
