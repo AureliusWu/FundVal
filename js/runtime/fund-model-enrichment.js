@@ -1,41 +1,9 @@
 import { getOverseasConfig, loadOverseasModels, selectOverseasModel, calculateOverseasEstimate, validateOverseasEstimatePeriod } from "../overseas-model.js";
-import { latestOfficialNavBase, formatChinaQuoteTime } from "../holdings-estimate.js";
-import { parseQuoteTimestamp } from "./quote-contract.js";
+import { latestOfficialNavBase } from "../holdings-estimate.js";
 export { getOverseasConfig, loadOverseasModels, selectOverseasModel };
 const isUsableNav = value => Number.isFinite(value) && value > 0;
 const fmt = value => Number(value).toFixed(2);
 
-export async function fetchOverseasModelQuotes(signal, { fetchTencentQuotes, fetchGoldPrice }) {
-  var tencentCodes = ['usEEM', 'usQQQ', 'usSPY', 'usNDX', 'usIXIC', 'usINX', 'usSMH', 'usSOXX', 'usEWY', 'r_hkHSTECH', 'r_hkHSI'];
-  var modelConfig = getOverseasConfig();
-  collectOverseasModelCodes(modelConfig.models, tencentCodes);
-  collectOverseasModelCodes(modelConfig.rules, tencentCodes);
-  var results = await Promise.all([fetchTencentQuotes(tencentCodes, signal), fetchGoldPrice(signal)]);
-  var q = results[0] || {};
-  var gold = results[1];
-  if (gold && Number.isFinite(gold.changePct)) {
-    if (gold.status === 'current') q.AU9999 = { price: gold.price, changePct: gold.changePct,
-      sourceTime: formatChinaQuoteTime(parseQuoteTimestamp(gold.observedAt) / 1000) };
-  }
-  return q;
-}
-
-function collectOverseasModelCodes(models, out) {
-  var seen = {};
-  out.forEach(function(code) { seen[code] = true; });
-  var list = Array.isArray(models) ? models : Object.keys(models || {}).map(function(k) { return models[k]; });
-  list.forEach(function(model) {
-    var legs = [];
-    if (model && Array.isArray(model.legs)) legs = legs.concat(model.legs);
-    if (model && model.fallback && Array.isArray(model.fallback.legs)) legs = legs.concat(model.fallback.legs);
-    legs.forEach(function(leg) {
-      if (leg && leg.code && !seen[leg.code]) {
-        seen[leg.code] = true;
-        out.push(leg.code);
-      }
-    });
-  });
-}
 
 function chooseOverseasModel(fund) {
   return selectOverseasModel(String(fund && fund.code || ''), String(fund && fund.name || ''));

@@ -19,6 +19,45 @@ const APP_SHELL_GZIP_BUDGET = 52_241;
 const APP_SHELL_CORE_START = '// BUILD_APP_SHELL_CORE_START';
 const APP_SHELL_CORE_END = '// BUILD_APP_SHELL_CORE_END';
 const OCR_BUNDLE_REFERENCE = /assets\/ocr|paddle-local-ocr|ocr-import-page|onnx|tesseract/i;
+const COLD_LAZY_MODULE = /^(?:js\/storage\/(?:cloud-|gist-)|js\/runtime\/(?:diagnostics-ui|quote-diagnostics)\.js$)|ocr|paddle|onnx|tesseract/i;
+
+// Priorities protect pre-integrity dependencies from recursive grouping. In
+// particular, the shared Vite preload helper cannot move into the app chunk:
+// bootstrap imports it before awaiting repository recovery and migrations.
+const STARTUP_MODULES = new Set([
+  'js/integrity.js', 'js/storage.js', 'js/migrations.js',
+  'js/storage/holdings-schema.js', 'js/storage/holdings-migration.js', 'js/storage/holdings-repository.js',
+  '\0vite/preload-helper.js',
+]);
+const POST_INTEGRITY_MODULES = new Set([
+  'js/app.js', 'js/version.js', 'js/config.js', 'js/calculator.js', 'js/freshness.js', 'data/market-calendars.json',
+  'js/runtime/market-session.js', 'js/runtime/source-registry.js', 'js/runtime/quote-contract.js',
+  'js/runtime/market-clock.js', 'js/runtime/quote-normalizer.js', 'js/runtime/valuation-period.js',
+  'js/runtime/holding-quote-amounts.js', 'js/runtime/index-quote.js', 'js/runtime/quote-presentation.js',
+  'js/runtime/refresh-generation.js', 'js/runtime/refresh-coordinator.js', 'js/runtime/request-signal.js',
+  'js/runtime/active-holdings.js',
+]);
+const BUSINESS_MODULES = new Set([
+  'js/accuracy.js', 'js/eastmoney-estimate.js', 'js/fund-holdings.js', 'js/holdings-estimate.js', 'js/overseas-model.js',
+  'js/runtime/holding-set-contract.js', 'js/runtime/worker-contract.js', 'js/runtime/notification-policy.js',
+  'js/notifications/notification-controller.js', 'js/runtime/fund-model-enrichment.js', 'js/runtime/holding-edit.js',
+  'js/runtime/holdings-transfer.js', 'js/runtime/remote-schema.js', 'js/runtime/quote-bridge-client.js',
+  'js/runtime/refresh-plan.js', 'js/runtime/generation-resource-scope.js', 'js/runtime/cache-envelope.js',
+  'js/runtime/refresh-resource-cache.js', 'js/runtime/security-quote-batch.js', 'js/runtime/refresh-execution.js',
+]);
+
+function modulePath(id) {
+  if (id.includes('\0vite/preload-helper.js')) return '\0vite/preload-helper.js';
+  return relative(root, id).replaceAll('\\', '/');
+}
+
+const APP_CHUNK_GROUPS = [
+  { name: 'startup-pure', priority: 100, test: id => STARTUP_MODULES.has(modulePath(id)) },
+  { name: 'post-integrity', priority: 90, test: id => POST_INTEGRITY_MODULES.has(modulePath(id)) },
+  { name: 'business-runtime', priority: 10, test: id => BUSINESS_MODULES.has(modulePath(id)) },
+  { name: 'cloud', priority: 10, test: id => /^js\/storage\/(?:cloud-|gist-)/.test(modulePath(id)) },
+  { name: 'diagnostics', priority: 10, test: id => /^js\/runtime\/(?:diagnostics-ui|quote-diagnostics)\.js$/.test(modulePath(id)) },
+];
 
 function resolveSiteSourceDateEpoch() {
   if (process.env.SOURCE_DATE_EPOCH) return process.env.SOURCE_DATE_EPOCH;
@@ -82,6 +121,21 @@ function collectStaticChunkGraph(chunkByFile, roots) {
   return files;
 }
 
+function assertStartupPhaseIsolation(chunkByFile, entry, coldStartFiles) {
+  const modulesIn = files => [...files].flatMap(file => Object.keys(chunkByFile.get(file).modules).map(modulePath));
+  const appRoots = entry.dynamicImports.filter(file => modulesIn(collectStaticChunkGraph(chunkByFile, [file])).includes('js/app.js'));
+  if (appRoots.length !== 1) throw new Error('Homepage bootstrap must retain exactly one dynamic app phase.');
+  const bootstrapStatic = collectStaticChunkGraph(chunkByFile, [entry.fileName]);
+  const beforeApp = collectStaticChunkGraph(chunkByFile,
+    [entry.fileName, ...entry.dynamicImports.filter(file => !appRoots.includes(file))]);
+  if ([...modulesIn(bootstrapStatic), ...modulesIn(beforeApp)].some(id => POST_INTEGRITY_MODULES.has(id))) {
+    throw new Error('Homepage bootstrap or migration graph contains post-integrity app modules.');
+  }
+  if (modulesIn(coldStartFiles).some(id => COLD_LAZY_MODULE.test(id))) {
+    throw new Error('Homepage cold-start graph contains OCR, cloud/Gist or diagnostics modules.');
+  }
+}
+
 async function buildAppShell() {
   const result = await viteBuild({
     configFile: false,
@@ -89,13 +143,13 @@ async function buildAppShell() {
     logLevel: 'silent',
     build: {
       write: false,
-      minify: 'esbuild',
+      minify: 'oxc',
       target: 'es2022',
       rolldownOptions: {
         input: resolve(root, 'js/bootstrap.js'),
         output: {
           format: 'es',
-          codeSplitting: true,
+          codeSplitting: { groups: APP_CHUNK_GROUPS },
           entryFileNames: APP_SHELL_FILENAME,
           chunkFileNames: APP_CHUNK_FILENAME,
         },
@@ -134,9 +188,14 @@ async function buildAppShell() {
     chunkByFile,
     [entry.fileName, ...entry.dynamicImports],
   );
+  assertStartupPhaseIsolation(chunkByFile, entry, coldStartFiles);
   const lazyChunks = chunks.filter(chunk => !coldStartFiles.has(chunk.fileName));
+  // A grouped dynamic entry can be an export-only facade. Its implementation
+  // still has to exist in the lazy static closure, not necessarily the facade.
+  const lazyFeatureFiles = collectStaticChunkGraph(chunkByFile,
+    lazyChunks.filter(chunk => chunk.isDynamicEntry).map(chunk => chunk.fileName));
   const featureLazyChunks = lazyChunks.filter(
-    chunk => chunk.isDynamicEntry && Object.keys(chunk.modules).length > 0,
+    chunk => lazyFeatureFiles.has(chunk.fileName) && Object.keys(chunk.modules).length > 0,
   );
   if (!featureLazyChunks.length) {
     throw new Error('Homepage build must retain at least one non-OCR on-demand feature chunk.');

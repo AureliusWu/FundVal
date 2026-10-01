@@ -1,6 +1,7 @@
 # FundVal（蜉蝣基金）v16.0.0 总体升级方案
 
 > 文档状态：`IMPLEMENTING / M2 EXIT, M3 IN PROGRESS`（M0/M1/M2 证据见同目录状态文档；不是已发布状态）
+> M3 刷新实现与包体积阻断的当前证据见 [M3_STATUS.md](M3_STATUS.md)；未满足 M3 退出条件，不跳过到 M4。
 > 制定日期：2026-09-30（Asia/Shanghai）
 > 基线版本：v15.0.2，提交 `40e68edab9cb3fba0b17338dc3672a82d13ad17e`
 > 生产地址：<https://aureliuswu.github.io/FundVal/>

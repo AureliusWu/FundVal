@@ -5,7 +5,8 @@ import {
 } from './holding-set-contract.js';
 export { validateHoldingSet } from './holding-set-contract.js';
 
-const MAX_ROWS = 50;
+export const WORKER_REQUEST_LIMIT = 50;
+const MAX_ROWS = WORKER_REQUEST_LIMIT;
 const KINDS = new Set(['intraday_estimate', 'qdii_next_nav_estimate', 'holdings_model', 'official_nav', 'unavailable']);
 const ROW_STATUSES = new Set(['ok', 'success', 'fresh', 'delayed', 'modeled', 'degraded', 'stale', 'latest_official', 'official', 'realtime', 'unavailable', 'error', 'failed']);
 const TOP_STATUSES = new Set(['ok', 'partial', 'degraded', 'unavailable']);

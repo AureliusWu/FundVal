@@ -1,8 +1,8 @@
-import { MARKET_SESSION_REGISTRY, marketSession, normalizeMarketKind } from './market-session.js';
+import { MARKET_SESSION_REGISTRY, marketStateFromParts, normalizeMarketKind } from './market-session.js';
 import { nextWeekdayDate, normalizeQuoteDate } from './quote-contract.js';
 import calendarDocument from '../../data/market-calendars.json' with { type: 'json' };
 
-let calendars = calendarDocument.calendars;
+let calendars = Object.freeze({});
 const formatters = new Map();
 
 function instant(value) {
@@ -55,6 +55,10 @@ export function installMarketCalendars(document) {
   return true;
 }
 
+// Internal calendars are validated once and copied before freezing. Explicit
+// caller overrides remain untrusted and are independently checked per call.
+installMarketCalendars(calendarDocument);
+
 export async function loadMarketCalendars({ request = globalThis.fetch, signal } = {}) {
   try {
     const response = await request('./data/market-calendars.json', { signal, cache: 'no-cache' });
@@ -70,10 +74,10 @@ export function marketClock(market, now = Date.now(), options = {}) {
   const descriptor = MARKET_SESSION_REGISTRY[kind];
   const timestamp = instant(now);
   const parts = zonedTimeParts(timestamp, descriptor.timezone);
-  const calendar = Object.hasOwn(options, 'calendar') ? options.calendar : calendars[kind];
-  const verified = Boolean(parts && validCalendar(calendar) && parts.dateKey >= calendar.valid_from && parts.dateKey <= calendar.valid_until);
-  const state = timestamp == null ? null : marketSession(kind, new Date(timestamp), { holidays: verified ? calendar.holidays : [] });
-  let marketState = verified ? state.marketState : 'unknown';
+  const override = Object.hasOwn(options, 'calendar');
+  const calendar = override ? options.calendar : calendars[kind];
+  const verified = Boolean(parts && calendar && (!override || validCalendar(calendar)) && parts.dateKey >= calendar.valid_from && parts.dateKey <= calendar.valid_until);
+  let marketState = verified ? marketStateFromParts(kind, parts, { holidays: calendar.holidays }) : 'unknown';
   const minute = parts ? parts.hour * 60 + parts.minute : null;
   if (verified && calendar.early_closes[parts.dateKey] != null && minute >= calendar.early_closes[parts.dateKey] && !['holiday', 'closed'].includes(marketState)) marketState = 'closed';
   const weekend = parts && [0, 6].includes(parts.weekday);
@@ -98,7 +102,7 @@ export function isSingleMarketSession(baseDate, targetDate, market) {
   const target = normalizeQuoteDate(targetDate);
   if (!base || !target || [0, 6].includes(new Date(`${base}T00:00:00Z`).getUTCDay()) || nextWeekdayDate(base) !== target) return false;
   const calendar = calendars[normalizeMarketKind(market)];
-  if (validCalendar(calendar) && base >= calendar.valid_from && target <= calendar.valid_until) {
+  if (calendar && base >= calendar.valid_from && target <= calendar.valid_until) {
     return !calendar.holidays.includes(base) && !calendar.holidays.includes(target);
   }
   return !market || normalizeMarketKind(market) === 'unknown';

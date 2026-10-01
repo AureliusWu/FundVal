@@ -8,7 +8,7 @@ import {
   unavailableQuote,
 } from './quote-contract.js';
 import { classifyAssetKind, classifyMarketKind, normalizeMarketKind } from './market-session.js';
-import { marketClock } from './market-clock.js';
+import { marketClock, zonedTimeParts } from './market-clock.js';
 import { canonicalSourceId, sourceTierFor } from './source-registry.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -98,20 +98,12 @@ function observedAtFromRow(row) {
   return firstText(row?.source_time, row?.est_time, row?.observedAt) || null;
 }
 
-function marketWeekday(timestamp, timeZone) {
-  try {
-    return new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(new Date(timestamp));
-  } catch (_) {
-    return null;
-  }
-}
-
 function isWeekendCarryover(observedMs, nowMs, session) {
   if (!['closed', 'preopen', 'unknown'].includes(session.marketState)) return false;
-  const sourceDay = marketWeekday(observedMs, session.timezone);
-  const currentDay = marketWeekday(nowMs, session.timezone);
-  return sourceDay === 'Fri'
-    && ['Sat', 'Sun', 'Mon'].includes(currentDay)
+  const sourceDay = zonedTimeParts(observedMs, session.timezone)?.weekday;
+  const currentDay = zonedTimeParts(nowMs, session.timezone)?.weekday;
+  return sourceDay === 5
+    && [6, 0, 1].includes(currentDay)
     && nowMs - observedMs <= WEEKEND_CARRYOVER_MS;
 }
 

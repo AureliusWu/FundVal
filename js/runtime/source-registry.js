@@ -5,6 +5,10 @@ const DESCRIPTORS = [
     timeoutMs: 10000, freshnessPolicy: 'source-observed-time', requiresProxy: true, sourceTier: 'primary',
   },
   {
+    id: 'sinan-holdings-proxy', markets: ['cn', 'hk'], capabilities: ['holdings_snapshot'], priority: 90,
+    timeoutMs: 10000, freshnessPolicy: 'source-observed-time', requiresProxy: true, sourceTier: 'primary',
+  },
+  {
     id: 'eastmoney-official-nav', markets: ['cn', 'hk', 'us', 'jp', 'kr', 'gold', 'qdii'],
     capabilities: ['official_nav'], priority: 80, timeoutMs: 7000,
     freshnessPolicy: 'official-nav-date', requiresProxy: false, sourceTier: 'secondary',
