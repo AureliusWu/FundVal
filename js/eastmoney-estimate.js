@@ -1,59 +1,59 @@
 import { normalizeEstimateQuote } from './runtime/quote-normalizer.js';
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
 import { fundDataApiUrl } from './config.js';
+import { normalizeWorkerEstimateRow, parseWorkerEnvelope, WorkerContractError } from './runtime/worker-contract.js';
 
 const TIMEOUT = 10000;
 
-function numberOrNaN(value) {
-  if (value == null || typeof value === 'boolean' || String(value).trim() === '') return NaN;
-  const n = Number(String(value ?? '').replace('%', '').trim());
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function normalizedUpstreamStatus(row) {
-  const status = String(row?.status || '').trim().toLowerCase();
-  // Some successful proxy responses describe the kind of value rather than a
-  // transport outcome. Keep those rows usable, while preserving explicit
-  // unavailable/error states for the refresh fallback chain.
-  if (!status || ['ok', 'success', 'latest_official', 'official', 'delayed', 'realtime'].includes(status)) return 'ok';
-  return status;
+function safeText(value, maximum = 300) {
+  const text = String(value ?? '').trim();
+  return text.length <= maximum && !/[<>\u0000-\u001f\u007f]/.test(text) ? text : '';
 }
 
 export function normalizeEstimateRow(row, options = {}) {
   const code = String(row?.code || row?.bzdm || '');
   if (!/^\d{6}$/.test(code)) return null;
-  const sourceTime = String(row.source_time || row.est_time || row.gxrq || '');
+  let wire;
+  try {
+    wire = normalizeWorkerEstimateRow(row, { wireVersion: options.wireVersion ?? 1, now: options.now });
+  } catch (error) {
+    if (!(error instanceof WorkerContractError) || error.code !== 'WORKER_ROW_INVALID') throw error;
+    // Direct legacy callers can receive a safe unusable row. The HTTP client
+    // validates the complete envelope first, so this never rescues bad wire data.
+    wire = { code, name: safeText(row.name || row.jjjc || code), source: 'unavailable', kind: 'unavailable',
+      status: 'error', source_status: safeText(row.status || 'ok', 32), base_nav: null, value_nav: null,
+      est_nav: null, est_change: null, source_time: null, value_date: null, coverage: null, quote_count: null,
+      diagnostics: {}, message: '估值契约不完整', fallback_reason: 'invalid_response' };
+  }
+  const sourceTime = wire.source_time || '';
   const normalized = {
+    ...wire,
     code,
-    name: String(row.name || row.jjjc || code),
-    type: String(row.type || row.FType || ''),
-    last_nav: numberOrNaN(row.base_nav ?? row.last_nav ?? row.dwjz),
-    est_nav: numberOrNaN(row.value_nav ?? row.est_nav ?? row.gsz),
-    est_change: numberOrNaN(row.value_change ?? row.estimate_change ?? row.est_change ?? row.gszzl),
-    nav_date: String(row.base_nav_date || row.nav_date || row.gzrq || ''),
-    est_time: String(row.source_time || row.est_time || row.value_date || row.gxrq || ''),
+    name: safeText(wire.name || code, 160),
+    type: safeText(row.type || row.FType || '', 80),
+    last_nav: wire.base_nav ?? NaN,
+    est_nav: wire.est_nav ?? NaN,
+    est_change: wire.est_change ?? NaN,
+    nav_date: wire.base_nav_date || '',
+    est_time: sourceTime,
     source_time_precision: /\d{1,2}:\d{2}/.test(sourceTime) ? 'minute' : 'date',
-    est_label: String(row.est_label || '延迟估值'),
-    est_kind: (row.kind || row.est_kind) === 'official_nav' ? 'official_nav' : 'estimate',
-    est_realtime: row.est_realtime === true,
-    est_note: String(row.est_note || '东方财富盘中估算；上游仅提供行情日期，未提供精确分钟'),
-    status: normalizedUpstreamStatus(row),
-    source_status: String(row.status || 'ok').trim() || 'ok',
-    message: String(row.message || row.error || row.fallback_reason || ''),
-    source: String(row.source || 'sinan-estimate-proxy'),
-    kind: String(row.kind || ''),
+    est_label: safeText(row.est_label || '延迟估值', 80),
+    est_kind: wire.est_kind || 'estimate',
+    est_realtime: row.est_realtime === true && wire.kind === 'intraday_estimate'
+      && ['fresh', 'ok', 'success', 'realtime'].includes(wire.source_status),
+    est_note: safeText(row.est_note || row.note || '东方财富盘中估算；上游仅提供行情日期，未提供精确分钟'),
+    message: safeText(wire.message || row.message || row.error || row.fallback_reason || ''),
     is_fallback: row.is_fallback === true,
     source_time: sourceTime,
-    value_date: String(row.value_date || ''),
-    base_nav_date: String(row.base_nav_date || ''),
-    base_nav: numberOrNaN(row.base_nav ?? row.last_nav ?? row.dwjz),
-    coverage: numberOrNaN(row.coverage ?? row.model_coverage),
-    quote_count: numberOrNaN(row.quote_count ?? row.model_quote_count),
-    report_date: String(row.report_date || row.model_report_date || ''),
-    fallback_reason: String(row.fallback_reason || ''),
+    value_date: wire.value_date || '',
+    base_nav_date: wire.base_nav_date || '',
+    coverage: wire.coverage ?? NaN,
+    quote_count: wire.quote_count ?? NaN,
+    report_date: wire.report_date || '',
+    fallback_reason: safeText(wire.fallback_reason || '', 80),
     diagnostics: row.diagnostics && typeof row.diagnostics === 'object' ? { ...row.diagnostics } : {},
   };
-  normalized.source_quote = normalizeEstimateQuote({ ...row, ...normalized }, {
+  normalized.source_quote = normalizeEstimateQuote({ ...normalized, status: wire.source_status }, {
     fetchedAt: options.fetchedAt || row.fetched_at,
     now: options.now,
   });
@@ -80,9 +80,9 @@ export async function fetchEstimateRows(codes, options = {}) {
     });
     if (!response.ok) throw new Error(`估值代理 HTTP ${response.status}`);
     const payload = await response.json();
-    if (!payload || !Array.isArray(payload.items)) throw new Error('估值代理响应无效');
-    payload.items.forEach((row) => {
-      const normalized = normalizeEstimateRow(row, { fetchedAt: payload.fetched_at, now: options.now });
+    const envelope = parseWorkerEnvelope(payload, { endpoint: 'estimates', requestedCodes: wanted, now: options.now });
+    envelope.items.forEach((row) => {
+      const normalized = normalizeEstimateRow(row, { wireVersion: envelope.wireVersion, fetchedAt: envelope.fetchedAt, now: options.now });
       if (normalized && output.has(normalized.code)) output.set(normalized.code, normalized);
     });
     return output;

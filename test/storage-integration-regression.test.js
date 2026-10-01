@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [app, bootstrap, ocr, migrations, serviceWorker, gistRemote, holdingEdit, ocrTransaction] = await Promise.all([
+const [app, bootstrap, ocr, migrations, serviceWorker, gistRemote, holdingEdit, ocrTransaction, cloudArchive] = await Promise.all([
   readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/bootstrap.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8'),
@@ -11,6 +11,7 @@ const [app, bootstrap, ocr, migrations, serviceWorker, gistRemote, holdingEdit, 
   readFile(new URL('../js/storage/gist-remote.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/runtime/holding-edit.js', import.meta.url), 'utf8'),
   readFile(new URL('../js/ocr/import-transaction.js', import.meta.url), 'utf8'),
+  readFile(new URL('../js/storage/cloud-archive-ui.js', import.meta.url), 'utf8'),
 ]);
 
 test('all local holding mutations use the authoritative Schema 3 repository', () => {
@@ -19,7 +20,7 @@ test('all local holding mutations use the authoritative Schema 3 repository', ()
   assert.match(holdingEdit, /return withHoldingsLock\(/);
   assert.match(holdingEdit, /saveLegacyHoldingsTransaction\(storage, candidate/);
   assert.match(holdingEdit, /expectedDocument: loaded\.document/);
-  assert.match(app, /persistHoldingsDocument/);
+  assert.match(cloudArchive, /persistHoldingsDocument/);
   assert.doesNotMatch(app, /function pruneOldTombstones/);
   assert.doesNotMatch(app, /safeSetItem\(STORAGE_KEY/);
   assert.match(ocr, /from '\.\/ocr\/import-transaction\.js'/);
@@ -34,11 +35,11 @@ test('Gist PATCH has one guarded adapter entry and verified cloud orchestration'
   assert.equal((app.match(/method:\s*'PATCH'/g) || []).length, 0);
   assert.match(app, /synchronizeHoldingsCloud/);
   assert.match(app, /pullHoldingsCloud/);
-  assert.match(app, /remote_readback_mismatch/);
-  assert.match(app, /backupCloudSyncSnapshot/);
+  assert.match(cloudArchive, /remote_readback_mismatch/);
+  assert.match(cloudArchive, /backupCloudSyncSnapshot/);
   assert.match(app, /remote_schema_upgrade_required/);
-  assert.match(app, /pushToCloud\(false, \{ upgradeSchema: true \}\)/);
-  assert.match(app, /createCloudArchive\(token, \{ targetSchema: 3 \}\)/);
+  assert.match(cloudArchive, /pushToCloud\(false, \{ upgradeSchema: true \}\)/);
+  assert.match(cloudArchive, /createCloudArchive\(token, \{ targetSchema: 3 \}\)/);
   assert.match(app, /import\('\.\/storage\/gist-remote\.js'\)/);
   assert.match(gistRemote, /V3_GIST_DEVICE_PREFIX\s*=\s*'fuyu-holdings-v3-'/);
   assert.match(gistRemote, /write\?\.schema !== 3/);

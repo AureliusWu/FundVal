@@ -14,6 +14,7 @@ function quote(overrides = {}) {
     status: 'realtime',
     valueKind: 'intraday_estimate',
     changePct: 0,
+    value: 1, baseNav: 1, baseNavDate: '2026-08-24', targetDate: '2026-08-25', sourceTier: 'primary',
     observedAt: '2026-08-25 14:29:00',
     fetchedAt: '2026-08-25T06:29:30.000Z',
     ...overrides,

@@ -1,3 +1,5 @@
+import { chinaTimeParts, marketClock } from './runtime/market-clock.js';
+
 export const TIMING = Object.freeze({
   FUND_JSONP_TIMEOUT: 7000, INDEX_JSONP_TIMEOUT: 8000, MODEL_LOAD_TIMEOUT: 8000, CLOUD_SYNC_TIMEOUT: 15000,
   MKT_STATUS_MS: 30000, SW_UPDATE_MS: 1800000, AUTO_PUSH_DELAY: 5000,
@@ -21,9 +23,10 @@ export function fundDataApiUrl(endpoint, runtimeLocation = globalThis.location) 
 }
 
 export function refreshInterval(now) {
-  const day = now.getDay();
-  const minute = now.getHours() * 60 + now.getMinutes();
-  if (day === 0 || day === 6) return 15 * 60000;
+  const parts = chinaTimeParts(now);
+  if (!parts || marketClock('cn', now).calendarStatus !== 'valid') return 300000;
+  const minute = parts.hour * 60 + parts.minute;
+  if (marketClock('cn', now).isTradingDay === false) return 15 * 60000;
   if (minute >= 565 && minute < 690) return 60000;
   if (minute >= 690 && minute < 780) return 180000;
   if (minute >= 780 && minute < 900) return 60000;

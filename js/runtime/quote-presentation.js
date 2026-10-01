@@ -4,6 +4,8 @@ import {
   quoteStatusLabel,
   quoteValueKindLabel,
 } from './quote-contract.js';
+import { createValuationPeriod } from './valuation-period.js';
+import { chinaTimeParts } from './market-clock.js';
 
 const STATUS_LABELS = Object.freeze({
   realtime: '实时',
@@ -66,24 +68,10 @@ function finiteNow(value) {
 }
 
 function chinaParts(timestamp) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(new Date(timestamp));
-  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const values = chinaTimeParts(timestamp);
   return {
-    year: Number(values.year),
-    month: Number(values.month),
-    day: Number(values.day),
-    hour: String(values.hour || '00').padStart(2, '0'),
-    minute: String(values.minute || '00').padStart(2, '0'),
-    second: String(values.second || '00').padStart(2, '0'),
+    year: Number(values.dateKey.slice(0, 4)), month: Number(values.dateKey.slice(5, 7)), day: Number(values.dateKey.slice(8, 10)),
+    hour: String(values.hour).padStart(2, '0'), minute: String(values.minute).padStart(2, '0'), second: String(values.second).padStart(2, '0'),
   };
 }
 
@@ -167,7 +155,7 @@ function modelLike(quote) {
     || ['model_estimate', 'holding_lookthrough_estimate'].includes(quote?.valueKind);
 }
 
-export function createQuotePresentation(quote, { now = Date.now() } = {}) {
+export function createQuotePresentation(quote, { now = Date.now(), shares = null, period = null } = {}) {
   const safeQuote = quote && typeof quote === 'object' ? quote : {};
   const status = STATUS_LABELS[safeQuote.status] ? safeQuote.status : 'unavailable';
   const isModel = modelLike(safeQuote);
@@ -186,6 +174,7 @@ export function createQuotePresentation(quote, { now = Date.now() } = {}) {
   const kindLabel = status === 'unavailable'
     ? '暂不可估值'
     : quoteValueKindLabel(safeQuote.valueKind);
+  const valuationPeriod = period || createValuationPeriod(safeQuote, { now, shares, cacheState: safeQuote.cacheState });
 
   return Object.freeze({
     status,
@@ -203,6 +192,12 @@ export function createQuotePresentation(quote, { now = Date.now() } = {}) {
     marketLabel: MARKET_LABELS[safeQuote.market] || MARKET_LABELS.unknown,
     reasonSummary,
     modelVersion: String(safeQuote.modelVersion || '').trim() || null,
+    period: valuationPeriod,
+    periodLabel: valuationPeriod.displayLabel,
+    periodDatesLabel: [valuationPeriod.baseDate || '--', valuationPeriod.targetDate || '--'].join(' → '),
+    cacheState: valuationPeriod.sourceStatus === 'cached_stale' ? (safeQuote.cacheState === 'expired' ? 'expired' : 'stale') : safeQuote.cacheState || null,
+    cacheLabel: safeQuote.sourceTier === 'cache' && valuationPeriod.sourceStatus === 'cached_stale' ? '旧缓存' : ({ fresh: '缓存（TTL 内）', stale: '旧缓存', expired: '过期缓存' })[safeQuote.cacheState] || null,
+    originalSourceLabel: SOURCE_LABELS[safeQuote.originalSource] || safeQuote.originalSource || null,
     targetNavLabel: isModel ? `下一公布日${officialNavDate ? `（基于 ${officialNavDate} 正式净值）` : ''}` : null,
   });
 }

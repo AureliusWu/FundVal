@@ -81,6 +81,12 @@ test('rejects cache timestamps implausibly far in the future', () => {
   assert.equal(result.remove, true);
 });
 
+test('v16 duplicate cached funds fail closed rather than retaining an arbitrary first quote', () => {
+  const result = reconcileFundCache({ data: [{ code: '000001', quote: { value: 1 } }, { code: '000001', quote: { value: 2 } }], fetchedAt: 1000 }, ['000001'], 1500);
+  assert.equal(result.remove, true);
+  assert.equal(result.cache, null);
+});
+
 test('finds only orphan per-fund cache keys', () => {
   assert.deepEqual(
     collectOrphanNavCacheKeys(['fuyu_nav_move_000001', 'fuyu_nav_move_000002', 'other'], ['000002']),

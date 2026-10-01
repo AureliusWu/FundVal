@@ -11,10 +11,17 @@ const CORE = [
   './js/eastmoney-estimate.js', './js/fund-holdings.js', './js/holdings-estimate.js',
   './js/runtime/quote-contract.js', './js/runtime/quote-presentation.js', './js/runtime/quote-normalizer.js',
   './js/runtime/market-session.js', './js/runtime/source-registry.js',
+  './js/runtime/market-clock.js', './js/runtime/valuation-period.js', './js/runtime/worker-contract.js',
+  './js/runtime/cache-envelope.js',
+  './js/runtime/quote-diagnostics.js',
+  './js/runtime/holding-set-contract.js',
+  './js/runtime/holding-quote-amounts.js',
+  './js/runtime/fund-model-enrichment.js',
   './js/runtime/refresh-generation.js', './js/runtime/refresh-coordinator.js',
   './js/runtime/request-signal.js',
   './js/storage/holdings-schema.js', './js/storage/holdings-migration.js',
   './js/storage/holdings-repository.js', './js/storage/cloud-sync.js', './js/storage/gist-remote.js',
+  './js/storage/cloud-archive-ui.js',
   // BUILD_APP_SHELL_CORE_END
   './css/style.css', './data/overseas-models.json'
 ];

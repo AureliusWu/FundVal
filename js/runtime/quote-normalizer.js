@@ -2,11 +2,13 @@ import {
   compareQuotesByQuality,
   createQuoteEnvelope,
   normalizeQuoteDate,
+  nullableNumber,
   parseQuoteTimestamp,
   quoteToLegacyFreshness,
   unavailableQuote,
 } from './quote-contract.js';
-import { classifyAssetKind, classifyMarketKind, marketSession, normalizeMarketKind } from './market-session.js';
+import { classifyAssetKind, classifyMarketKind, normalizeMarketKind } from './market-session.js';
+import { marketClock } from './market-clock.js';
 import { canonicalSourceId, sourceTierFor } from './source-registry.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -46,9 +48,17 @@ function firstText(...values) {
 }
 
 function finite(value, { positive = false } = {}) {
-  if (value == null || typeof value === 'boolean' || (typeof value === 'string' && !value.trim())) return null;
-  const number = Number(String(value).replace('%', '').replace(/,/g, '').trim());
-  return Number.isFinite(number) && (!positive || number > 0) ? number : null;
+  return nullableNumber(value, { minimum: positive ? Number.MIN_VALUE : -Infinity });
+}
+
+function field(row, ...keys) {
+  for (const key of keys) if (Object.hasOwn(row, key)) return row[key];
+  return undefined;
+}
+
+function changeFromRow(row, kind) {
+  return kind === 'official_nav' ? field(row, 'value_change', 'est_change', 'changePct')
+    : field(row, 'estimate_change', 'value_change', 'est_change', 'changePct');
 }
 
 function workerDiagnosticCode(value, allowedCodes) {
@@ -79,7 +89,7 @@ function diagnosticReasonCodes(row) {
 function kindFromRow(row) {
   const kind = firstText(row?.kind, row?.est_kind).toLowerCase();
   if (kind === 'official_nav') return 'official_nav';
-  if (['overseas_model', 'model_estimate', 'model'].includes(kind) || row?.est_model) return 'model_estimate';
+  if (['qdii_next_nav_estimate', 'overseas_model', 'model_estimate', 'model'].includes(kind) || row?.est_model) return 'model_estimate';
   if (['holdings_model', 'holding_lookthrough_estimate'].includes(kind) || row?.est_holdings_model) return 'holding_lookthrough_estimate';
   return 'intraday_estimate';
 }
@@ -106,16 +116,16 @@ function isWeekendCarryover(observedMs, nowMs, session) {
 }
 
 function freshnessForRow(row, valueKind, observedAt, market, nowMs) {
-  const hasValue = finite(row?.value_nav ?? row?.est_nav ?? row?.value, { positive: true }) != null;
-  const hasChange = finite(row?.value_change ?? row?.estimate_change ?? row?.est_change ?? row?.changePct) != null;
+  const hasValue = finite(field(row, 'value_nav', 'est_nav', 'value'), { positive: true }) != null;
+  const hasChange = finite(changeFromRow(row, valueKind)) != null;
   if (!hasValue && !hasChange) return { status: 'unavailable', reasonCodes: [] };
-  if (valueKind === 'official_nav') return { status: 'official', reasonCodes: [] };
-  if (row?.stale || row?.est_model_stale || String(row?.status || '').toLowerCase() === 'stale') {
+  if (row?.stale || row?.est_model_stale || ['stale', 'expired'].includes(row.cacheState) || String(row?.source_status || row?.status || '').toLowerCase() === 'stale') {
     return { status: 'stale', reasonCodes: ['source_marked_stale'] };
   }
+  if (valueKind === 'official_nav') return { status: 'official', reasonCodes: [] };
 
   const observedMs = parseQuoteTimestamp(observedAt);
-  const session = marketSession(market, new Date(nowMs));
+  const session = marketClock(market, nowMs);
   const expected = session.expectedFreshnessMs || 10 * 60 * 1000;
   if (observedMs == null) {
     const raw = text(observedAt);
@@ -148,7 +158,7 @@ function freshnessForRow(row, valueKind, observedAt, market, nowMs) {
   return { status: 'delayed', reasonCodes };
 }
 
-function normalizeExistingQuoteFreshness(input, options = {}) {
+export function normalizeExistingQuoteFreshness(input, options = {}) {
   const nowNumber = options.now instanceof Date ? options.now.getTime() : Number(options.now);
   const nowMs = Number.isFinite(nowNumber) ? nowNumber : Date.now();
   const source = createQuoteEnvelope(input, { now: nowMs });
@@ -185,18 +195,18 @@ export function normalizeEstimateQuote(row = {}, options = {}) {
   // even when it travelled through the same proxy as the primary source.
   // Otherwise the registry's descriptor default would incorrectly make the
   // fallback appear more trustworthy than a later primary recovery.
-  const sourceTier = valueKind.includes('model')
+  const sourceTier = row.sourceTier === 'cache' ? 'cache' : valueKind.includes('model')
     ? 'model'
     : (row.is_fallback || valueKind === 'official_nav'
       ? 'secondary'
       : sourceTierFor(sourceId, 'primary'));
   const reasonCodes = diagnosticReasonCodes(row);
   const freshness = freshnessForRow(row, valueKind, observedAt, item.market, nowMs);
-  const baseNav = finite(row.base_nav ?? row.baseNav ?? row.last_nav, { positive: true });
-  const baseNavDate = normalizeQuoteDate(firstText(row.base_nav_date, row.baseNavDate, row.nav_date));
+  const baseNav = finite(field(row, 'base_nav', 'baseNav', 'last_nav'), { positive: true });
+  const baseNavDate = normalizeQuoteDate(field(row, 'base_nav_date', 'baseNavDate', 'nav_date'));
   const isModel = ['model_estimate', 'holding_lookthrough_estimate'].includes(valueKind);
-  const targetDate = normalizeQuoteDate(firstText(row.value_date, row.targetDate,
-    isModel ? '' : text(observedAt).slice(0, 10)));
+  const boundTarget = field(row, 'value_date', 'targetDate', 'target_nav_date');
+  const targetDate = normalizeQuoteDate(boundTarget === undefined ? (isModel ? '' : text(observedAt).slice(0, 10)) : boundTarget);
   reasonCodes.push(...freshness.reasonCodes);
   if (observedAt && parseQuoteTimestamp(observedAt) == null && /^\d{4}-\d{2}-\d{2}$/.test(observedAt)) {
     reasonCodes.push('source_time_date_only');
@@ -208,15 +218,17 @@ export function normalizeEstimateQuote(row = {}, options = {}) {
   return createQuoteEnvelope({
     ...item,
     valueKind,
-    value: finite(row.value_nav ?? row.est_nav ?? row.value, { positive: true }),
-    changePct: finite(row.value_change ?? row.estimate_change ?? row.est_change ?? row.changePct),
+    value: finite(field(row, 'value_nav', 'est_nav', 'value'), { positive: true }),
+    changePct: finite(changeFromRow(row, valueKind)),
     baseNav,
     baseNavDate,
     targetDate,
     sourceId,
     sourceTier,
     observedAt,
-    fetchedAt: firstText(options.fetchedAt, row.fetched_at, row.fetchedAt),
+    fetchedAt: firstText(row.fetched_at, row.fetchedAt, options.fetchedAt),
+    originalSource: row.originalSource, originalSourceTier: row.originalSourceTier,
+    cacheState: row.cacheState, cachedAt: row.cachedAt, expiresAt: row.expiresAt,
     officialNavDate: firstText(
       row.officialNavDate,
       valueKind === 'official_nav' ? row.value_date : '',
@@ -226,7 +238,7 @@ export function normalizeEstimateQuote(row = {}, options = {}) {
     status: freshness.status,
     coverage: row.coverage ?? row.model_coverage ?? row.est_coverage ?? row.est_model_weight,
     confidence: row.confidence ?? row.est_confidence,
-    modelVersion: row.model_version ?? row.est_model_version,
+    modelVersion: row.model_version ?? row.estimate_model_version ?? row.est_model_version,
     reasonCodes,
   }, { now: nowMs });
 }
@@ -241,12 +253,14 @@ export function normalizeOfficialNavQuote(move = {}, options = {}) {
     baseNav: finite(move.prevNav, { positive: true }),
     baseNavDate: move.prevDate,
     targetDate: move.date,
-    sourceId: canonicalSourceId(options.sourceId || 'eastmoney-official-nav'),
-    sourceTier: 'secondary',
+    sourceId: move.sourceTier === 'cache' ? 'local-cache' : canonicalSourceId(options.sourceId || 'eastmoney-official-nav'),
+    sourceTier: move.sourceTier === 'cache' ? 'cache' : 'secondary',
     observedAt: firstText(move.date) || null,
-    fetchedAt: options.fetchedAt,
+    fetchedAt: move.fetchedAt || options.fetchedAt,
+    originalSource: move.originalSource, originalSourceTier: move.originalSourceTier,
+    cacheState: move.cacheState, cachedAt: move.cachedAt, expiresAt: move.expiresAt,
     officialNavDate: firstText(move.date) || null,
-    status: 'official',
+    status: ['stale', 'expired'].includes(move.cacheState) || move.status === 'stale' ? 'stale' : 'official',
     reasonCodes: ['latest_published_nav'],
   }, { now: options.now });
 }
@@ -294,7 +308,8 @@ function dedupeQuotes(quotes) {
   const seen = new Set();
   return quotes.filter(quote => {
     if (!quote) return false;
-    const key = [quote.valueKind, quote.sourceId, quote.observedAt, quote.value, quote.changePct, quote.baseNav, quote.baseNavDate, quote.targetDate].join('|');
+    const key = [quote.valueKind, quote.sourceId, quote.observedAt, quote.value, quote.changePct, quote.baseNav, quote.baseNavDate, quote.targetDate,
+      quote.status, quote.sourceTier, quote.cacheState, quote.expiresAt].join('|');
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -318,11 +333,13 @@ export function selectPreferredQuote(quotes = [], fallbackIdentity = {}, options
   return candidates[0] || unavailableQuote({ ...fallbackIdentity, reasonCodes: ['no_quote_candidate'] }, options);
 }
 
-export function normalizeCachedQuote(quote, { fresh = false, fetchedAt, now = Date.now(), fallbackIdentity = {} } = {}) {
+export function normalizeCachedQuote(quote, { fresh = false, fetchedAt, cachedAt, expiresAt, now = Date.now(), fallbackIdentity = {} } = {}) {
   const source = quote
     ? normalizeExistingQuoteFreshness(quote, { now })
     : unavailableQuote({ ...fallbackIdentity, reasonCodes: ['legacy_cache_missing_quote'] }, { now });
-  const effectiveFresh = fresh && source.status !== 'stale' && source.status !== 'unavailable';
+  const expiry = source.expiresAt ?? expiresAt;
+  const effectiveFresh = fresh && (expiry == null || Number.isSafeInteger(expiry) && now < expiry)
+    && source.status !== 'stale' && source.status !== 'unavailable';
   const cacheReason = effectiveFresh
     ? 'cache_fresh_ttl'
     : (fresh && source.status === 'stale' ? 'cache_source_stale' : 'cache_expired');
@@ -335,6 +352,10 @@ export function normalizeCachedQuote(quote, { fresh = false, fetchedAt, now = Da
     ...source,
     sourceId: 'local-cache',
     sourceTier: 'cache',
+    originalSource: source.originalSource || source.sourceId,
+    originalSourceTier: source.originalSourceTier || (source.sourceTier !== 'cache' ? source.sourceTier : null),
+    cacheState: effectiveFresh ? 'fresh' : 'stale',
+    cachedAt: source.cachedAt ?? cachedAt, expiresAt: source.expiresAt ?? expiresAt,
     fetchedAt: source.fetchedAt || fetchedAt,
     status: cachedStatus,
     reasonCodes: [...source.reasonCodes, `cached_from_${source.sourceId}`, cacheReason],

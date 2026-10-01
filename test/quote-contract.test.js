@@ -86,7 +86,7 @@ test('cache remains explicitly cache-tier and can never present itself as realti
     code: '000001', name: '示例基金', est_nav: 1, est_change: 0,
     est_time: '2026-08-25 10:04', est_realtime: true, source: 'sinan-estimate-proxy',
   }, { now: NOW, fetchedAt: '2026-08-25T02:04:00Z' });
-  const cached = normalizeCachedQuote(live, { fresh: true, fetchedAt: '2026-08-25T02:04:00Z', now: NOW });
+  const cached = normalizeCachedQuote(live, { fresh: true, fetchedAt: '2026-08-25T02:04:00Z', now: NOW, cachedAt: NOW, expiresAt: NOW + 60000 });
   assert.equal(cached.sourceId, 'local-cache');
   assert.equal(cached.sourceTier, 'cache');
   assert.equal(cached.status, 'delayed');

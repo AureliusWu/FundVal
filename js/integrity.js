@@ -153,6 +153,8 @@ function normalizeCacheTimestamp(value) {
 export function reconcileFundCache(rawCache, activeCodes, now = Date.now(), futureSkewMs = DEFAULT_FUTURE_SKEW_MS) {
   const parsed = typeof rawCache === 'string' ? safeJsonParse(rawCache, null) : rawCache;
   if (!parsed || !Array.isArray(parsed.data)) return { cache: null, changed: Boolean(rawCache), remove: true };
+  const identities = parsed.data.map(item => String(item?.code || '').trim());
+  if (new Set(identities).size !== identities.length) return { cache: null, changed: true, remove: true };
 
   const fetchedAt = normalizeCacheTimestamp(parsed.fetchedAt || parsed.time);
   if (!fetchedAt || fetchedAt > now + futureSkewMs) return { cache: null, changed: true, remove: true };

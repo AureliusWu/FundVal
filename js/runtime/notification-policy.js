@@ -1,6 +1,7 @@
 import { parseQuoteTimestamp } from './quote-contract.js';
+import { chinaDateKey } from './market-clock.js';
+import { createValuationPeriod } from './valuation-period.js';
 
-const CHINA_TIME_ZONE = 'Asia/Shanghai';
 const ELIGIBLE_STATUSES = new Set(['realtime', 'delayed']);
 
 export const DEFAULT_NOTIFICATION_MAX_AGE_MS = 10 * 60 * 1000;
@@ -21,30 +22,13 @@ export const NOTIFICATION_REJECTION_REASONS = Object.freeze({
   FETCHED_AT_IN_FUTURE: 'fetched_at_in_future',
   OBSERVED_AT_EXPIRED: 'observed_at_expired',
   FETCHED_AT_EXPIRED: 'fetched_at_expired',
+  PERIOD_NOT_TODAY: 'period_not_today',
+  CACHED_QUOTE: 'cached_quote',
 });
 
 function instantMs(value) {
   const number = value instanceof Date ? value.getTime() : Number(value);
   return Number.isFinite(number) ? number : null;
-}
-
-function chinaDateKey(timestamp) {
-  try {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: CHINA_TIME_ZONE,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(new Date(timestamp));
-    const values = Object.fromEntries(
-      parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]),
-    );
-    return values.year && values.month && values.day
-      ? `${values.year}-${values.month}-${values.day}`
-      : null;
-  } catch (_) {
-    return null;
-  }
 }
 
 function rejected(reason, details = {}) {
@@ -109,6 +93,8 @@ export function evaluateNotificationEligibility(quote, {
     'fetchedAt', fetchedMs, nowMs, today, maxAgeMs, maxFutureSkewMs,
   );
   if (fetchedReason) return rejected(fetchedReason);
+  if (quote.sourceTier === 'cache' || quote.cacheState != null) return rejected(NOTIFICATION_REJECTION_REASONS.CACHED_QUOTE);
+  if (!createValuationPeriod(quote, { now: nowMs }).isTodayEstimate) return rejected(NOTIFICATION_REJECTION_REASONS.PERIOD_NOT_TODAY);
 
   return eligible({
     observedAgeMs: Math.max(0, nowMs - observedMs),
