@@ -83,11 +83,22 @@
     "networkServerMainThreadDecomposition": "NOT_MEASURED",
     "formatterEvidence": "Old count contract: 420 constructions per wave. New cached formatters: at most once per required zone in a cold wave and zero in the following warm wave; not a page latency measurement."
   },
+  "remoteChecks": {
+    "scope": "Exact business SHA only; not later evidence-document HEAD or main-only admission.",
+    "businessSha": "1c23d2f3765d8802e0acf4b65d5b9938533e2ca6",
+    "push": { "runId": "36887153653", "attempt": 1, "status": "completed", "conclusion": "success", "url": "https://github.com/AureliusWu/FundVal/actions/runs/36887153653", "candidateJobId": "110453298719", "codeqlJobId": "110453299201" },
+    "pullRequest": { "runId": "36887162411", "attempt": 1, "status": "completed", "conclusion": "success", "url": "https://github.com/AureliusWu/FundVal/actions/runs/36887162411", "candidateJobId": "110453316176", "codeqlJobId": "110453316698", "headMatchedBusinessSha": true, "state": "OPEN_DRAFT" },
+    "independentCodeQL": { "checkId": "110453699985", "conclusion": "success", "existingFindingsClaimedFixed": false },
+    "pushLinuxLog": { "tests": 734, "pass": 734, "fail": 0, "skipped": 0, "syntaxFiles": 173, "e2ePass": 20, "e2eDurationSeconds": 35.3, "auditVulnerabilities": 0, "appChunks": 25, "appRawBytes": 244782, "ocrAssets": 23, "ocrBytes": 88196906, "coldGzipBytes": 44012, "allNonOcrGzipBytes": 83330 },
+    "artifact": { "id": "11174589521", "name": "fundval-candidate-1c23d2f3765d8802e0acf4b65d5b9938533e2ca6-1", "declaredZipSizeBytes": 92623860, "declaredZipDigest": "sha256:9ab2eeeb1bcff119395fc61eed3a5f3b7d79106a148a564d6c2c807863651f55", "independentlyDownloadedAndHashed": false, "mainOnlyAdmission": "NOT_RUN_FOR_THIS_FEATURE_ARTIFACT", "deployable": false },
+    "allGzipAndRelativeP95AutomaticallyGatedByCI": false,
+    "productionTouched": false
+  },
   "remaining": [
     "All non-OCR gzip budget FAIL; M3 cannot exit or merge.",
     "Relative p95 and network/server/main-thread evidence incomplete.",
     "P2 warm detail quote cache checks field presence, not quoteTime age; long-lived cross-day PWA plus refresh failure can retain old holdings changes.",
-    "Current business commit CI not yet bound by this local evidence; old CI cannot be inherited.",
+    "Remote CI is bound to business SHA 1c23d2f only, not a subsequent document commit; green CI does not enforce the all-gzip or relative p95 plan gates.",
     "No formal main candidate, production deployment, physical Android/iOS/PWA acceptance or real durable multi-browser cloud writes."
   ],
   "unchangedBoundaries": [

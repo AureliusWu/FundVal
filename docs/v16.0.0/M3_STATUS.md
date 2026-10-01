@@ -107,7 +107,7 @@
 2. 同机性能与 p95 相对门禁证据尚不完整。桌面 3 秒绝对交互预算通过不等于 v16 相对性能门禁通过。
 3. 旧手动详情行情路径、裸 f12 映射与 US 模型专属重复获取已在第 7 节修复。仍有 **P2 暖详情时间陈旧风险**：`js/app.js:1274` 的 `fetchFundDetails` 对已有有限 change / 非空 quoteTime 的缓存只检查字段存在，未按时间解析与年龄判断；独立复核用实际函数合成复现了 28.5 小时旧涨跌仍保留、详情行情请求 0 次。长驻 PWA 跨日且主刷新失败时，可能继续展示旧重仓涨跌，详情表也未单独标记行情日期；昨日行情仍被重仓估值计算器排除，不扩大为“昨日值参与今日估值”的结论。后续应先以真实时间 / 跨日失败场景建立行为测试，再给旧行情明确状态或重新获取；不得把请求时间改写成行情时间。
 4. 共享资源策略与缓存边界已复用，但总包体积仍 FAIL；不同构建参数的尝试没有作为已证明的性能优化采纳。Intl 计数测试证明的是 formatter 构造复用，不是生产页面 p95 改善。
-5. 此前业务 SHA 的 GitHub 分支 / PR CI 与分支产物内容核对通过，见第 6 节；第 7 节新业务需独立检查对应 SHA 的 CI，不能继承旧结果。正式主线 candidate 验证仍未满足。draft PR 可保存检查点，但不意味着允许 M3 EXIT 或生产部署。
+5. 此前业务 SHA 的 GitHub 分支 / PR CI 与分支产物内容核对通过，见第 6 节；第 7 节新业务已独立检查对应 SHA 的 CI，见第 8 节，没有继承旧结果。正式主线 candidate 验证仍未满足。draft PR 可保存检查点，但不意味着允许 M3 EXIT 或生产部署。
 6. M4 多档案同步合同、M5 OCR 导入/解码/取消/PWA 合同、M6 三类物理设备与同一产物发布继续按原顺序，未跳过。外部 fund-compass Worker 未修改，v2 服务未协同上线。
 
 任何历史 M0/M2 生产、候选、真机与实际 durable write 证据边界仍保持。此检查点不改变生产版本，也不声明 v16 完成。
@@ -156,3 +156,19 @@
 两次同一未提交工作树 / SOURCE_DATE_EPOCH `1790868176` 的关键发布集指纹均为 `4648acf3fb53619cf1f1cfbd28eead9b58668c1f413b2b4e49792ca191429ea6`。它不是提交后 CI artifact 指纹、正式 main candidate 或生产完整目录证明。
 
 本次完整浏览器套件附带 3 组 cold / warm / save 样本，仅用于本地 3 秒绝对断言；没有与旧版隔离配对采样，不据此替换第 4 节的历史同机样本，也不宣称生产 p95 / 因果改善。**all-gzip RED，relative p95 未验证，M3 仍 IN PROGRESS**。只提交 / 推送 draft PR 检查点，不 merge、不 dispatch deploy、不提前启动 M4/M5/M6，也不更新版本号。
+
+## 8. 细化业务提交的独立 CI 结果
+
+- 业务 SHA `1c23d2f3765d8802e0acf4b65d5b9938533e2ca6` 已推送；[push 36887153653](https://github.com/AureliusWu/FundVal/actions/runs/36887153653) / [PR 36887162411](https://github.com/AureliusWu/FundVal/actions/runs/36887162411) 均 `completed / success`，attempt 1。读回 PR #12 head 与该 SHA 一致，仍 OPEN / draft；两个 candidate、两个 codeql 与独立 CodeQL 共 5 项检查均 SUCCESS。
+- push Linux 的实际日志：734 tests / 734 pass / 0 fail / 0 skip；syntax 173；E2E 20/20（35.3 秒）；official audit 0。app 25 chunks / 244,782 B、OCR 23 assets / 88,196,906 B 的官方内容检查通过；cold 44,012 / 52,241 B、all 83,330 B，与第 7 节本地产物大小一致。
+- push 上传 artifact `11174589521`，名称 `fundval-candidate-1c23d2f3765d8802e0acf4b65d5b9938533e2ca6-1`，API 声明外 ZIP size 92,623,860 B、digest `sha256:9ab2eeeb1bcff119395fc61eed3a5f3b7d79106a148a564d6c2c807863651f55`。本次没有下载 / 独立 hash 该 ZIP 或运行 main-only admission，不把 API 声明或 CI job 名称写成正式 main candidate 已验证。
+- CI 没有自动执行本计划的 all-gzip 相对门禁与稳定 p95 门禁；green 不能覆盖 `83,330 > 77,227.7`。CodeQL 检查通过也不代表第 6 节既有 finding 已解决。未改 main 保护、未 merge、未部署。
+- 后续证据文档提交只绑定上述业务 SHA；不把本地 `07271f7` SOURCE_DATE_EPOCH 的指纹冒充该 SHA 的 CI artifact 指纹，也不继承为后续 docs HEAD 的检查结果。
+
+### 下一小批候选（只读分析，尚未实施）
+
+1. `js/storage/holdings-schema.js:139`：已规范化 record / document 的重复构造与 JSON round-trip。只读 18 组 record + 18 组 document 逐字节对照一致，但正式改动仍需精确 JSON / 字段顺序、null/0、tombstone、revision/device、排序、错误代码与无 mutation 的 characterization；canonical 字节是 CAS / 云同步契约，不能只比较解析后的对象。
+2. `js/runtime/source-registry.js:315`：来源健康 success/partial/failure 的重复更新与可尝试谓词。保留单调 availableAt、partial=degraded、unavailable 保护、精确 cooldown、单探针、取消不计失败和不可变快照；不能删掉不同信任边界的缓存 / Worker 校验。
+3. `quote-presentation.js` / `security-quote-batch.js` / `holdings-estimate.js` 的北京时间 epoch 文本格式化。保留秒 / 毫秒、date-only、null/非法值与历史解析包装；共享 helper 进入 cold 后可能抵消节省，必须按同配置产物实测净值，不用源码行数推断收益。
+
+三项均没有隔离 gzip 收益证据，不能承诺填补 6,103 B。现有正确行为应先 characterization GREEN，再等价优化；真正的性能 RED 是 all 门禁，不将缺少新 helper 的 RED 宣传为旧业务缺陷。暖详情修复另需区分历史显示、是否补查与是否参与今日估值：境内假期的合法最近收盘、US 跨中国午夜但同当地日都不能简单清空；future / 不可解析时点不得冒充有效行情。新请求失败保留旧合法值时必须标明原 source time / 旧状态，不续期、不改模型 36 小时 / NAV 区间规则。
