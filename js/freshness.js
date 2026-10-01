@@ -1,8 +1,7 @@
 import {
   classifyMarketKind,
-  marketSession,
-  refreshDelayForMarketKinds,
 } from './runtime/market-session.js';
+import { marketClock, marketRefreshDelay } from './runtime/market-clock.js';
 
 const MINUTE = 60 * 1000;
 export const MAX_FUTURE_SOURCE_SKEW_MS = 5 * MINUTE;
@@ -29,11 +28,11 @@ export function classifyFundMarket(name) {
 }
 
 export function marketState(market, now = new Date()) {
-  return marketSession(market, now).marketState;
+  return marketClock(market, now).marketState;
 }
 
 export function refreshDelayForMarkets(markets, now = new Date()) {
-  return refreshDelayForMarketKinds(markets, now);
+  return marketRefreshDelay(markets, now);
 }
 
 export function buildFreshness({ sourceTime, fetchedAt = new Date().toISOString(), calculatedAt = null, source, isFallback = false, fallbackReason = null, market = 'cn', model = false, official = false, unavailable = false }, now = Date.now()) {

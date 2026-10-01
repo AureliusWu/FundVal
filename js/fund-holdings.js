@@ -1,11 +1,15 @@
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
 import { fundDataApiUrl } from './config.js';
+import { parseWorkerEnvelope } from './runtime/worker-contract.js';
 
 const TIMEOUT = 10000;
 
 function numberOrNaN(value) {
-  if (value == null || String(value).trim() === '') return NaN;
-  const number = Number(String(value).replace('%', '').trim());
+  if (value == null || typeof value === 'boolean') return NaN;
+  const raw = String(value).trim();
+  const body = raw.endsWith('%') ? raw.slice(0, -1) : raw;
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(body)) return NaN;
+  const number = Number(body);
   return Number.isFinite(number) ? number : NaN;
 }
 
@@ -60,13 +64,16 @@ export async function fetchFundHoldings(code, options = {}) {
     });
     if (!response.ok) throw new Error(`重仓代理 HTTP ${response.status}`);
     const payload = await response.json();
-    if (!payload || !Array.isArray(payload.items)) throw new Error('重仓代理响应无效');
-    const items = payload.items.map(normalizeHoldingRow).filter(Boolean).slice(0, 10);
+    const envelope = parseWorkerEnvelope(payload, { endpoint: 'holdings', requestedCodes: [fundCode], now: options.now });
+    const items = envelope.items;
     return {
-      status: items.length ? 'ok' : 'empty',
-      reportDate: String(payload.report_date || ''),
-      fetchedAt: String(payload.fetched_at || ''),
-      source: String(payload.source || 'sinan-holdings-proxy'),
+      status: items.length ? (envelope.status === 'ok' ? 'ok' : 'degraded')
+        : (envelope.status === 'unavailable' ? 'unavailable' : 'empty'),
+      sourceStatus: envelope.status,
+      wireVersion: envelope.wireVersion,
+      reportDate: envelope.reportDate,
+      fetchedAt: envelope.fetchedAt,
+      source: envelope.source || 'sinan-holdings-proxy',
       items,
     };
   } catch (error) {

@@ -1,3 +1,6 @@
+import { chinaDateKey } from './market-clock.js';
+import { canonicalSourceId, getDataSourceDescriptor } from './source-registry.js';
+
 export const QUOTE_VALUE_KINDS = Object.freeze([
   'intraday_estimate',
   'official_nav',
@@ -41,9 +44,11 @@ function text(value) {
 }
 
 export function nullableNumber(value, { minimum = -Infinity, maximum = Infinity } = {}) {
-  if (value == null || typeof value === 'boolean') return null;
-  if (typeof value === 'string' && !value.trim()) return null;
-  const number = Number(String(value).replace('%', '').replace(/,/g, '').trim());
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  let raw = typeof value === 'string' ? value.trim() : String(value);
+  if (raw.endsWith('%')) raw = raw.slice(0, -1).trim();
+  if (!/^[+-]?(?:(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw)) return null;
+  const number = Number(raw.replace(/,/g, ''));
   return Number.isFinite(number) && number >= minimum && number <= maximum ? number : null;
 }
 
@@ -82,6 +87,10 @@ export function parseQuoteTimestamp(value) {
   const source = text(value);
   if (!source || /^\d{4}-\d{2}-\d{2}$/.test(source)) return null;
   const china = source.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  const zoned = source.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/);
+  const parts = china || zoned;
+  if (!parts || !normalizeQuoteDate(`${parts[1]}-${parts[2].padStart(2, '0')}-${parts[3].padStart(2, '0')}`)
+    || Number(parts[4]) > 23 || Number(parts[5]) > 59 || Number(parts[6] || 0) > 59) return null;
   const timestamp = china
     ? Date.parse(`${china[1]}-${String(china[2]).padStart(2, '0')}-${String(china[3]).padStart(2, '0')}T${String(china[4]).padStart(2, '0')}:${china[5]}:${String(china[6] || '0').padStart(2, '0')}+08:00`)
     : Date.parse(source);
@@ -105,10 +114,10 @@ export function nextWeekdayDate(value) {
   return next.toISOString().slice(0, 10);
 }
 
-function validFetchedAt(value, nowMs) {
+function validFetchedAt(value, nowMs, cached = false) {
   const candidate = text(value);
-  const timestamp = candidate ? Date.parse(candidate) : NaN;
-  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : new Date(nowMs).toISOString();
+  const timestamp = candidate ? parseQuoteTimestamp(candidate) : null;
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : cached ? null : new Date(nowMs).toISOString();
 }
 
 function normalizeEnum(value, allowed, fallback) {
@@ -121,7 +130,7 @@ export function createQuoteEnvelope(input = {}, { now = Date.now() } = {}) {
   const nowMs = Number.isFinite(nowNumber) ? nowNumber : Date.now();
   const observedAt = text(input.observedAt) || null;
   const observedMs = parseQuoteTimestamp(observedAt);
-  const value = nullableNumber(input.value);
+  const value = nullableNumber(input.value, { minimum: Number.MIN_VALUE });
   const changePct = nullableNumber(input.changePct);
   const valueKind = normalizeEnum(input.valueKind, VALUE_KIND_SET, 'intraday_estimate');
   const baseNav = nullableNumber(input.baseNav, { minimum: Number.MIN_VALUE });
@@ -130,22 +139,59 @@ export function createQuoteEnvelope(input = {}, { now = Date.now() } = {}) {
   const officialNavDate = normalizeQuoteDate(input.officialNavDate);
   const reasonCodes = normalizeReasonCodes(input.reasonCodes);
   let status = normalizeEnum(input.status, STATUS_SET, 'unavailable');
+  const sourceTier = normalizeEnum(input.sourceTier, SOURCE_TIER_SET, 'secondary');
+  const cached = sourceTier === 'cache';
+  const originalSource = canonicalSourceId(input.originalSource || (cached && input.sourceId !== 'local-cache' ? input.sourceId : null));
+  const originalSourceTier = ['primary', 'secondary', 'model'].includes(input.originalSourceTier) ? input.originalSourceTier : null;
+  let cacheState = ['fresh', 'stale', 'expired'].includes(input.cacheState) ? input.cacheState : null;
+  const cachedAt = Number.isSafeInteger(input.cachedAt) && input.cachedAt >= 0 ? input.cachedAt : null;
+  const expiresAt = Number.isSafeInteger(input.expiresAt) && input.expiresAt >= 0 ? input.expiresAt : null;
+  const fetchedMs = parseQuoteTimestamp(input.fetchedAt);
+  if (cached && cacheState === 'fresh' && (cachedAt == null || expiresAt == null || fetchedMs == null)) {
+    cacheState = null;
+    reasonCodes.push('CACHE_METADATA_MISSING');
+  }
+  if (cached && cacheState === 'fresh' && expiresAt != null && nowMs >= expiresAt) cacheState = 'stale';
+  if (cached && cacheState === 'fresh' && (originalSource === 'local-cache' || !getDataSourceDescriptor(originalSource) || !originalSourceTier)) {
+    cacheState = null;
+    reasonCodes.push('CACHE_PROVENANCE_INVALID');
+  }
+  if (cached && ((input.cachedAt != null && cachedAt == null) || (input.expiresAt != null && expiresAt == null)
+    || cachedAt > nowMs || (fetchedMs != null && cachedAt != null && fetchedMs > cachedAt)
+    || (cachedAt != null && expiresAt != null && expiresAt <= cachedAt))) {
+    cacheState = null;
+    reasonCodes.push('CACHE_METADATA_INVALID');
+  }
   let ageMs = observedMs == null ? null : Math.max(0, nowMs - observedMs);
 
-  if (value == null && changePct == null) {
+  const invalidEnum = (input.valueKind != null && !VALUE_KIND_SET.has(text(input.valueKind).toLowerCase()))
+    || (input.sourceTier != null && !SOURCE_TIER_SET.has(text(input.sourceTier).toLowerCase()))
+    || (input.status != null && !STATUS_SET.has(text(input.status).toLowerCase()));
+  if (invalidEnum) {
     status = 'unavailable';
-    reasonCodes.push(...normalizeReasonCodes('MISSING_QUOTE_VALUE'));
+    reasonCodes.push('QUOTE_ENUM_INVALID');
+  }
+
+  if (status === 'unavailable' || (value == null && changePct == null)) {
+    status = 'unavailable';
+    if (value == null && changePct == null) reasonCodes.push('MISSING_QUOTE_VALUE');
   } else if (observedMs != null && observedMs > nowMs + MAX_QUOTE_FUTURE_SKEW_MS) {
     status = 'stale';
     ageMs = null;
     reasonCodes.push(...normalizeReasonCodes('SOURCE_TIME_IN_FUTURE'));
-  } else if ((officialNavDate || targetDate) > new Date(nowMs + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)) {
+  } else if ([officialNavDate, targetDate, baseNavDate].some(date => date && date > chinaDateKey(nowMs))) {
     status = 'stale';
     reasonCodes.push('SOURCE_DATE_IN_FUTURE');
   } else if (['model_estimate', 'holding_lookthrough_estimate'].includes(valueKind)
     && (baseNav == null || !baseNavDate || !targetDate || baseNavDate >= targetDate)) {
     status = 'stale';
     reasonCodes.push('MODEL_PERIOD_UNBOUND');
+  }
+  if (cached && status !== 'unavailable') {
+    if (!cacheState || cacheState !== 'fresh' || status === 'stale') {
+      status = 'stale';
+      reasonCodes.push(cacheState ? 'CACHE_EXPIRED' : 'CACHE_METADATA_MISSING');
+    } else if (status === 'realtime') status = 'delayed';
   }
 
   return Object.freeze({
@@ -154,15 +200,20 @@ export function createQuoteEnvelope(input = {}, { now = Date.now() } = {}) {
     market: normalizeEnum(input.market, MARKET_KIND_SET, 'unknown'),
     assetKind: normalizeEnum(input.assetKind, ASSET_KIND_SET, 'unknown'),
     valueKind,
-    value,
-    changePct,
-    baseNav,
+    value: status === 'unavailable' ? null : value,
+    changePct: status === 'unavailable' ? null : changePct,
+    baseNav: status === 'unavailable' ? null : baseNav,
     baseNavDate,
     targetDate,
-    sourceId: text(input.sourceId) || 'unknown',
-    sourceTier: normalizeEnum(input.sourceTier, SOURCE_TIER_SET, 'secondary'),
+    sourceId: cached ? 'local-cache' : text(input.sourceId) || 'unknown',
+    sourceTier,
+    originalSource: originalSource === 'unknown' ? null : originalSource,
+    originalSourceTier,
+    cacheState: cached ? cacheState : null,
+    cachedAt,
+    expiresAt,
     observedAt,
-    fetchedAt: validFetchedAt(input.fetchedAt, nowMs),
+    fetchedAt: validFetchedAt(input.fetchedAt, nowMs, cached),
     officialNavDate,
     status,
     ageMs,
@@ -196,7 +247,7 @@ export function quoteStatusRank(quoteOrStatus) {
 }
 
 export function quoteIsUsable(quote) {
-  return Boolean(quote && quote.status !== 'unavailable' && (quote.value != null || quote.changePct != null));
+  return Boolean(quote && STATUS_SET.has(quote.status) && quote.status !== 'unavailable' && (quote.value != null || quote.changePct != null));
 }
 
 export function compareQuotesByQuality(left, right) {

@@ -276,3 +276,95 @@ test('v16: error output contains only a stable reason, not payload source or use
     endpoint: 'estimates', requestedCodes: ['000002'], now,
   }), (error) => error.name === 'WorkerContractError' && !error.message.includes(hostile) && !JSON.stringify(error).includes(hostile));
 });
+
+test('v16: versioned status is mandatory and cannot contradict item availability', async () => {
+  const { parseWorkerEnvelope } = await contract();
+  for (const overrides of [{ status: undefined }, { status: null }, { status: 'unavailable' }]) {
+    assert.throws(() => parseWorkerEnvelope(estimatesV2([intradayRow()], overrides), {
+      endpoint: 'estimates', requestedCodes: ['000002'], now,
+    }), fixedError('WORKER_STATUS_INVALID'));
+  }
+});
+
+test('v16: v2 rows require canonical identity/value/date fields, not a silent legacy row adapter', async () => {
+  const { normalizeWorkerEstimateRow } = await contract();
+  const row = intradayRow();
+  for (const key of ['kind', 'base_nav', 'base_nav_date', 'value_nav', 'value_date', 'source_time']) {
+    const legacy = { ...row };
+    delete legacy[key];
+    assert.throws(() => normalizeWorkerEstimateRow(legacy, { wireVersion: 2, now }), fixedError('WORKER_ROW_INVALID'));
+  }
+});
+
+test('v16: unavailable top-level result cannot carry a trusted NAV and malformed optional dates fail closed', async () => {
+  const { parseWorkerEnvelope, normalizeWorkerEstimateRow } = await contract();
+  assert.throws(() => parseWorkerEnvelope(estimatesV1([officialRow()], { status: 'unavailable' }), {
+    endpoint: 'estimates', requestedCodes: ['000001'], now,
+  }), fixedError('WORKER_STATUS_INVALID'));
+  for (const row of [officialRow({ base_nav_date: '2026-02-30' }),
+    officialRow({ base_nav: null, last_nav: null, base_nav_date: '2026-09-28' })]) {
+    assert.throws(() => normalizeWorkerEstimateRow(row, { wireVersion: 2, now }), fixedError('WORKER_ROW_INVALID'));
+  }
+});
+
+test('v16: partial holdings require per-row status/reasons and remain degraded at the client boundary', async () => {
+  const { parseWorkerEnvelope } = await contract();
+  const input = holdingsV2(holdingRows(), { status: 'partial', reason: 'partial_batch' });
+  assert.throws(() => parseWorkerEnvelope(input, { endpoint: 'holdings', requestedCodes: ['000001'], now }),
+    fixedError('WORKER_PARTIAL_SEMANTICS_INVALID'));
+  const valid = { ...input, items: input.items.map(row => ({ ...row, status: 'ok', reason: 'partial_batch' })) };
+  await withResponse(valid, async () => {
+    const result = await fetchFundHoldings('000001', { now });
+    assert.equal(result.status, 'degraded');
+    assert.equal(result.sourceStatus, 'partial');
+  });
+});
+
+test('v16: explicit legacy-success evidence adapts real v1 mixed batches without relaxing v2', async () => {
+  const { parseWorkerEnvelope } = await contract();
+  const success = intradayRow();
+  const input = estimatesV1([success, officialRow()]);
+  const result = parseWorkerEnvelope(input, { endpoint: 'estimates', requestedCodes: ['000002', '000001'], now });
+  assert.ok(result.items[0].adapterReasonCodes.includes('LEGACY_SUCCESS_ROW'));
+  assert.equal(result.items[0].source_time, success.source_time);
+  assert.equal(result.items[0].source_status, 'fresh');
+  const v2 = estimatesV2(input.items, { status: 'degraded' });
+  assert.throws(() => parseWorkerEnvelope(v2, { endpoint: 'estimates', requestedCodes: ['000002', '000001'], now }),
+    fixedError('WORKER_PARTIAL_SEMANTICS_INVALID'));
+  for (const bad of [success && { ...success, status: 'invented' }, { ...success, status: undefined },
+    { ...success, source: '' }, { ...success, base_nav_date: null }]) {
+    assert.throws(() => parseWorkerEnvelope(estimatesV1([bad, officialRow()]), {
+      endpoint: 'estimates', requestedCodes: ['000002', '000001'], now,
+    }));
+  }
+});
+
+test('v16: a wire source_status field cannot override an unknown transport/quality status', async () => {
+  const { parseWorkerEnvelope, normalizeWorkerEstimateRow } = await contract();
+  const row = intradayRow({ status: 'invented', source_status: 'fresh' });
+  assert.throws(() => normalizeWorkerEstimateRow(row, { wireVersion: 2, now }), fixedError('WORKER_STATUS_INVALID'));
+  assert.throws(() => parseWorkerEnvelope(estimatesV2([row]), { endpoint: 'estimates', requestedCodes: ['000002'], now }),
+    fixedError('WORKER_STATUS_INVALID'));
+});
+
+test('v16: explicit canonical missing report evidence and unknown precision cannot be rescued by aliases', async () => {
+  const { normalizeWorkerEstimateRow } = await contract();
+  assert.throws(() => normalizeWorkerEstimateRow(holdingsModelRow({ report_date: null }), { wireVersion: 2, now }),
+    fixedError('WORKER_ALIAS_CONFLICT'));
+  for (const source_time_precision of ['invented', null, 1]) {
+    assert.throws(() => normalizeWorkerEstimateRow(intradayRow({ source_time_precision }), { wireVersion: 2, now }),
+      fixedError('WORKER_ROW_INVALID'));
+  }
+});
+
+test('v16: current v1 official null model aliases survive HTTP parse and client normalization', async () => {
+  const row = officialRow({ coverage: null, model_coverage: null, quote_count: null, model_quote_count: null,
+    report_date: null, model_report_date: null });
+  await withResponse(estimatesV1([row]), async () => {
+    const result = (await fetchEstimateRows(['000001'], { now })).get('000001');
+    assert.equal(result.status, 'ok');
+    assert.equal(result.source_status, 'latest_official');
+    assert.equal(result.est_nav, 1.02);
+    assert.equal(result.source_quote.value, 1.02);
+  });
+});

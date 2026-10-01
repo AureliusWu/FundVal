@@ -46,3 +46,10 @@ test('verified early closes shorten the regular session without inventing holida
   assert.equal(us.marketState, 'closed');
   assert.equal(us.calendarStatus, 'valid');
 });
+
+test('a weekend base cannot be promoted into an adjacent single trading session', async () => {
+  const { isSingleMarketSession } = await import('../js/runtime/market-clock.js');
+  assert.equal(isSingleMarketSession('2026-09-26', '2026-09-28', 'cn'), false);
+  assert.equal(isSingleMarketSession('2026-09-27', '2026-09-28', 'cn'), false);
+  assert.equal(isSingleMarketSession('2026-09-28', '2026-09-29', 'cn'), true);
+});

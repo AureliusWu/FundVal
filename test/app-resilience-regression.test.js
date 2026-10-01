@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('app uses safe persistence, cache-to-holding binding, timeout and merge guards', async () => {
-  const [app, bootstrap, gistRemote, index, diagnostics] = await Promise.all([
+  const [app, bootstrap, gistRemote, index, diagnostics, cloudArchive] = await Promise.all([
     readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/bootstrap.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/storage/gist-remote.js', import.meta.url), 'utf8'),
     readFile(new URL('../index.html', import.meta.url), 'utf8'),
     readFile(new URL('../js/runtime/diagnostics-ui.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/storage/cloud-archive-ui.js', import.meta.url), 'utf8'),
   ]);
 
   assert.doesNotMatch(app, /localStorage\s*\./);
@@ -16,14 +17,14 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(app, /fetchWithTimeout\([\s\S]*push2\.eastmoney\.com/);
   assert.match(app, /synchronizeHoldingsCloud/);
   assert.match(app, /pullHoldingsCloud/);
-  assert.match(app, /backupCloudSyncSnapshot/);
+  assert.match(cloudArchive, /backupCloudSyncSnapshot/);
   assert.equal((app.match(/method:\s*'PATCH'/g) || []).length, 0);
   assert.equal((gistRemote.match(/method:\s*'PATCH'/g) || []).length, 1);
   assert.match(app, /cache\.holdingsHash !== holdingsHash\(holdings\)/);
   assert.match(app, /meta\.pending_hash/);
-  assert.match(app, /const uploadDocument = normalizeHoldingsDocumentV3\(holdingsDocument\)/);
-  assert.match(app, /finalizeCreatedArchiveState\([\s\S]*uploadDocument,[\s\S]*currentLoaded\.document/);
-  assert.match(app, /syncPending = finalized\.pending/);
+  assert.match(cloudArchive, /const uploadDocument = normalizeHoldingsDocumentV3\(holdingsDocument\)/);
+  assert.match(cloudArchive, /finalizeCreatedArchiveState\([\s\S]*uploadDocument,[\s\S]*currentLoaded\.document/);
+  assert.match(cloudArchive, /setSyncPending\(finalized\.pending\)/);
   assert.match(app, /import\('\.\/runtime\/quote-bridge-client\.js'\)/);
   assert.match(app, /function fetchLatestNavMoveRaw[\s\S]*bridge\.officialFundData/);
   assert.match(app, /function fetchTencentQuotes[\s\S]*bridge\.overseasComponents/);
@@ -39,7 +40,8 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(app, /d\.freshness = legacyFreshnessFromQuote\(d\.quote\)/);
   assert.match(app, /d\.today_is_latest_nav = d\.quote\.valueKind === 'official_nav'/);
   assert.doesNotMatch(app, /d\.today_is_latest_nav\s*=\s*true/);
-  assert.match(app, /createQuotePresentation\(f\.quote, \{ now: Date\.now\(\) \}\)/);
+  assert.match(app, /createQuotePresentation\(f\.quote, \{ now, shares: f\.shares, period: f\.period \}\)/);
+  assert.match(app, /Object\.assign\(d, holdingQuoteAmounts\(d\.quote, h, d\.updatedAt\)\)/);
   assert.match(app, /class="fund-card-toggle"[\s\S]*aria-expanded=/);
   assert.match(app, /data-fund-toggle=[\s\S]*aria-controls=/);
   assert.match(app, /focusedToggleCode[\s\S]*preventScroll: true/);
@@ -52,7 +54,6 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(app, /cost: holding\.cost == null \? null : holding\.cost/);
   assert.doesNotMatch(app, /cost:\s*(?:h|holding)\.cost\s*\|\|\s*0/);
   assert.match(app, /d\.primary_base_nav = resolveQuoteBaseNav\(d, d\.quote\)/);
-  assert.match(app, /var nav = isUsableNav\(d\.primary_nav\) \? d\.primary_nav : NaN/);
   assert.match(app, /toNonNegativeNumber\(document\.getElementById\('i-cost'\)\.value, \{ nullable: true \}\)/);
   assert.match(app, /function updateLatestSourceSummary[\s\S]*quote\.status === 'stale'[\s\S]*parseQuoteTimestamp/);
   assert.match(app, /function staleIndexItem[\s\S]*status: 'stale', cached: true/);

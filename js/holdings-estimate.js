@@ -1,11 +1,10 @@
+import { normalizeQuoteDate, nullableNumber, parseQuoteTimestamp } from './runtime/quote-contract.js';
+import { chinaDateKey, isSingleMarketSession } from './runtime/market-clock.js';
+import { validateHoldingSet } from './runtime/holding-set-contract.js';
+
 const MIN_COVERAGE = 50;
 const MIN_QUOTES = 5;
 const MAX_REPORT_AGE_MS = 185 * 24 * 60 * 60 * 1000;
-
-function chinaDateKey(timestamp) {
-  const date = new Date(timestamp + 8 * 60 * 60 * 1000);
-  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : '';
-}
 
 export function formatChinaQuoteTime(timestampSeconds) {
   const timestamp = Number(timestampSeconds) * 1000;
@@ -48,7 +47,8 @@ export function normalizeTencentQuoteTime(value, quoteCode = '') {
   const compact = parseTencentQuoteTime(value);
   const text = compact || String(value || '').trim();
   const match = text.match(/^(\d{4})[/-](\d{2})[/-](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) return '';
+  if (!match || !normalizeQuoteDate(`${match[1]}-${match[2]}-${match[3]}`)
+    || Number(match[4]) > 23 || Number(match[5]) > 59 || Number(match[6] || 0) > 59) return '';
   const code = String(quoteCode || '').toLowerCase();
   const timeZone = code.startsWith('us')
     ? 'America/New_York'
@@ -70,15 +70,12 @@ export function normalizeTencentQuoteTime(value, quoteCode = '') {
 }
 
 function parseChinaQuoteTime(value) {
-  const text = String(value || '').trim();
-  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) return NaN;
-  return Date.parse(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6] || '00'}+08:00`);
+  return parseQuoteTimestamp(value) ?? NaN;
 }
 
 export function isCurrentHoldingsReport(reportDate, now = Date.now()) {
   const text = String(reportDate || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  if (!normalizeQuoteDate(text) || text > chinaDateKey(now)) return false;
   const reportMs = Date.parse(`${text}T23:59:59+08:00`);
   const nowMs = Number(now);
   return Number.isFinite(reportMs) && Number.isFinite(nowMs)
@@ -92,6 +89,10 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
   const minCoverage = Number.isFinite(options.minCoverage) ? options.minCoverage : MIN_COVERAGE;
   const minQuotes = Number.isFinite(options.minQuotes) ? options.minQuotes : MIN_QUOTES;
   const reportDate = String(options.reportDate || '').trim();
+  const validation = validateHoldingSet(stocks, { reportDate, now, wireVersion: 1 });
+  const blockingReasons = validation.reasonCodes.filter(code => options.requireCurrentReport || !code.startsWith('HOLDINGS_REPORT_'));
+  if (blockingReasons.length) return { available: false, change: null, coverage: 0, quoteCount: 0, sourceTime: null, reportDate,
+    reason: '重仓集合或披露日期无效', reasonCodes: blockingReasons };
   if (options.requireCurrentReport && !isCurrentHoldingsReport(reportDate, now)) {
     return {
       available: false,
@@ -101,14 +102,14 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
       sourceTime: null,
       reportDate,
       reason: '重仓披露日期缺失或已过期',
+      reasonCodes: ['HOLDINGS_REPORT_EXPIRED'],
     };
   }
   const usable = [];
 
   (stocks || []).forEach((stock) => {
-    const ratio = Number(stock && stock.ratio);
-    const rawChange = stock && stock.change;
-    const change = rawChange == null || typeof rawChange === 'boolean' || String(rawChange).trim() === '' ? NaN : Number(rawChange);
+    const ratio = nullableNumber(stock && stock.ratio);
+    const change = nullableNumber(stock && stock.change);
     const quoteMs = parseChinaQuoteTime(stock && stock.quoteTime);
     if (!Number.isFinite(ratio) || ratio <= 0 || !Number.isFinite(change) || !Number.isFinite(quoteMs)) return;
     if (chinaDateKey(quoteMs) !== today || quoteMs > now) return;
@@ -125,6 +126,7 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
       sourceTime: null,
       reportDate,
       reason: `当日重仓行情覆盖不足（${usable.length}只，${coverage.toFixed(1)}%）`,
+      reasonCodes: ['HOLDINGS_QUOTE_COVERAGE_INSUFFICIENT'],
     };
   }
 
@@ -138,17 +140,24 @@ export function calculateHoldingsEstimate(stocks, options = {}) {
     sourceTime: formatChinaQuoteTime(latestQuoteMs / 1000),
     reportDate,
     reason: '',
+    reasonCodes: [],
   };
 }
 
 export function latestOfficialNavBase(fund) {
+  const usable = source => source && source.status !== 'stale' && source.status !== 'unavailable'
+    && !source.stale && (!source.cacheState || source.cacheState === 'fresh')
+    && (source.sourceTier !== 'cache' || source.cacheState === 'fresh');
+  const quote = fund.source_quote;
+  const hasProvenance = Boolean(quote || fund.latest_nav_move);
   return [
-    { nav: fund.latest_nav_move?.nav, date: fund.latest_nav_move?.date },
-    ...(fund.source_quote?.valueKind === 'official_nav'
-      ? [{ nav: fund.source_quote.value, date: fund.source_quote.officialNavDate }] : []),
-    ...(fund.est_kind === 'official_nav'
+    ...(usable(fund.latest_nav_move) ? [{ nav: fund.latest_nav_move.nav, date: fund.latest_nav_move.date }] : []),
+    ...(usable(quote) ? [quote.valueKind === 'official_nav'
+      ? { nav: quote.value, date: quote.officialNavDate }
+      : { nav: quote.baseNav, date: quote.baseNavDate }] : []),
+    ...(!hasProvenance && fund.est_kind === 'official_nav'
       ? [{ nav: fund.est_nav, date: fund.value_date || fund.est_time }] : []),
-    { nav: fund.last_nav, date: fund.nav_date },
+    ...(!hasProvenance ? [{ nav: fund.last_nav, date: fund.nav_date }] : []),
   ].map(value => ({ nav: typeof value.nav === 'boolean' ? NaN : Number(value.nav), date: normalizeQuoteDate(value.date) }))
     .filter(value => value.nav > 0 && Number.isFinite(value.nav) && value.date)
     .sort((left, right) => right.date.localeCompare(left.date))[0];
@@ -162,7 +171,7 @@ export function applyHoldingsEstimate(fund, estimate) {
   const targetDate = normalizeQuoteDate(String(estimate.sourceTime || '').slice(0, 10));
   // A one-session stock move cannot bridge missing NAV days, and must never be
   // added a second time when that session is already in the published NAV.
-  if (!official || !targetDate || nextWeekdayDate(official.date) !== targetDate) return fund;
+  if (!official || !targetDate || !isSingleMarketSession(official.date, targetDate, fund.market || 'cn')) return fund;
 
   fund.last_nav = official.nav;
   fund.nav_date = official.date;
@@ -179,7 +188,7 @@ export function applyHoldingsEstimate(fund, estimate) {
   fund.est_holdings_coverage = estimate.coverage;
   fund.est_holdings_quote_count = estimate.quoteCount;
   fund.est_holdings_report_date = String(estimate.reportDate || '');
-  fund.est_note = `按已披露十大重仓${estimate.reportDate ? `（截至${estimate.reportDate}）` : ''}的当日行情估算；覆盖净值${estimate.coverage.toFixed(1)}%，未披露部分按0贡献处理，不是基金公司官方估值`;
+  fund.est_note = `按已披露十大重仓${estimate.reportDate ? `（截至${estimate.reportDate}）` : ''}的当日行情估算；覆盖净值${estimate.coverage.toFixed(1)}%，未披露资产、汇率与调仓影响为未知误差，不是基金公司官方估值`;
   fund.source = 'quarterly-holdings-model';
   return fund;
 }
@@ -200,4 +209,3 @@ export function composeFundEnrichment(rawFund, options = {}) {
   }
   return fund;
 }
-import { nextWeekdayDate, normalizeQuoteDate } from './runtime/quote-contract.js';

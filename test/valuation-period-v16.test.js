@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createValuationPeriod } from '../js/runtime/valuation-period.js';
+import { marketClock } from '../js/runtime/market-clock.js';
 
 const NOW = Date.parse('2026-09-30T05:24:00Z');
 const QUOTE = Object.freeze({
@@ -131,6 +132,32 @@ test('v16 Friday to Monday may be one conservative session but accumulated model
   assert.ok(multi.reasonCodes.includes('PERIOD_NOT_SINGLE_SESSION'));
 });
 
+test('v16 a known mainland exchange holiday cannot be labeled as a today estimate', () => {
+  const now = Date.parse('2026-10-01T05:24:00Z');
+  const result = period({ market: 'cn', baseNavDate: '2026-09-30', targetDate: '2026-10-01' }, { now });
+  assert.equal(result.isTodayInChina, true);
+  assert.equal(result.isTodayEstimate, false);
+  assert.equal(result.periodKind, 'historical');
+  assert.equal(result.displayLabel, '历史区间变动');
+  assert.ok(result.reasonCodes.includes('PERIOD_NOT_SINGLE_SESSION'));
+  // The period layer must not infer cn from an absent/unknown market.
+  const unknown = period({ baseNavDate: '2026-09-30', targetDate: '2026-10-01' }, { now });
+  assert.equal(unknown.isTodayEstimate, true);
+});
+
+test('v16 an expired calendar is unverified, while an explicitly bound period does not invent trading-day proof', () => {
+  const now = Date.parse('2027-01-04T05:24:00Z');
+  const calendar = marketClock('cn', now);
+  assert.equal(calendar.calendarStatus, 'unverified');
+  assert.equal(calendar.calendarVersion, null);
+  assert.equal(calendar.isTradingDay, null);
+  const result = period({ market: 'cn', baseNavDate: '2027-01-01', targetDate: '2027-01-04' }, { now });
+  assert.equal(result.isTodayInChina, true);
+  assert.equal(result.isTodayEstimate, false);
+  assert.equal(result.targetDate, '2027-01-04');
+  assert.equal(Object.hasOwn(result, 'calendarStatus'), false);
+});
+
 test('v16 old intraday cache is recomputed at display time instead of preserving old today state', () => {
   const quote = { ...QUOTE, sourceTier: 'cache' };
   const original = createValuationPeriod(quote, { shares: 100, now: NOW, cacheState: 'fresh' });
@@ -203,7 +230,21 @@ test('v16 unknown quote enums and unknown cache state fail closed without a live
     assert.equal(result.periodKind, 'unavailable');
   }
   assert.equal(period({}, { cacheState: 'newest' }).periodKind, 'unavailable');
+  assert.equal(period({ sourceTier: 'cache' }).periodKind, 'unavailable');
   assert.equal(period({}, { now: NaN }).periodKind, 'unavailable');
+});
+
+test('v16 an unheld fund still has an explainable market period but no fabricated holding profit', () => {
+  const result = period({}, { shares: null });
+  assert.equal(result.periodKind, 'intraday');
+  assert.equal(result.isTodayEstimate, true);
+  assert.equal(result.profitAmount, null);
+});
+
+test('v16 period validation reasons remain present even when upstream reasons fill their bound', () => {
+  const result = period({ targetDate: null, reasonCodes: Array.from({ length: 30 }, (_, index) => `UPSTREAM_${index}`) });
+  assert.ok(result.reasonCodes.includes('PERIOD_UNBOUND'));
+  assert.ok(result.reasonCodes.length <= 20);
 });
 
 test('v16 incomparable official, historical and stale periods have distinct sort groups', () => {

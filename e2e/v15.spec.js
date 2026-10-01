@@ -538,9 +538,11 @@ test('malicious remote holding fields are rejected before detail DOM rendering',
   const card = fundCard(page);
   await expect(card).toBeVisible();
   await card.locator('.fund-card-toggle').click();
-  await expect(card.locator('.holdings-row')).toHaveCount(1);
-  await expect(card.locator('.holdings-row')).toContainText('中科飞测');
-  await expect(card.locator('.holdings-row')).not.toContainText('fundvalPwned');
+  // A malformed disclosure is rejected as a whole, never silently filtered
+  // into an apparently complete one-stock holdings snapshot.
+  await expect(card.locator('.holdings-empty')).toContainText('重仓数据获取失败');
+  await expect(card.locator('.holdings-row')).toHaveCount(0);
+  await expect(card).not.toContainText('fundvalPwned');
   await expect(card.locator('img, svg')).toHaveCount(0);
   expect(await page.evaluate(() => window.__fundvalPwned)).toBeUndefined();
 

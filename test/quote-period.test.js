@@ -15,7 +15,8 @@ const official = (date, nav, previous, previousDate) => normalizeOfficialNavQuot
 
 test('newer date-only official NAV wins regardless of candidate order and old proxy source name', () => {
   const older = normalizeEstimateRow({
-    code: '000001', kind: 'official_nav', source: 'eastmoney_official_nav',
+    code: '000001', kind: 'official_nav', source: 'eastmoney_official_nav', status: 'latest_official',
+    is_fallback: true, fallback_reason: 'intraday_unavailable',
     value_nav: 1, value_change: -2, value_date: '2026-09-03', source_time: '2026-09-03',
     base_nav: 1.02, base_nav_date: '2026-09-02',
   }, { now: NOW }).source_quote;
@@ -42,6 +43,7 @@ test('structured Worker value fields including zero are mapped together with the
   for (const change of [0, -3.34]) {
     const normalized = normalizeEstimateRow({
       code: '000001', kind: 'official_nav', status: 'latest_official',
+      source: 'eastmoney_official_nav', is_fallback: true, fallback_reason: 'intraday_unavailable',
       value_nav: 3.1234, value_change: change, value_date: '2026-09-04',
       base_nav: 3.2313, base_nav_date: '2026-09-03', nav_date: '2026-09-04',
       est_nav: null, est_change: null, estimate_change: null, source_time: '2026-09-04',
@@ -103,13 +105,22 @@ test('newer primary official NAV prevents stale detail enrichment from becoming 
 
 test('missing holdings moves and future intraday ticks do not count as flat stocks', () => {
   for (const change of [null, undefined, '', ' ', true]) {
-    const result = calculateHoldingsEstimate(Array.from({ length: 10 }, () => ({ ratio: 8, change, quoteTime: '2026-09-07 13:59:00' })), { now: NOW });
+    const result = calculateHoldingsEstimate(Array.from({ length: 10 }, (_, index) => ({
+      code: String(600001 + index), name: `合成股票${index + 1}`, market: 'cn',
+      ratio: 8, change, quoteTime: '2026-09-07 13:59:00',
+    })), { now: NOW });
     assert.equal(result.available, false);
     assert.equal(result.quoteCount, 0);
   }
-  const future = calculateHoldingsEstimate(Array.from({ length: 10 }, () => ({ ratio: 8, change: 1, quoteTime: '2026-09-07 14:00:01' })), { now: NOW });
+  const future = calculateHoldingsEstimate(Array.from({ length: 10 }, (_, index) => ({
+    code: String(600001 + index), name: `合成股票${index + 1}`, market: 'cn',
+    ratio: 8, change: 1, quoteTime: '2026-09-07 14:00:01',
+  })), { now: NOW });
   assert.equal(future.quoteCount, 0);
-  const zero = calculateHoldingsEstimate(Array.from({ length: 10 }, () => ({ ratio: 8, change: 0, quoteTime: '2026-09-07 13:59:00' })), { now: NOW });
+  const zero = calculateHoldingsEstimate(Array.from({ length: 10 }, (_, index) => ({
+    code: String(600001 + index), name: `合成股票${index + 1}`, market: 'cn',
+    ratio: 8, change: 0, quoteTime: '2026-09-07 13:59:00',
+  })), { now: NOW });
   assert.equal(zero.available, true);
   assert.equal(zero.change, 0);
 });
@@ -134,8 +145,8 @@ test('mixed-market session dates and unidentifiable market codes fail closed', (
 });
 
 test('app overseas model binds to the newest official candidate and never double counts its session', async () => {
-  const source = await readFile(new URL('../js/app.js', import.meta.url), 'utf8');
-  const body = source.slice(source.indexOf('function applyOverseasModelEstimate('), source.indexOf('// ── 排序'));
+  const source = await readFile(new URL('../js/runtime/fund-model-enrichment.js', import.meta.url), 'utf8');
+  const body = source.slice(source.indexOf('export function applyOverseasModelEstimate(')).replace(/^export /, '');
   assert.ok(body.startsWith('function applyOverseasModelEstimate('));
   const now = Date.parse('2026-09-08T09:00:00+08:00');
   const model = { legs: [{ code: 'usQQQ', weight: 100 }], min_weight: 100 };

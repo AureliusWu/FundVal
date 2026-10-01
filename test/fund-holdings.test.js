@@ -37,10 +37,10 @@ test('numeric overseas holdings cannot borrow A-share quotes by matching code le
 test('app routes identical Korean and mainland codes independently and removes unidentified cached moves', async () => {
   const source = await readFile(new URL('../js/app.js', import.meta.url), 'utf8');
   const body = source.slice(source.indexOf('async function fetchHoldingsQuotes('), source.indexOf('function fmtQuoteNav('));
-  const fetchQuotes = new Function('loadFundHoldingsFeature', 'fundsData', 'holdings', 'classifyFundMarket',
+  const fetchQuotes = new Function('loadHoldingsEstimateFeature', 'loadFundHoldingsFeature', 'fundsData', 'holdings', 'classifyFundMarket',
     'fetchWithTimeout', 'TIMING', 'parseNav', 'formatChinaQuoteTime', 'loadQuoteBridgeFeature', 'normalizeTencentQuoteTime',
     `${body}\nreturn fetchHoldingsQuotes;`)(
-    async () => ({ holdingQuoteCode }), [{ code: '012920', name: 'Synthetic QDII' }], [], () => 'qdii',
+    async () => ({}), async () => ({ holdingQuoteCode }), [{ code: '012920', name: 'Synthetic QDII' }], [], () => 'qdii',
     async url => {
       assert.match(url, /secids=0\.000660&/);
       return Response.json({ data: { diff: [{ f12: '000660', f3: 3, f124: 1788822000 }] } });
@@ -86,7 +86,7 @@ test('rejects malformed or executable holdings fields before they reach renderin
   });
 });
 
-test('ignores unexpected rows and never returns more than ten validated holdings', async () => {
+test('rejects an oversized whole disclosure rather than hiding bad rows and truncating it', async () => {
   const originalFetch = global.fetch;
   global.fetch = async () => Response.json({
     report_date: '2026-06-30',
@@ -98,10 +98,7 @@ test('ignores unexpected rows and never returns more than ten validated holdings
     ],
   });
   try {
-    const result = await fetchFundHoldings('005844');
-    assert.equal(result.status, 'ok');
-    assert.equal(result.items.length, 10);
-    assert.ok(result.items.every(item => /^\d{6}$/.test(item.code)));
+    await assert.rejects(fetchFundHoldings('005844'), { name: 'WorkerContractError', code: 'HOLDINGS_TOO_MANY_ROWS' });
   } finally {
     global.fetch = originalFetch;
   }

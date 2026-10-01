@@ -4,11 +4,13 @@ const ORIGIN = `http://127.0.0.1:${Number(process.env.FUNDVAL_E2E_PORT || 4173)}
 const NOW = new Date('2026-09-30T14:00:00+08:00');
 
 test('published NAV is a dated official interval, never today profit after refresh or cache reload', async ({ context, page }) => {
+  let outage = false;
   await page.clock.setFixedTime(NOW);
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
     const endpoint = url.pathname.replace(/^\/__fundval_dev/, '');
     if ((url.origin === ORIGIN || url.hostname === 'sinan-estimate-push.ligugu69.workers.dev') && endpoint === '/estimates') {
+      if (outage) return route.fulfill({ status: 503, body: 'synthetic unavailable' });
       const codes = (url.searchParams.get('codes') || '').split(',').filter(code => /^\d{6}$/.test(code));
       await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
         status: 'degraded', source: 'eastmoney_official_nav', fetched_at: '2026-09-30T05:59:00.000Z',
@@ -45,5 +47,14 @@ test('published NAV is a dated official interval, never today profit after refre
   await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
   await expect(card.locator('.nav-cur')).toHaveText('3.2259');
   await card.locator('.fund-card-toggle').click();
+  await expect(card.locator('.detail-money .stat-label').first()).not.toContainText('今日估算');
+  outage = true;
+  await card.locator('.edit-holdings-btn').click();
+  await page.locator('#i-shares').fill('200');
+  await page.locator('#add-btn').click();
+  await expect(page.locator('#i-shares')).toHaveValue('');
+  await page.locator('#nav-market').click();
+  if (await card.locator('.fund-card-toggle').getAttribute('aria-expanded') !== 'true') await card.locator('.fund-card-toggle').click();
+  await expect(card.locator('.detail-money .money').first()).toHaveText(/4\.44/);
   await expect(card.locator('.detail-money .stat-label').first()).not.toContainText('今日估算');
 });

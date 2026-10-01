@@ -74,6 +74,8 @@ test('v16 original source aliases normalize but unknown sources and nested cache
   for (const originalSourceTier of ['', null, 'cache', 'official', 'invented']) {
     assert.equal(create({ originalSourceTier }), null);
   }
+  assert.equal(createCacheEnvelope(MOVE, null), null);
+  assert.equal(createCacheEnvelope(null), null);
 });
 
 test('v16 malformed cache schema, dates, enum, time order and future writes are rejected', () => {

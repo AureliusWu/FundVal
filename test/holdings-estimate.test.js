@@ -12,10 +12,18 @@ import {
 
 const NOW = Date.parse('2026-07-27T08:23:00Z');
 
+test('v16 exchange-local conversion rejects impossible source dates and times before Date rollover', () => {
+  for (const value of ['20260230145900', '20260908245900', '20260908146000', '20260908145960']) {
+    assert.equal(normalizeTencentQuoteTime(value, 'usQQQ'), '');
+    assert.equal(normalizeTencentQuoteTime(value, 'jp285A'), '');
+  }
+});
+
 test('calculates the disclosed top-holdings contribution from same-day quotes', () => {
   const ratios = [9.55, 9.19, 9.12, 9.08, 8.92, 8.69, 7.57, 7.44, 7.04, 6.87];
   const changes = [8.96, 2.13, 2.90, 2.88, 1.72, 3.27, 6.42, 0.11, 1.31, 2.34];
   const result = calculateHoldingsEstimate(ratios.map((ratio, index) => ({
+    code: String(600001 + index), name: `合成股票${index + 1}`, market: 'cn',
     ratio,
     change: changes[index],
     quoteTime: '2026-07-27 16:14:00',
@@ -29,7 +37,8 @@ test('calculates the disclosed top-holdings contribution from same-day quotes', 
 });
 
 test('rejects previous-trading-day quotes instead of presenting them as today', () => {
-  const result = calculateHoldingsEstimate(Array.from({ length: 10 }, () => ({
+  const result = calculateHoldingsEstimate(Array.from({ length: 10 }, (_, index) => ({
+    code: String(600001 + index), name: `合成股票${index + 1}`, market: 'cn',
     ratio: 8,
     change: 2,
     quoteTime: '2026-07-24 15:00:00',
@@ -41,7 +50,8 @@ test('rejects previous-trading-day quotes instead of presenting them as today', 
 });
 
 test('keeps an estimate unavailable when same-day quote coverage is too low', () => {
-  const result = calculateHoldingsEstimate(Array.from({ length: 4 }, () => ({
+  const result = calculateHoldingsEstimate(Array.from({ length: 4 }, (_, index) => ({
+    code: String(600001 + index), name: `合成股票${index + 1}`, market: 'cn',
     ratio: 9,
     change: 2,
     quoteTime: '2026-07-27 14:30:00',
