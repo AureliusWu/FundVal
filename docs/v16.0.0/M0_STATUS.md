@@ -1,8 +1,8 @@
 # v16.0.0 M0 治理与基线状态
 
-> 更新日期：2026-09-30（Asia/Shanghai）
+> 更新日期：2026-10-01（Asia/Shanghai）
 > 业务基线：v15.0.2 / `40e68edab9cb3fba0b17338dc3672a82d13ad17e`
-> 当前阶段：M0 治理与历史基线已建立；跨标签页数据安全阻断需先修复，尚未合并或退出
+> 当前阶段：M0 已退出；受保护 PR 合并及主线候选逐字节校验完成，开始 M1
 > v16 生产发布：未执行
 
 ## 已执行的 GitHub 设置
@@ -126,8 +126,27 @@ Coverage 的分母仅包括 Node 运行实际导入的 `js/**/*.js`，不包含 
 - [x] M0 PR 的真实 `candidate` / `codeql` / CodeQL analysis 均通过（最新 push / PR）。
 - [x] 新增 CodeQL 告警修复并通过真实重扫。
 - [x] 跨平台 npm 发现审阅项闭环：`b3d37c3`，8 项回归通过，已回复并解决审阅 thread。
-- [ ] 跨标签页预备修复先红后绿、原始 E2E 及真实 CI 再验收。
-- [ ] 按受保护 PR 路径合并（不使用 admin bypass）。
-- [ ] 候选清单可追溯至同一 SHA / run，且部署路径验证通过。
+- [x] 跨标签页预备修复先红后绿、原始 E2E 及真实 CI 再验收。
+- [x] 按受保护 PR 路径合并（不使用 admin bypass）。
+- [x] 候选清单可追溯至同一 SHA / run，候选验证路径通过；生产 dispatch 未执行。
+
+### 最终主线候选验收（2026-10-01）
+
+PR #10 正常 squash 合并为 `4c04e7fec9635d099191c0899dc57a25dd343fab`。main push CI `36691368307` / attempt 1 成功：Linux Node 433/433、无 skip，check 135 文件、E2E 12/12、audit 0。最终 feature head `7879971` 的 push `36691126316` 与 PR `36691134173` 同样通过；原始覆盖拒绝断言没有减弱、没有新增 retry。
+
+独立临时目录下载 artifact `11085728307`（`fundval-candidate-4c04e7fec9635d099191c0899dc57a25dd343fab-1`），使用 `release-candidate.mjs verify` 核对 repository/SHA/run/attempt 及全站 110 个文件、92,344,667 B：
+
+| 校验项目 | 结果 |
+| --- | --- |
+| tar SHA-256 | `e41e04a15a7f066525f01df4db906720d351f0ef923f44d1cf27bb00e04a6f07` |
+| Release fingerprint | `a1319a5cadcb1d60ff6df5fd2bf99032ca9a2c2c4194f1b60c1b0e0e98e16e04` |
+| Site fingerprint | `7d562b6b746e2529aee03d70e3af4e9d968cd9930e0e4c35b7ad2964f241b6ff` |
+| chunks / cold / total gzip | 22 / 51,905 / 70,171 B；hard budget 52,241 B 不变 |
+| OCR 资产 | 官方脚本校验 23 assets / 88,196,906 B |
+| main CodeQL | analysis `1865220497`，103 rules，5 项既有发现，error/warning 空 |
+
+外层 ZIP digest `2c7064d6b01a29172b257bb8ded496130d1018d5240b65fb1d45ea6f87da91dc` 只由 Artifact API 读回，没有重新下载 ZIP 计算该摘要；内部 tar 和所有站点文件已独立验算。独立 Advanced Security `CodeQL` check `109808678914` 成功绑定 PR head `7879971`，不是 main 独立 check 的证据。生产最新部署仍绑定 `40e68ed` / v15.0.2。
+
+顺序例外仍仅为上文独立数据安全预备修复。M0 历史基线没有更换成修复后的数据，M1～M6 没有提前发布。
 
 以下保持 `NOT_RUN`：三类物理设备、实际长图 OCR 耗时、真实双设备合成 Gist 写读、已安装 v15→v16 升级、生产性能与真实上游请求数、独立网络/服务端/主线程时延分解。
