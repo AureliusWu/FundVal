@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { createReadStream } from 'node:fs';
-import { mkdir, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises';
+import { constants, createReadStream } from 'node:fs';
+import { lstat, mkdir, open, readFile, readdir, realpath } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { cpus, freemem, platform, release, totalmem } from 'node:os';
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { configureSnapshotTransport, createSourceSnapshot, safeRemoveSnapshot } from './collect-baseline.mjs';
 
@@ -595,6 +595,53 @@ async function terminateOwnedServer(child) {
 }
 function within(parent, target) { const path = relative(parent, target); return path === '' || (!isAbsolute(path) && path !== '..' && !path.startsWith(`..${sep}`)); }
 
+function reportError(code) { return Object.assign(new Error(code), { code }); }
+async function realPathAllowMissing(path) {
+  const tail = []; let ancestor = resolve(path);
+  for (;;) {
+    try { return resolve(await realpath(ancestor), ...tail); }
+    catch (error) {
+      if (error.code !== 'ENOENT' || dirname(ancestor) === ancestor) throw error;
+      tail.unshift(basename(ancestor)); ancestor = dirname(ancestor);
+    }
+  }
+}
+
+export async function reserveReportFile(reportPath, forbiddenDirectories = []) {
+  const path = resolve(reportPath), forbidden = await Promise.all(forbiddenDirectories.map(realPathAllowMissing));
+  const permitted = candidate => {
+    if (forbidden.some(directory => within(directory, candidate))) throw reportError('REPORT_IN_DEPLOYABLE_SITE');
+  };
+  // Check the nearest existing real parent before mkdir, then the complete parent.
+  // This covers fixed aliases/junctions, not hostile concurrent ancestor renames.
+  permitted(resolve(await realPathAllowMissing(dirname(path)), basename(path)));
+  await mkdir(dirname(path), { recursive: true });
+  const canonicalPath = resolve(await realpath(dirname(path)), basename(path));
+  permitted(canonicalPath);
+  // Windows lacks O_NOFOLLOW; O_EXCL still rejects existing files and symlinks.
+  // 0600 is a POSIX mode request, not a guarantee of private Windows ACLs.
+  const handle = await open(canonicalPath, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0), 0o600);
+  return { handle, path };
+}
+
+export async function writeReservedReport({ handle, path }, report) {
+  let failure = 'REPORT_SERIALIZATION_FAILED';
+  try {
+    const payload = `${JSON.stringify(report, null, 2)}\n`;
+    failure = 'REPORT_WRITE_FAILED';
+    // The reservation stays empty until this single descriptor-only write.
+    await handle.writeFile(payload, 'utf8');
+    failure = 'REPORT_PATH_IDENTITY_CHANGED';
+    const [named, reserved] = await Promise.all([lstat(path, { bigint: true }), handle.stat({ bigint: true })]);
+    if (!named.isFile() || named.dev !== reserved.dev || named.ino !== reserved.ino) throw reportError(failure);
+    // Identity is confirmed at this instant only; never delete a replacement.
+  } catch (_) { throw reportError(failure); }
+  finally {
+    try { await handle.close(); }
+    catch (_) { throw reportError('REPORT_CLOSE_FAILED'); }
+  }
+}
+
 export async function main(args = process.argv.slice(2)) {
   const options = parseOptions(args);
   if (options.help) {
@@ -603,8 +650,9 @@ export async function main(args = process.argv.slice(2)) {
   }
   const reportPath = options.output || resolve(repository, 'docs/v16.0.0/performance-evidence', new Date().toISOString().replace(/[:.]/g, '-'), 'PAIR.json');
   if (within(options.currentSite, reportPath) || (options.referenceSite && within(options.referenceSite, reportPath))) throw new Error('Performance evidence cannot be placed in deployable site artifacts.');
-  try { await stat(reportPath); throw new Error('Refusing to overwrite an existing raw performance report; choose a new output path.'); }
-  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const reservation = await reserveReportFile(reportPath, [options.currentSite, options.referenceSite].filter(Boolean));
+  let closeHandedOff = false;
+  try {
   const servers = [], rawPairs = [], cleanup = []; let snapshot = null, browser = null, interrupted = false, stage = 'referenceIdentity';
   const report = { schema: 1, collectedAt: new Date().toISOString(), status: 'INCONCLUSIVE', requested: { retainedPairs: options.pairs, warmupPairs: options.warmupPairs, bootstrap: options.bootstrap, seed: options.seed },
     scope: 'Paired desktop Chrome, 390x844, fresh context per side with cold navigation, same-context no-store warm reload and real synthetic UI save; not production network or physical-device evidence.',
@@ -698,13 +746,22 @@ export async function main(args = process.argv.slice(2)) {
       warmupCompletePairs: rawPairs.filter(pair => !pair.retained && pair.reference && pair.current && !pair.failure).length,
       failedPairs: rawPairs.filter(pair => pair.failure).length };
     report.environment.freeMemoryEndBytes = freemem(); report.finishedAt = new Date().toISOString();
-    await mkdir(dirname(reportPath), { recursive: true }); await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx' });
+    closeHandedOff = true;
+    await writeReservedReport(reservation, report);
   }
   console.log(`PAIR ${report.status}: ${reportPath}`);
   process.exitCode = report.status === 'PASS' ? 0 : report.status === 'FAIL' ? 1 : 2;
   return report;
+  } finally {
+    // Covers exceptions before finalization takes ownership, including setup.
+    if (!closeHandedOff) await reservation.handle.close();
+  }
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  main().catch(() => { console.error('PAIR setup/report write failed; no raw error output retained.'); process.exitCode = 2; });
+  main().catch(error => {
+    const category = ['EEXIST', 'ELOOP', 'REPORT_IN_DEPLOYABLE_SITE', 'REPORT_SERIALIZATION_FAILED', 'REPORT_WRITE_FAILED', 'REPORT_PATH_IDENTITY_CHANGED', 'REPORT_CLOSE_FAILED'].includes(error?.code)
+      ? error.code : 'SETUP_OR_REPORT_WRITE_FAILED';
+    console.error(`PAIR setup/report write failed (${category}); no raw error output retained.`); process.exitCode = 2;
+  });
 }

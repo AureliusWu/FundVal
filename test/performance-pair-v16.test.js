@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
+import * as sampler from '../scripts/measure-performance-pair.mjs';
 import { artifactFingerprint, balancedOrder, classifyHermeticRequest, median, METRICS, nearestRank, normalizedLock,
   captureRendererSnapshot, installServiceWorkerBlock, parseOptions, RENDERER_COUNTERS, rendererDelta, requestFailureCategory, requestRole,
   summarizePairs, validateOrigin, V15_REFERENCE } from '../scripts/measure-performance-pair.mjs';
@@ -14,6 +15,153 @@ function pairs(count = 60, before = 100, after = 110) {
     current: Object.fromEntries(METRICS.map(metric => [metric, typeof after === 'function' ? after(index) : after])) }));
 }
 const statistics = { bootstrap: 1000, seed: 160003 };
+
+async function reportFixture(t) {
+  const directory = await mkdtemp(join(tmpdir(), 'fundval-report-reservation-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  return { directory, path: join(directory, 'report.json') };
+}
+async function privilegedOperation(t, operation) {
+  try { await operation(); return true; }
+  catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) { t.skip(`Platform denied synthetic link/rename operation: ${error.code}`); return false; }
+    throw error;
+  }
+}
+
+test('report reservation is exclusive before measurement: two concurrent creators cannot overwrite', async t => {
+  const fixture = await reportFixture(t);
+  const results = await Promise.allSettled([sampler.reserveReportFile(fixture.path), sampler.reserveReportFile(fixture.path)]);
+  const successful = results.filter(result => result.status === 'fulfilled');
+  try {
+    assert.equal(successful.length, 1);
+    const failure = results.find(result => result.status === 'rejected');
+    assert.equal(failure.reason.code, 'EEXIST');
+    assert.equal(await readFile(fixture.path, 'utf8'), '', 'reservation remains empty until final descriptor write');
+    if (process.platform !== 'win32') assert.equal((await stat(fixture.path)).mode & 0o777, 0o600);
+  } finally { await Promise.all(successful.map(result => result.value.handle.close())); }
+});
+
+test('report reservation refuses an existing report without changing its content', async t => {
+  const fixture = await reportFixture(t);
+  await writeFile(fixture.path, 'existing synthetic evidence');
+  await assert.rejects(() => sampler.reserveReportFile(fixture.path), { code: 'EEXIST' });
+  await assert.rejects(() => sampler.main(['--output', fixture.path]), { code: 'EEXIST' });
+  assert.equal(await readFile(fixture.path, 'utf8'), 'existing synthetic evidence');
+});
+
+test('report reservation supports new date directories and missing forbidden directories', async t => {
+  const fixture = await reportFixture(t);
+  const path = join(fixture.directory, 'new-date', 'nested', 'report.json');
+  const reservation = await sampler.reserveReportFile(path, [join(fixture.directory, 'not-built-site')]);
+  await sampler.writeReservedReport(reservation, { status: 'INCONCLUSIVE' });
+  assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), { status: 'INCONCLUSIVE' });
+  const missingSite = join(fixture.directory, 'another-missing-site');
+  await assert.rejects(() => sampler.reserveReportFile(join(missingSite, 'evidence', 'report.json'), [missingSite]), { code: 'REPORT_IN_DEPLOYABLE_SITE' });
+  await assert.rejects(() => stat(missingSite), { code: 'ENOENT' });
+});
+
+test('report reservation refuses existing file and dangling symlinks without following them', async t => {
+  const fixture = await reportFixture(t);
+  const target = join(fixture.directory, 'target.json');
+  await writeFile(target, 'untouched synthetic target');
+  if (!await privilegedOperation(t, () => symlink(target, fixture.path, 'file'))) return;
+  await assert.rejects(() => sampler.reserveReportFile(fixture.path), error => ['EEXIST', 'ELOOP'].includes(error.code));
+  assert.equal(await readFile(target, 'utf8'), 'untouched synthetic target');
+  const dangling = join(fixture.directory, 'dangling.json');
+  const missing = join(fixture.directory, 'missing.json');
+  if (!await privilegedOperation(t, () => symlink(missing, dangling, 'file'))) return;
+  await assert.rejects(() => sampler.reserveReportFile(dangling), error => ['EEXIST', 'ELOOP'].includes(error.code));
+  await assert.rejects(() => stat(missing), { code: 'ENOENT' });
+});
+
+test('report reservation rejects site aliases before creating output directories', async t => {
+  const fixture = await reportFixture(t);
+  const site = join(fixture.directory, 'site'), alias = join(fixture.directory, 'site-alias');
+  await mkdir(site);
+  if (!await privilegedOperation(t, () => symlink(site, alias, process.platform === 'win32' ? 'junction' : 'dir'))) return;
+  await assert.rejects(() => sampler.reserveReportFile(join(alias, 'new', 'report.json'), [site]), { code: 'REPORT_IN_DEPLOYABLE_SITE' });
+  await assert.rejects(() => stat(join(site, 'new')), { code: 'ENOENT' });
+});
+
+test('final report writes only the reserved descriptor and closes it', async t => {
+  const fixture = await reportFixture(t);
+  const reservation = await sampler.reserveReportFile(fixture.path);
+  await sampler.writeReservedReport(reservation, { status: 'INCONCLUSIVE', rawPairs: [] });
+  assert.deepEqual(JSON.parse(await readFile(fixture.path, 'utf8')), { status: 'INCONCLUSIVE', rawPairs: [] });
+  await assert.rejects(() => reservation.handle.stat(), { code: 'EBADF' });
+});
+
+test('pathname replacement cannot redirect descriptor writes and is not reported as a saved path', async t => {
+  const fixture = await reportFixture(t);
+  const reservation = await sampler.reserveReportFile(fixture.path);
+  const held = join(fixture.directory, 'held-reservation.json');
+  try {
+    if (!await privilegedOperation(t, () => rename(fixture.path, held))) return;
+    await writeFile(fixture.path, 'replacement belongs to another synthetic writer');
+    await assert.rejects(() => sampler.writeReservedReport(reservation, { status: 'INCONCLUSIVE' }), { code: 'REPORT_PATH_IDENTITY_CHANGED' });
+    assert.equal(await readFile(fixture.path, 'utf8'), 'replacement belongs to another synthetic writer');
+    assert.deepEqual(JSON.parse(await readFile(held, 'utf8')), { status: 'INCONCLUSIVE' });
+    await assert.rejects(() => reservation.handle.stat(), { code: 'EBADF' });
+  } finally { await reservation.handle.close(); }
+});
+
+test('a replacement symlink cannot redirect final report writes into its target', async t => {
+  const fixture = await reportFixture(t);
+  const reservation = await sampler.reserveReportFile(fixture.path);
+  const held = join(fixture.directory, 'held-reservation.json'), target = join(fixture.directory, 'other.json');
+  try {
+    if (!await privilegedOperation(t, () => rename(fixture.path, held))) return;
+    await writeFile(target, 'untouched replacement link target');
+    if (!await privilegedOperation(t, () => symlink(target, fixture.path, 'file'))) return;
+    await assert.rejects(() => sampler.writeReservedReport(reservation, { status: 'INCONCLUSIVE' }), { code: 'REPORT_PATH_IDENTITY_CHANGED' });
+    assert.equal(await readFile(target, 'utf8'), 'untouched replacement link target');
+    assert.deepEqual(JSON.parse(await readFile(held, 'utf8')), { status: 'INCONCLUSIVE' });
+  } finally { await reservation.handle.close(); }
+});
+
+test('report finalization closes the descriptor even when JSON serialization fails', async () => {
+  const report = {}; report.circular = report;
+  let closes = 0, writes = 0;
+  const handle = { writeFile: async () => { writes += 1; }, close: async () => { closes += 1; } };
+  await assert.rejects(() => sampler.writeReservedReport({ handle, path: 'synthetic-only' }, report), { code: 'REPORT_SERIALIZATION_FAILED' });
+  assert.equal(closes, 1); assert.equal(writes, 0);
+});
+
+test('report finalization closes the descriptor even when descriptor writing fails', async () => {
+  let closes = 0, writes = 0;
+  const handle = { writeFile: async () => { writes += 1; throw new Error('synthetic private write detail'); }, close: async () => { closes += 1; } };
+  await assert.rejects(() => sampler.writeReservedReport({ handle, path: 'synthetic-only' }, { status: 'INCONCLUSIVE' }), { code: 'REPORT_WRITE_FAILED' });
+  assert.equal(closes, 1); assert.equal(writes, 1);
+});
+
+test('report finalization sanitizes close failures and never claims a saved report', async () => {
+  let closes = 0;
+  const report = {}; report.circular = report;
+  const handle = { close: async () => { closes += 1; throw new Error('synthetic private close detail'); } };
+  await assert.rejects(() => sampler.writeReservedReport({ handle, path: 'synthetic-only' }, report), { code: 'REPORT_CLOSE_FAILED' });
+  assert.equal(closes, 1);
+});
+
+test('main preserves an INCONCLUSIVE setup-failure report before any browser or snapshot starts', async t => {
+  const fixture = await reportFixture(t), originalExitCode = process.exitCode;
+  try {
+    const report = await sampler.main(['--reference', '0'.repeat(40), '--output', fixture.path]);
+    assert.equal(process.exitCode, 2);
+    assert.equal(report.status, 'INCONCLUSIVE');
+    assert.equal(report.failure.stage, 'referenceIdentity');
+    assert.deepEqual(report.observed, { retainedCompletePairs: 0, warmupCompletePairs: 0, failedPairs: 0 });
+    assert.deepEqual(report.cleanup, []);
+    assert.equal(report.lifecycle, undefined);
+    assert.equal(report.environment.chromeVersion, undefined);
+    assert.deepEqual(JSON.parse(await readFile(fixture.path, 'utf8')), report);
+    // Rename is an extra portability check, not a universal proof of fd close;
+    // finalizer tests above separately assert EBADF after the exact close path.
+    const moved = join(fixture.directory, 'finished-report.json');
+    await rename(fixture.path, moved);
+    assert.deepEqual(JSON.parse(await readFile(moved, 'utf8')), report);
+  } finally { process.exitCode = originalExitCode; }
+});
 
 test('nearest-rank p95 uses all 60 raw samples, while an even median averages its middle values', () => {
   const values = Array.from({ length: 60 }, (_, index) => index + 1).reverse();

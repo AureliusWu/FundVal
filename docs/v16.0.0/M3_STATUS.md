@@ -278,3 +278,27 @@ ready MutationObserver、migration/skeleton 条件、save wall timer、原有统
 机器可读证据：[m3-bundle-gate.json](performance-evidence/m3-bundle-gate.json)。811 tests / 810 pass / 0 fail / 1 Windows skip，syntax 181，official audit 0，E2E 23/23（35.8 秒）。E2E 结束后连续两次本地 build 同为 16 chunks / 243,481 B；SOURCE_DATE_EPOCH `1790909431`、关键发布集指纹 `85690c3ef2b045dc5a6ef3dd8585903ac1ccbc498549aaff852e0368a86edd81`。app 与 OCR 官方校验通过（23 OCR assets / 88,196,906 B），未执行 OCR。
 
 新准入 CLI 实际输出 cold **43,845 / 52,241 PASS**、all **82,481 / 77,227.7 FAIL**，exit 1；至少还需减少 5,254 B。仍不进入 M4/M5/M6、不 merge、不 deploy、不更新版本号。后续 CI 预期因这个真实预算失败；测试/build green 与准入 FAIL 必须分开报告。
+
+## 12. 实际远端阻断与额外安全发现
+
+提交 `724f8d62cbd5cb61112eec059fc4773bafc5441e` 的 [push 36958652073](https://github.com/AureliusWu/FundVal/actions/runs/36958652073) / [PR 36958655663](https://github.com/AureliusWu/FundVal/actions/runs/36958655663) 实际均 FAIL，candidate 只在最后的 `Enforce actual M3 app bundle budget` 步骤失败：此前 Linux Node 811/811、syntax 181、E2E push 23/23（50.4 秒）/ PR 23/23（38.7 秒）、audit 0、结构/字节核验、seal/upload 均成功。两个 workflow 的 codeql 扫描执行作业均 SUCCESS，但这不等于独立 `CodeQL` 安全检查通过。
+
+新政策在两条真实 runner 上实算了 cold 43,845 PASS / all 82,481 FAIL，没有放宽预算、忽略失败或把 WIP artifact 当可部署候选。push review artifact `11207211480`，API 声明 ZIP 92,612,146 B、digest `sha256:560d18bb42225881fda297a0be132637a8ae839af2c839f30f31774af6e409ae`；未独立下载/hash，不满足 main-only / successful-run 准入。PR #12 仍 OPEN / draft，main 未改。
+
+独立 CodeQL 新增 [alert #8](https://github.com/AureliusWu/FundVal/security/code-scanning/8)，`js/file-system-race` / high：性能报告先 `stat(reportPath)` 检查，再在长时间采样后按路径 `writeFile(..., {flag:'wx'})`。API created_at 为 2026-10-02 02:51:27 UTC（已经在 f0858e4 时被检测），本轮复核才追查其独立阻断；第 10 节的 workflow 作业 SUCCESS 不能替代这一检查。原 wx 已拒绝既有文件覆盖，但仍应去掉冗余的 check-then-path-use：采样前原子独占创建/保留 descriptor，最终仅通过同一 descriptor 写入/关闭。此处不 dismiss、不加入扫描排除，关闭状态须由后续真实复扫证实。
+
+另外做了不写产物的压缩器可行性比较：同源码/grouping/es2022，`write:false`，仅 oxc→已锁定 esbuild 0.28.2；三对输出均重复，16 chunks、模块/静动态图和启动隔离相同。esbuild cold 44,766（+921 B）、all 84,810（+2,329 B），更大，已排除，**未实施**。这不是运行时等价/时延验收，也不能消除 5,254 B 缺口。
+
+## 13. 报告文件 reservation 修复与本地复核
+
+本批仅修改 `scripts/measure-performance-pair.mjs` / `test/performance-pair-v16.test.js` 和本状态文档，不触及业务、预算、统计阈值、依赖或历史原始证据。
+
+- 采样前以 `open(O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW, 0600)` 原子保留报告 descriptor，删除先 stat 再按路径写的冗余判断。既有文件/符号链接不能被覆盖，竞争创建只有一个胜者。
+- 最终只对同一 descriptor 写入一次；写后 `lstat(path)` 与 descriptor stat 的 ordinary-file / dev / ino 身份比较，路径被替换时报告失败，不误称已保存、不删除或覆写替换者。序列化、写入、身份检查、close 失败返回有界类别、CLI exit 2，不保存原始错误/凭据。
+- 最接近已存在 real parent 的检查兼容尚未创建的日期目录；拒绝解析到 deployable site 的既有 alias/junction。不是针对恶意并发祖先改名的绝对隔离。Windows 没有 O_NOFOLLOW 时仍由 O_EXCL 拒绝既有链接；0600 仅为 POSIX mode 请求，不声称 Windows ACL 私密。
+- setup/measurement 失败仍保存 INCONCLUSIVE；新 all-zero synthetic reference 用例在 referenceIdentity 即失败，0 pair、无 snapshot/browser，报告成功读回；其他 writer 用例用 EBADF 验证最终关闭。预先成功 reservation 后若进程被强杀，可能留空文件，需要使用新的报告路径，不能覆写。
+- 12 个新回归用例；起始 reservation/finalizer RED 后 GREEN。最终两个相关测试文件 42 tests / 40 pass / 0 fail / 2 Windows file-symlink EPERM skip，junction / pathname rename-replacement 实际通过。独立代码复核无阻断。
+
+2026-10-02 本地 full gates：823 tests / 820 pass / 0 fail / 3 Windows symlink skip，syntax 181，official registry audit 0，桌面合成 E2E 23/23（39.2 秒，自有 port 12437）。E2E 服务结束后连续两次 build：SOURCE_DATE_EPOCH `1790910360`（父提交 724f8d6），关键发布集指纹均为 `bcd7cf6307c7a656de7e841eb674a586b251a1ebaf8bb94083a6556481e66587`；这是未提交工具修复的本地构建，不是远端/生产指纹。官方 app/OCR bytes 核验为 16 chunks / 243,481 B 与 23 assets / 88,196,906 B；未执行 OCR。
+
+实际预算仍 cold 43,845 PASS、all 82,481 FAIL / exit 1；差距至少 5,254 B。原 60/200 报告与 counter probe 未覆盖，新协议相对采样 NOT_RUN，统计仍 INCONCLUSIVE。CodeQL #8 是否关闭必须待本批 push 后的真实独立复扫，不 dismiss；M3 继续，不进入 M4/M5/M6，不 merge/deploy/bump。
