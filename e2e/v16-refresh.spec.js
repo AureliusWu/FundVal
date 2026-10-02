@@ -145,7 +145,8 @@ async function installHarness(context, options = {}) {
       if (state.failAll) return route.abort('failed');
       const identities = (url.searchParams.get('secids') || '').split(',').map(secid => secid.split('.'));
       return json({ data: { diff: identities.map(([market, code]) => ({ f12: code, f13: Number(market),
-        f2: 10.1, f3: 1, f124: Date.parse(FIXED_TIME) / 1000 })) } });
+        f2: 10.1, f3: Object.hasOwn(options, 'securityChange') ? options.securityChange : 1,
+        f124: Date.parse(FIXED_TIME) / 1000 })) } });
     }
     if (category === 'gold') {
       if (state.failAll) return route.abort('failed');
@@ -327,6 +328,55 @@ test('all providers failing cannot renew the aggregate cache timestamp or bytes'
   expect(harness.requests('allFailed', 'estimates')).toHaveLength(1);
   expect(await harness.writes(page, 'allFailed'), 'failed/cached-only results must not receive a new fetchedAt/expiresAt').toEqual([]);
   expect(await page.evaluate(key => localStorage.getItem(key), FUND_CACHE)).toBe(before);
+  expect(harness.state.gistWrites).toEqual([]);
+});
+
+test('warm details keep failed prior quotes visibly historical with their real clock, not today or zero', async ({ context, page }) => {
+  const harness = await installHarness(context);
+  await page.goto('/');
+  await harness.settle(page);
+  const toggle = page.locator(`#fund-toggle-${HOLDINGS[0].code}`);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await harness.settle(page);
+  const clocks = page.locator('.stock-quote-time');
+  await expect(clocks).toHaveCount(10);
+  await expect(clocks.first()).toHaveText('最近行情 · 2026-09-29 14:30:00');
+  await expect(page.locator('.holdings-row').first()).toContainText('+1.00%');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  const cache = await page.evaluate(key => localStorage.getItem(key), FUND_CACHE);
+  harness.state.failAll = true;
+  await page.evaluate(() => { globalThis.__refreshTestClockAdvance = 24 * 60 * 60_000; });
+  await harness.phase(page, 'oldDetail');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await harness.settle(page);
+  await expect(clocks).toHaveCount(10);
+  await expect(clocks.first()).toHaveText('旧行情 · 2026-09-29 14:30:00');
+  await expect(page.locator('.holdings-row').first()).toContainText('+1.00%');
+  expect(harness.requests('oldDetail', 'eastmoneySecurities')).toHaveLength(1);
+  expect(harness.requests('oldDetail', 'tencent')).toHaveLength(1);
+  expect(harness.requests('oldDetail', 'holdings')).toHaveLength(0);
+  expect(harness.requests('oldDetail', 'nav')).toHaveLength(0);
+  expect(await harness.writes(page, 'oldDetail')).toEqual([]);
+  expect(await page.evaluate(key => localStorage.getItem(key), FUND_CACHE)).toBe(cache);
+  expect(harness.state.gistWrites).toEqual([]);
+});
+
+for (const [name, change, value, caption] of [
+  ['zero', 0, '+0.00%', '最近行情 · 2026-09-29 14:30:00'],
+  ['missing', null, '--', '行情暂不可用'],
+]) test(`detail renderer distinguishes a genuine ${name} change without borrowing adjacent quotes`, async ({ context, page }) => {
+  const harness = await installHarness(context, { securityChange: change,
+    omitTencentCodes: Array.from({ length: 10 }, (_, i) => `sz${String(i + 1).padStart(6, '0')}`) });
+  await page.goto('/');
+  await harness.settle(page);
+  await page.locator(`#fund-toggle-${HOLDINGS[0].code}`).click();
+  await harness.settle(page);
+  await expect(page.locator('.holdings-row')).toHaveCount(10);
+  await expect(page.locator('.holdings-row').first().locator(':scope > span').nth(2)).toHaveText(value);
+  await expect(page.locator('.stock-quote-time').first()).toHaveText(caption);
   expect(harness.state.gistWrites).toEqual([]);
 });
 

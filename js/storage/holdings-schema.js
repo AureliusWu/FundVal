@@ -137,20 +137,7 @@ export function createEmptyHoldingsDocument(deviceId, updatedAt = LEGACY_HOLDING
 }
 
 export function holdingRecordFingerprint(value) {
-  const holding = normalizeHoldingRecordV3(value);
-  return JSON.stringify({
-    id: holding.id,
-    fundCode: holding.fundCode,
-    fundName: holding.fundName,
-    shares: holding.shares,
-    costNav: holding.costNav,
-    createdAt: holding.createdAt,
-    updatedAt: holding.updatedAt,
-    deletedAt: holding.deletedAt,
-    revision: holding.revision,
-    deviceId: holding.deviceId,
-    note: holding.note,
-  });
+  return JSON.stringify(normalizeHoldingRecordV3(value));
 }
 
 export function compareHoldingRecords(leftValue, rightValue) {
@@ -212,11 +199,5 @@ export function toLegacyHoldings(value) {
 }
 
 export function canonicalHoldingsDocument(value) {
-  const document = normalizeHoldingsDocumentV3(value);
-  return JSON.stringify({
-    schema: document.schema,
-    updatedAt: document.updatedAt,
-    deviceId: document.deviceId,
-    holdings: document.holdings.map(holding => JSON.parse(holdingRecordFingerprint(holding))),
-  });
+  return JSON.stringify(normalizeHoldingsDocumentV3(value));
 }

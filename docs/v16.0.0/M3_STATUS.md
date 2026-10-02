@@ -103,9 +103,9 @@
 
 ## 5. 未完成与下一步
 
-1. **M3 不退出、不合并为完成阶段**：最新 all 非 OCR gzip 为 83,330 B，至少还需减少 6,103 B；继续用等价策略/纯函数复用压缩，不放松金融数值、缓存来源、scope 复制/二次验证或 Worker zoned timestamp guards。
+1. **M3 不退出、不合并为完成阶段**：最新本地工作树 all 非 OCR gzip 为 82,481 B，至少还需减少 5,254 B（第 9 节）；继续用等价策略/纯函数复用压缩，不放松金融数值、缓存来源、scope 复制/二次验证或 Worker zoned timestamp guards。
 2. 同机性能与 p95 相对门禁证据尚不完整。桌面 3 秒绝对交互预算通过不等于 v16 相对性能门禁通过。
-3. 旧手动详情行情路径、裸 f12 映射与 US 模型专属重复获取已在第 7 节修复。仍有 **P2 暖详情时间陈旧风险**：`js/app.js:1274` 的 `fetchFundDetails` 对已有有限 change / 非空 quoteTime 的缓存只检查字段存在，未按时间解析与年龄判断；独立复核用实际函数合成复现了 28.5 小时旧涨跌仍保留、详情行情请求 0 次。长驻 PWA 跨日且主刷新失败时，可能继续展示旧重仓涨跌，详情表也未单独标记行情日期；昨日行情仍被重仓估值计算器排除，不扩大为“昨日值参与今日估值”的结论。后续应先以真实时间 / 跨日失败场景建立行为测试，再给旧行情明确状态或重新获取；不得把请求时间改写成行情时间。
+3. 旧手动详情行情路径、裸 f12 映射与 US 模型专属重复获取已在第 7 节修复。**P2 暖详情时间陈旧风险已在第 9 节本地修复并验证**：详情现在按身份、源时间和实际市场时钟评估，旧行情标明原时点，只补查需要更新的证券；合法历史值在失败时保留，非法/未来值不显示。此处不是生产已修复声明，也没有放宽昨日行情参与今日模型的规则。
 4. 共享资源策略与缓存边界已复用，但总包体积仍 FAIL；不同构建参数的尝试没有作为已证明的性能优化采纳。Intl 计数测试证明的是 formatter 构造复用，不是生产页面 p95 改善。
 5. 此前业务 SHA 的 GitHub 分支 / PR CI 与分支产物内容核对通过，见第 6 节；第 7 节新业务已独立检查对应 SHA 的 CI，见第 8 节，没有继承旧结果。正式主线 candidate 验证仍未满足。draft PR 可保存检查点，但不意味着允许 M3 EXIT 或生产部署。
 6. M4 多档案同步合同、M5 OCR 导入/解码/取消/PWA 合同、M6 三类物理设备与同一产物发布继续按原顺序，未跳过。外部 fund-compass Worker 未修改，v2 服务未协同上线。
@@ -172,3 +172,73 @@
 3. `quote-presentation.js` / `security-quote-batch.js` / `holdings-estimate.js` 的北京时间 epoch 文本格式化。保留秒 / 毫秒、date-only、null/非法值与历史解析包装；共享 helper 进入 cold 后可能抵消节省，必须按同配置产物实测净值，不用源码行数推断收益。
 
 三项均没有隔离 gzip 收益证据，不能承诺填补 6,103 B。现有正确行为应先 characterization GREEN，再等价优化；真正的性能 RED 是 all 门禁，不将缺少新 helper 的 RED 宣传为旧业务缺陷。暖详情修复另需区分历史显示、是否补查与是否参与今日估值：境内假期的合法最近收盘、US 跨中国午夜但同当地日都不能简单清空；future / 不可解析时点不得冒充有效行情。新请求失败保留旧合法值时必须标明原 source time / 旧状态，不续期、不改模型 36 小时 / NAV 区间规则。
+
+## 9. 2026-10-02：暖详情可靠性、等价序列化与实测工具检查点
+
+本节初始证据绑定 base HEAD `ac4920d0158722861a3ef14acba03b1e7c57515f` 的未提交工作树，SOURCE_DATE_EPOCH 为 `1790870129`。第 6 / 8 节历史 CI 不作为本节检查的结果。版本仍为 15.0.2，M3 仍 `IN PROGRESS`；不 merge、不 deploy、不跳到 M4。
+
+### 已实施与行为保护
+
+- `js/storage/holdings-schema.js`：指纹直接序列化规范化结果，不再重建同样字段或对每行做 JSON parse/stringify round-trip。新增 `test/holdings-canonical-v16.test.js` 对照精确 UTF-8 JSON、字段顺序、Unicode、null/0/-0、时间规范化、排序、tombstone/revision/device/note、错误顺序和不修改输入；原/新实现 characterization 均 24/24。3 行 canonical 的 JSON.parse 次数 3→0，JSON.stringify 4→1，Date.parse 25→13；这是调用计数，不是页面延迟证明。
+- `js/runtime/source-registry.js`：合并 success/partial 的共同健康更新与 failure 的共同字段。保留 unavailable 短路、单调 availableAt、partial=degraded、精确 cooldown、单半开探针、取消与不可变快照。新增 `test/source-health-equivalence-v16.test.js` 22 项；原/新实现加原有用例均 31/31，包含 getter 访问/抛错顺序。没有合并可尝试谓词或移除输入校验。
+- `js/runtime/security-quote-batch.js` + `js/app.js`：新增纯详情评估器，拒绝错误证券身份、缺失、未来/非法源时间；0% 保留。按交易所当地日期与真实 MarketClock 判断最近/历史和补查需求，境内假日的合法前收盘不清空，未知日历明确标注。暖详情只请求需要更新的证券，不重抓有效披露/元数据；获取失败只保留同身份的合法旧值，显示原来源时点。单调合并比较原始毫秒时间，避免较旧秒级返回覆盖较新毫秒缓存。显示历史不授予今日模型权限，模型既有覆盖/报告期/36 小时/NAV 区间不变。
+- `test/detail-quote-freshness-v16.test.js` 使用真实 app 函数、批次执行器与 RefreshCoordinator。最初 9 项中 7 fail（其中 2 为新入口不存在），随后对毫秒保留和非法行补 RED→GREEN，最终 11/11。`e2e/v16-refresh.spec.js` 新增真实页面旧源时间、真实零涨跌和缺失 `--` 断言，未复制业务算法。
+- `js/runtime/business-features.js` 只重导出 18 个已有 lazy 业务 API；app 的 11 个动态入口复用这个窄表面，避免重复动态 facade/preload 表。各入口自己的 promise/初始化/失败策略保留，云/Gist、诊断与 OCR 不进入冷启动。构建分组、oxc/es2022、依赖与 cold hard budget 均未改；SW 源清单加入该同源模块，构建仍生成完整 chunk 图。
+
+### 本地业务验证（首轮配对前）
+
+| 检查 | 实际结果 |
+| --- | --- |
+| `npm test` | 793 项；792 pass、0 fail、1 Windows symlink skip |
+| `npm run check` | 180 个 JS 源码/测试语法通过 |
+| 两次确定性 build / 官方 app 校验 | 16 chunks / 243,481 B raw；关键发布集指纹相同 |
+| 关键发布集指纹 | `4cf839747afdb7ea51abd6ad7180d1803d9657c669bfac449ff147ccf4ee8472`（未提交工作树/上述 epoch，不是 CI 或生产指纹） |
+| cold gzip | 43,845 / 52,241 B：PASS |
+| all 非 OCR gzip | **82,481 / 77,227.7 B：FAIL**；较第 7 节净减少 849 B，含暖详情修复成本 |
+| `npm run test:e2e`，FundVal 自有 12437 | 23/23，42.1 秒；桌面合成数据，不是真机验收 |
+| official registry audit | 0 vulnerabilities；未改 npm 配置/依赖 |
+| OCR 官方校验 | 23 assets / 88,196,906 B；资源/引擎未变 |
+
+barrel 的独立虚拟试验曾相对“已经包含本轮修复”的 83,911 B 减少 1,430 B；不能把该独立差值与上表净 849 B 再相加。
+
+### 配对性能证据和未通过项
+
+新增 `scripts/measure-performance-pair.mjs`，同机交错 AB/BA、新 context、隔离旧 `40e68ed` 源码/服务、严格依赖图匹配、固定合成时钟、无外部数据/Gist 请求、真实 DOM readiness/保存交互、只读网络/主线程分解、前后源码与全部产物指纹及自有资源清理。测试工具不改业务或用户数据，端口 4173 保留给其他项目。
+
+首轮 [原始 60-pair 报告](performance-evidence/m3-pair-60.json) 保持不可覆盖：4 warm-up + 60 retained，AB/BA 各 30，5000 次分层 paired bootstrap，seed 160003，所有 retained 样本保留。SHA256 为 `88b927752e589553cea18dba88e3d2233c780f208beeb1ea77a1de6902a4611d`。
+
+| 指标 | 旧版 median / p95 (ms) | 当前 median / p95 (ms) | 95% median ratio / p95 ratio CI |
+| --- | --- | --- | --- |
+| cold | 152.00 / 193.60 | 139.80 / 217.00 | [0.8905, 0.9591] / [0.9386, 1.2818] |
+| warm | 103.90 / 137.90 | 93.30 / 146.50 | [0.8336, 1.0031] / [0.8427, 1.3841] |
+| save | 42.64 / 56.45 | 46.12 / 70.58 | [0.9822, 1.1594] / [0.6616, 1.4068] |
+
+结论仍 **INCONCLUSIVE**，不能称 p95 门禁通过。cold/warm 的点估计更快不代表稳定尾延迟改善；save median +8.16% 但上界尚不能证明 ≤15%。原方案只将保存中位数列为相对硬门禁；工具还观察保存 p95，属于额外诊断/保守工具条件，不后改首轮统计来制造通过。
+
+首轮同时暴露两处 harness 问题：Playwright 1.62.1 内置 `serviceWorkers: block` 脚本访问 opaque Bridge 的 `navigator.serviceWorker`，独立正反对照复现 SecurityError；采集器在请求记录完成前 reload/close，使部分同源静态请求 timing/size 不完整。源码/产物前后完整性与自有清理均 PASS，但 health FAIL、instrumentation INCOMPLETE，所以原始报告更不能作为完整门禁证据。只修测试环境/采集生命周期，不以广泛忽略 pageerror 或请求失败处理；后续新采样另存，不覆盖这一轮。
+
+只读候选试验中，通用 HTTP 抽取仅省约 20 gzip B，规则行模板 helper 约 53–66 B，海外 prepared-legs 抽取反而变大且会改变 getter/错误顺序，均未采纳。所有预算、校验与发布边界不变；下一步仍是 M3 包体积与可靠尾延迟证据。
+
+### 修正 harness 后的 200 组预设采样
+
+工具修正不触及业务：改为 guarded registration denial，精确处理 opaque iframe 的原生 SW getter 拒绝，同时拦截 SW script/header、启用 CDP bypass，并在 cold/warm/save 各阶段断言 worker/controller/registrations 为 0。**没有忽略任何 pageerror**。请求在重载/关闭前进行独立、计时窗口外的收尾；仅明确的自有 reload/close + 已知 optional Bridge + 实际 ERR_ABORTED 可记为预期取消，关键/未知请求失败仍使证据 INCOMPLETE。关闭之后的异常计数也读回，不能因先 return 漏记。工具/collector 定向 24/24，最新完整 Node 为 **796 tests / 795 pass / 0 fail / 1 Windows skip**，syntax 180，official audit 0。
+
+第二轮 [原始 200-pair 报告](performance-evidence/m3-pair-200.json) 在运行前固定 200 retained +4 warm-up、5000 bootstrap、seed 160003；AB/BA 各 100，不剔除/替换样本，也未与首轮合并。采样期间无并发 test/build/源码编辑，2026-10-02 02:37:38–02:46:48 UTC。报告 SHA256：`b7abe1b6f9409a8ebf5543b0b380acbb252bc2db60676db5ead7d75491813ad9`。
+
+- 200/200 complete，0 failed pairs；源码/全部产物前后指纹 PASS，自有浏览器/两个服务/验证过的 Temp snapshot 清理 PASS。
+- reference/current pageErrors 均 0，instrumentation failures 均 0，SW events 均 0；每侧 612 次 untimed drain 全部 SETTLED（含 warm-up）。
+- 所有请求均有完整分类。reference/current 各 1836/2652 个故意阻止的第三方请求伴随同数量 console error；这是 hermetic policy 阻断的观察，不声称 console errors=0，也不说明生产第三方可用。
+
+| 指标 | 旧版 median / p95 (ms) | 当前 median / p95 (ms) | 95% median ratio / p95 ratio CI |
+| --- | --- | --- | --- |
+| cold | 139.20 / 179.20 | 124.05 / 158.30 | [0.8709, 0.9105] / [0.7563, 0.9902] |
+| warm | 76.30 / 104.60 | 66.60 / 91.90 | [0.8518, 0.8966] / [0.7334, 0.9622] |
+| save | 39.55 / 47.43 | 38.43 / 63.95 | [0.9535, 0.9969] / [1.0696, 1.6649] |
+
+冷/暖中位数点估计 -10.88%/-12.71%，保存中位数 -2.84%；各中位数 CI 上界在原方案 ≤15% 目标内，冷/暖 p95 ratio CI 上界也在 ≤20% 内。但工具预先设定的 p95 区间宽度要求尚未满足：旧版 cold/warm 宽度为 26.23%/24.09%，不是稳定基线；保存额外 p95 观察为 +34.85% 且区间宽。**仍为 INCONCLUSIVE / exit 2**，不后调宽度阈值、不把点估计改称全面门禁通过、不用追加样本直到绿的方法替换失败记录。
+
+分解仅支持有限归因：本地 cold TTFB median 1.90→1.70 ms，warm 1.60→1.50 ms；cold CDP Task median 97.77→90.79 ms，Script 8.79→9.01 ms、Layout 40.45→39.97 ms。保存 click→DOM median 12.60→10.70 ms、p95 16.10→12.20 ms，与 runner wall 的尾部变化不同，后者包含自动化调度/等待，不据此断言纯业务回归原因。warm CDP counter 跨导航重置，差值为 null，**该阶段主线程分解不可确认**；不能将 null 当成 0。上述指标均非生产公网、实际手机或 PWA 升级验收。
+
+最新业务包体积仍为 **82,481 B > 77,227.7 B**。无论原方案的相对时延 CI 观察还是工具保守条件如何解释，都不能覆盖这个独立 FAIL。M3 继续，M4/M5/M6 未开始。
+
+采样后最终本地复核：Node 796/795 pass/0 fail/1 Windows skip，syntax 180，E2E **23/23（37.3 秒）**；再连续两次 build 的关键发布集仍为上述 `4cf839...`，官方 app/OCR 校验仍为 16/243,481 B 和 23/88,196,906 B。这两次 build 在浏览器 E2E 服务结束后执行，不在测量或 E2E 中途替换 site。此节新工作树/新提交的远端 CI 必须另查，不继承 ac4920d 或 1c23d2f 的历史结果。

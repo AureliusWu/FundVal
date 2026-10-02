@@ -1,5 +1,6 @@
 import { TTL } from '../config.js';
-import { chinaTimeParts } from './market-clock.js';
+import { chinaTimeParts, chinaDateKey, marketClock, zonedTimeParts } from './market-clock.js';
+import { holdingQuoteCode } from '../fund-holdings.js';
 import { nullableNumber, parseQuoteTimestamp } from './quote-contract.js';
 import { BRIDGE_LIMITS, validateBridgeParams, validateBridgeOperationData } from './remote-schema.js';
 import { RefreshCoordinator } from './refresh-coordinator.js';
@@ -32,6 +33,30 @@ function chinaText(timestamp) {
   if (!parts) return '';
   const pad = value => String(value).padStart(2, '0');
   return `${parts.dateKey} ${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}`;
+}
+
+// A detail may retain a legal prior close, but its display clock never grants
+// permission to use that history as today's model input. Cached times are
+// already Beijing timestamps: do not convert them from exchange time again.
+export function assessDetailSecurityQuote(stock, { now = Date.now(), allowMainland = false } = {}) {
+  const unavailable = { displayChange: null, status: 'unavailable', needsRefresh: false,
+    sourceTime: null, todayCandidate: false, caption: '行情暂不可用' };
+  if (!record(stock) || !Number.isSafeInteger(now) || now <= 0 || now > 8_640_000_000_000_000) return Object.freeze(unavailable);
+  const code = holdingQuoteCode(stock, { allowMainland });
+  try { validateBridgeParams('securityQuotes', { codes: [code] }); }
+  catch (_) { return Object.freeze(unavailable); }
+  const timestamp = typeof stock.quoteTime === 'string' ? parseQuoteTimestamp(stock.quoteTime) : null;
+  if (stock.quoteCode !== code || !Number.isFinite(stock.change) || timestamp == null || timestamp <= 0 || timestamp > now) {
+    return Object.freeze({ ...unavailable, needsRefresh: true });
+  }
+  const session = marketClock(MAINLAND_CODE.test(code) ? 'cn' : code.slice(0, 2), now);
+  const historical = zonedTimeParts(timestamp, session.timezone)?.dateKey !== session.dateKey
+    || now - timestamp >= session.expectedFreshnessMs;
+  const sourceTime = chinaText(timestamp);
+  return Object.freeze({ displayChange: stock.change, status: historical ? 'historical' : 'recent',
+    needsRefresh: historical && ['open', 'unknown'].includes(session.marketState), sourceTime,
+    todayCandidate: chinaDateKey(timestamp) === chinaDateKey(now),
+    caption: `${historical ? '旧行情' : '最近行情'} · ${sourceTime}${session.calendarStatus === 'valid' ? '' : ' · 日历未验证'}` });
 }
 
 function demandCodes(operation, input) {

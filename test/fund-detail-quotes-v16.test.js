@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { holdingQuoteCode } from '../js/fund-holdings.js';
 import { classifyFundMarket } from '../js/freshness.js';
 import { formatChinaQuoteTime, normalizeTencentQuoteTime } from '../js/holdings-estimate.js';
-import { nullableNumber } from '../js/runtime/quote-contract.js';
+import { nullableNumber, parseQuoteTimestamp } from '../js/runtime/quote-contract.js';
 import { throwIfAborted } from '../js/runtime/request-signal.js';
 import { createRefreshPlan, createSecurityQuotePlan } from '../js/runtime/refresh-plan.js';
 import { createGenerationResourceScope } from '../js/runtime/generation-resource-scope.js';
@@ -54,7 +54,7 @@ function harness({ primary = [], fallback = [], fetchPrimary, fetchFallback } = 
       fallbackCalls.push({ codes: [...codes], signal: options?.signal });
       return fetchFallback ? fetchFallback(codes, options) : { quotes: fallback };
     } }),
-    normalizeTencentQuoteTime, nullableNumber, throwIfAborted,
+    normalizeTencentQuoteTime, nullableNumber, parseQuoteTimestamp, throwIfAborted,
     createRefreshPlan, createSecurityQuotePlan, createGenerationResourceScope, executeSecurityQuotePlan,
     loadSecurityQuoteFeature: async () => securityQuoteFeature,
     isRefreshAbort,
@@ -227,7 +227,8 @@ test('expanding a cached disclosure with missing quotes still runs the real deta
   const quoteCalls = [], renders = [];
   const holdingsCache = { [FUND.code]: [stock('600000')] };
   const dependencies = {
-    loadingDetails: null, expandedFund: FUND.code, holdingsCache, holdingsMetaCache: {}, fundsData: [FUND],
+    loadingDetails: null, expandedFund: FUND.code, holdingsCache, holdingsMetaCache: {}, fundsData: [FUND], holdings: [FUND],
+    loadSecurityQuoteFeature: async () => securityQuoteFeature, Date: FixedDate, classifyFundMarket,
     fundTypeCache: { [FUND.code]: { type: '混合型' } }, fundFeeCache: { [FUND.code]: null },
     loadFundHoldings: async () => { assert.fail('a cached disclosure must not be downloaded again'); },
     fetchHoldingsQuotes: async (code, rows) => { quoteCalls.push({ code, rows }); rows[0].change = 0; rows[0].quoteTime = TIME; },
@@ -239,7 +240,8 @@ test('expanding a cached disclosure with missing quotes still runs the real deta
   await fetchDetails(FUND.code);
   assert.equal(quoteCalls.length, 1);
   assert.equal(quoteCalls[0].code, FUND.code);
-  assert.equal(quoteCalls[0].rows, holdingsCache[FUND.code]);
+  assert.deepEqual(quoteCalls[0].rows, holdingsCache[FUND.code]);
+  assert.equal(quoteCalls[0].rows[0], holdingsCache[FUND.code][0]);
   assert.equal(holdingsCache[FUND.code][0].change, 0);
   assert.ok(renders.length > 0);
 });
@@ -331,7 +333,8 @@ function detailsHarness({ cache = {}, metadata = {}, coordinator = new RefreshCo
     fundsData: [FUND, { code: '012920', name: '合成海外基金(QDII)' }],
     fundTypeCache: { [FUND.code]: { type: '混合型' }, '012920': { type: 'QDII' } },
     fundFeeCache: { [FUND.code]: null, '012920': null },
-    refreshCoordinator: coordinator, throwIfAborted, isRefreshAbort,
+    refreshCoordinator: coordinator, throwIfAborted, isRefreshAbort, classifyFundMarket, holdings: [],
+    loadSecurityQuoteFeature: async () => securityQuoteFeature,
     loadFundHoldingsFeature: async () => ({ fetchFundHoldings: async (code, options) => {
       disclosureCalls.push({ code, signal: options?.signal });
       if (!loadDisclosure) assert.fail('no disclosure request expected');

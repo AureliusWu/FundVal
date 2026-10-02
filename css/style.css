@@ -834,6 +834,12 @@ html, body {
   white-space: nowrap;
 }
 
+.stock-quote-time {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .stock-name em {
   color: var(--muted);
   font-style: normal;

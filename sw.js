@@ -17,6 +17,7 @@ const CORE = [
   './js/runtime/holding-set-contract.js',
   './js/runtime/holding-quote-amounts.js',
   './js/runtime/fund-model-enrichment.js',
+  './js/runtime/business-features.js',
   './js/runtime/refresh-generation.js', './js/runtime/refresh-coordinator.js',
   './js/runtime/request-signal.js',
   './js/storage/holdings-schema.js', './js/storage/holdings-migration.js',

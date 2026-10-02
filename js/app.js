@@ -103,16 +103,18 @@ let detailToggleGeneration = 0;
 let detailController = null;
 let detailRefreshGeneration = null;
 let securityQuoteModulePromise = null;
+let securityQuoteRuntime = null;
 
 function loadSecurityQuoteFeature() {
-  if (!securityQuoteModulePromise) securityQuoteModulePromise = import('./runtime/security-quote-batch.js')
+  if (!securityQuoteModulePromise) securityQuoteModulePromise = import('./runtime/business-features.js')
+    .then(module => { securityQuoteRuntime = module; return module; })
     .catch(error => { securityQuoteModulePromise = null; throw error; });
   return securityQuoteModulePromise;
 }
 
 function loadQuoteBridgeFeature() {
   if (!quoteBridgePromise) {
-    quoteBridgePromise = import('./runtime/quote-bridge-client.js').then(function(module) {
+    quoteBridgePromise = import('./runtime/business-features.js').then(function(module) {
       quoteBridge = module.createQuoteBridgeClient();
       return quoteBridge;
     });
@@ -121,25 +123,25 @@ function loadQuoteBridgeFeature() {
 }
 
 function loadFundHoldingsFeature() {
-  if (!fundHoldingsModulePromise) fundHoldingsModulePromise = import('./fund-holdings.js').catch(error => { fundHoldingsModulePromise = null; throw error; });
+  if (!fundHoldingsModulePromise) fundHoldingsModulePromise = import('./runtime/business-features.js').catch(error => { fundHoldingsModulePromise = null; throw error; });
   return fundHoldingsModulePromise;
 }
 
 async function fetchEstimateRows(...args) {
-  if (!estimateModulePromise) estimateModulePromise = import('./eastmoney-estimate.js').catch(error => { estimateModulePromise = null; throw error; });
+  if (!estimateModulePromise) estimateModulePromise = import('./runtime/business-features.js').catch(error => { estimateModulePromise = null; throw error; });
   return (await estimateModulePromise).fetchEstimateRows(...args);
 }
 
 
 async function loadOverseasModels() {
-  modelRuntime = await import('./runtime/fund-model-enrichment.js');
+  modelRuntime = await import('./runtime/business-features.js');
   return modelRuntime.loadOverseasModels();
 }
 function getOverseasConfig() { return modelRuntime?.getOverseasConfig() || { models: {}, rules: {} }; }
 function selectOverseasModel(...args) { return modelRuntime?.selectOverseasModel(...args) || null; }
 
 function loadHoldingsEstimateFeature() {
-  if (!holdingsEstimateModulePromise) holdingsEstimateModulePromise = import('./holdings-estimate.js').then(function(module) {
+  if (!holdingsEstimateModulePromise) holdingsEstimateModulePromise = import('./runtime/business-features.js').then(function(module) {
     holdingsEstimateRuntime = module;
     return module;
   }).catch(error => { holdingsEstimateModulePromise = null; throw error; });
@@ -173,7 +175,7 @@ function updateNotificationStatus(permission) {
 
 function loadNotificationFeature() {
   if (!notificationControllerPromise) {
-    notificationControllerPromise = import('./notifications/notification-controller.js').then(function(module) {
+    notificationControllerPromise = import('./runtime/business-features.js').then(function(module) {
       const controller = module.createNotificationController({
         getHoldings: function() { return holdings; },
         getFunds: function() { return fundsData; },
@@ -228,7 +230,7 @@ async function loadHoldings() {
 }
 
 async function saveHoldingEdit(edit) {
-  const { commitHoldingEdit } = await import('./runtime/holding-edit.js');
+  const { commitHoldingEdit } = await import('./runtime/business-features.js');
   const saved = await commitHoldingEdit(undefined, edit, { cacheKey: CACHE_KEY });
   if (saved.ok || (saved.reason === 'edit_conflict' && saved.document)) installHoldingsDocument(saved.document);
   if (!saved.ok) holdingsStorageError = saved.reason || 'holdings_save_failed';
@@ -295,7 +297,7 @@ async function fetchWithTimeout(url, options = {}, timeout = TIMING.CLOUD_SYNC_T
 let holdingsTransferFeature;
 async function runHoldingsTransfer(action, event) {
   try {
-    if (!holdingsTransferFeature) holdingsTransferFeature = import('./runtime/holdings-transfer.js').then(module => module.createHoldingsTransfer({
+    if (!holdingsTransferFeature) holdingsTransferFeature = import('./runtime/business-features.js').then(module => module.createHoldingsTransfer({
       getHoldingsDocument: () => holdingsDocument, getHoldings: () => holdings,
       installHoldingsDocument, scheduleAutoPush, renderHoldingsList, refresh, showToast, CACHE_KEY,
     }));
@@ -818,7 +820,7 @@ function commitRefreshedFund(context, holding, built) {
   return context.commit(function() {
     upsertFundData(holding.code, built.data);
     if (isOverseasLikeFund(built.data)) {
-      import('./accuracy.js').then(({ updateFundAccuracy }) => {
+      import('./runtime/business-features.js').then(({ updateFundAccuracy }) => {
         context.commit(() => updateFundAccuracy(built.data));
       }).catch(() => {});
     }
@@ -884,7 +886,7 @@ async function runRefresh(context, options) {
       renderFundList(fundsData);
     });
     const [execution, holdingModule, estimateModule] = await Promise.all([
-      import('./runtime/refresh-execution.js'), loadFundHoldingsFeature(), loadHoldingsEstimateFeature(),
+      import('./runtime/business-features.js'), loadFundHoldingsFeature(), loadHoldingsEstimateFeature(),
     ]);
     requireCurrentRefresh(context);
     let previous;
@@ -1230,7 +1232,7 @@ async function toggleFundDetail(code) {
   }
   try {
     if (!quoteDiagnosticsPromise) quoteDiagnosticsPromise = import('./runtime/quote-diagnostics.js');
-    quoteDiagnosticsRuntime = await quoteDiagnosticsPromise;
+    [quoteDiagnosticsRuntime] = await Promise.all([quoteDiagnosticsPromise, loadSecurityQuoteFeature()]);
   } catch (_) {
     quoteDiagnosticsPromise = null;
     showToast('数据说明暂不可用，请重试');
@@ -1271,8 +1273,14 @@ async function fetchFundDetails(code, signal) {
       renderFundList(fundsData);
     }
     const stocks = holdingsCache[code];
-    if (stocks?.length && stocks.some(stock => !Number.isFinite(stock.change) || !stock.quoteTime)) {
-      await fetchHoldingsQuotes(code, stocks, signal);
+    if (stocks?.length) {
+      const quotes = await loadSecurityQuoteFeature();
+      throwIfAborted(signal);
+      if (expandedFund !== code) return;
+      const fund = fundsData.find(item => item.code === code) || holdings.find(item => item.code === code);
+      const allowMainland = Boolean(fund?.name) && ['cn', 'cn-index'].includes(classifyFundMarket(fund.name));
+      const missing = stocks.filter(stock => quotes.assessDetailSecurityQuote(stock, { now: Date.now(), allowMainland }).needsRefresh);
+      if (missing.length) await fetchHoldingsQuotes(code, missing, signal);
       throwIfAborted(signal);
       if (expandedFund !== code) return;
       renderFundList(fundsData);
@@ -1332,10 +1340,14 @@ async function fetchHoldingsQuotes(code, stocks, signal) {
   throwIfAborted(signal);
   items.forEach((item, index) => {
     const stock = stocks[index];
+    const prior = quotes.assessDetailSecurityQuote(stock, { now: Date.now(), allowMainland });
+    const next = acquired[item.quoteCode];
     stock.quoteCode = item.quoteCode;
-    delete stock.change;
-    delete stock.quoteTime;
-    if (acquired[item.quoteCode]) Object.assign(stock, acquired[item.quoteCode]);
+    if (prior.displayChange == null) {
+      delete stock.change;
+      delete stock.quoteTime;
+    }
+    if (next && (prior.sourceTime == null || parseQuoteTimestamp(next.quoteTime) >= parseQuoteTimestamp(stock.quoteTime))) Object.assign(stock, next);
   });
 }
 
@@ -1465,8 +1477,11 @@ function renderFundList(data) {
         if (reportDate) html += '<div class="holdings-report-date">十大重仓 · 截止 ' + esc(reportDate) + '</div>';
         html += '<div class="holdings-header"><span>股票名称</span><span>占比</span><span>涨跌幅</span></div>';
         holdingsCache[f.code].forEach(function(s) {
-          var sc = Number.isFinite(s.change) ? (s.change >= 0 ? 'up' : 'down') : '';
-          html += '<div class="holdings-row"><span class="stock-name">' + esc(s.name) + '<em>' + esc(s.code) + '</em></span><span>' + fmt(s.ratio) + '%</span><span class="' + sc + '">' + (Number.isFinite(s.change) ? (s.change >= 0 ? '+' : '') + fmt(s.change) + '%' : '--') + '</span></div>';
+          var state = securityQuoteRuntime?.assessDetailSecurityQuote(s, { now,
+            allowMainland: Boolean(f.name) && ['cn', 'cn-index'].includes(classifyFundMarket(f.name)) });
+          var change = state?.displayChange;
+          var sc = change != null ? (change >= 0 ? 'up' : 'down') : '';
+          html += '<div class="holdings-row"><span class="stock-name">' + esc(s.name) + '<em>' + esc(s.code) + '</em></span><span>' + fmt(s.ratio) + '%</span><span class="' + sc + '">' + (change != null ? (change >= 0 ? '+' : '') + fmt(change) + '%' : '--') + '</span><small class="stock-quote-time">' + esc(state?.caption || '行情暂不可用') + '</small></div>';
         });
         html += '</div>';
       }

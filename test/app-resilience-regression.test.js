@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('app uses safe persistence, cache-to-holding binding, timeout and merge guards', async () => {
-  const [app, bootstrap, gistRemote, index, diagnostics, cloudArchive, execution, cache, securities] = await Promise.all([
+  const [app, bootstrap, gistRemote, index, diagnostics, cloudArchive, execution, cache, securities, features] = await Promise.all([
     readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/bootstrap.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/storage/gist-remote.js', import.meta.url), 'utf8'),
@@ -13,6 +13,7 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
     readFile(new URL('../js/runtime/refresh-execution.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/runtime/refresh-resource-cache.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/runtime/security-quote-batch.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/runtime/business-features.js', import.meta.url), 'utf8'),
   ]);
 
   assert.doesNotMatch(app, /localStorage\s*\./);
@@ -28,7 +29,8 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(cloudArchive, /const uploadDocument = normalizeHoldingsDocumentV3\(holdingsDocument\)/);
   assert.match(cloudArchive, /finalizeCreatedArchiveState\([\s\S]*uploadDocument,[\s\S]*currentLoaded\.document/);
   assert.match(cloudArchive, /setSyncPending\(finalized\.pending\)/);
-  assert.match(app, /import\('\.\/runtime\/quote-bridge-client\.js'\)/);
+  assert.match(app, /import\('\.\/runtime\/business-features\.js'\)/);
+  assert.match(features, /export \{ createQuoteBridgeClient \} from '\.\/quote-bridge-client\.js'/);
   assert.match(app, /function fetchLatestNavMoveRaw[\s\S]*bridge\.officialFundData/);
   assert.match(app, /return bridge\[operation\]\(codes, \{ signal, timeoutMs: TIMING\.INDEX_JSONP_TIMEOUT \}\)/);
   assert.match(app, /function fetchHoldingsQuotes[\s\S]*quotes\.executeDetailSecurityQuotes/);
@@ -80,7 +82,7 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(app, /const refreshCoordinator = new RefreshCoordinator/);
   assert.doesNotMatch(app, /refreshChain|refreshRequestId/);
   assert.match(app, /signal: context\.signal/);
-  assert.match(app, /import\('\.\/runtime\/refresh-execution\.js'\)/);
+  assert.match(features, /export \{ executeRefreshPlan \} from '\.\/refresh-execution\.js'/);
   assert.match(app, /execution\.executeRefreshPlan\(/);
   assert.match(execution, /Promise\.all\(\[getNav\(holding\), securityTask\]\)/);
   assert.match(execution, /scope\.commitUi\(\(\) => ui\.enriched\(/);
