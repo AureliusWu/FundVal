@@ -320,3 +320,23 @@ push review artifact `11207337192`，API 声明 ZIP 92,612,146 B、digest `sha25
 这些是内存构建及模块/依赖图检查，不是浏览器运行时等价或相对时延证据；没有修改业务/构建配置/旧原始报告。新工具提交后 root 再核对工作树干净，三份历史 raw evidence 的 LF SHA 均未变。当前没有可提交的安全体积候选，下一步应针对真实重复业务块做 characterization 后单变量验证；不把 gate-only 修复当作 M3 EXIT，也不反复追加采样直到绿。M4/M5/M6 尚未开始，版本维持 15.0.2。
 
 仅本证据文档增补后再次本地复核：823 tests / 820 pass / 0 fail / 3 Windows skip、syntax 181、E2E 23/23（37.6 秒）。自有 E2E 服务结束后两次 build 指纹均 `71ee91e916a3fe70ef581d95d15d14f504c076bcdc2842e16646b2aa39a77e40`，SOURCE_DATE_EPOCH `1790911097`（2ec7a8a），实算 all 仍 82,481 / exit 1；不将这份本地指纹当作 CI 或生产指纹。
+
+## 16. 模块增长归因与函数排序排除
+
+业务代码保持 3a19c40 的状态。只读 `write:false` 控制构建实际复现：
+
+| 源码 / 构建 recipe | all gzip B | cold gzip B |
+| --- | ---: | ---: |
+| v15 / 原 recipe | 70,207 | 51,941 |
+| v15 / 当前 recipe（仅归因控制） | 65,275 | 47,984 |
+| 当前 / 当前 recipe | 82,481 | 43,845 |
+
+相同当前 recipe 下源码使 all +17,206 B / cold -4,139 B；布局已抵消 4,932 B，不能把控制组 65,275 重新用作门禁基线。business-runtime 9,239→28,063（+18,824），post-integrity 36,932→33,003（-3,929），cloud 4,379→6,488（+2,109）。主要新增模块的 rendered standalone gzip 为 resource-cache 4,639、refresh-execution 4,439、worker-contract 4,351、security batch 3,552 B；它们不可相加、不是可回收收益。remote-schema 与 v15 source 完全相同，不是主要增长源。
+
+不能删除兼容 alias 或共用一个过宽 validator 来填预算：Worker 接受数字字符串、精确 alias 冲突并抛 reason；cache 要求 number、允许 null/NaN 占位及 `1e-7` 容差、失败返回 null。投影 `...row` 不是嵌套存两份原始行。重复 normalize 仍在不同信任边界重新校验来源/日期/状态，不是可直接缓存一次的冗余；复用可能改变 getter、reason 与回退。目前没有可证实 ≥1 KB gzip 的安全结构候选。
+
+另按测量前确定的 3 种函数排序规则各运行 3 次内存对照（长度升序、AST 结构、固定词频近邻）；仅在 FunctionDeclaration 原槽位替换完整源子串，全部非函数语句、imports/exports、间隔 trivia 和函数 binding/AST 不变，raw 均 243,481 B。all 分别 83,283（+802）、84,050（+1,569）、83,315（+834），均排除，未改 build config / site。after-output 内存排列未重算 filename hash，不是可发布产物；函数顺序还影响 error.stack 的源码位置，不能只凭去 location AST 宣称完整运行时等价。
+
+本次实测 source 集 73 files / 3,576,505 B，before/after SHA `2a5f311b9965ea80d49c86d07d1d2e0e87d48fb111f9d83567369922e1cd2ae0` 一致。现有 site 发布 inventory 121 files / 92,496,807 B，before/after `0597795409f403cbeae56fe2c26c9bc1e98ae1e58fc4ca6d86362d84109b4849` 一致，沿用 inventory 排除根 `.playwright-results` 的规则，不冒充完全包括诊断目录的全树 hash。
+
+下一轮只执行一次新协议 relative measurement，事前参数见 [v2-200 预声明](performance-evidence/m3-pair-v2-200-protocol.md)；目的补齐同文档 warm 分解，不追加旧样本、不调统计阈值、不覆盖 60/200/probe。包体积独立 FAIL 仍在，M3 IN PROGRESS。
