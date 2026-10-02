@@ -302,3 +302,21 @@ ready MutationObserver、migration/skeleton 条件、save wall timer、原有统
 2026-10-02 本地 full gates：823 tests / 820 pass / 0 fail / 3 Windows symlink skip，syntax 181，official registry audit 0，桌面合成 E2E 23/23（39.2 秒，自有 port 12437）。E2E 服务结束后连续两次 build：SOURCE_DATE_EPOCH `1790910360`（父提交 724f8d6），关键发布集指纹均为 `bcd7cf6307c7a656de7e841eb674a586b251a1ebaf8bb94083a6556481e66587`；这是未提交工具修复的本地构建，不是远端/生产指纹。官方 app/OCR bytes 核验为 16 chunks / 243,481 B 与 23 assets / 88,196,906 B；未执行 OCR。
 
 实际预算仍 cold 43,845 PASS、all 82,481 FAIL / exit 1；差距至少 5,254 B。原 60/200 报告与 counter probe 未覆盖，新协议相对采样 NOT_RUN，统计仍 INCONCLUSIVE。CodeQL #8 是否关闭必须待本批 push 后的真实独立复扫，不 dismiss；M3 继续，不进入 M4/M5/M6，不 merge/deploy/bump。
+
+## 14. Reservation 检查点的实际复扫
+
+第 13 节实现已提交并推送 `2ec7a8a25d9e8f39dc1909d9b367ab033bfb2713`。其 [push 36959583129](https://github.com/AureliusWu/FundVal/actions/runs/36959583129) / [PR 36959586571](https://github.com/AureliusWu/FundVal/actions/runs/36959586571) 均 completed / failure、attempt 1，candidate 仅在最后 `Enforce actual M3 app bundle budget` 失败。两侧 Linux 实际为 823 tests / 823 pass / 0 fail / 0 skip、syntax 181；E2E push 23/23（42.5 秒）、PR 23/23（45.2 秒）。audit 0、app/OCR 实际字节核验、seal/upload 成功；all 82,481 > 77,227.7 不变。
+
+独立 `CodeQL` check `110690241225` 为 completed / success、0 annotations，标题为 No new alerts in code changed by this pull request。实际分支 analysis `1878756267` 绑定 2ec7a8a，2026-10-02 03:19:10 UTC，结果从 4 降至 3；PR analysis `1878756390` 绑定合成 merge SHA `44798968a7163b6efe073018f02763812764cff6`，03:19:12 UTC，0 结果。alert #8 的分支与 PR merge 两个 instance 状态均 fixed，没有 dismissal。alert 顶层 API 的 state / fixed_at 为 null，故只报告已确认的实例 fixed 和独立检查 success，不编造全局 closed 状态。既有其他告警仍需后续阶段审查，不能写成整个仓库零安全问题。
+
+push review artifact `11207337192`，API 声明 ZIP 92,612,146 B、digest `sha256:6b52d8b157bbe89e8e60e1062106cdd662dca77a7135562abed91782a00d5159`；未独立下载/hash，失败 run / feature branch 产物不是 production admission。PR #12 仍 OPEN / draft，远端 main 仍 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；这些证据仅绑定 2ec7a8a，不继承给后续文档提交或生产。
+
+## 15. 保阶段构建选项的只读排除实验
+
+同源码 / oxc / es2022 / `write:false`，未落地改动。16 个分组/选项候选均未填平 5,254 B 缺口：business façade 入组无差异，resilience 入 startup 仅 -70 B，取消 business 分组 +179 B，app 与 post-pure 拆开 +986 B，取消 cloud/diagnostics 分组 +394 B；不同 maxSize 拆分均增加体积。post entriesAware +2,746 B 且产生含 `~` 的输出路径，违反既有安全路径契约。
+
+全 lazy 并组最好 all 81,562 B（-919 B），仍差至少 4,335 B，并扩大 business 首次下载到 cloud/diagnostics、改变加载失败隔离，不采纳。`optimization.inlineConst:false` 三次同为 raw 242,579 / cold 43,806 / all 82,447 B（仅 -34 B）；显式安全 chunk cleanup 和关闭负控均无差异，符合 bootstrap 顶层 await 下该优化自动停用的已安装 Rolldown 文档。未采用 unsafe treeshake / purity 断言、属性字段混淆、编译目标或依赖变化。
+
+这些是内存构建及模块/依赖图检查，不是浏览器运行时等价或相对时延证据；没有修改业务/构建配置/旧原始报告。新工具提交后 root 再核对工作树干净，三份历史 raw evidence 的 LF SHA 均未变。当前没有可提交的安全体积候选，下一步应针对真实重复业务块做 characterization 后单变量验证；不把 gate-only 修复当作 M3 EXIT，也不反复追加采样直到绿。M4/M5/M6 尚未开始，版本维持 15.0.2。
+
+仅本证据文档增补后再次本地复核：823 tests / 820 pass / 0 fail / 3 Windows skip、syntax 181、E2E 23/23（37.6 秒）。自有 E2E 服务结束后两次 build 指纹均 `71ee91e916a3fe70ef581d95d15d14f504c076bcdc2842e16646b2aa39a77e40`，SOURCE_DATE_EPOCH `1790911097`（2ec7a8a），实算 all 仍 82,481 / exit 1；不将这份本地指纹当作 CI 或生产指纹。
