@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { artifactFingerprint, balancedOrder, classifyHermeticRequest, median, METRICS, nearestRank, normalizedLock,
-  installServiceWorkerBlock, parseOptions, requestFailureCategory, requestRole, summarizePairs, validateOrigin, V15_REFERENCE } from '../scripts/measure-performance-pair.mjs';
+  captureRendererSnapshot, installServiceWorkerBlock, parseOptions, RENDERER_COUNTERS, rendererDelta, requestFailureCategory, requestRole,
+  summarizePairs, validateOrigin, V15_REFERENCE } from '../scripts/measure-performance-pair.mjs';
 
 function pairs(count = 60, before = 100, after = 110) {
   return balancedOrder(count).map((order, index) => ({ index, order,
@@ -201,6 +202,106 @@ test('request roles and cancellation causality distinguish owned optional teardo
   assert.equal(requestFailureCategory({ ...owned, role: 'criticalCode' }), 'UNEXPECTED_REQUEST_FAILURE');
   assert.equal(requestFailureCategory({ ...owned, role: 'otherLocalResource' }), 'UNEXPECTED_REQUEST_FAILURE');
   assert.equal(requestFailureCategory({ ...owned, transport: 'blocked' }), 'HERMETIC_POLICY_BLOCK');
+});
+
+function rendererSnapshot({ loaderId = 'DOC_A', navigationStart = 100, timeOriginMs = 1_000_000, observedAtDocumentMs = 20,
+  readyMs = null, timestamp = navigationStart + observedAtDocumentMs / 1000, duration = 0.01 } = {}) {
+  return { values: { Timestamp: timestamp, NavigationStart: navigationStart, ...Object.fromEntries(RENDERER_COUNTERS.map(key => [key, duration])) },
+    documentTiming: { timeOriginMs, observedAtDocumentMs, readyMs },
+    documentEpoch: { frameId: 'MAIN_FRAME', loaderId, navigationStart, timeOriginMs }, invalidReason: null, timeDomain: 'timeTicks' };
+}
+
+test('same-document renderer subtraction retains clocks and labels navigation attribution as partial through collection', () => {
+  const before = rendererSnapshot(), after = rendererSnapshot({ observedAtDocumentMs: 150, readyMs: 100, duration: 0.03 });
+  const saved = structuredClone({ before, after }), result = rendererDelta(before, after);
+  assert.equal(result.status, 'PARTIAL');
+  for (const key of ['TaskMs', 'ScriptMs', 'LayoutMs', 'RecalcStyleMs']) assert.ok(Math.abs(result[key] - 20) < 1e-10);
+  assert.equal(result.coverage.preReadyCoverageMs, 80);
+  assert.equal(result.coverage.collectionDocumentMs, 150, 'collection is later than actual ready, not an exact-ready CPU bound');
+  assert.match(result.coverage.scope, /post-commit.*partial startup/);
+  assert.match(result.coverage.caveat, /not isolated OS CPU or exact ready-boundary CPU/);
+  assert.match(result.coverage.caveat, /observation overhead/);
+  assert.deepEqual(result.snapshots, saved);
+  assert.deepEqual({ before, after }, saved, 'characterization does not mutate raw snapshots');
+});
+
+test('changed document epochs are rejected even if every new counter is greater than the old document counter', () => {
+  const before = rendererSnapshot();
+  for (const change of [{ loaderId: 'DOC_B' }, { navigationStart: 200 }, { timeOriginMs: 2_000_000 }]) {
+    for (const duration of [0.005, 0.05]) {
+      const after = rendererSnapshot({ ...change, observedAtDocumentMs: 150, readyMs: 100, duration });
+      const result = rendererDelta(before, after);
+      assert.equal(result.status, 'UNAVAILABLE');
+      assert.deepEqual(Object.values(result.invalidReasons), Array(4).fill('DOCUMENT_EPOCH_CHANGED'));
+      for (const key of ['TaskMs', 'ScriptMs', 'LayoutMs', 'RecalcStyleMs']) assert.equal(result[key], null);
+    }
+  }
+});
+
+test('missing/reset counters are null, while actual zero counters and same-document save differences remain usable', () => {
+  const before = rendererSnapshot({ observedAtDocumentMs: 200, readyMs: 100, duration: 0 });
+  const after = rendererSnapshot({ observedAtDocumentMs: 250, readyMs: 100, duration: 0 });
+  const zero = rendererDelta(before, after, { phase: 'interaction' });
+  assert.equal(zero.status, 'MEASURED'); assert.equal(zero.TaskMs, 0);
+  const missing = structuredClone(after); missing.values.ScriptDuration = null;
+  const partial = rendererDelta(before, missing, { phase: 'interaction' });
+  assert.equal(partial.status, 'PARTIAL'); assert.equal(partial.ScriptMs, null); assert.equal(partial.TaskMs, 0);
+  assert.equal(partial.invalidReasons.ScriptMs, 'MISSING_COUNTER');
+  const resetBefore = rendererSnapshot(), resetAfter = rendererSnapshot({ observedAtDocumentMs: 150, readyMs: 100, duration: 0.03 });
+  resetAfter.values.TaskDuration = 0.001;
+  const reset = rendererDelta(resetBefore, resetAfter);
+  assert.equal(reset.TaskMs, null); assert.equal(reset.invalidReasons.TaskMs, 'COUNTER_DECREASED_WITHIN_EPOCH');
+  assert.ok(reset.ScriptMs > 0);
+});
+
+test('renderer attribution refuses clock discontinuity, late baseline and unbounded failure text', () => {
+  const before = rendererSnapshot(), after = rendererSnapshot({ observedAtDocumentMs: 150, readyMs: 100, duration: 0.03 });
+  const backwards = structuredClone(after); backwards.values.Timestamp = before.values.Timestamp - 0.01;
+  assert.equal(rendererDelta(before, backwards).invalidReasons.TaskMs, 'METRIC_CLOCK_DECREASED');
+  const late = rendererSnapshot({ observedAtDocumentMs: 100, readyMs: 100 });
+  const noCoverage = rendererDelta(late, after);
+  assert.equal(noCoverage.status, 'UNAVAILABLE'); assert.equal(noCoverage.TaskMs, null);
+  assert.equal(noCoverage.invalidReasons.TaskMs, 'BASELINE_AFTER_READY');
+  const invalid = structuredClone(before); invalid.invalidReason = 'PRIVATE_RAW_ERROR_MUST_NOT_BE_PERSISTED';
+  const sanitized = rendererDelta(invalid, after);
+  assert.equal(sanitized.invalidReasons.TaskMs, 'SNAPSHOT_INVALID');
+  assert.equal(JSON.stringify(sanitized).includes('PRIVATE_RAW_ERROR'), false);
+  assert.equal(rendererDelta(null, after).invalidReasons.TaskMs, 'MISSING_DOCUMENT_EPOCH');
+  assert.throws(() => rendererDelta(before, after, { phase: 'invalid' }), /attribution phase/);
+});
+
+test('fake-CDP snapshot characterization preserves only required metrics and frame identity without URL/log data', async () => {
+  const calls = [], frame = { id: 'MAIN_FRAME', loaderId: 'DOC_A', url: 'http://private.invalid/?credential=PRIVATE' };
+  const cdp = { async send(command) {
+    calls.push(command);
+    if (command === 'Page.getFrameTree') return { frameTree: { frame } };
+    return { metrics: [...Object.entries(rendererSnapshot().values).map(([name, value]) => ({ name, value })), { name: 'PRIVATE_METRIC', value: 123 }] };
+  } };
+  const page = { async evaluate() { return { timeOriginMs: 1_000_000, observedAtDocumentMs: 20, readyMs: null }; } };
+  const result = await captureRendererSnapshot(cdp, page);
+  assert.deepEqual(calls, ['Page.getFrameTree', 'Performance.getMetrics', 'Page.getFrameTree']);
+  assert.equal(result.invalidReason, null);
+  assert.deepEqual(Object.keys(result.values), ['Timestamp', 'NavigationStart', ...RENDERER_COUNTERS]);
+  assert.equal(result.documentEpoch.loaderId, 'DOC_A');
+  assert.equal(JSON.stringify(result).includes('PRIVATE'), false);
+  assert.equal(calls.some(command => /Performance\.(?:disable|enable)/.test(command)), false, 'disable/enable is not assumed to reset counters');
+});
+
+test('fake-CDP snapshot fails closed on racing navigation, missing clocks or RPC failure; no real warm acceptance is claimed', async () => {
+  const page = { async evaluate() { return { timeOriginMs: 1_000_000, observedAtDocumentMs: 20, readyMs: null }; } };
+  const fake = ({ changeFrame = false, missingTimestamp = false } = {}) => {
+    let frameReads = 0;
+    return { async send(command) {
+      if (command === 'Page.getFrameTree') return { frameTree: { frame: { id: 'MAIN_FRAME', loaderId: changeFrame && ++frameReads > 1 ? 'DOC_B' : 'DOC_A' } } };
+      return { metrics: Object.entries(rendererSnapshot().values).filter(([name]) => !missingTimestamp || name !== 'Timestamp').map(([name, value]) => ({ name, value })) };
+    } };
+  };
+  assert.equal((await captureRendererSnapshot(fake({ changeFrame: true }), page)).invalidReason, 'DOCUMENT_CHANGED_DURING_SNAPSHOT');
+  assert.equal((await captureRendererSnapshot(fake({ missingTimestamp: true }), page)).invalidReason, 'MISSING_METRIC_CLOCK');
+  const failed = await captureRendererSnapshot({ async send() { throw new Error('PRIVATE_RPC_ERROR'); } }, page);
+  assert.equal(failed.invalidReason, 'SNAPSHOT_CAPTURE_FAILED');
+  assert.equal(failed.values.TaskDuration, null);
+  assert.equal(JSON.stringify(failed).includes('PRIVATE_RPC_ERROR'), false);
 });
 
 test('lock equality ignores only M0 root engine metadata and retains resolved package changes', () => {

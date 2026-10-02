@@ -30,7 +30,20 @@ exit $LASTEXITCODE
 | --- | --- |
 | `m3-pair-60.json` | 第一轮 60 retained +4 warm-up；统计 INCONCLUSIVE，harness pageerror 和请求记录问题使完整性证据不足；原样保存，SHA256 `88b927752e589553cea18dba88e3d2233c780f208beeb1ea77a1de6902a4611d` |
 | `m3-pair-200.json` | 修正 harness 后预设 200 retained +4 warm-up；health/instrumentation/integrity/cleanup PASS，统计 INCONCLUSIVE（旧版 p95 区间宽、保存额外 p95 观察不稳定）；SHA256 `b7abe1b6f9409a8ebf5543b0b380acbb252bc2db60676db5ead7d75491813ad9` |
+| `m3-counter-probe.json` | 新同文档 counter 协议的 3 次 current-only 桌面实际采集兼容性预检；COMPATIBILITY_PASS，不是 v15 相对性能/p95；SHA256 `94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707` |
+| `m3-bundle-gate.json` | 当前本地完整生成 app chunks 实算：cold 43,845 PASS、all 82,481 FAIL；预算 CLI exit 1，不是 CI/生产产物证明 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
 200 组报告的 warm renderer counter 跨导航重置，差值保持 null，因此不能确认该阶段 CDP 主线程分解。console errors 为主动阻止外部请求的已记录观察，非“无 console error”验收。详见上级 `M3_STATUS.md` 第 9 节。
+
+当前采样器协议为 `paired-readiness-v2-same-document-counters`，以 commit 后同文档 baseline 避免跨导航相减。额外 RPC 有观察开销，cold/warm attribution 仅 PARTIAL 到 collection，不是完整启动或隔离 OS CPU。future relative samples 必须两侧同新协议、另存新文件，不与旧 60/200 混样。既有文件仍可重现其历史结论；上面的示例输出路径已经存在，不能直接重跑覆盖，应先选定新的证据文件名。
+
+实际体积门禁可独立运行（PowerShell 同样保留 exit code）：
+
+```powershell
+node scripts/release-fingerprint.mjs --assert-app-bundle-budget site
+exit $LASTEXITCODE
+```
+
+它枚举完整 chunk 文件集并实算每份 gzip，不信任 manifest 自报压缩长度。报告 `importClosureVerified:false`：真实静态依赖图/冷启动隔离仍由 build-site 的 Rolldown 输出图校验负责。超预算的 WIP review artifact 可以封包保存，但 CI 必须红、standalone candidate/deploy 准入必须拒绝。

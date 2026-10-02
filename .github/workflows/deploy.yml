@@ -77,6 +77,7 @@ jobs:
           ' "$RUNNER_TEMP/candidate/candidate.json" "$fingerprint"
           node scripts/release-fingerprint.mjs --verify-app-chunks-directory site
           node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr
+          node scripts/release-fingerprint.mjs --assert-app-bundle-budget site
           echo "value=${fingerprint}" >> "$GITHUB_OUTPUT"
       - name: Repackage unchanged verified bytes for Pages
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

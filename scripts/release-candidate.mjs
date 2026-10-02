@@ -4,6 +4,7 @@ import { constants, createReadStream } from 'node:fs';
 import { lstat, mkdir, open, readdir, realpath, writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { assertAppBundleBudget, fingerprintReleaseDirectory, verifyAppChunkReleaseDirectory } from './release-fingerprint.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^[0-9a-f]{64}$/;
@@ -161,6 +162,13 @@ export async function verifyAndExtractCandidate({ bundle, output, ...expected })
   execFileSync('tar', ['-xf', '-', '-C', destination], { input: archiveBytes, stdio: ['pipe', 'pipe', 'pipe'] });
   const actual = await inventorySite(destination);
   if (JSON.stringify(actual) !== JSON.stringify(manifest.site)) throw new Error('Extracted candidate differs from verified site inventory.');
+  if (await fingerprintReleaseDirectory(destination) !== manifest.releaseFingerprint) {
+    throw new Error('Candidate release fingerprint mismatch.');
+  }
+  // Archive integrity does not prove performance admission. Recompute the
+  // generated chunk bytes/gzip and apply the fixed v15-relative M3 policy;
+  // earlier successful CI runs cannot bypass a newly enforced hard budget.
+  assertAppBundleBudget(await verifyAppChunkReleaseDirectory(destination));
   return manifest;
 }
 

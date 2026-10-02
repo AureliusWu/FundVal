@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "kind": "local-actual-generated-app-bundle-gate",
+  "collectedAt": "2026-10-02T03:03:52Z",
+  "project": "FundVal",
+  "version": "15.0.2",
+  "sourceHeadAtMeasurement": "f0858e4ed16315ba1ce2627ae847c93d21ecbb64",
+  "workingTree": "dirty tooling/workflow/tests only; business js/css/data and version sources unchanged",
+  "sourceDateEpoch": 1790909431,
+  "scope": "Sum of default gzip for each generated app-shell/chunk file, cold plus all lazy/facade/shared chunks. OCR assets and copied source modules are outside this established app-chunk metric. Actual import closure remains enforced by build-site, not independently parsed by this verifier.",
+  "measurements": {
+    "chunkCount": 16,
+    "totalBytes": 243481,
+    "actualColdStartGzipBytes": 43845,
+    "actualAllNonOcrGzipBytes": 82481
+  },
+  "policy": {
+    "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "baselineAllNonOcrGzipBytes": 70207,
+    "coldBudgetBytes": 52241,
+    "allBudgetNumerator": 772277,
+    "allBudgetDenominator": 10,
+    "allBudgetBytes": 77227.7
+  },
+  "verdict": {
+    "cold": "PASS",
+    "all": "FAIL",
+    "overall": "FAIL",
+    "cliExitCode": 1,
+    "minimumRequiredReductionBytes": 5254,
+    "importClosureVerified": false
+  },
+  "gates": {
+    "unit": {
+      "tests": 811,
+      "pass": 810,
+      "fail": 0,
+      "skipped": 1,
+      "skipReason": "Windows account cannot create the candidate bundle file-symlink test"
+    },
+    "syntax": {
+      "status": "PASS",
+      "fileCount": 181
+    },
+    "audit": {
+      "status": "PASS",
+      "vulnerabilities": 0
+    },
+    "e2e": {
+      "status": "PASS",
+      "passed": 23,
+      "durationSeconds": 35.8,
+      "scope": "Desktop Chrome hermetic synthetic fixtures; not physical-device or production acceptance"
+    },
+    "deterministicBuilds": {
+      "status": "PASS",
+      "releaseCriticalFingerprints": [
+        "85690c3ef2b045dc5a6ef3dd8585903ac1ccbc498549aaff852e0368a86edd81",
+        "85690c3ef2b045dc5a6ef3dd8585903ac1ccbc498549aaff852e0368a86edd81"
+      ],
+      "scope": "Two consecutive final local builds after E2E server ended, same dirty worktree and sourceDateEpoch; not subsequent CI/production fingerprints"
+    },
+    "appVerification": {
+      "status": "PASS",
+      "chunkCount": 16,
+      "totalBytes": 243481
+    },
+    "ocrVerification": {
+      "status": "PASS",
+      "assetCount": 23,
+      "totalBytes": 88196906,
+      "scope": "Static byte/hash verification only; no OCR execution"
+    }
+  },
+  "relativePerformance": {
+    "oldProtocolReport": "m3-pair-200.json",
+    "oldProtocolStatus": "INCONCLUSIVE",
+    "newProtocol": "paired-readiness-v2-same-document-counters",
+    "newProtocolRelativeSamples": "NOT_RUN",
+    "newProtocolCompatibilityReport": "m3-counter-probe.json",
+    "newProtocolCompatibility": "COMPATIBILITY_PASS; three current-only contexts, not relative performance or p95 acceptance"
+  },
+  "delivery": {
+    "milestone": "M3 IN PROGRESS",
+    "laterMilestones": "M4/M5/M6 NOT_STARTED",
+    "mainMerged": false,
+    "deployed": false,
+    "versionBumped": false
+  }
+}

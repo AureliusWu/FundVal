@@ -242,3 +242,39 @@ barrel 的独立虚拟试验曾相对“已经包含本轮修复”的 83,911 B 
 最新业务包体积仍为 **82,481 B > 77,227.7 B**。无论原方案的相对时延 CI 观察还是工具保守条件如何解释，都不能覆盖这个独立 FAIL。M3 继续，M4/M5/M6 未开始。
 
 采样后最终本地复核：Node 796/795 pass/0 fail/1 Windows skip，syntax 180，E2E **23/23（37.3 秒）**；再连续两次 build 的关键发布集仍为上述 `4cf839...`，官方 app/OCR 校验仍为 16/243,481 B 和 23/88,196,906 B。这两次 build 在浏览器 E2E 服务结束后执行，不在测量或 E2E 中途替换 site。此节新工作树/新提交的远端 CI 必须另查，不继承 ac4920d 或 1c23d2f 的历史结果。
+
+## 10. 暖详情与等价精简检查点的远端证据
+
+- 业务提交 `f0858e4ed16315ba1ce2627ae847c93d21ecbb64` 的 [push 36957490040](https://github.com/AureliusWu/FundVal/actions/runs/36957490040) 与 [PR 36957493813](https://github.com/AureliusWu/FundVal/actions/runs/36957493813) 均 `completed / success`，attempt 1；各自 candidate / codeql 成功。PR #12 保持 OPEN / draft，未进入 main。
+- push Linux 日志实际为 796 tests / 796 pass / 0 fail / 0 skip，syntax 180，E2E 23/23（43.9 秒），official audit 0。实际构建为 16 app chunks / 243,481 B raw，cold gzip 43,845 B，all 非 OCR gzip 82,481 B；OCR 23 assets / 88,196,906 B。与第 9 节本地业务构建大小一致，不将本地旧 SOURCE_DATE_EPOCH 指纹冒充 CI 指纹。
+- push artifact `11206502294`，名称 `fundval-candidate-f0858e4ed16315ba1ce2627ae847c93d21ecbb64-1`。GitHub API 声明 ZIP size 92,612,146 B、digest `sha256:1aac756ed5e1a41804584835e6fcb137862b36654764a2a92b79689fb37ceedd`，未独立下载/hash；它是 feature-branch review artifact，不是 production admission 已通过。
+- 该提交的 green CI 仍未自动阻断 all-gzip；`82,481 > 77,227.7` 不因 CI 成功而变成 PASS。下一批将补齐独立实际字节/gzip门禁，不回填或改写本节历史结论。
+- 此节证据只绑定上述业务 SHA；后续脚本/流水线/文档提交的 CI 要重新读取。main / 生产版本均未改为 v16。
+
+## 11. 实际体积准入与同文档计数器（2026-10-02）
+
+本批不改业务 JS / CSS / 数据 / 版本，不调整预算、编译目标、minifier 或 chunk grouping。
+
+### 自动准入
+
+`scripts/release-fingerprint.mjs` 对同次 descriptor 读取的 app manifest 验证、枚举完整 `js/chunks/` 文件集，并从各文件实际 bytes 重新计算 SHA / gzip。拒绝假 gzip、重复 cold/lazy、entry 非 cold、遗漏/额外文件、目录 symlink 和不可精确表示的整数。保持返回 `chunkCount/totalBytes`，另加 actual cold/all gzip。预算固定来自 v15.0.2 `40e68ed...`：cold 52,241 B、all `70,207 × 11 / 10`，以整数乘法比较，77,227 PASS、77,228 FAIL，不能向上取整放宽。
+
+- `verifyAppChunkReleaseDirectory` 负责结构/字节核验，不自动给 WIP 发准入许可；`analyzeAppChunkBudgets` / `assertAppBundleBudget` 区分测量与阻断。
+- CI 仍先跑 unit/check/build/artifact verification/E2E、seal/upload review bytes，然后 `--assert-app-bundle-budget site`；超预算直接使必需 `candidate` job FAIL，没有 continue-on-error。
+- `verifyAndExtractCandidate` 在 archive/inventory 匹配后另核对实际 release-critical fingerprint 并实算预算；deploy 在上传 Pages artifact 前重复执行同一门禁。历史 green 产物也不能绕过新政策，feature/PR 仍不允许 main-only admission。
+- 不声明完成独立 JS import parser：实际 import/cold closure、pre-integrity 隔离与 OCR/cloud/diagnostics 冷图保护仍由既有 `build-site` verifier 执行。新报告明确 `importClosureVerified:false`，不能把完整文件计量误称为独立静态依赖闭包验证。
+- 针对性测试先 RED：预算/manifest 10 项 3 pass / 7 fail；standalone admission 两项均因旧 verifier 未拒绝而失败。实现后 6 个相关测试文件共 53 tests / 52 pass / 0 fail / 1 Windows symlink skip。canonical schema / 金融语义测试未放宽。
+
+### 计数器采集修正
+
+`measure-performance-pair.mjs` 改为 `paired-readiness-v2-same-document-counters`：导航 commit 后采集 baseline，记录 Timestamp / NavigationStart、主 frame/loader identity、原生 performance.timeOrigin / 相对时钟和四个 duration。仅同一文档且时钟/计数不倒退时相减；缺失/跨文档/晚于 ready 的 baseline 保持 null 和有界原因。`Timestamp` 是单调时钟，不是文档归零标志；不以 disable/enable 假设清零。
+
+ready MutationObserver、migration/skeleton 条件、save wall timer、原有统计阈值不变。新增 RPC 有观察开销：cold/warm 只描述 post-commit 至 collection 的 PARTIAL timeTicks 活动，不是全启动、精确 ready 边界或隔离 OS CPU；未来必须两侧使用相同新协议，不能与旧 60/200 原始报告混样，也不能追认旧 cold/warm 为完整 CPU 分解。
+
+独立 [counter probe](performance-evidence/m3-counter-probe.json) 为 3 次 **current-only** fresh-context 实际桌面 Chrome：9 个 cold/warm/save 阶段均同 epoch，4 counters 有限、invalid reasons 为空；cold/warm PARTIAL、save MEASURED。pageErrors、SW events/control/registrations、network instrumentation failures 均 0；drain SETTLED，自有 port 5503 / browser 清理 PASS，site 全树指纹前后相同。每 context 有 13 个已计数的外部阻断 console error，不能声称 console 零。此 probe 只证明新采集协议兼容，**不是相对性能/p95/M3 EXIT**。LF SHA256 `94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707`；未覆盖旧两份报告。
+
+### 本地最终门禁
+
+机器可读证据：[m3-bundle-gate.json](performance-evidence/m3-bundle-gate.json)。811 tests / 810 pass / 0 fail / 1 Windows skip，syntax 181，official audit 0，E2E 23/23（35.8 秒）。E2E 结束后连续两次本地 build 同为 16 chunks / 243,481 B；SOURCE_DATE_EPOCH `1790909431`、关键发布集指纹 `85690c3ef2b045dc5a6ef3dd8585903ac1ccbc498549aaff852e0368a86edd81`。app 与 OCR 官方校验通过（23 OCR assets / 88,196,906 B），未执行 OCR。
+
+新准入 CLI 实际输出 cold **43,845 / 52,241 PASS**、all **82,481 / 77,227.7 FAIL**，exit 1；至少还需减少 5,254 B。仍不进入 M4/M5/M6、不 merge、不 deploy、不更新版本号。后续 CI 预期因这个真实预算失败；测试/build green 与准入 FAIL 必须分开报告。

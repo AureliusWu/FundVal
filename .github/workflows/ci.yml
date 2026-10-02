@@ -128,6 +128,10 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+      # Preserve reviewable WIP bytes first; a red budget must still make this
+      # required job fail and can never become a successful deployable run.
+      - name: Enforce actual M3 app bundle budget
+        run: node scripts/release-fingerprint.mjs --assert-app-bundle-budget site
 
   codeql:
     name: codeql

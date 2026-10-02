@@ -328,11 +328,78 @@ function installBrowserObserver({ time }) {
   observer.observe(document, { attributes: true, subtree: true, attributeFilter: ['data-app-ready'] });
 }
 
-function rendererDelta(before, after) {
-  const metric = list => Object.fromEntries(list.metrics.map(item => [item.name, item.value]));
-  const a = metric(before), b = metric(after);
-  return Object.fromEntries(['TaskDuration', 'ScriptDuration', 'LayoutDuration', 'RecalcStyleDuration'].map(key => [key.replace('Duration', 'Ms'),
-    Number.isFinite(a[key]) && Number.isFinite(b[key]) && b[key] >= a[key] ? (b[key] - a[key]) * 1000 : null]));
+export const RENDERER_COUNTERS = Object.freeze(['TaskDuration', 'ScriptDuration', 'LayoutDuration', 'RecalcStyleDuration']);
+const SNAPSHOT_REASONS = new Set(['MISSING_DOCUMENT_EPOCH', 'DOCUMENT_CHANGED_DURING_SNAPSHOT', 'MISSING_DOCUMENT_CLOCK',
+  'MISSING_METRIC_CLOCK', 'METRIC_CLOCK_PRECEDES_NAVIGATION', 'SNAPSHOT_CAPTURE_FAILED', 'SNAPSHOT_INVALID']);
+const safeSnapshotReason = value => value == null ? null : SNAPSHOT_REASONS.has(value) ? value : 'SNAPSHOT_INVALID';
+
+function frameIdentity(response) {
+  const frame = response?.frameTree?.frame;
+  const valid = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+  return frame && valid(frame.id) && valid(frame.loaderId) ? { frameId: frame.id, loaderId: frame.loaderId } : null;
+}
+
+export async function captureRendererSnapshot(cdp, page) {
+  // Timestamp is a monotonic clock, not a document/counter epoch. Bracket the
+  // allowlisted metrics with main-frame loader identity; never persist frame URLs.
+  try {
+    const first = frameIdentity(await cdp.send('Page.getFrameTree'));
+    const raw = await cdp.send('Performance.getMetrics');
+    const names = ['Timestamp', 'NavigationStart', ...RENDERER_COUNTERS];
+    const values = Object.fromEntries(names.map(name => {
+      const value = raw.metrics?.find(metric => metric.name === name)?.value;
+      return [name, Number.isFinite(value) && value >= 0 ? value : null];
+    }));
+    const documentTiming = await page.evaluate(() => ({ timeOriginMs: performance.timeOrigin,
+      observedAtDocumentMs: performance.now(), readyMs: Number.isFinite(window.__PAIR_PERFORMANCE__?.readyMs) ? window.__PAIR_PERFORMANCE__.readyMs : null }));
+    const last = frameIdentity(await cdp.send('Page.getFrameTree'));
+    const invalidReason = !first || !last ? 'MISSING_DOCUMENT_EPOCH'
+      : first.frameId !== last.frameId || first.loaderId !== last.loaderId ? 'DOCUMENT_CHANGED_DURING_SNAPSHOT'
+      : !Number.isFinite(documentTiming.timeOriginMs) || documentTiming.timeOriginMs <= 0 || !Number.isFinite(documentTiming.observedAtDocumentMs) || documentTiming.observedAtDocumentMs < 0 ? 'MISSING_DOCUMENT_CLOCK'
+      : values.Timestamp === null || values.NavigationStart === null ? 'MISSING_METRIC_CLOCK'
+      : values.Timestamp < values.NavigationStart ? 'METRIC_CLOCK_PRECEDES_NAVIGATION' : null;
+    return { values, documentTiming, documentEpoch: first ? { ...first, navigationStart: values.NavigationStart, timeOriginMs: documentTiming.timeOriginMs } : null,
+      invalidReason, timeDomain: 'timeTicks' };
+  } catch (_) {
+    return { values: Object.fromEntries(['Timestamp', 'NavigationStart', ...RENDERER_COUNTERS].map(name => [name, null])), documentTiming: null,
+      documentEpoch: null, invalidReason: 'SNAPSHOT_CAPTURE_FAILED', timeDomain: 'timeTicks' };
+  }
+}
+
+export function rendererDelta(before, after, { phase = 'navigation' } = {}) {
+  if (!['navigation', 'interaction'].includes(phase)) throw new Error('Invalid renderer attribution phase.');
+  const a = before?.values || {}, b = after?.values || {}, first = before?.documentEpoch, last = after?.documentEpoch;
+  const valid = value => Number.isFinite(value) && value >= 0;
+  const epochKeys = ['frameId', 'loaderId', 'navigationStart', 'timeOriginMs'];
+  const validEpoch = epoch => epoch && typeof epoch.frameId === 'string' && typeof epoch.loaderId === 'string'
+    && epoch.frameId.length > 0 && epoch.loaderId.length > 0 && valid(epoch.navigationStart) && Number.isFinite(epoch.timeOriginMs) && epoch.timeOriginMs > 0;
+  const baselineMs = before?.documentTiming?.observedAtDocumentMs, collectedMs = after?.documentTiming?.observedAtDocumentMs, readyMs = after?.documentTiming?.readyMs;
+  let reason = safeSnapshotReason(before?.invalidReason) || safeSnapshotReason(after?.invalidReason);
+  if (!reason && (!validEpoch(first) || !validEpoch(last))) reason = 'MISSING_DOCUMENT_EPOCH';
+  if (!reason && epochKeys.some(key => first[key] !== last[key])) reason = 'DOCUMENT_EPOCH_CHANGED';
+  if (!reason && (!valid(a.Timestamp) || !valid(b.Timestamp))) reason = 'MISSING_METRIC_CLOCK';
+  if (!reason && b.Timestamp < a.Timestamp) reason = 'METRIC_CLOCK_DECREASED';
+  if (!reason && (!valid(baselineMs) || !valid(collectedMs) || collectedMs < baselineMs)) reason = 'DOCUMENT_CLOCK_INVALID';
+  if (!reason && phase === 'navigation' && !valid(readyMs)) reason = 'MISSING_READY_BOUNDARY';
+  if (!reason && phase === 'navigation' && baselineMs >= readyMs) reason = 'BASELINE_AFTER_READY';
+  const invalidReasons = {}, counters = {};
+  for (const key of RENDERER_COUNTERS) {
+    const label = key.replace('Duration', 'Ms');
+    const invalid = reason || (!valid(a[key]) || !valid(b[key]) ? 'MISSING_COUNTER'
+      : b[key] < a[key] ? 'COUNTER_DECREASED_WITHIN_EPOCH' : null);
+    counters[label] = invalid ? null : (b[key] - a[key]) * 1000;
+    if (invalid) invalidReasons[label] = invalid;
+  }
+  return { ...counters, status: Object.keys(invalidReasons).length === RENDERER_COUNTERS.length ? 'UNAVAILABLE'
+    : phase === 'navigation' || Object.keys(invalidReasons).length ? 'PARTIAL' : 'MEASURED', invalidReasons,
+    coverage: { scope: phase === 'navigation' ? 'same-document post-commit baseline through readiness collection; partial startup attribution'
+      : 'same-document pre-click baseline through result collection', baselineDocumentMs: valid(baselineMs) ? baselineMs : null,
+      readyDocumentMs: valid(readyMs) ? readyMs : null, collectionDocumentMs: valid(collectedMs) ? collectedMs : null,
+      preReadyCoverageMs: !reason && phase === 'navigation' ? readyMs - baselineMs : null,
+      metricClockIntervalMs: !reason ? (b.Timestamp - a.Timestamp) * 1000 : null,
+      caveat: 'Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null.' },
+    snapshots: { before: before ? { ...before, invalidReason: safeSnapshotReason(before.invalidReason) } : null,
+      after: after ? { ...after, invalidReason: safeSnapshotReason(after.invalidReason) } : null } };
 }
 
 export async function measureSide(browser, origin, timeoutMs) {
@@ -439,9 +506,11 @@ export async function measureSide(browser, origin, timeoutMs) {
     }
     async function load(name, action) {
       phase = name;
-      const before = await cdp.send('Performance.getMetrics');
       const response = await action();
       if (response?.status() !== 200 || !/\bno-store\b/i.test(response.headers()['cache-control'] || '')) throw new Error('Navigation did not use the no-store artifact.');
+      // The previous document's cumulative counters are never this load's
+      // baseline. Capture only after commit, within the new document epoch.
+      const before = await captureRendererSnapshot(cdp, page);
       await page.waitForFunction(() => document.documentElement?.dataset.appReady === 'true' && Number.isFinite(window.__PAIR_PERFORMANCE__?.readyMs)
         && window.__FUNDVAL_BOOTSTRAP_STATUS__?.migration === 'ok' && document.querySelectorAll('#fund-list .skeleton').length === 0);
       const timing = await page.evaluate(() => {
@@ -456,16 +525,16 @@ export async function measureSide(browser, origin, timeoutMs) {
           longTaskSupported: state.longTaskSupported, longTasks, longTaskTotalMs: state.longTaskSupported ? longTasks.reduce((sum, task) => sum + Math.min(task.durationMs, ready - task.startMs), 0) : null,
           lcpAtCollectionMs: state.lcpMs, resourceCountAtCollection: resources.length };
       });
-      timing.renderer = rendererDelta(before, await cdp.send('Performance.getMetrics'));
+      timing.renderer = rendererDelta(before, await captureRendererSnapshot(cdp, page));
       breakdown[name] = timing;
       return timing.readyMs;
     }
-    const coldReadyMs = await load('cold', () => page.goto(origin, { waitUntil: 'domcontentloaded' }));
+    const coldReadyMs = await load('cold', () => page.goto(origin, { waitUntil: 'commit' }));
     // These drain/verification steps are outside the readiness/interaction timers.
     await drain('beforeOwnedWarmReload');
     breakdown.cold.serviceWorkers = await verifyNoServiceWorkers();
     lifecycle = 'ownedWarmReload';
-    const warmReadyMs = await load('warm', () => page.reload({ waitUntil: 'domcontentloaded' }));
+    const warmReadyMs = await load('warm', () => page.reload({ waitUntil: 'commit' }));
     lifecycle = 'running';
     await drain('afterWarmReadiness');
     breakdown.warm.serviceWorkers = await verifyNoServiceWorkers();
@@ -487,12 +556,12 @@ export async function measureSide(browser, origin, timeoutMs) {
       }, { once: true, capture: true });
     });
     phase = 'save';
-    const beforeSave = await cdp.send('Performance.getMetrics'), start = performance.now();
+    const beforeSave = await captureRendererSnapshot(cdp, page), start = performance.now();
     await page.locator('#add-btn').click();
     await page.waitForFunction(() => Number.isFinite(window.__PAIR_PERFORMANCE__?.save?.visibleMs));
     const saveUiMs = performance.now() - start;
     breakdown.save = await page.evaluate(() => ({ clickToVisibleDomMs: window.__PAIR_PERFORMANCE__.save.visibleMs - window.__PAIR_PERFORMANCE__.save.clickMs }));
-    breakdown.save.renderer = rendererDelta(beforeSave, await cdp.send('Performance.getMetrics'));
+    breakdown.save.renderer = rendererDelta(beforeSave, await captureRendererSnapshot(cdp, page), { phase: 'interaction' });
     await drain('beforeOwnedContextClose');
     breakdown.save.serviceWorkers = await verifyNoServiceWorkers();
     // No storage values, console text, request URLs, screenshots or credentials are persisted.
@@ -539,11 +608,13 @@ export async function main(args = process.argv.slice(2)) {
   const servers = [], rawPairs = [], cleanup = []; let snapshot = null, browser = null, interrupted = false, stage = 'referenceIdentity';
   const report = { schema: 1, collectedAt: new Date().toISOString(), status: 'INCONCLUSIVE', requested: { retainedPairs: options.pairs, warmupPairs: options.warmupPairs, bootstrap: options.bootstrap, seed: options.seed },
     scope: 'Paired desktop Chrome, 390x844, fresh context per side with cold navigation, same-context no-store warm reload and real synthetic UI save; not production network or physical-device evidence.',
-    measurement: { fixtures: 'v15.spec.js default Worker estimate and empty holdings fixtures; all other providers and every Gist request blocked', fixedFixtureTime: FIXED_TIME,
+    measurement: { protocol: 'paired-readiness-v2-same-document-counters',
+      protocolCaveat: 'The ready MutationObserver and UI-save wall timer definitions are unchanged. Additional post-commit snapshot RPCs add observation overhead; future comparisons must use this identical protocol for both sides and must not pool samples from the earlier 60/200-pair protocol. Old renderer deltas cannot be retrospectively promoted to full startup CPU.',
+      fixtures: 'v15.spec.js default Worker estimate and empty holdings fixtures; all other providers and every Gist request blocked', fixedFixtureTime: FIXED_TIME,
       saveFixture: 'Synthetic E2E fund only, 100 shares, cost 1.2; readiness is data-app-ready observed by MutationObserver and migration/skeleton checks; save requires visible .h-detail containing 100份.',
       cold: 'Fresh empty storage and HTTP cache; a new browser context for every side of every pair.', warm: 'Same context reload after readiness and untimed request drain; service workers blocked and HTTP cache disabled/no-store in both phases.',
       saveUiMs: 'Runner wall time from before ordinary Playwright click to observer-confirmed visible save result; includes automation scheduling overhead, matching the v15 interaction budget.',
-      separation: 'Local navigation TTFB/download are HTTP wall time, not isolated server CPU. Post-response bootstrap/DOM is a residual. CDP renderer CPU durations extend through collection; long tasks are independently observed. Synthetic intercepted upstream timing is not production network latency.',
+      separation: 'Local navigation TTFB/download are HTTP wall time, not isolated server CPU. Post-response bootstrap/DOM is a residual. CDP timeTicks counters use same-document post-commit baselines and partial startup coverage through collection, not isolated OS CPU or full bootstrap CPU. Before/after clocks, epochs and missing reasons are retained; long tasks are independently observed. Synthetic intercepted upstream timing is not production network latency.',
       exclusions: 'Only prespecified warm-up pairs excluded from inference; their raw samples remain in this report. No outlier stripping, retries, or post-hoc sample rejection.' },
     environment: { node: process.version, platform: platform(), osRelease: release(), architecture: process.arch, cpuModel: cpus()[0]?.model || null,
       logicalCpus: cpus().length, totalMemoryBytes: totalmem(), freeMemoryStartBytes: freemem(), viewport: { width: 390, height: 844 }, browser: 'Installed desktop Chrome, one browser process for both sides',

@@ -70,6 +70,24 @@ test('deployment only accepts explicit verified origin candidates and never rebu
   assert.match(workflow, /Deployed Paddle engine is missing backend fallback telemetry/);
 });
 
+test('actual M3 bundle budget fails CI after preserving review bytes and before Pages admission', async () => {
+  const [ci, deploy] = await Promise.all([
+    readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'),
+    readFile(new URL('../.github/workflows/deploy.yml', import.meta.url), 'utf8'),
+  ]);
+  const upload = ci.indexOf('name: Upload immutable candidate');
+  const budget = ci.indexOf('name: Enforce actual M3 app bundle budget');
+  const codeql = ci.indexOf('\n  codeql:');
+  assert.ok(upload >= 0 && budget > upload && codeql > budget,
+    'A red WIP must retain review bytes but the required candidate job must fail.');
+  const gate = ci.slice(budget, codeql);
+  assert.match(gate, /node scripts\/release-fingerprint\.mjs --assert-app-bundle-budget site/);
+  assert.doesNotMatch(gate, /continue-on-error:|if:|\|\|\s*(?:true|echo)|set \+e/);
+  const admission = deploy.indexOf('--assert-app-bundle-budget site');
+  assert.ok(admission > deploy.indexOf('release-candidate.mjs verify')
+    && admission < deploy.indexOf('name: Repackage unchanged verified bytes for Pages'));
+});
+
 test('all workflow actions remain pinned to immutable commit SHAs', async () => {
   for (const file of ['ci.yml', 'deploy.yml']) {
     const workflow = await readFile(new URL(`../.github/workflows/${file}`, import.meta.url), 'utf8');
