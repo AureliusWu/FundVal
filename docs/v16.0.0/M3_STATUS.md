@@ -398,3 +398,7 @@ PR #12 为 OPEN / draft，head d9fdabc；main/base 仍 `154139d78b0e226fd99ec9a3
 fetch 实际显示原功能 ref 被归并更新，远端 `backup/wip-v16-refresh-plan-20261003` 完整保留 **d9fdabc**；`backup/pre-consolidation-20261003` 保留 154139d。新 main 只比原基点多一条 README 文档提交，明确线上/源码仍为 15.0.2、V16 尚未达到正式发布条件，以及 pan 为历史/维护产品；没有新增业务代码。这里不把远端归并解释为 M3 已完成，也不以旧 OPEN PR / CI 快照说明当前可合并性。
 
 为保留归并结果及既有 M3 业务/测量，后续工作使用新的 **`codex/v16.0.0-m3-continuation`**。不 force-push 原 ref，不恢复已关闭 PR，不修改 main；纳入 main 的 README 更新后重新绑定后续提交的检查。四份原始报告保持不可覆盖，v2 证据仍只绑定其实际采样 HEAD d9fdabc 和 epoch，不改写为新分支 HEAD。
+
+实际本地保存报告提交为 `8e6886a9c195a914477102d4776402c45220930e`，随后以正常 merge 纳入 abfb631，得到 **`1340b7ad8924afe578c51d14d083039e3ec66d56`**；merge 只新增 README 的 3 行更新，不改业务。这个新检查点的 full gates 为 823 tests / 820 pass / 0 fail / 3 Windows symlink skip、syntax 181、official audit 0、E2E 23/23（48.0 秒）。E2E 退出后两次 build 同 SOURCE_DATE_EPOCH **1791000583**，关键发布集指纹均 **`345193e9c6bad5428fda2a603698ac39958e6d0aa4a03389e3fa7a9eb6e92d92`**；app 16 chunks / 243,481 B、OCR 23 assets / 88,196,906 B 校验通过，未运行 OCR。all 82,481 / budget CLI exit 1 不变；没有把旧 d9 的 91634a61 指纹冒充新 HEAD、CI 或生产。
+
+额外只读审查未找到四个刷新/缓存模块中可证明 ≥1 KB gzip 的安全结构候选，未修改/量化或宣称收益。cache 的全部 own 检查→getter 读取顺序、严格持久化验证与写入投影、NAV 异步调度边界、模型健康 reason / probe 记账仍需保留；不以删校验或合并宽 validator 来消除 5,254 B 缺口。后续实现仍应针对明确变换做 characterization 与实际单变量构建，不重复已经排除的 minifier/分组/函数排序实验。
