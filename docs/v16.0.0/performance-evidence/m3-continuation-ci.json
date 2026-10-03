@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "observedAtUtc": "2026-10-03T04:16:07Z",
+  "scope": "Feature-branch CI only; not main admission, production, physical-device or independent ZIP verification.",
+  "sourceCommit": "afd472c715b6d579b836fd00a5d4e91ca831f228",
+  "branch": "codex/v16.0.0-m3-continuation",
+  "mainAtObservation": "abfb6313f12efb66b9096b60472b6dd457094485",
+  "version": "15.0.2",
+  "run": {
+    "id": 37095774528,
+    "url": "https://github.com/AureliusWu/FundVal/actions/runs/37095774528",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "candidate": {
+    "jobId": 111125270875,
+    "failedSteps": [
+      "Enforce actual M3 app bundle budget"
+    ],
+    "unit": {
+      "tests": 823,
+      "pass": 823,
+      "fail": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 181,
+    "auditVulnerabilities": 0,
+    "e2e": {
+      "tests": 23,
+      "pass": 23,
+      "durationSeconds": 36.2
+    },
+    "build": "PASS",
+    "appBytesVerification": {
+      "chunks": 16,
+      "rawBytes": 243481,
+      "status": "PASS"
+    },
+    "ocrBytesVerification": {
+      "assets": 23,
+      "bytes": 88196906,
+      "status": "PASS",
+      "ocrExecution": "NOT_RUN"
+    },
+    "sealStep": "success",
+    "uploadStep": "success",
+    "independentZipVerification": "NOT_RUN"
+  },
+  "budget": {
+    "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "baselineAllNonOcrGzipBytes": 70207,
+    "actualColdGzipBytes": 43845,
+    "coldBudgetBytes": 52241,
+    "coldPass": true,
+    "actualAllNonOcrGzipBytes": 82481,
+    "allBudgetNumerator": 772277,
+    "allBudgetDenominator": 10,
+    "allPass": false,
+    "verdict": "FAIL",
+    "importClosureVerified": false
+  },
+  "codeql": {
+    "workflowJobId": 111125271172,
+    "workflowJobConclusion": "success",
+    "analysisId": 1884931741,
+    "analysisCommit": "afd472c715b6d579b836fd00a5d4e91ca831f228",
+    "analysisCreatedAtUtc": "2026-10-03T04:13:33Z",
+    "analysisResultsCount": 3,
+    "error": "",
+    "warning": "",
+    "standaloneCodeQLCheck": "NOT_OBSERVED",
+    "repositoryZeroAlerts": false
+  },
+  "release": {
+    "m3Exit": false,
+    "productionDeploy": "NOT_RUN",
+    "versionBump": false,
+    "newPullRequest": "NOT_CREATED",
+    "oldPr12": "CLOSED_NOT_MERGED"
+  }
+}
