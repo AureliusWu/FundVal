@@ -8,13 +8,12 @@ import { createSecurityQuotePlan } from './refresh-plan.js';
 import { createGenerationResourceScope } from './generation-resource-scope.js';
 import { throwIfAborted } from './request-signal.js';
 import { validateRefreshResourceEntry } from './refresh-resource-cache.js';
-import { REFRESH_INDEX_KEY } from './refresh-resource-policy.js';
+import { REFRESH_INDEX_KEY, policyOwn as own, policyRecord as record } from './refresh-resource-policy.js';
 import { MAX_QUOTE_AGE_MS } from '../overseas-model.js';
 
 const MAINLAND_CODE = /^(sh|sz)\d{6}$/;
 const SEED_INDEX_CODES = new Set(['usINX', 'usNDX']);
 const SEED_STATUSES = new Set(['current', 'realtime', 'delayed', 'closed']);
-const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function aborted(error) {
   return error?.name === 'AbortError' || error?.code === 'ABORT_ERR' || error?.code === 'aborted' || error?.aborted === true;
@@ -119,11 +118,11 @@ function bridgeQuotes(payload, operation, requested, normalizeTime, now) {
 }
 
 function seedQuote(seed, now, acquired = false) {
-  if (!record(seed) || (Object.prototype.hasOwnProperty.call(seed, 'status')
+  if (!record(seed) || (own(seed, 'status')
     && !SEED_STATUSES.has(seed.status) && !(acquired && seed.status === 'stale'))) return null;
   const price = nullableNumber(seed.price, { minimum: Number.MIN_VALUE, maximum: 1e15 });
   const changePct = nullableNumber(seed.changePct, { minimum: -1e6, maximum: 1e6 });
-  const source = Object.prototype.hasOwnProperty.call(seed, 'sourceTime') ? seed.sourceTime : seed.observedAt;
+  const source = own(seed, 'sourceTime') ? seed.sourceTime : seed.observedAt;
   const timestamp = parseQuoteTimestamp(source), at = clock(now);
   if (price == null || changePct == null || timestamp == null || timestamp <= 0 || timestamp > at
     || (acquired ? at - timestamp > MAX_QUOTE_AGE_MS : at - timestamp >= TTL.INDEX)) return null;
@@ -180,7 +179,7 @@ export async function executeSecurityQuotePlan({
   for (const code of demanded) {
     if (!SEED_INDEX_CODES.has(code)) continue;
     const value = acquiredIndices[code] && seedQuote(acquiredIndices[code], now, modelCodes.includes(code) && !securities.has(code))
-      || (record(seedQuotes) && Object.prototype.hasOwnProperty.call(seedQuotes, code) && seedQuote(seedQuotes[code], now));
+      || (record(seedQuotes) && own(seedQuotes, code) && seedQuote(seedQuotes[code], now));
     if (value) acquired[code] = value;
   }
 

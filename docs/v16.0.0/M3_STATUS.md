@@ -3,7 +3,7 @@
 > 更新：2026-10-03（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：v2 桌面配对相对时延 PASS；all 非 OCR gzip 82,481 > 77,227.7 B 仍 FAIL，M3 不能 EXIT。历史样本结论未改变。
+> 最新：小步源码去重后 all 非 OCR gzip 82,286 > 77,227.7 B 仍 FAIL，至少还需减少 5,059 B（第 20 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
 
 ## 1. 已实现的刷新边界
 
@@ -404,3 +404,37 @@ fetch 实际显示原功能 ref 被归并更新，远端 `backup/wip-v16-refresh
 额外只读审查未找到四个刷新/缓存模块中可证明 ≥1 KB gzip 的安全结构候选，未修改/量化或宣称收益。cache 的全部 own 检查→getter 读取顺序、严格持久化验证与写入投影、NAV 异步调度边界、模型健康 reason / probe 记账仍需保留；不以删校验或合并宽 validator 来消除 5,254 B 缺口。后续实现仍应针对明确变换做 characterization 与实际单变量构建，不重复已经排除的 minifier/分组/函数排序实验。
 
 新分支检查点 **afd472c715b6d579b836fd00a5d4e91ca831f228** 已正常推送；[CI 37095774528](https://github.com/AureliusWu/FundVal/actions/runs/37095774528) 实际 completed / failure，candidate 唯一失败步骤为 all-gzip 门禁。Linux unit **823/823、0 skip/fail**、syntax 181、official audit 0、E2E **23/23（36.2 秒）**、build/app/OCR bytes verification、seal/upload 均成功；预算仍为 cold 43,845 PASS / all 82,481 FAIL。codeql workflow job 111125271172 SUCCESS；同 SHA analysis 1884931741 于 04:13:33 UTC 生成，results 3、error/warning 空。check-runs API 仅观察到 candidate/codeql 两个 workflow checks，未观察到独立 CodeQL check，不能继承旧 PR 的独立扫描结论或称零告警。机器可读摘要：[m3-continuation-ci.json](performance-evidence/m3-continuation-ci.json)。未新开 PR、未下载验证 review ZIP、未 merge/deploy/bump；后续文档提交不继承本 SHA 的检查结果。
+
+## 20. 有行为保护的小步源码去重
+
+本批以 clean **93b6182925c9f56742f1f37ca28e0f1869497b87** 为父检查点，开始实际修改业务中的重复结构；不再以“单项至少减少 1 KB”筛除可证明的小正收益。总体预算仍严格保持原方案。证据：[m3-safe-compaction-20261003.json](performance-evidence/m3-safe-compaction-20261003.json)。
+
+- `js/runtime/quote-normalizer.js`：两张私有诊断 identity-object 改为 frozen 字符串列表，以成员检查返回原 normalized code。两个白名单仍独立；未知/原型名仍为 unclassified；不转换非字符串，不保留上游任意文本。新增 6 个长期表征测试先在旧代码通过，另有 1,855 个合成差分用例（含 215 个逐次 getter 异常注入），核对完整 envelope、读取/own/prototype 顺序及 error name/message/code。
+- `js/app.js`：11 个基金信息/费率 HTML 行复用私有 `ruleRow`，原 guard、标签、字段重复读取、managerWorkTime 拼接和 `esc` 不变。测试保留独立旧 literal reference，2,226 个分支/读取/异常对照完整 HTML；3 个长期测试在旧、新实现均通过。
+- `js/runtime/cache-envelope.js` / `security-quote-batch.js`：复用既有纯 policyEpoch/Record/Own，未合并 payload/envelope validator，也未改变 own→get 顺序或异步边界。新增 8 个长期测试，包含 primitive、null-prototype、继承、shadowed own、epoch 上下界及逐读异常；相关 96 项在改动前后均通过。独立子代理复核三组 diff 未发现阻断问题；不代表整个仓库零风险。
+
+固定现有 Vite 8.2.2 / oxc / es2022 / grouping，`write:false` 单变量与组合各 3 次：
+
+| 变体 | all gzip B | cold gzip B |
+| --- | ---: | ---: |
+| immutable 93b6182 | 82,481 | 43,845 |
+| 仅 quote 列表 | 82,405 | 43,764 |
+| quote + ruleRow | 82,346 | 43,706 |
+| 仅 cache/security 复用（对原父提交） | 82,433 | 43,846 |
+| 本轮全部 | **82,286** | **43,702** |
+
+全部重复一致，仍为 16 chunks，模块分组与静态/动态依赖及 cold/lazy 角色不变。组合相对父提交 raw **243,481→242,075（−1,406）**、all **−195 B**、cold **−143 B**。单项收益不可相加；cache/security 在当前组合中的实际边际为 all −60 / cold −4，而非其隔离测量 −48 / +1。未采用扩大 lazy 下载范围、属性混淆、去除校验、依赖/配置/预算变化。worker bool、remote-schema 位置参数和其他未落地微候选不算已实现收益。
+
+### 本地完整门禁和证据范围
+
+840 tests / 837 pass / 0 fail / 3 Windows symlink 条件 skip；syntax **183**；official registry audit **0**；自有 port 12437 的合成桌面 E2E **23/23（38.5 秒）**，服务已退出。E2E 内 3 个性能样本只为其既有绝对阈值/描述性观察，不是新的 v15 配对时延结论；没有把它们与旧协议混样。
+
+E2E 退出后连续两次 build 的 SOURCE_DATE_EPOCH 为父提交 **1791000968**，关键发布集指纹均 **`fdd0196ac0528bece5e10f67693c5af5fb3953ad65a4fad8978fd78916c1a489`**。这是待提交业务改写的本地构建，不是新提交的 CI/生产指纹。官方 app/OCR 实际 bytes/SHA 校验通过（16 chunks / 242,075 B，23 OCR assets / 88,196,906 B），未执行 OCR。4 个业务文件的按报告指定顺序、path+NUL+LF-source+NUL SHA256 为 `4783f00de7559f2452c33536786d03d2bafd81ad978a92caf63ba1cf67d6463a`。
+
+实际预算 CLI cold **43,702 / 52,241 PASS**、all **82,286 / 77,227.7 FAIL**、exit **1**；至少还需 **5,059 B**。原始 60/200/probe/v2-200 报告 LF SHA 未变，旧 v2 PASS 仅是其实际采样版本证据；本次源码变化后的 paired latency 为 NOT_RUN。仍为 M3 IN PROGRESS，版本 15.0.2，未进入 M4/M5/M6、未 merge/deploy/bump。
+
+### 当前只读现场检查的限制
+
+另外固定读取 005844 / 012920 的公开 Worker 响应 5 次，HTTP 均 200，但 `fetched_at` 比本机响应处理时钟超前 **2,428 / 2,295 / 2,165 / 2,034 / 1,903 ms**，现有严格解析均返回 `WORKER_METADATA_INVALID`，故本批实际数据等价抽查记 **NOT_VERIFIED**，不把 HTTP 200 当行情可信。没有改系统时钟、放宽 future guard、修改外部 Worker 或生产设置。这是本机与这批响应的现场时钟差观察，不能据此断言所有浏览器/生产环境均失败；后续数据/发布门禁需单独核对生产时钟和来源，不能挑后来成功请求替代这 5 个失败观察。
+
+父检查点 93b6182 的 [CI 37095982665](https://github.com/AureliusWu/FundVal/actions/runs/37095982665) 已 completed / failure；candidate 仅最后实际 all-gzip 门禁失败，audit/test/check/build/E2E/资源核验/seal/upload 步骤成功，codeql workflow 作业 SUCCESS。该远端结果只绑定父提交，不继承给本轮业务改写。

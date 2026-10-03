@@ -33,8 +33,9 @@ exit $LASTEXITCODE
 | `m3-counter-probe.json` | 新同文档 counter 协议的 3 次 current-only 桌面实际采集兼容性预检；COMPATIBILITY_PASS，不是 v15 相对性能/p95；SHA256 `94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707` |
 | `m3-pair-v2-200-protocol.md` | d9fdabc 在采样前已提交并推送的预声明；固定 200+4、bootstrap 5000、seed 160003、同文档协议及限制，不是结果证明 |
 | `m3-pair-v2-200.json` | 同文档 v2 协议，200 retained +4 warm-up，AB/BA 各 100；relative tool PASS / exit 0，health/instrumentation/integrity/cleanup PASS；cold/warm renderer 仍 PARTIAL，保存 MEASURED；实际 HEAD d9fdabc，LF 22,398,799 B / SHA256 `323ff4087da0a1a836fe8147ef305cd8f315e3e0d10e706cbc4d25abfba74236`；独立 all-gzip FAIL，非 M3 EXIT |
-| `m3-bundle-gate.json` | 当前本地完整生成 app chunks 实算：cold 43,845 PASS、all 82,481 FAIL；预算 CLI exit 1，不是 CI/生产产物证明 |
+| `m3-bundle-gate.json` | 第 11 节历史本地 app chunks 实算：cold 43,845 PASS、all 82,481 FAIL；预算 CLI exit 1，不是本轮新源码、CI/生产产物证明 |
 | `m3-continuation-ci.json` | 归并后新分支 afd472c 的实际 CI 37095774528：Linux 823/823、E2E 23/23、构建/资源核验通过；唯一失败为 all-gzip 82,481 超预算。CodeQL workflow success / analysis 3，未观察到独立 CodeQL check，不是零告警或正式发布 |
+| `m3-safe-compaction-20261003.json` | 父检查点 93b6182 上的待提交源码去重：3 次虚拟重复 + 实际确定性构建，all 82,286（−195 B）/ cold 43,702；840 tests（3 Windows skip）及 E2E 23/23；总体预算仍 FAIL，变化后的 paired latency NOT_RUN，现场 Worker 时钟超前使 5 次数据抽查 NOT_VERIFIED；非 CI/生产证据 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 

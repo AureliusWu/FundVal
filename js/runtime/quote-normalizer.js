@@ -14,29 +14,13 @@ import { canonicalSourceId, sourceTierFor } from './source-registry.js';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKEND_CARRYOVER_MS = 72 * 60 * 60 * 1000;
 const WORKER_DIAGNOSTIC_KEYS = Object.freeze(['fallback_reason', 'primary_reason', 'model_reason', 'official_reason']);
-const WORKER_DIAGNOSTIC_REASON_CODES = Object.freeze({
-  upstream_empty: 'upstream_empty',
-  no_data: 'no_data',
-  no_quote: 'no_quote',
-  unavailable: 'unavailable',
-  source_unavailable: 'source_unavailable',
-  timeout: 'timeout',
-  network_error: 'network_error',
-  http_4xx: 'http_4xx',
-  http_5xx: 'http_5xx',
-  invalid_response: 'invalid_response',
-  invalid_payload: 'invalid_payload',
-  stale: 'stale',
-});
-const WORKER_STATUS_REASON_CODES = Object.freeze({
-  latest_official: 'latest_official',
-  official: 'official',
-  degraded: 'degraded',
-  stale: 'stale',
-  unavailable: 'unavailable',
-  error: 'error',
-  failed: 'failed',
-});
+const WORKER_DIAGNOSTIC_REASON_CODES = Object.freeze([
+  'upstream_empty', 'no_data', 'no_quote', 'unavailable', 'source_unavailable',
+  'timeout', 'network_error', 'http_4xx', 'http_5xx', 'invalid_response', 'invalid_payload', 'stale',
+]);
+const WORKER_STATUS_REASON_CODES = Object.freeze([
+  'latest_official', 'official', 'degraded', 'stale', 'unavailable', 'error', 'failed',
+]);
 const MAX_WORKER_DIAGNOSTIC_CODES = WORKER_DIAGNOSTIC_KEYS.length + 2;
 
 function text(value) {
@@ -65,9 +49,7 @@ function workerDiagnosticCode(value, allowedCodes) {
   if (typeof value !== 'string') return null;
   const normalized = value.trim().toLowerCase();
   if (!normalized) return null;
-  return Object.prototype.hasOwnProperty.call(allowedCodes, normalized)
-    ? allowedCodes[normalized]
-    : 'unclassified';
+  return allowedCodes.includes(normalized) ? normalized : 'unclassified';
 }
 
 function diagnosticReasonCodes(row) {

@@ -1372,6 +1372,10 @@ function fmtQuoteNav(value) {
 function renderQuoteDiagnostics(presentation) { return quoteDiagnosticsRuntime.renderQuoteDiagnostics(presentation, esc); }
 
 // ── 渲染基金列表 ─────────────────────────────────────────
+function ruleRow(label, value) {
+  return '<div class="rules-row"><span class="rules-label">' + label + '</span><span class="rules-val">' + esc(value) + '</span></div>';
+}
+
 function renderFundList(data) {
   var list = document.getElementById('fund-list');
   var focusedToggleCode = document.activeElement && document.activeElement.getAttribute
@@ -1505,22 +1509,22 @@ function renderFundList(data) {
         if (fundTypeCache[f.code]) {
           var ti = fundTypeCache[f.code];
           html += '<div class="rules-table">';
-          if (ti.type) html += '<div class="rules-row"><span class="rules-label">基金类型</span><span class="rules-val">' + esc(ti.type) + '</span></div>';
-          if (ti.setupDate) html += '<div class="rules-row"><span class="rules-label">成立日期</span><span class="rules-val">' + esc(ti.setupDate) + '</span></div>';
-          if (ti.scale) html += '<div class="rules-row"><span class="rules-label">基金规模</span><span class="rules-val">' + esc(ti.scale) + '</span></div>';
-          if (ti.manager) html += '<div class="rules-row"><span class="rules-label">基金经理</span><span class="rules-val">' + esc(ti.manager + (ti.managerWorkTime ? ' · ' + ti.managerWorkTime : '')) + '</span></div>';
-          if (ti.company) html += '<div class="rules-row"><span class="rules-label">管理人</span><span class="rules-val">' + esc(ti.company) + '</span></div>';
-          if (ti.benchmark) html += '<div class="rules-row"><span class="rules-label">跟踪标的</span><span class="rules-val">' + esc(ti.benchmark) + '</span></div>';
+          if (ti.type) html += ruleRow('基金类型', ti.type);
+          if (ti.setupDate) html += ruleRow('成立日期', ti.setupDate);
+          if (ti.scale) html += ruleRow('基金规模', ti.scale);
+          if (ti.manager) html += ruleRow('基金经理', ti.manager + (ti.managerWorkTime ? ' · ' + ti.managerWorkTime : ''));
+          if (ti.company) html += ruleRow('管理人', ti.company);
+          if (ti.benchmark) html += ruleRow('跟踪标的', ti.benchmark);
           html += '</div>';
         }
         if (fundFeeCache[f.code]) {
           var fi = fundFeeCache[f.code];
           html += '<div class="rules-table" style="margin-top:6px">';
-          if (fi.buyFee) html += '<div class="rules-row"><span class="rules-label">申购费率</span><span class="rules-val">' + esc(fi.buyFee) + '</span></div>';
-          if (fi.sourceBuyFee && fi.sourceBuyFee !== fi.buyFee) html += '<div class="rules-row"><span class="rules-label">原申购费率</span><span class="rules-val">' + esc(fi.sourceBuyFee) + '</span></div>';
-          if (fi.sellFee) html += '<div class="rules-row"><span class="rules-label">赎回费率</span><span class="rules-val">' + esc(fi.sellFee) + '</span></div>';
-          if (fi.manageFee) html += '<div class="rules-row"><span class="rules-label">管理费率</span><span class="rules-val">' + esc(fi.manageFee) + '</span></div>';
-          if (fi.custodyFee) html += '<div class="rules-row"><span class="rules-label">托管费率</span><span class="rules-val">' + esc(fi.custodyFee) + '</span></div>';
+          if (fi.buyFee) html += ruleRow('申购费率', fi.buyFee);
+          if (fi.sourceBuyFee && fi.sourceBuyFee !== fi.buyFee) html += ruleRow('原申购费率', fi.sourceBuyFee);
+          if (fi.sellFee) html += ruleRow('赎回费率', fi.sellFee);
+          if (fi.manageFee) html += ruleRow('管理费率', fi.manageFee);
+          if (fi.custodyFee) html += ruleRow('托管费率', fi.custodyFee);
           html += '</div>';
         }
         html += '</div>';

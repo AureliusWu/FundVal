@@ -163,3 +163,93 @@ test('v16 legacy malformed source, NAV/date pairs or contradictory expiry never 
     }), null);
   }
 });
+
+test('cache record guards reject primitive and array inputs without coercion', () => {
+  const scalars = [undefined, null, false, true, 0, -0, NaN, Infinity, '', 'record', 1n, Symbol('record'), () => {}, []];
+  for (const value of scalars) {
+    assert.equal(createCacheEnvelope(MOVE, value), null);
+    assert.equal(createCacheEnvelope(value, { originalSource: 'official-nav', originalSourceTier: 'secondary',
+      sourceDate: MOVE.date, fetchedAt: FETCHED, cachedAt: CACHED, ttlMs: TTL }), null);
+    assert.equal(readCacheEnvelope(value, { now: CACHED }), null);
+    assert.equal(adaptLegacyNavMoveCache(value, { now: CACHED, ttlMs: TTL }), null);
+  }
+  const payload = Object.assign(Object.create(null), MOVE);
+  const options = Object.create({ originalSource: 'official-nav', originalSourceTier: 'secondary',
+    sourceDate: MOVE.date, fetchedAt: FETCHED, cachedAt: CACHED, ttlMs: TTL });
+  const entry = createCacheEnvelope(payload, options);
+  assert.ok(entry);
+  assert.equal(entry.payload, payload);
+  const inherited = Object.create(entry);
+  assert.deepEqual(readCacheEnvelope(inherited, { now: CACHED }), entry);
+  assert.equal(Object.getPrototypeOf(readCacheEnvelope(inherited, { now: CACHED })), Object.prototype);
+});
+
+test('cache epoch guards preserve zero, safe epoch bounds and Date-only read clocks', () => {
+  const zero = createCacheEnvelope({}, { originalSource: 'official-nav', originalSourceTier: 'secondary',
+    sourceDate: '1970-01-01', fetchedAt: -0, cachedAt: 0, ttlMs: 1 });
+  assert.ok(zero);
+  assert.ok(Object.is(zero.fetchedAt, -0));
+  assert.equal(readCacheEnvelope(zero, { now: 0 }).cacheState, 'fresh');
+  assert.equal(readCacheEnvelope(zero, { now: 1 }).cacheState, 'stale');
+  assert.equal(readCacheEnvelope(zero, { now: 8.64e15 }).cacheState, 'stale');
+  assert.equal(readCacheEnvelope(zero, { now: 8.64e15 + 1 }), null);
+  assert.equal(readCacheEnvelope(create(), { now: new Date(CACHED) }).cacheState, 'fresh');
+  const poison = { valueOf() { throw new Error('epoch coercion is forbidden'); },
+    [Symbol.toPrimitive]() { throw new Error('epoch coercion is forbidden'); } };
+  const invalid = [undefined, null, false, true, '', String(FETCHED), -1, 0.5, NaN,
+    Infinity, 8.64e15 + 1, Number.MAX_SAFE_INTEGER, 1n, Symbol('epoch'), [], poison, new Number(FETCHED)];
+  const entry = create();
+  for (const value of invalid) {
+    if (value !== undefined) assert.equal(readCacheEnvelope(entry, { now: value }), null);
+    for (const field of ['fetchedAt', 'cachedAt', 'expiresAt']) {
+      assert.equal(readCacheEnvelope({ ...entry, [field]: value }, { now: CACHED }), null);
+    }
+  }
+  for (const field of ['fetchedAt', 'cachedAt', 'expiresAt']) {
+    assert.equal(readCacheEnvelope({ ...entry, [field]: new Date(FETCHED) }, { now: CACHED }), null);
+  }
+});
+
+test('cache creation preserves option getter order and propagates acquisition accessor errors', () => {
+  const values = { originalSource: 'official-nav', originalSourceTier: 'secondary', sourceDate: MOVE.date,
+    fetchedAt: FETCHED, cachedAt: CACHED, ttlMs: TTL };
+  const reads = [];
+  const options = new Proxy(values, { get(target, key) { reads.push(key); return target[key]; } });
+  assert.ok(createCacheEnvelope(MOVE, options));
+  assert.deepEqual(reads, ['originalSource', 'originalSourceTier', 'sourceDate', 'fetchedAt', 'cachedAt', 'ttlMs', 'cachedAt', 'ttlMs']);
+  const sentinel = new Error('synthetic source date getter');
+  reads.length = 0;
+  const failed = new Proxy(values, { get(target, key) {
+    reads.push(key);
+    if (key === 'sourceDate') throw sentinel;
+    return target[key];
+  } });
+  assert.throws(() => createCacheEnvelope(MOVE, failed), error => error === sentinel);
+  assert.deepEqual(reads, ['originalSource', 'originalSourceTier', 'sourceDate']);
+});
+
+test('cache read preserves validation then projection getter order and contains read accessor errors', () => {
+  const value = create(), reads = [];
+  const raw = new Proxy(value, { get(target, key) { reads.push(key); return target[key]; } });
+  assert.ok(readCacheEnvelope(raw, { now: CACHED, validatePayload(payload) {
+    assert.equal(payload, MOVE); reads.push('validatePayload'); return true;
+  } }));
+  const expected = ['schemaVersion', 'payload', 'originalSource', 'originalSourceTier', 'sourceTier', 'cacheState',
+    'sourceDate', 'fetchedAt', 'cachedAt', 'fetchedAt', 'cachedAt', 'ttlMs', 'ttlMs', 'expiresAt', 'expiresAt',
+    'cachedAt', 'ttlMs', 'sourceDate', 'fetchedAt', 'cachedAt', 'payload', 'validatePayload', 'payload',
+    'originalSource', 'originalSourceTier', 'sourceDate', 'fetchedAt', 'cachedAt', 'ttlMs', 'expiresAt', 'expiresAt'];
+  assert.deepEqual(reads, expected);
+  for (let failAt = 0; failAt < expected.length; failAt += 1) {
+    if (expected[failAt] === 'validatePayload') continue;
+    const trace = [];
+    const failing = new Proxy(value, { get(target, key) {
+      trace.push(key);
+      if (trace.length - 1 === failAt) throw new Error('synthetic envelope getter');
+      return target[key];
+    } });
+    assert.equal(readCacheEnvelope(failing, { now: CACHED, validatePayload() {
+      trace.push('validatePayload'); return true;
+    } }), null);
+    assert.deepEqual(trace, expected.slice(0, failAt + 1));
+  }
+});

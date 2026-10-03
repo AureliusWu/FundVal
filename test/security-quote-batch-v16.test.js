@@ -399,3 +399,78 @@ test('a cancelled model acquisition propagates AbortError without emitting an ou
     if (provider === 'primary') assert.deepEqual(h.bridgeCalls, []);
   }
 });
+
+test('security seed record guards reject primitives and arrays without manufacturing quotes', async () => {
+  for (const value of [undefined, null, false, true, 0, -0, NaN, Infinity, '', 'record', 1n, Symbol('record'), () => {}, []]) {
+    const h = run(makePlan([], ['usNDX']), { seedQuotes: { usNDX: value } });
+    const result = await h.execute;
+    assert.deepEqual(h.bridgeCalls, [{ operation: 'overseasComponents', codes: ['usNDX'] }]);
+    assert.equal(result.modelQuotes.usNDX.changePct, 1);
+    assert.equal(h.scope.snapshot().cacheWrites, 0);
+  }
+  const quote = Object.assign(Object.create(null), { price: 100, changePct: 0, sourceTime: TIME, status: 'current' });
+  const seeds = Object.assign(Object.create(null), { usNDX: quote });
+  const h = run(makePlan([], ['usNDX']), { seedQuotes: seeds });
+  assert.deepEqual((await h.execute).modelQuotes, { usNDX: { price: 100, changePct: 0, sourceTime: TIME } });
+  assert.deepEqual(h.bridgeCalls, []);
+});
+
+test('security seed own checks ignore inherited identities and retain inherited optional-field rules', async () => {
+  const quote = { price: 100, changePct: 0, sourceTime: TIME, status: 'current' };
+  const inherited = run(makePlan([], ['usNDX']), { seedQuotes: Object.create({ usNDX: quote }) });
+  await inherited.execute;
+  assert.deepEqual(inherited.bridgeCalls, [{ operation: 'overseasComponents', codes: ['usNDX'] }]);
+  const seed = Object.assign(Object.create({ status: 'stale', sourceTime: 'invalid' }), {
+    price: 100, changePct: 0, observedAt: new Date(NOW).toISOString(),
+  });
+  Object.defineProperty(seed, 'hasOwnProperty', { get() { throw new Error('shadowed own method must not run'); } });
+  const inheritedFields = run(makePlan([], ['usNDX']), { seedQuotes: { usNDX: seed } });
+  assert.deepEqual((await inheritedFields.execute).modelQuotes.usNDX, { price: 100, changePct: 0, sourceTime: TIME });
+  assert.deepEqual(inheritedFields.bridgeCalls, []);
+  seed.sourceTime = null;
+  const ownNull = run(makePlan([], ['usNDX']), { seedQuotes: { usNDX: seed } });
+  await ownNull.execute;
+  assert.deepEqual(ownNull.bridgeCalls, [{ operation: 'overseasComponents', codes: ['usNDX'] }]);
+});
+
+test('security seed ownership probes precede value reads without reading an unused observedAt', async () => {
+  const reads = [];
+  const seed = new Proxy({ price: 100, changePct: 0, sourceTime: TIME, status: 'current' }, {
+    getOwnPropertyDescriptor(target, key) { reads.push(`own:${key}`); return Reflect.getOwnPropertyDescriptor(target, key); },
+    get(target, key) { reads.push(`get:${key}`); if (key === 'observedAt') throw new Error('unused source clock'); return target[key]; },
+  });
+  const seeds = new Proxy({ usNDX: seed }, {
+    getOwnPropertyDescriptor(target, key) { reads.push(`own-seed:${key}`); return Reflect.getOwnPropertyDescriptor(target, key); },
+    get(target, key) { reads.push(`get-seed:${key}`); return target[key]; },
+  });
+  const h = run(makePlan([], ['usNDX']), { seedQuotes: seeds });
+  assert.deepEqual((await h.execute).modelQuotes.usNDX, { price: 100, changePct: 0, sourceTime: TIME });
+  assert.deepEqual(reads, ['own-seed:usNDX', 'get-seed:usNDX', 'own:status', 'get:status',
+    'get:price', 'get:changePct', 'own:sourceTime', 'get:sourceTime']);
+  assert.equal(h.scope.snapshot().requests, 0);
+  assert.equal(h.scope.snapshot().cacheWrites, 0);
+});
+
+test('security seed own-probe and accessor errors propagate before network or cache side effects', async () => {
+  const expected = ['own-seed:usNDX', 'get-seed:usNDX', 'own:status', 'get:status',
+    'get:price', 'get:changePct', 'own:sourceTime', 'get:sourceTime'];
+  for (const failAt of expected) {
+    const reads = [], sentinel = new Error(`synthetic ${failAt}`);
+    const visit = step => { reads.push(step); if (step === failAt) throw sentinel; };
+    const seed = new Proxy({ price: 100, changePct: 0, sourceTime: TIME, status: 'current' }, {
+      getOwnPropertyDescriptor(target, key) { visit(`own:${key}`); return Reflect.getOwnPropertyDescriptor(target, key); },
+      get(target, key) { visit(`get:${key}`); return target[key]; },
+    });
+    const seeds = new Proxy({ usNDX: seed }, {
+      getOwnPropertyDescriptor(target, key) { visit(`own-seed:${key}`); return Reflect.getOwnPropertyDescriptor(target, key); },
+      get(target, key) { visit(`get-seed:${key}`); return target[key]; },
+    });
+    const h = run(makePlan([], ['usNDX']), { seedQuotes: seeds });
+    await assert.rejects(h.execute, error => error === sentinel);
+    assert.deepEqual(reads, expected.slice(0, expected.indexOf(failAt) + 1));
+    assert.deepEqual(h.emCalls, []);
+    assert.deepEqual(h.bridgeCalls, []);
+    assert.equal(h.scope.snapshot().requests, 0);
+    assert.equal(h.scope.snapshot().cacheWrites, 0);
+  }
+});
