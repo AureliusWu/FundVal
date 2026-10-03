@@ -44,7 +44,7 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
   assert.match(securities, /scope\.dispatch\('tencent-market-quote', signal => fetchBridge\(operation, permitted, signal\)\)/);
   assert.match(securities, /const permitted = permittedBatch\(batch\)/);
   assert.doesNotMatch(app, /queueTencentQuoteRequest/);
-  assert.match(bootstrap, /await import\('\.\/migrations\.js'\)/);
+  assert.match(bootstrap, /await import\('\.\/startup-migrations\.js'\)/);
   assert.match(bootstrap, /if \(!migration\.ok\) throw/);
   assert.match(bootstrap, /showStartupFailure/);
   assert.match(app, /overseasModelsPromise = loadOverseasModels\(\)/);

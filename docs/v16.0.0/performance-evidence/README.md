@@ -37,6 +37,7 @@ exit $LASTEXITCODE
 | `m3-continuation-ci.json` | 归并后新分支 afd472c 的实际 CI 37095774528：Linux 823/823、E2E 23/23、构建/资源核验通过；唯一失败为 all-gzip 82,481 超预算。CodeQL workflow success / analysis 3，未观察到独立 CodeQL check，不是零告警或正式发布 |
 | `m3-safe-compaction-20261003.json` | 父检查点 93b6182 上的待提交源码去重：3 次虚拟重复 + 实际确定性构建，all 82,286（−195 B）/ cold 43,702；840 tests（3 Windows skip）及 E2E 23/23；总体预算仍 FAIL，变化后的 paired latency NOT_RUN，现场 Worker 时钟超前使 5 次数据抽查 NOT_VERIFIED；非 CI/生产证据 |
 | `m3-private-compaction-20261003.json` | 父检查点 f625062 上的私有参数 / latestSource 去重：3 次两侧虚拟重复、实际确定性构建，all 82,202（−84 B）/ cold 43,699；850 tests（3 Windows skip）/ E2E 23/23；元数据 setter 候选被真实 RED 测试否决并保留旧 literal。全包仍 FAIL / paired NOT_RUN；新 5 次完整主源拒绝，005844 NAV 四字段仅诊断精确匹配；非 CI/生产证据 |
+| `m3-runtime-surface-20261003.json` | 父检查点 54fc3a0 上的 4 窄 facade / 私有死排序分支裁剪：3 次各变体、实际确定性构建，all 81,735（−467 B）/ cold 43,486；862 tests（3 Windows skip）/ E2E 23/23；12 项新测试与 4,920 对排序对照。图有意新增零实现 facade，原业务/启动模块集合保持，预算仍 FAIL；paired / 新公开数据抽查 NOT_RUN，非 CI/生产证据 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 

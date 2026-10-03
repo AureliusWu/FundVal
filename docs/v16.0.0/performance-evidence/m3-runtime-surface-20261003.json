@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "status": "IN_PROGRESS_NOT_RELEASED",
+  "parentCommit": "54fc3a0f52ea20ec20e3a21407835128c78237c3",
+  "scope": "Uncommitted local source changes on the parent checkpoint; not new-SHA CI, production or physical-device evidence.",
+  "source": {
+    "orderedPaths": ["js/app.js", "js/bootstrap.js", "js/startup-migrations.js", "js/storage/cloud-runtime.js", "js/storage/gist-runtime.js", "js/storage/startup-repository.js", "sw.js"],
+    "hashRecipe": "SHA256 of ordered path + NUL + UTF8 source normalized CRLF to LF + NUL",
+    "sha256": "1f13cf3b13acec2dda2a668bdb1b4d67722d509848ad00615b769af9ba285aca",
+    "fileLfSha256": {
+      "js/app.js": "20ef5d3458fdb8af5457dbea1e200a812251056b28ca59488f522363a66f7554",
+      "js/bootstrap.js": "aeaf4f803b08b48a5470b2d3a23ef0c65886fb4e92d31a5d54acad30b6cd3735",
+      "js/startup-migrations.js": "009dfd3561903ec69798c556845671b43b4861e32aacf614c38fa5df0cf3970e",
+      "js/storage/cloud-runtime.js": "7f281d4914c2134f9fda8c5c0affd9b03460cc83141946b1ee9fb7287425b3d5",
+      "js/storage/gist-runtime.js": "a5d7d13b16990bd7c0c48e6c949c36dd5bb7d56c7c1ff4d7b21968b6b9c3a524",
+      "js/storage/startup-repository.js": "9f919702956156fd2d86e87fff90f0b2f503b19800074d2b7c33f9b821b72a7a",
+      "sw.js": "c6f811d0193526c95e4aa21f72d9984db3577658b04100a467a580539b3bfb21"
+    }
+  },
+  "adopted": [
+    "Four re-export-only runtime/startup facades constrain dynamic namespaces while preserving original modules and 12 consumed references.",
+    "Only import target paths changed; Promise caching, failure caching, startup ordering, static domain consumers and original APIs remain.",
+    "Raw-source Service Worker CORE includes the four facades; production CORE still comes from all actual generated chunks.",
+    "Eight unreachable private amount-sort cases removed after AST/UI closed-state proof and independent old-reference tests; two reachable modes, quality/period guards and default remain."
+  ],
+  "virtual": {
+    "recipe": "Existing Vite 8.2.2 / oxc / es2022 / original chunk groups / write:false",
+    "repetitionsPerVariant": 3,
+    "baseline": { "chunks": 16, "rawBytes": 241635, "allGzipBytes": 82202, "coldGzipBytes": 43699 },
+    "facadesOnly": { "chunks": 16, "rawBytes": 240852, "allGzipBytes": 81889, "coldGzipBytes": 43634 },
+    "final": { "chunks": 16, "rawBytes": 240235, "allGzipBytes": 81735, "coldGzipBytes": 43486 },
+    "delta": { "rawBytes": -1400, "allGzipBytes": -467, "coldGzipBytes": -213 },
+    "baselineGraphSha256": "732c1409f7cca62d3711143a8bdbc77c9977d910b2ffe8173eba06d8d7ff1495",
+    "finalGraphSha256": "2a7448740dd66b85880b4b33b9c60c1d37ae6e0bbedee7bd54e82d29de627f5f",
+    "graphEqual": false,
+    "graphScope": "Sorted chunk names/roles, relative module paths and static/dynamic target names; not artifact hashes.",
+    "intentionalGraphChange": "Four zero-rendered-length facade modules and renamed dynamic entry stubs. After excluding those facades, all original module closures and phase membership remain.",
+    "businessModuleClosureSha256": "09a602b88cac9366315a63ed4b05c0e1a15573ee6d4bcebd6d2d1ae936e90afa",
+    "coldCloudDiagnosticsOcr": false,
+    "buildStartupIsolation": "PASS"
+  },
+  "characterization": {
+    "newPermanentTests": 12,
+    "facadeTests": 8,
+    "sortTestsOldAndNew": { "testsPerRun": 4, "passPerRun": 4 },
+    "rootFinalTargetGroup": { "tests": 16, "pass": 16 },
+    "facadeReferenceChecks": 12,
+    "bootstrapSyntheticPhaseScenarios": 15,
+    "bootstrapRealWrapperInjectedLockScenarios": 7,
+    "lockScope": "Real withHoldingsLock with explicit synthetic locks; no navigator/localStorage changes, not physical Web Locks acceptance.",
+    "sortDifferentialPairs": 4920,
+    "sortStateProof": "AST: one initializer, one two-state setter, seven total references, no export/update/direct eval/Function; one UI toggle without mode argument.",
+    "sortPreserved": ["quality ranking", "comparison periods", "stable ties", "input immutability", "null/undefined/NaN/true zero/negative zero", "coercion", "getter order", "exception identity"],
+    "independentReview": "Facade 88-target suite plus final real-wrapper 21-target suite passed separately (overlapping suites, not additive); original APIs and source modules retained."
+  },
+  "rejectedInvestigations": [
+    "Legacy Intl/date functions are already tree-shaken; sharing them reintroduced code and increased actual gzip.",
+    "Descriptor tuples, market-session factories and shared time/padding helpers did not yield worthwhile positive gzip savings.",
+    "A diagnostic-only removal of generic coordinator runFund/commitPartial/related APIs saved at most 443 B; no removal or core/subclass split was adopted because of API/prototype risks."
+  ],
+  "localGates": {
+    "unit": { "tests": 862, "pass": 859, "fail": 0, "skipped": 3, "skipReason": "Windows symlink permission conditions" },
+    "syntaxFiles": 190,
+    "audit": { "registry": "https://registry.npmjs.org/", "vulnerabilities": 0 },
+    "e2e": {
+      "tests": 23, "pass": 23, "durationSeconds": 42.5, "ownedPort": 12437, "serverStopped": true,
+      "syntheticOnly": true,
+      "readinessSamples": [
+        { "coldReadyMs": 166, "warmReadyMs": 140, "saveUiMs": 83.58299999999963 },
+        { "coldReadyMs": 157.80000001192093, "warmReadyMs": 111.70000000298023, "saveUiMs": 80.16389999999956 },
+        { "coldReadyMs": 161.3999999910593, "warmReadyMs": 124.5, "saveUiMs": 78.8741 }
+      ],
+      "latencyScope": "Descriptive existing absolute interaction checks only; not a new paired v15-relative latency PASS."
+    },
+    "deterministicBuild": { "buildsAfterE2e": 2, "sourceDateEpoch": 1791003593, "fingerprint": "f24892449259f77cb34f926091144aead9c4297ef89ebcb1373c69e5e3803777", "scope": "Parent-epoch uncommitted local source, not future committed-head or CI fingerprint" },
+    "appVerification": { "chunks": 16, "bytes": 240235, "bytesAndShaVerified": true },
+    "ocrVerification": { "assets": 23, "bytes": 88196906, "bytesAndShaVerified": true, "ocrExecuted": false },
+    "budgetCli": { "exitCode": 1, "coldPass": true, "allPass": false, "allGzipBytes": 81735, "coldGzipBytes": 43486, "allBudgetBytes": 77227.7, "coldBudgetBytes": 52241, "remainingWholeBytes": 4508, "importClosureVerified": false }
+  },
+  "evidencePreservation": { "historicalRawReports": "All four historical LF hashes unchanged", "newPairedLatencyAfterChanges": "NOT_RUN", "newLiveDataProbe": "NOT_RUN; prior clock-skew failures are not reclassified" },
+  "release": { "m3Exit": false, "m4Started": false, "m5Started": false, "m6Started": false, "mergeMain": false, "deploy": false, "versionBump": false, "status": "IN_PROGRESS_NOT_RELEASED" }
+}

@@ -150,7 +150,7 @@ function loadHoldingsEstimateFeature() {
 function normalizeTencentQuoteTime(...args) { return holdingsEstimateRuntime.normalizeTencentQuoteTime(...args); }
 
 function loadCloudSyncFeature() {
-  if (!cloudSyncModulePromise) cloudSyncModulePromise = import('./storage/cloud-sync.js');
+  if (!cloudSyncModulePromise) cloudSyncModulePromise = import('./storage/cloud-runtime.js');
   return cloudSyncModulePromise;
 }
 
@@ -366,7 +366,7 @@ function renderCloudStatus() {
 
 let gistRemoteModulePromise = null;
 function loadGistRemoteModule() {
-  if (!gistRemoteModulePromise) gistRemoteModulePromise = import('./storage/gist-remote.js');
+  if (!gistRemoteModulePromise) gistRemoteModulePromise = import('./storage/gist-runtime.js');
   return gistRemoteModulePromise;
 }
 
@@ -1145,14 +1145,6 @@ function sortFunds(data) {
     switch (sortBy) {
       case 'est_change_desc': return safeN(displayChangeOf(b), -Infinity) - safeN(displayChangeOf(a), -Infinity);
       case 'est_change_asc':  return safeN(displayChangeOf(a),  Infinity) - safeN(displayChangeOf(b),  Infinity);
-      case 'today_profit_desc': return safeN(b.today_profit, -Infinity) - safeN(a.today_profit, -Infinity);
-      case 'today_profit_asc':  return safeN(a.today_profit,  Infinity) - safeN(b.today_profit,  Infinity);
-      case 'curr_value_desc': return safeN(b.curr_value, 0) - safeN(a.curr_value, 0);
-      case 'curr_value_asc':  return safeN(a.curr_value, 0) - safeN(b.curr_value, 0);
-      case 'total_profit_desc': return safeN(b.total_profit, -Infinity) - safeN(a.total_profit, -Infinity);
-      case 'total_profit_asc':  return safeN(a.total_profit,  Infinity) - safeN(b.total_profit,  Infinity);
-      case 'profit_rate_desc': return safeN(b.total_profit_rate, -Infinity) - safeN(a.total_profit_rate, -Infinity);
-      case 'profit_rate_asc':  return safeN(a.total_profit_rate,  Infinity) - safeN(b.total_profit_rate,  Infinity);
       default: return 0;
     }
   });

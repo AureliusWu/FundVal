@@ -3,7 +3,7 @@
 > 更新：2026-10-03（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：私有参数去重和海外 latestSource 单遍选择后 all 非 OCR gzip 82,202 > 77,227.7 B 仍 FAIL，至少还需减少 4,975 B（第 21 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
+> 最新：窄运行入口与私有死排序分支裁剪后 all 非 OCR gzip 81,735 > 77,227.7 B 仍 FAIL，至少还需减少 4,508 B（第 22 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
 
 ## 1. 已实现的刷新边界
 
@@ -479,3 +479,33 @@ E2E 后两次实际构建，父提交 SOURCE_DATE_EPOCH **1791002003**，关键�
 独立公开东方财富 NAV 首次严格文本提取失败保持 NOT_VERIFIED。单独新增一次只读诊断，以本地静态 AST 定位 initializer + JSON.parse、**不执行第三方 JS**，核对 005844 **2026-09-30 / 3.1282** 和基准 **2026-09-29 / 3.2259** 与 5 个 Worker 诊断行四字段精确相同：仅 **MATCH_DIAGNOSTIC_ONLY**，不能救回失败 envelope 或冒充页面摄取。未核对 012920 的独立源，不泛化两基金均验证。
 
 只读 `w32tm /query /status` 显示 Leap 3 未同步、Stratum 0、Local CMOS Clock、无上次成功同步；本机授时未同步已确认，准确偏差及服务端责任仍待确认。独立 NAV HTTP Date 可能被缓存，不能拿它直接校时。没有调整系统/服务/时钟、放宽 future 校验、修改 Worker 或生产配置。该本机探针存在 **P1 主源可用性**问题，而非已证明错误金融数据作为实时展示；数据结论 **CONDITIONALLY TRUSTED**，生产 UI/设备接受和完整主源摄取仍未验证。
+
+## 22. 窄运行入口和闭合私有状态的死代码裁剪
+
+父检查点为 **54fc3a0f52ea20ec20e3a21407835128c78237c3**。其 [CI 37098377118](https://github.com/AureliusWu/FundVal/actions/runs/37098377118) 已 completed / failure：仅实际 all-gzip 门禁失败；Linux unit 850/850、syntax 184、audit 0、E2E 23/23（35.3 秒）、build/资源核验/seal/upload 通过。CodeQL workflow job success，analysis 1885026688 同 SHA、results 3、error/warning 空；不是零告警或生产证据，也不继承到本轮源码。
+
+本轮采用性能回归、数据可靠性和发布检查流程，实际读取 rendered 模块而非按源码行数猜收益。证据：[m3-runtime-surface-20261003.json](performance-evidence/m3-runtime-surface-20261003.json)。
+
+- 新增 `js/storage/cloud-runtime.js`、`gist-runtime.js`、`startup-repository.js` 和 `js/startup-migrations.js` 四个纯 re-export 入口。12 个导出与原函数 `Object.is` 相同；原 cloud/Gist/repository/migrations API 保留。只改变 app/bootstrap 的动态 import 目标，不改变 Promise 缓存、失败缓存、catch/retry、迁移顺序或原静态消费者。cloud archive 所需的 4 个辅助导出没有遗漏。
+- 原源码 SW CORE 加入四入口；正式 build 仍由生成 chunk 图替换 CORE，未把 OCR 加入首屏或 CORE。未修改构建配置、依赖、预算或原模块实现。
+- `js/app.js` 私有 `sortBy` 经 AST 和实际 UI 路由证实只有 desc/asc 两个估值涨跌状态。移除 8 个无入口、无赋值路径的历史金额排序 case；quality、period、两个可达分支和 default 不变。这不是删除已提供的金额排序功能；未来新增模式必须同时更新闭合状态测试。
+
+新增 **12 项**长期测试：facade 8 项、sort 4 项。排序先在保留旧 10 case 的实际源码上 root/子代理分别 4/4 GREEN，再裁剪并重跑；独立旧 reference 与两个可达模式做 **4,920 对**结果/getter/coercion/异常/null/±0 对照。facade 测试检查精确 API、fulfilled/rejected 同 Promise 不重试、独立旧 bootstrap 的 15 个 phase 场景，以及调用真实 `withHoldingsLock`、只注入内存 locks 的 7 个错误转换场景。它们是合成验证，不是物理设备/Web Locks 验收；无真实 storage/Gist 写入。独立审查的 88 项组和最终 21 项真实包装器组分别通过（有重叠，不相加）。
+
+### 固定计量与完整本地门禁
+
+| 变体（各 3 次一致） | raw JS B | all gzip B | cold gzip B |
+| --- | ---: | ---: | ---: |
+| immutable 54fc3a0 | 241,635 | 82,202 | 43,699 |
+| 仅 4 facade | 240,852 | 81,889 | 43,634 |
+| facade + 私有死 case 裁剪 | **240,235** | **81,735** | **43,486** |
+
+固定 Vite 8.2.2/oxc/es2022/原 grouping，仍 16 chunks；组合 raw −1,400 B、all −467 B、cold −213 B。完整图 hash 从 `732c1409...` 变为 `2a744874...`，这是四个 0 renderedLength facade 和动态 stub 名称的有意变化，**不声称图完全相同**。剔除 facade 后，原 cold/before-app/business/all 模块集合及阶段归属不变；首个业务闭包 module SHA 为 `09a602b8...`，无 cloud/diagnostics/OCR，实际 build 启动隔离通过。
+
+共享 legacy Intl/date 大块会重新引入已 tree-shaken 兼容路径；描述元组/时间 helper 多数增大 gzip，均未采用。通用 coordinator 未用附加 API 的仅诊断删除下界也只省 443 B，没有删除 API 或引入会改变原型布局的 core/subclass。没有以弱化校验、外移数据、改协议或改预算换取 PASS。
+
+完整本地 **862 tests / 859 pass / 0 fail / 3 Windows symlink 条件 skip**；syntax **190**；官方注册表 audit **0**；自有 port 12437 的合成桌面 E2E **23/23（42.5 秒）**，服务确认退出。3 个 readiness 样本均保留，仅为既有绝对门限/描述性检查，不是新的配对时延结论。
+
+E2E 后两轮实际 build 同父 epoch **1791003593**，关键发布集指纹均 **`f24892449259f77cb34f926091144aead9c4297ef89ebcb1373c69e5e3803777`**；app 16 chunks / 240,235 B、OCR 23 assets / 88,196,906 B bytes/SHA 核验通过，未执行 OCR。此指纹绑定待提交本地源码，不是新提交/CI/生产指纹。7 个变更运行源的 path+NUL+LF-source+NUL hash 为 `1f13cf3b13acec2dda2a668bdb1b4d67722d509848ad00615b769af9ba285aca`。
+
+预算 CLI cold **43,486 / 52,241 PASS**、all **81,735 / 77,227.7 FAIL**、exit **1**，尚差至少 **4,508 B**。四份历史 raw LF hash 未变；新源码 paired latency **NOT_RUN**，也未重新探测/追认此前本机授时失败。仍为 M3 **IN PROGRESS**、版本 15.0.2；没有跳过到 M4/M5/M6、没有 merge/deploy/bump。

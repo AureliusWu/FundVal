@@ -6,6 +6,7 @@ const CORE = [
   './js/sandbox/quote-bridge-runtime.js', './js/update-compat.js',
   // BUILD_APP_SHELL_CORE_START
   './js/bootstrap.js', './js/migrations.js', './js/resilience.js', './js/integrity.js',
+  './js/startup-migrations.js', './js/storage/startup-repository.js',
   './js/app.js', './js/version.js', './js/config.js', './js/storage.js',
   './js/calculator.js', './js/overseas-model.js', './js/accuracy.js', './js/freshness.js',
   './js/eastmoney-estimate.js', './js/fund-holdings.js', './js/holdings-estimate.js',
@@ -22,6 +23,7 @@ const CORE = [
   './js/runtime/request-signal.js',
   './js/storage/holdings-schema.js', './js/storage/holdings-migration.js',
   './js/storage/holdings-repository.js', './js/storage/cloud-sync.js', './js/storage/gist-remote.js',
+  './js/storage/cloud-runtime.js', './js/storage/gist-runtime.js',
   './js/storage/cloud-archive-ui.js',
   // BUILD_APP_SHELL_CORE_END
   './css/style.css', './data/overseas-models.json'

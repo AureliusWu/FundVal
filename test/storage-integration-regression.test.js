@@ -42,7 +42,7 @@ test('Gist PATCH has one guarded adapter entry and verified cloud orchestration'
   assert.match(app, /remote_schema_upgrade_required/);
   assert.match(cloudArchive, /pushToCloud\(false, \{ upgradeSchema: true \}\)/);
   assert.match(cloudArchive, /createCloudArchive\(token, \{ targetSchema: 3 \}\)/);
-  assert.match(app, /import\('\.\/storage\/gist-remote\.js'\)/);
+  assert.match(app, /import\('\.\/storage\/gist-runtime\.js'\)/);
   assert.match(gistRemote, /V3_GIST_DEVICE_PREFIX\s*=\s*'fuyu-holdings-v3-'/);
   assert.match(gistRemote, /write\?\.schema !== 3/);
   assert.doesNotMatch(gistRemote, /headers\['If-Match'\]/);
@@ -62,6 +62,10 @@ test('startup migrations remain local-only and offline cache includes Schema 3 r
     './js/storage/holdings-migration.js',
     './js/storage/holdings-repository.js',
     './js/storage/cloud-sync.js',
+    './js/storage/cloud-runtime.js',
+    './js/storage/gist-runtime.js',
+    './js/storage/startup-repository.js',
+    './js/startup-migrations.js',
     './js/runtime/business-features.js',
   ]) {
     assert.match(serviceWorker, new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
