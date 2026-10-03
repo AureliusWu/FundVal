@@ -38,7 +38,7 @@ function kind(value) {
   if (value === 'overseas_model') return 'qdii_next_nav_estimate';
   return KINDS.has(value) ? value : '';
 }
-function chooseNumber(row, canonical, aliases, { percent = false, ignoreNullAliases = false } = {}) {
+function chooseNumber(row, canonical, aliases, percent = false, ignoreNullAliases = false) {
   const hasCanonical = own(row, canonical);
   let value = hasCanonical ? numeric(row[canonical], percent) : null;
   if (hasCanonical && row[canonical] != null && value == null) reject('WORKER_ROW_INVALID');
@@ -72,6 +72,7 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   const legacyKind = own(row, 'est_kind') ? kind(row.est_kind) : '';
   if ((own(row, 'kind') && !canonicalKind) || (own(row, 'est_kind') && !legacyKind)) reject('WORKER_ROW_INVALID');
   const valueKind = canonicalKind || legacyKind || (wireVersion === 1 ? 'intraday_estimate' : '');
+  const official = valueKind === 'official_nav';
   if (!valueKind) reject('WORKER_ROW_INVALID');
   if (canonicalKind && legacyKind && canonicalKind !== legacyKind && canonicalKind !== 'unavailable') reject('WORKER_ALIAS_CONFLICT');
   const status = text(row.status, 32) || (wireVersion === 1 && !canonicalKind ? 'ok' : '');
@@ -81,11 +82,11 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   if (!unusable && !source) reject('WORKER_ROW_INVALID');
   const name = text(row.name ?? row.jjjc, 160) || code;
   const baseNav = chooseNumber(row, 'base_nav', ['last_nav', 'dwjz']);
-  const valueNav = chooseNumber(row, 'value_nav', valueKind === 'official_nav' ? ['est_nav', 'gsz'] : ['estimate_nav', 'est_nav', 'gsz'],
-    { ignoreNullAliases: valueKind === 'official_nav' });
-  const change = valueKind === 'official_nav'
-    ? chooseNumber(row, 'value_change', ['est_change', 'gszzl'], { percent: true, ignoreNullAliases: true })
-    : chooseNumber(row, own(row, 'estimate_change') ? 'estimate_change' : 'value_change', ['est_change', 'gszzl'], { percent: true });
+  const valueNav = chooseNumber(row, 'value_nav', official ? ['est_nav', 'gsz'] : ['estimate_nav', 'est_nav', 'gsz'],
+    false, official);
+  const change = official
+    ? chooseNumber(row, 'value_change', ['est_change', 'gszzl'], true, true)
+    : chooseNumber(row, own(row, 'estimate_change') ? 'estimate_change' : 'value_change', ['est_change', 'gszzl'], true);
   const baseDateRaw = own(row, 'base_nav_date') ? row.base_nav_date : (canonicalKind ? null : row.nav_date ?? row.gzrq);
   const baseDate = normalizeQuoteDate(baseDateRaw);
   if (baseDateRaw != null && baseDateRaw !== '' && !baseDate) reject('WORKER_ROW_INVALID');
@@ -96,7 +97,7 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   if (!unusable && row.source_time_precision === 'date' && sourceTime !== sourceDate
     || !unusable && ['datetime', 'minute'].includes(row.source_time_precision) && sourceTime === sourceDate) reject('WORKER_ROW_INVALID');
   const targetRaw = own(row, 'value_date') ? row.value_date
-    : (valueKind === 'official_nav' && canonicalKind ? row.nav_date : sourceDate);
+    : (official && canonicalKind ? row.nav_date : sourceDate);
   const targetDate = normalizeQuoteDate(targetRaw);
   for (const alias of ['estimate_time', 'est_time', 'gxrq']) {
     if (!row[alias] || !sourceTime) continue;
@@ -109,16 +110,16 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   }
   const nowMs = clock(now);
   if (!unusable && (valueNav == null || valueNav <= 0 || !sourceDate || sourceMs == null || sourceMs > nowMs
-    || !targetDate || !baseDate && valueKind !== 'official_nav'
+    || !targetDate || !baseDate && !official
     || baseDate && (baseDate >= targetDate || baseDate > chinaDay(nowMs))
     || baseNav != null && baseNav <= 0
     || (baseNav == null) !== (baseDate == null)
-    || valueKind !== 'official_nav' && (baseNav == null || change == null)
+    || !official && (baseNav == null || change == null)
     || valueKind !== 'qdii_next_nav_estimate' && targetDate > chinaDay(nowMs)
     || valueKind !== 'qdii_next_nav_estimate' && targetDate !== sourceDate)) reject('WORKER_ROW_INVALID');
   if (unusable && canonicalKind === 'unavailable' && [baseNav, valueNav, change].some(value => value != null)) reject('WORKER_ROW_INVALID');
-  const coverage = chooseNumber(row, 'coverage', ['model_coverage'], { percent: true, ignoreNullAliases: true });
-  const quoteCount = chooseNumber(row, 'quote_count', ['model_quote_count'], { ignoreNullAliases: true });
+  const coverage = chooseNumber(row, 'coverage', ['model_coverage'], true, true);
+  const quoteCount = chooseNumber(row, 'quote_count', ['model_quote_count'], false, true);
   const reportRaw = own(row, 'report_date') ? row.report_date : row.model_report_date;
   if (own(row, 'report_date') && own(row, 'model_report_date') && row.model_report_date !== reportRaw
     && (text(row.model_report_date, 10) || text(reportRaw, 10))) reject('WORKER_ALIAS_CONFLICT');
@@ -145,15 +146,15 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
     status: unusable ? 'unavailable' : 'ok', source_status: status,
     base_nav: unusable ? null : baseNav, base_nav_date: unusable ? null : baseDate,
     value_nav: unusable ? null : valueNav,
-    value_change: valueKind === 'official_nav' && !unusable ? change : null,
+    value_change: official && !unusable ? change : null,
     value_date: unusable ? null : targetDate,
-    estimate_nav: valueKind !== 'official_nav' && !unusable ? valueNav : null,
-    estimate_change: valueKind !== 'official_nav' && !unusable ? change : null,
+    estimate_nav: !official && !unusable ? valueNav : null,
+    estimate_change: !official && !unusable ? change : null,
     source_time: unusable ? null : sourceTime,
-    last_nav: unusable ? null : baseNav, nav_date: valueKind === 'official_nav' ? targetDate : baseDate,
+    last_nav: unusable ? null : baseNav, nav_date: official ? targetDate : baseDate,
     est_nav: unusable ? null : valueNav, est_change: unusable ? null : change,
     est_time: unusable ? null : sourceTime,
-    est_kind: valueKind === 'official_nav' ? 'official_nav' : valueKind === 'qdii_next_nav_estimate' ? 'overseas_model' : valueKind === 'holdings_model' ? 'holdings_model' : 'estimate',
+    est_kind: official ? 'official_nav' : valueKind === 'qdii_next_nav_estimate' ? 'overseas_model' : valueKind === 'holdings_model' ? 'holdings_model' : 'estimate',
     coverage, quote_count: quoteCount, report_date: reportDate || null,
   };
 }

@@ -3,7 +3,7 @@
 > 更新：2026-10-03（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：小步源码去重后 all 非 OCR gzip 82,286 > 77,227.7 B 仍 FAIL，至少还需减少 5,059 B（第 20 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
+> 最新：私有参数去重和海外 latestSource 单遍选择后 all 非 OCR gzip 82,202 > 77,227.7 B 仍 FAIL，至少还需减少 4,975 B（第 21 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
 
 ## 1. 已实现的刷新边界
 
@@ -438,3 +438,44 @@ E2E 退出后连续两次 build 的 SOURCE_DATE_EPOCH 为父提交 **1791000968*
 另外固定读取 005844 / 012920 的公开 Worker 响应 5 次，HTTP 均 200，但 `fetched_at` 比本机响应处理时钟超前 **2,428 / 2,295 / 2,165 / 2,034 / 1,903 ms**，现有严格解析均返回 `WORKER_METADATA_INVALID`，故本批实际数据等价抽查记 **NOT_VERIFIED**，不把 HTTP 200 当行情可信。没有改系统时钟、放宽 future guard、修改外部 Worker 或生产设置。这是本机与这批响应的现场时钟差观察，不能据此断言所有浏览器/生产环境均失败；后续数据/发布门禁需单独核对生产时钟和来源，不能挑后来成功请求替代这 5 个失败观察。
 
 父检查点 93b6182 的 [CI 37095982665](https://github.com/AureliusWu/FundVal/actions/runs/37095982665) 已 completed / failure；candidate 仅最后实际 all-gzip 门禁失败，audit/test/check/build/E2E/资源核验/seal/upload 步骤成功，codeql workflow 作业 SUCCESS。该远端结果只绑定父提交，不继承给本轮业务改写。
+
+## 21. 私有参数和 latestSource 去重：保留旧信任边界
+
+本轮父检查点为 **f625062afcab1e88ccb54d50d558d59d96a99542**，版本仍为 15.0.2。证据：[m3-private-compaction-20261003.json](performance-evidence/m3-private-compaction-20261003.json)。采用性能检查、数据可靠性检查和发布检查流程，区分实际源码、待提交本地构建、远端 CI、只读诊断与发布；没有修改原预算或提前进入 M4。
+
+### 实际变更与先红后绿
+
+- `js/runtime/worker-contract.js`：私有 `chooseNumber` 的两个固定 scalar option 改位置参数，函数内复用由不可变 `valueKind` 得出的 `official`。不删除或合并别名、日期、来源、coverage、accounting 和 reason 校验；对外字段和错误不变。
+- `js/runtime/remote-schema.js`：私有 `finiteNumber` 的三个固定 scalar option 改位置参数。metadata 最终保留旧 `Object.freeze` 字面量，不采用表驱动动态属性赋值。
+- `js/overseas-model.js`：`calculateOverseasEstimate` 的内部最新行情时间由 push + sort 改单遍选择；严格 `>` 保持并列时第一项。未改权重、费用、基期/目标日期、36h、季度、future/stale 或输出降级规则。
+
+新增 **10 个**永久表征测试：`test/wire-compaction-characterization-v16.test.js` 的 8 个和 `test/overseas-model.test.js` 的 2 个。旧 f625062 两模块/私有片段在内存中运行最终新 wire 8/8；旧海外模块运行包含新测试的 11/11；均未回滚磁盘业务文件。最终 root 相关测试 63/63，独立审查 76/76；另有 1,530 个公开 Worker、308 个公开 Bridge、4,059 个海外组合对照。新私有测试覆盖 1,784 个 alias 案例、8,826 个逐步异常、170 个 meta 案例、763 个逐步异常、重复 getter 和 186 个 finite-number 配置值。
+
+调查中不采用的 metadata `meta[key] = value` 表格虽然测到小收益，但独立审查发现它会触发继承 setter，旧字面量不会。新公开 API 回归测试在该候选上真实 RED（两安装时机均丢 5 个 own 字段、调用 setter 5 次），在旧源和最终保留 literal 的代码上 GREEN（6 own 字段、0 setter）。没有发布该候选，也不把它说成原生产 Bug。测试自身共享 VM 全局造成的 2 项失败亦保留说明；最终用独立 context 修正后重跑旧/新实现，不绕过断言。
+
+### 固定构建和本地门禁
+
+按现有 Vite 8.2.2 / oxc / es2022 / 原分组，基准和最终源各 `write:false` **3 次**：
+
+| 指标 | f625062 | 最终本地源码 | 变化 |
+| --- | ---: | ---: | ---: |
+| 非 OCR raw JS | 242,075 | 241,635 | −440 B |
+| all gzip | 82,286 | **82,202** | **−84 B** |
+| cold gzip | 43,702 | **43,699** | −3 B |
+| chunks | 16 | 16 | 不变 |
+
+完整 normalized module/static/dynamic/cold 角色图一致，hash `732c1409f7cca62d3711143a8bdbc77c9977d910b2ffe8173eba06d8d7ff1495`。没有属性混淆、外移数据逃离 JS 预算、合并 cloud/diagnostics 到首个业务请求、配置/依赖变化或删校验。较大的 cache/payload、云同步和 app UI 去重多数增加实际 gzip，未落地；已经天然压缩的重复模板不能凭 raw 行数宣称收益。
+
+本地全量：**850 tests / 847 pass / 0 fail / 3 Windows symlink 条件 skip**；syntax **184**；官方注册表 audit **0**；自有 12437 port 合成桌面 E2E **23/23（40.7 秒）**，监听服务已退出。3 个 readiness 样本完整保留，仅为绝对阈值/描述性观察；不能与历史配对样本拼接，也不能据此宣称新源码的相对时延 PASS。
+
+E2E 后两次实际构建，父提交 SOURCE_DATE_EPOCH **1791002003**，关键发布集指纹均 `12fb81227fb07404304e0a7d85866d954f610bb7e59be765c02c6a8ef1cb748f`。app/OCR bytes + SHA 实核通过：16 app chunks / 241,635 B，23 OCR assets / 88,196,906 B；未执行 OCR。该指纹绑定待提交本地源码，不是下一提交、CI 或生产产物。3 文件的 path+NUL+LF-source+NUL SHA256 为 `409b8a54852c058bb9221d9081836065f44394bb953742013d7725e2fea711d6`。
+
+预算 CLI cold **43,699 / 52,241 PASS**、all **82,202 / 77,227.7 FAIL**、exit **1**，至少仍需 **4,975 B**。所有历史 raw report LF SHA 未变；最新源码的 paired latency 为 **NOT_RUN**。原 200 配对报告不能继承到本次改动。M3 **不能 EXIT**，未开始 M4/M5/M6、未 merge/deploy/bump。
+
+### 公开数据与本机时钟：只读诊断，不是摄取通过
+
+预声明并保留 5 次公开 005844 / 012920 顺序 GET；20s 诊断 timeout（不是应用默认 10s transport），每次按 JSON 完成的真实本机 `Date.now()` 调用现有严格 parser。HTTP 全 200，但完整 envelope **0/5**，`fetched_at` 超前 **2,485 / 2,379 / 2,279 / 2,178 / 2,079 ms**，均 `WORKER_METADATA_INVALID`。5 次数据只绑定采样时的 discarded-table 库存，不冒绑定最终整应用；Worker 模块 LF hash 与最终相同。这不追认第 20 节失败为 PASS，也不排除所有失败后挑一次成功。
+
+独立公开东方财富 NAV 首次严格文本提取失败保持 NOT_VERIFIED。单独新增一次只读诊断，以本地静态 AST 定位 initializer + JSON.parse、**不执行第三方 JS**，核对 005844 **2026-09-30 / 3.1282** 和基准 **2026-09-29 / 3.2259** 与 5 个 Worker 诊断行四字段精确相同：仅 **MATCH_DIAGNOSTIC_ONLY**，不能救回失败 envelope 或冒充页面摄取。未核对 012920 的独立源，不泛化两基金均验证。
+
+只读 `w32tm /query /status` 显示 Leap 3 未同步、Stratum 0、Local CMOS Clock、无上次成功同步；本机授时未同步已确认，准确偏差及服务端责任仍待确认。独立 NAV HTTP Date 可能被缓存，不能拿它直接校时。没有调整系统/服务/时钟、放宽 future 校验、修改 Worker 或生产配置。该本机探针存在 **P1 主源可用性**问题，而非已证明错误金融数据作为实时展示；数据结论 **CONDITIONALLY TRUSTED**，生产 UI/设备接受和完整主源摄取仍未验证。

@@ -189,7 +189,7 @@ export function calculateOverseasEstimate(model, quotes, now = new Date()) {
   const referenceNow = Number.isFinite(nowMs) ? nowMs : Date.now();
   const legs = normalizedModel.legs;
   let weighted = 0, usableWeight = 0, excludedWeight = 0;
-  const sourceTimes = [];
+  let latestSource = null;
   const rejected = { missingTime: 0, future: 0, stale: 0 };
   for (const leg of legs) {
     const quote = quotes instanceof Map ? quotes.get(leg.code) : quotes?.[leg.code];
@@ -200,7 +200,7 @@ export function calculateOverseasEstimate(model, quotes, now = new Date()) {
     if (ageMs < 0) { excludedWeight += leg.weight; rejected.future += 1; continue; }
     if (ageMs > MAX_QUOTE_AGE_MS) { excludedWeight += leg.weight; rejected.stale += 1; continue; }
     usableWeight += leg.weight; weighted += quote.change * leg.weight;
-    sourceTimes.push(quoteTime);
+    if (!latestSource || quoteTime.timestamp > latestSource.timestamp) latestSource = quoteTime;
   }
   const minimum = normalizedModel.min_weight;
   if (usableWeight < minimum) return {
@@ -217,7 +217,6 @@ export function calculateOverseasEstimate(model, quotes, now = new Date()) {
   let change = weighted / usableWeight;
   change = change * normalizedModel.scale + normalizedModel.bias;
   const oldQuarter = modelIsPastQuarter(normalizedModel, referenceNow);
-  const latestSource = sourceTimes.sort((a, b) => b.timestamp - a.timestamp)[0];
   return {
     change,
     usableWeight,

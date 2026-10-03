@@ -36,6 +36,7 @@ exit $LASTEXITCODE
 | `m3-bundle-gate.json` | 第 11 节历史本地 app chunks 实算：cold 43,845 PASS、all 82,481 FAIL；预算 CLI exit 1，不是本轮新源码、CI/生产产物证明 |
 | `m3-continuation-ci.json` | 归并后新分支 afd472c 的实际 CI 37095774528：Linux 823/823、E2E 23/23、构建/资源核验通过；唯一失败为 all-gzip 82,481 超预算。CodeQL workflow success / analysis 3，未观察到独立 CodeQL check，不是零告警或正式发布 |
 | `m3-safe-compaction-20261003.json` | 父检查点 93b6182 上的待提交源码去重：3 次虚拟重复 + 实际确定性构建，all 82,286（−195 B）/ cold 43,702；840 tests（3 Windows skip）及 E2E 23/23；总体预算仍 FAIL，变化后的 paired latency NOT_RUN，现场 Worker 时钟超前使 5 次数据抽查 NOT_VERIFIED；非 CI/生产证据 |
+| `m3-private-compaction-20261003.json` | 父检查点 f625062 上的私有参数 / latestSource 去重：3 次两侧虚拟重复、实际确定性构建，all 82,202（−84 B）/ cold 43,699；850 tests（3 Windows skip）/ E2E 23/23；元数据 setter 候选被真实 RED 测试否决并保留旧 literal。全包仍 FAIL / paired NOT_RUN；新 5 次完整主源拒绝，005844 NAV 四字段仅诊断精确匹配；非 CI/生产证据 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
