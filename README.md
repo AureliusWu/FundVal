@@ -1,6 +1,6 @@
 # 蜉蝣基金 (FundVal)
 
-当前发布版本：`15.0.2`；已通过 GitHub Pages 发布，线上版本同为 `15.0.2`。`main` 已包含 V16 的预发布数据契约与候选流水线工作，但 package/线上版本仍保持 `15.0.2`，未达到新的正式发布条件。物理 Android/iOS 门禁仍未完成，因此实体设备验收状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
+当前源码候选：`15.0.2`；当前线上版本：`15.0.2`。`main` 已包含 V16 的预发布数据契约与候选流水线工作，但运行时/package 版本尚未提升，未达到新的正式发布条件。物理 Android/iOS 门禁仍未完成，因此实体设备验收状态为 `BLOCKED_FOR_DEVICE_VALIDATION`，不能把模拟器结果写成真机验收。
 
 发布提交：`210433aec211da0da5c6b6a461bafdd094a2d123`；[GitHub Actions run 36377191275](https://github.com/AureliusWu/FundVal/actions/runs/36377191275) 已成功完成 build 与 deploy。
 
