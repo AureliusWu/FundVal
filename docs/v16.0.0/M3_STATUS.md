@@ -1,8 +1,9 @@
 # M3 刷新图、模块化与性能：阶段检查点
 
-> 日期：2026-10-01（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
-> 基于受保护 main `154139d78b0e226fd99ec9a3009c1e63c06925ca`；分支 `codex/v16.0.0-refresh-plan`。
+> 更新：2026-10-03（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
+> M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
+> 最新：v2 桌面配对相对时延 PASS；all 非 OCR gzip 82,481 > 77,227.7 B 仍 FAIL，M3 不能 EXIT。历史样本结论未改变。
 
 ## 1. 已实现的刷新边界
 
@@ -340,3 +341,60 @@ push review artifact `11207337192`，API 声明 ZIP 92,612,146 B、digest `sha25
 本次实测 source 集 73 files / 3,576,505 B，before/after SHA `2a5f311b9965ea80d49c86d07d1d2e0e87d48fb111f9d83567369922e1cd2ae0` 一致。现有 site 发布 inventory 121 files / 92,496,807 B，before/after `0597795409f403cbeae56fe2c26c9bc1e98ae1e58fc4ca6d86362d84109b4849` 一致，沿用 inventory 排除根 `.playwright-results` 的规则，不冒充完全包括诊断目录的全树 hash。
 
 下一轮只执行一次新协议 relative measurement，事前参数见 [v2-200 预声明](performance-evidence/m3-pair-v2-200-protocol.md)；目的补齐同文档 warm 分解，不追加旧样本、不调统计阈值、不覆盖 60/200/probe。包体积独立 FAIL 仍在，M3 IN PROGRESS。
+
+## 17. 预声明 v2 配对测量的实际结果
+
+第 16 节后的文档检查点 `d9fdabc5127f8d8d3c5315898b829d4371317112` 已在采样前推送，含固定参数 [protocol](performance-evidence/m3-pair-v2-200-protocol.md)。随后仅执行这一轮新协议；没有改源码/产物、并发本地测试/构建、重试 pair、筛掉慢值或追加样本。reference 为 immutable `40e68edab9cb3fba0b17338dc3672a82d13ad17e`，current source before/after 均为 clean d9fdabc。两侧使用相同 `paired-readiness-v2-same-document-counters`、Chrome 154.0.8037.93 / Node 24.14.0、390×844、固定合成时钟与合成持仓，HTTP cache disabled/no-store，SW 被阻断。
+
+原始报告：[m3-pair-v2-200.json](performance-evidence/m3-pair-v2-200.json)。2026-10-02 **03:37:54.453 → 03:46:49.484 UTC**；200 retained +4 warm-up 全部 complete，failed 0，retained AB/BA 各 100。LF **22,398,799 B**，SHA256 **`323ff4087da0a1a836fe8147ef305cd8f315e3e0d10e706cbc4d25abfba74236`**。工具实际 **PASS / exit 0**；5000 次固定 seed 160003 的分层 paired bootstrap、nearest-rank p95 和预声明政策不变。
+
+| 耗时（ms） | v15 median / p95 | current median / p95 | median / p95 变化 | median ratio 95% CI | p95 ratio 95% CI |
+| --- | ---: | ---: | ---: | --- | --- |
+| cold ready | 131.50 / 151.80 | 122.60 / 139.60 | -6.77% / -8.04% | 0.92383–0.94262 | 0.87799–0.97716 |
+| warm ready | 72.80 / 85.90 | 64.90 / 76.40 | -10.85% / -11.06% | 0.88396–0.89993 | 0.83535–0.97969 |
+| save runner wall | 39.12 / 44.11 | 37.14 / 49.22 | -5.06% / **+11.60%** | 0.93395–0.96232 | 0.96466–1.15344 |
+
+原方案硬门禁是 cold/warm median ≤+15%、p95 ≤+20%，save median ≤+15%；本轮均满足。保存 p95 是额外保守工具观察，不能隐去上涨或把它变成新方案预算；本轮它的上界也低于工具 1.20。p95 CI width（reference/current）cold 9.55%/4.94%、warm 9.90%/10.60%、save 5.95%/16.15%，均满足工具预设 20%。bootstrap pass fraction 为 cold/warm 1.000、save 0.988，不是总体通过的概率。该结果仅为这一次桌面本地协议的证据，不是生产、公网、物理手机、PWA 离线或实际 Gist 验收，也不归因为某个单独业务改动。
+
+### 完整性、健康与归因范围
+
+- health / instrumentation / integrity 均 PASS；两侧 source identity 与完整 artifact inventory 前后相同。reference inventory 110 files / 92,344,588 B，SHA `29641fb2e9ad927871a2485f07cbdd0d78e9707a6e999ea5160e5822b6471402`；current 121 files / 92,496,807 B，SHA `0b02caf15d5f9bd077fad299e0c8f39982fd69be247d1cd51e9b09576b163c4d`。这是 sampler 的发布文件 inventory，沿用其排除诊断目录的规则。
+- pageErrors、network instrumentation failures、SW event/controller/registration 均 0；每侧 612 drains 全 SETTLED。reference/current consoleErrors **1,836 / 2,652** 为原样记录的外部阻断观察，不能声称 console 零。主 Worker 由相同合成 fixture 响应，其他 provider 及全部 Gist 请求阻断，没有截图/OCR 上传或真实持仓写入。
+- browser、自有 10445/10448 两个 server、验证过的临时 reference snapshot cleanup 全 PASS；未使用、终止或修改其他项目的 4173 服务。reference 隔离快照只修改报告所列 3 个 transport/test-server 文件，不改其业务/fixture。
+- 两侧各阶段含 warm-up 的 **204** 份 renderer 均同文档 epoch、四个 duration 有限、invalidReasons 空；cold/warm 全 **PARTIAL**、save 全 **MEASURED**，UNAVAILABLE 0。无缺失值被补零。
+
+| retained renderer / 辅助计时中位数（ms） | v15 cold / warm / save | current cold / warm / save |
+| --- | ---: | ---: |
+| Task timeTicks activity | 87.62 / 28.48 / 43.78 | 82.33 / 27.23 / 27.22 |
+| Script timeTicks activity | 8.13 / 2.00 / 3.57 | 8.86 / 2.34 / 2.49 |
+| Layout timeTicks activity | 40.01 / 0.70 / 6.12 | 39.91 / 0.70 / 5.24 |
+| RecalcStyle timeTicks activity | 2.39 / 1.73 / 2.19 | 2.26 / 1.63 / 2.01 |
+| post-HTTP bootstrap/DOM residual | 124.30 / 66.60 / 不适用 | 115.75 / 58.50 / 不适用 |
+| navigation TTFB wall | 1.80 / 1.50 / 不适用 | 1.70 / 1.50 / 不适用 |
+| click→visible DOM | 不适用 / 不适用 / 12.25 | 不适用 / 不适用 / 10.70 |
+
+这些 counter 不是完整启动 CPU、精确 ready 瞬间或隔离 OS CPU；cold/warm 从 commit 后 baseline 到 collection，漏掉早期工作并包含采集/harness 开销，四项不能相加当互斥 CPU。save 的 collection 活动与 runner wall / click→DOM 也不是同一窗口。辅助中位数为描述性统计，没有另做显著性或因果推断；不能把 Script activity 上升隐去。新 RPC 协议的观察开销使本轮不能与旧 60/200 报告拼接，旧 INCONCLUSIVE 不追认为 PASS。
+
+### 本地门禁与仍然阻断
+
+采样前本地 full gates 为 823 tests / 820 pass / 0 fail / 3 Windows symlink skip、syntax 181、official audit 0、E2E 23/23（39.5 秒，自有 12437）。两次连续 build 同 SOURCE_DATE_EPOCH `1790912052`（d9fdabc），关键发布指纹均 **`91634a6154f1f1a1f7391553a74696940d23d0e35af04fa5d38c021efc711d13`**；app 16 chunks / 243,481 B、OCR 23 assets / 88,196,906 B 实际字节/SHA 校验通过，未执行 OCR。这个本地指纹不是 CI 或生产指纹。
+
+实际独立预算 CLI 仍为 cold **43,845 / 52,241 PASS**、all **82,481 / 77,227.7 FAIL**，exit 1。尚差至少 **5,254 B**；relative PASS 不覆盖这个门禁，M3 **IN PROGRESS**，不进入 M4/M5/M6，不 merge/deploy/bump，版本仍 15.0.2。
+
+报告/索引补齐后再次本地复核：823 tests / 820 pass / 0 fail / 3 Windows symlink skip、syntax 181、official audit 0、E2E 23/23（41.7 秒）。E2E 服务退出后两次 build 同 d9fdabc epoch / `91634a61...` 指纹，app/OCR 实际核验通过、预算 exit 1；新旧四份 raw evidence 与采样器 LF hash 均未变。独立审查固定参数重算 entire summary 与原值 deepEqual，204 组精确 AB/BA 顺序及 1,224 阶段共 4,896 个有限非负 delta 核对通过；没有重采样。
+
+## 18. 预声明提交的实际远端检查
+
+精确绑定 d9fdabc 的 [push 36961013836](https://github.com/AureliusWu/FundVal/actions/runs/36961013836) / [PR 36961017820](https://github.com/AureliusWu/FundVal/actions/runs/36961017820) 均 completed / failure；唯一失败步骤是 `Enforce actual M3 app bundle budget`。两侧实际 unit 823/823、syntax 181、official audit 0、E2E push 23/23（39.5 秒）/ PR 23/23（45.8 秒）；build、app/OCR artifact verify、seal/upload 均成功。真实 runner 日志为 cold 43,845 PASS、all 82,481 > 77,227.7 FAIL / exit 1，不继承前一个 SHA 的结果。
+
+同 SHA 独立 [CodeQL check 110694662679](https://github.com/AureliusWu/FundVal/runs/110694662679) SUCCESS；analysis 1878812636 绑定 d9fdabc、结果 3，error/warning 为空。当前仍有 3 条 open alerts：#3 high（`scripts/build-paddle-ocr.mjs:545`）、#5 medium（`scripts/refresh-fund-catalog.mjs:65`）、#7 medium（`sw.js:76`）；均为此前既有告警，不能宣称仓库零安全问题，也不能未经 immutable 基线分析就称 v15 baseline。#8 旧实例 fixed 且未出现这个 SHA 的新实例，没有 dismissal。
+
+PR #12 为 OPEN / draft，head d9fdabc；main/base 仍 `154139d78b0e226fd99ec9a3009c1e63c06925ca`，mergeable_state blocked。上述远端证据只绑定预声明提交，不自动继承给后续 raw report / 文档提交或生产。
+
+## 19. 2026-10-03 远端归并后的状态核对
+
+上节是 d9fdabc 当时的远端快照，不是当前状态。继续执行时重新读取 refs / PR API，确认 `main` 与原 `codex/v16.0.0-refresh-plan` 都已指向 **`abfb6313f12efb66b9096b60472b6dd457094485`**；PR #12 已于 **2026-10-03 01:55:12 UTC CLOSED**，`mergedAt:null`，并非 M3 合并或退出。
+
+fetch 实际显示原功能 ref 被归并更新，远端 `backup/wip-v16-refresh-plan-20261003` 完整保留 **d9fdabc**；`backup/pre-consolidation-20261003` 保留 154139d。新 main 只比原基点多一条 README 文档提交，明确线上/源码仍为 15.0.2、V16 尚未达到正式发布条件，以及 pan 为历史/维护产品；没有新增业务代码。这里不把远端归并解释为 M3 已完成，也不以旧 OPEN PR / CI 快照说明当前可合并性。
+
+为保留归并结果及既有 M3 业务/测量，后续工作使用新的 **`codex/v16.0.0-m3-continuation`**。不 force-push 原 ref，不恢复已关闭 PR，不修改 main；纳入 main 的 README 更新后重新绑定后续提交的检查。四份原始报告保持不可覆盖，v2 证据仍只绑定其实际采样 HEAD d9fdabc 和 epoch，不改写为新分支 HEAD。

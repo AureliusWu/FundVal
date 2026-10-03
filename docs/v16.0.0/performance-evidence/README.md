@@ -31,6 +31,8 @@ exit $LASTEXITCODE
 | `m3-pair-60.json` | 第一轮 60 retained +4 warm-up；统计 INCONCLUSIVE，harness pageerror 和请求记录问题使完整性证据不足；原样保存，SHA256 `88b927752e589553cea18dba88e3d2233c780f208beeb1ea77a1de6902a4611d` |
 | `m3-pair-200.json` | 修正 harness 后预设 200 retained +4 warm-up；health/instrumentation/integrity/cleanup PASS，统计 INCONCLUSIVE（旧版 p95 区间宽、保存额外 p95 观察不稳定）；SHA256 `b7abe1b6f9409a8ebf5543b0b380acbb252bc2db60676db5ead7d75491813ad9` |
 | `m3-counter-probe.json` | 新同文档 counter 协议的 3 次 current-only 桌面实际采集兼容性预检；COMPATIBILITY_PASS，不是 v15 相对性能/p95；SHA256 `94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707` |
+| `m3-pair-v2-200-protocol.md` | d9fdabc 在采样前已提交并推送的预声明；固定 200+4、bootstrap 5000、seed 160003、同文档协议及限制，不是结果证明 |
+| `m3-pair-v2-200.json` | 同文档 v2 协议，200 retained +4 warm-up，AB/BA 各 100；relative tool PASS / exit 0，health/instrumentation/integrity/cleanup PASS；cold/warm renderer 仍 PARTIAL，保存 MEASURED；实际 HEAD d9fdabc，LF 22,398,799 B / SHA256 `323ff4087da0a1a836fe8147ef305cd8f315e3e0d10e706cbc4d25abfba74236`；独立 all-gzip FAIL，非 M3 EXIT |
 | `m3-bundle-gate.json` | 当前本地完整生成 app chunks 实算：cold 43,845 PASS、all 82,481 FAIL；预算 CLI exit 1，不是 CI/生产产物证明 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
@@ -38,6 +40,8 @@ exit $LASTEXITCODE
 200 组报告的 warm renderer counter 跨导航重置，差值保持 null，因此不能确认该阶段 CDP 主线程分解。console errors 为主动阻止外部请求的已记录观察，非“无 console error”验收。详见上级 `M3_STATUS.md` 第 9 节。
 
 当前采样器协议为 `paired-readiness-v2-same-document-counters`，以 commit 后同文档 baseline 避免跨导航相减。额外 RPC 有观察开销，cold/warm attribution 仅 PARTIAL 到 collection，不是完整启动或隔离 OS CPU。future relative samples 必须两侧同新协议、另存新文件，不与旧 60/200 混样。既有文件仍可重现其历史结论；上面的示例输出路径已经存在，不能直接重跑覆盖，应先选定新的证据文件名。
+
+v2 的独立结果不追认历史报告为 PASS，也不能证明新 RPC 或某项业务改动是时延变化原因。两侧每阶段 204 组四个 counter 均有限、同 epoch、无 invalid reason；cold/warm 全为 PARTIAL，save 全为 MEASURED。计数范围包含 warm-up，不参与时延推断的 4 组没有丢弃。Task/Script/Layout/RecalcStyle 不是可相加的互斥 CPU 项。reference/current 各有 1,836/2,652 个已记录的外部阻断 console error，不是 console 零；每侧 612 drains 全 SETTLED，SW event/controller/registration 为 0。详细数值、95% CI 和当前独立阻断见 `../M3_STATUS.md` 第 17 节。
 
 实际体积门禁可独立运行（PowerShell 同样保留 exit code）：
 
