@@ -1,9 +1,9 @@
 # M3 刷新图、模块化与性能：阶段检查点
 
-> 更新：2026-10-03（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
+> 更新：2026-10-11（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：窄运行入口与私有死排序分支裁剪后 all 非 OCR gzip 81,735 > 77,227.7 B 仍 FAIL，至少还需减少 4,508 B（第 22 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
+> 最新：固定内部刷新入口在保留公开 API / 完整声明验证后，all 非 OCR gzip 81,195 > 77,227.7 B 仍 FAIL，至少还需减少 3,968 B（第 23 节）。另新检出 source-map-js 高危依赖公告，需独立安全补丁。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
 
 ## 1. 已实现的刷新边界
 
@@ -509,3 +509,41 @@ E2E 后两次实际构建，父提交 SOURCE_DATE_EPOCH **1791002003**，关键�
 E2E 后两轮实际 build 同父 epoch **1791003593**，关键发布集指纹均 **`f24892449259f77cb34f926091144aead9c4297ef89ebcb1373c69e5e3803777`**；app 16 chunks / 240,235 B、OCR 23 assets / 88,196,906 B bytes/SHA 核验通过，未执行 OCR。此指纹绑定待提交本地源码，不是新提交/CI/生产指纹。7 个变更运行源的 path+NUL+LF-source+NUL hash 为 `1f13cf3b13acec2dda2a668bdb1b4d67722d509848ad00615b769af9ba285aca`。
 
 预算 CLI cold **43,486 / 52,241 PASS**、all **81,735 / 77,227.7 FAIL**、exit **1**，尚差至少 **4,508 B**。四份历史 raw LF hash 未变；新源码 paired latency **NOT_RUN**，也未重新探测/追认此前本机授时失败。仍为 M3 **IN PROGRESS**、版本 15.0.2；没有跳过到 M4/M5/M6、没有 merge/deploy/bump。
+
+## 23. 固定内部刷新入口：保留公开 API 的实际减包（2026-10-11）
+
+证据：[m3-private-runtime-20261011.json](performance-evidence/m3-private-runtime-20261011.json)。本节绑定父检查点 **c303c7a5a75ee4a388886e7a2bc7af5f60da4d28** 上的待提交源码，不继承历史 CI 或 paired latency。
+
+### 实现与兼容边界
+
+- 新 `js/runtime/refresh-runtime.js` 仅供 app 与重仓详情两个已闭合的生产消费者。原 `refresh-coordinator.js` 未改，generic `runFund` / `commitPartial`、自定义 descriptor / policy 等公开接口全部保留；不是把新增内部 constructor 当作通用 drop-in 替换。
+- 8 个固定源声明在模块初始化时调用既有完整 `freezeDescriptor`；不是绕过校验。新 `createBuiltinSourceRegistry` 仅接受严格 boolean，选择固定源或空 registry，并独立复制/冻结每实例 descriptor、数组、health 和 policy。原 registry 43 个函数逐字未改。
+- 新运行入口除明确白名单外，整程序 AST 与原类一致；只窄化 factory seam、两个未使用 class method 和两个 context member。app/detail import 和固定 true 选择相应改变；Promise、微任务、取消、代际提交、breaker、诊断与异常顺序不变。
+- 标准 intrinsics 与私有已验证字面量是本次边界；主动篡改同 realm `Array.prototype.map` / iterator 的敌对环境并非完全等价，不作该承诺。闭合调用 AST 检查也不是任意未来 alias/反射的全程序证明；新增消费者必须先扩充契约。
+- SW 原源码 CORE 增加内部模块，正式构建仍按实际 chunks 生成 CORE。构建配置、分组、依赖和预算未改；无 cloud/diagnostics/OCR 提前加载。
+
+### 固定计量与测试
+
+| 变体（两侧各 3 次一致） | chunks | raw JS B | all gzip B | cold gzip B |
+| --- | ---: | ---: | ---: | ---: |
+| immutable c303c7a | 16 | 240,235 | 81,735 | 43,486 |
+| 完整验证 + 固定内部入口 | 16 | **237,853** | **81,195** | **42,944** |
+| 实际差值 | 0 | −2,382 | **−540** | **−542** |
+
+固定 Vite 8.2.2 / oxc / es2022 / 原 chunk groups、write:false。图 hash `2a744874...` → `4e3c2a7c...`，不声称图完全相同：bootstrap 9 / before-app 11 模块完全不变；cold 30 / business 48 / all 59 仅原 coordinator 替换成内部 runtime。实际构建的启动隔离检查通过。无完整声明验证的负控、仅少量收益但迭代观察不等价的深冻结候选未采用。
+
+新增 **30 项**长期测试：先在原实际类与旧 integration 上跑 14/14，再引入真实 runtime；最终新文件 30/30、root 相关组 72/72、子代理扩展组 119/119（有重叠，不相加）。11 个字面量行为场景分别执行两套真实类；覆盖整程序 AST 白名单及 3 个负控、固定消费者、独立旧 8 源 JSON/key 顺序、冻结和引用隔离、严格 boolean、真实 scope/detail wrapper、公开 generic API 保留。最终独立只读复核无阻断项。
+
+全量本地 **892 tests / 889 pass / 0 fail / 3 Windows symlink 条件 skip**，syntax **192**，合成桌面 E2E **23/23（47.2 秒）**，自有 12437 服务已退出。3 个 readiness 样本完整保留，仅为既有绝对阈值/描述性观察，不是新 paired 结论。E2E 后连续两次 build，同父 SOURCE_DATE_EPOCH **1791004826**，关键发布集指纹均 **`0accb71ddedabda3f6ec8d379871b423efd04448967b60ad558f4777f7d13d5f`**；官方实核 app 16 chunks / 237,853 B、OCR 23 assets / 88,196,906 B，未执行 OCR。首次 OCR 核验误传 site 根目录，纠正为 site/assets/ocr 后两轮资产核验通过；不是构建或资产内容失败。
+
+官方 `npm audit --audit-level=high` 本轮 **FAIL / exit 1**：锁定 `vite@8.2.2 → postcss@8.5.26 → source-map-js@1.2.1` 新检出 **GHSA-68fv-2mgg-jv7q** 高危公告。不能把 10-03 的 audit 0 当作 10-11 的结果。安全修复作为独立依赖补丁，不能混入上述固定依赖减包比较；本节未修改依赖。
+
+预算 CLI cold **42,944 / 52,241 PASS**、all **81,195 / 77,227.7 FAIL**、exit **1**，尚差至少 **3,968 B**。四份历史 LF raw hash freshly rechecked 未变；当前 paired latency / 新公开数据探测 **NOT_RUN**，不追认旧时钟偏差失败。M3 **IN PROGRESS**，版本仍 15.0.2；未进入 M4/M5/M6、未 merge/deploy/bump。
+
+### 父检查点实际 CI / 下载产物复核（不继承至新源码）
+
+精确 c303 的 [CI 37099521564](https://github.com/AureliusWu/FundVal/actions/runs/37099521564) completed / failure，只在最后 all-gzip 81,735 门禁失败。Linux unit 862/862、syntax 190、E2E 23/23（42.1 秒）、当时 audit 0、build/资源核验/seal/upload 成功。CodeQL workflow job success；同 SHA analysis 1885066007、results **3**，不是零告警。
+
+本轮实际下载 artifact **11265368334** 后，独立按真实 tar bytes 核验路径/类型/header/inventory 和逐文件大小/SHA：125 文件、92,489,751 B；archive SHA `72d0d9c2...`、site inventory `f5274843...`，16 app chunks 的实际 gzip / SHA 全部匹配，23 OCR assets 的 bytes / SHA 全匹配，未解包执行代码或运行 OCR。关键发布集实算 `c88147c0...` 与 manifest 声明匹配；与父提交本地 raw 指纹 `b91b033a...` 不相等，差异仅 index.html / manifest.json / sw.js 的 CRLF，LF 归一后相同，另外 13 个关键文件 raw 相同。
+
+原 candidate verifier 对这个继续开发分支的 review 包仍 **exit 1 / Candidate provenance or manifest is invalid**，未创建提取目标；不修改 manifest 绕过 main-only admission，红预算也是独立阻断。这是父候选字节完整性证据，不是发布准入、生产或新源码 CI。

@@ -20,6 +20,7 @@ const CORE = [
   './js/runtime/fund-model-enrichment.js',
   './js/runtime/business-features.js',
   './js/runtime/refresh-generation.js', './js/runtime/refresh-coordinator.js',
+  './js/runtime/refresh-runtime.js',
   './js/runtime/request-signal.js',
   './js/storage/holdings-schema.js', './js/storage/holdings-migration.js',
   './js/storage/holdings-repository.js', './js/storage/cloud-sync.js', './js/storage/gist-remote.js',

@@ -18,8 +18,7 @@ import { holdingQuoteAmounts } from './runtime/holding-quote-amounts.js';
 import { indexQuoteStatus, normalizeGoldQuote } from './runtime/index-quote.js';
 import { createQuotePresentation } from './runtime/quote-presentation.js';
 import { classifyAssetKind, classifyMarketKind } from './runtime/market-session.js';
-import { DATA_SOURCE_REGISTRY } from './runtime/source-registry.js';
-import { RefreshCoordinator } from './runtime/refresh-coordinator.js';
+import { RefreshCoordinator } from './runtime/refresh-runtime.js';
 import { isRefreshAbort } from './runtime/refresh-generation.js';
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
 import { activeHoldingCodes, retainActiveFundData } from './runtime/active-holdings.js';
@@ -74,7 +73,7 @@ let quoteBridge = null;
 let quoteBridgePromise = null;
 let isRefreshing = false;
 const refreshCoordinator = new RefreshCoordinator({
-  sources: DATA_SOURCE_REGISTRY,
+  withBuiltinSources: true,
   execute: runRefresh,
   onStateChange: function(snapshot) { isRefreshing = Boolean(snapshot.active); },
 });

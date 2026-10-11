@@ -1,0 +1,366 @@
+{
+  "schema": 1,
+  "status": "IN_PROGRESS_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "parentCommit": "c303c7a5a75ee4a388886e7a2bc7af5f60da4d28",
+  "scope": "Uncommitted local source changes measured with unchanged locked dependencies and parent epoch; not new-SHA CI, production, arbitrary polluted-realm equivalence or physical-device evidence.",
+  "source": {
+    "orderedPaths": [
+      "js/app.js",
+      "js/runtime/refresh-runtime.js",
+      "js/runtime/source-registry.js",
+      "js/runtime/security-quote-batch.js",
+      "sw.js"
+    ],
+    "hashRecipe": "SHA256 of ordered path + NUL + UTF8 source normalized CRLF to LF + NUL",
+    "sha256": "85b00fc42bb034fc89b74592d202ffe6f7b00aa02f34813939301efe9c661716",
+    "fileLfSha256": {
+      "js/app.js": "83a8732b996f2368494cd76bfac936893373acc8b058bd3d741e2e5cf9e2d183",
+      "js/runtime/refresh-runtime.js": "a8b20f6f2bbe355baf741e279e3bd8ed921c29189667fffc45d5e1730f676cff",
+      "js/runtime/source-registry.js": "40795e1a3c19be86e8e828d58dfcca75c11e18c946ced8da8abb4b9871d1a9bc",
+      "js/runtime/security-quote-batch.js": "5105b4409f9c4df1f169f7b7f6100b7a1e6ca3e69a7fbda3a4e2be8499c5d2d7",
+      "sw.js": "5bc0ad7489f7e27dda50ba719383e5e01e672c12f2ba02be286bd1e713382ea6"
+    },
+    "originalPublicCoordinatorUnchanged": true,
+    "originalPublicCoordinatorLfSha256": "088cf558a229731d64e0e824ccbb6319f91e9d0b678af7c651575d5468ce36c4"
+  },
+  "adopted": [
+    "Internal refresh-runtime coordinator supports exactly the two closed app/detail consumers; original public coordinator and generic runFund/commitPartial/descriptor/policy APIs are unchanged.",
+    "Builtin descriptors pass the complete existing freezeDescriptor validator at declaration time; strict boolean factory chooses the validated literal source set or empty set and clones/freeze-isolates every instance.",
+    "Only production imports and fixed app selection changed; common coordinator AST is otherwise identical under explicit whitelist with mutation negative controls.",
+    "Raw-source Service Worker CORE adds the internal runtime; production build still generates actual chunk CORE. No OCR, cloud or diagnostics were moved earlier."
+  ],
+  "compatibilityBoundary": "Closed fixed-literal/strict-boolean consumers with standard intrinsics, not a generic constructor drop-in. Moving builtin validation to module initialization is intentional. Hostile rewriting of Array.prototype map/iterator is not equivalent and is not claimed to be supported; public generic descriptor validation order is unchanged.",
+  "virtual": {
+    "recipe": "Existing Vite 8.2.2 / oxc / es2022 / original chunk groups / write:false",
+    "repetitionsPerSide": 3,
+    "runs": {
+      "baseline": [
+        {
+          "chunks": 16,
+          "raw": 240235,
+          "all": 81735,
+          "cold": 43486,
+          "graphSha256": "2a7448740dd66b85880b4b33b9c60c1d37ae6e0bbedee7bd54e82d29de627f5f",
+          "phaseCounts": {
+            "bootstrap": 9,
+            "beforeApp": 11,
+            "cold": 30,
+            "business": 48,
+            "all": 59
+          }
+        },
+        {
+          "chunks": 16,
+          "raw": 240235,
+          "all": 81735,
+          "cold": 43486,
+          "graphSha256": "2a7448740dd66b85880b4b33b9c60c1d37ae6e0bbedee7bd54e82d29de627f5f",
+          "phaseCounts": {
+            "bootstrap": 9,
+            "beforeApp": 11,
+            "cold": 30,
+            "business": 48,
+            "all": 59
+          }
+        },
+        {
+          "chunks": 16,
+          "raw": 240235,
+          "all": 81735,
+          "cold": 43486,
+          "graphSha256": "2a7448740dd66b85880b4b33b9c60c1d37ae6e0bbedee7bd54e82d29de627f5f",
+          "phaseCounts": {
+            "bootstrap": 9,
+            "beforeApp": 11,
+            "cold": 30,
+            "business": 48,
+            "all": 59
+          }
+        }
+      ],
+      "current": [
+        {
+          "chunks": 16,
+          "raw": 237853,
+          "all": 81195,
+          "cold": 42944,
+          "graphSha256": "4e3c2a7c1f872a11e8a2f75bbc08d524bb2b9568d008b0fcc2c98997d1af40ea",
+          "phaseCounts": {
+            "bootstrap": 9,
+            "beforeApp": 11,
+            "cold": 30,
+            "business": 48,
+            "all": 59
+          }
+        },
+        {
+          "chunks": 16,
+          "raw": 237853,
+          "all": 81195,
+          "cold": 42944,
+          "graphSha256": "4e3c2a7c1f872a11e8a2f75bbc08d524bb2b9568d008b0fcc2c98997d1af40ea",
+          "phaseCounts": {
+            "bootstrap": 9,
+            "beforeApp": 11,
+            "cold": 30,
+            "business": 48,
+            "all": 59
+          }
+        },
+        {
+          "chunks": 16,
+          "raw": 237853,
+          "all": 81195,
+          "cold": 42944,
+          "graphSha256": "4e3c2a7c1f872a11e8a2f75bbc08d524bb2b9568d008b0fcc2c98997d1af40ea",
+          "phaseCounts": {
+            "bootstrap": 9,
+            "beforeApp": 11,
+            "cold": 30,
+            "business": 48,
+            "all": 59
+          }
+        }
+      ]
+    },
+    "delta": {
+      "rawBytes": -2382,
+      "allGzipBytes": -540,
+      "coldGzipBytes": -542
+    },
+    "graphRecipe": "SHA256 of JSON sorted by chunk name: {name,role,modules:sorted relative LF-slash paths,imports:sorted target chunk names,dynamic:sorted target chunk names}",
+    "graphEqual": false,
+    "phaseDiffs": {
+      "bootstrap": {
+        "removed": [],
+        "added": []
+      },
+      "beforeApp": {
+        "removed": [],
+        "added": []
+      },
+      "cold": {
+        "removed": [
+          "js/runtime/refresh-coordinator.js"
+        ],
+        "added": [
+          "js/runtime/refresh-runtime.js"
+        ]
+      },
+      "business": {
+        "removed": [
+          "js/runtime/refresh-coordinator.js"
+        ],
+        "added": [
+          "js/runtime/refresh-runtime.js"
+        ]
+      },
+      "all": {
+        "removed": [
+          "js/runtime/refresh-coordinator.js"
+        ],
+        "added": [
+          "js/runtime/refresh-runtime.js"
+        ]
+      }
+    },
+    "coldCloudDiagnosticsOcr": false,
+    "buildStartupIsolation": "PASS"
+  },
+  "characterization": {
+    "newPermanentTests": 30,
+    "beforeNarrowing": {
+      "publicAndOriginalIntegrationTests": 14,
+      "pass": 14
+    },
+    "afterNarrowing": {
+      "childNewFileTests": 30,
+      "pass": 119,
+      "rootTargetGroupTests": 72,
+      "childBroaderGroupTests": 119,
+      "groupsOverlap": true
+    },
+    "scope": [
+      "11 literal behavior scenarios on each real class",
+      "entire-program AST whitelist plus three negative controls",
+      "exact closed app/detail constructors and static method/context surfaces",
+      "fixed independent eight descriptors and health/policy JSON/key ordering",
+      "deep freeze and per-instance private reference isolation",
+      "strict boolean rejection without coercion or extra descriptor argument reads",
+      "real generation scope and detail security-quote wrapper",
+      "full public generic API retained"
+    ],
+    "independentReview": "Final actual diff and source hashes reviewed without writes; 43 existing registry functions are byte-unchanged. Closed-consumer AST guard is not a future arbitrary-alias whole-program proof."
+  },
+  "rejectedInvestigations": [
+    "Storage/UI/date/clock helper candidates mostly increased actual gzip despite shorter raw code.",
+    "Incomplete descriptor-validation negative control was not adopted.",
+    "for-of to forEach deep-freeze substitution saved only 8 B and changed observable iteration semantics; not adopted."
+  ],
+  "localGates": {
+    "unit": {
+      "tests": 892,
+      "pass": 889,
+      "fail": 0,
+      "skipped": 3,
+      "skipReason": "Windows symlink permission conditions",
+      "durationMs": 9321.2134
+    },
+    "syntaxFiles": 192,
+    "targeted": {
+      "tests": 72,
+      "pass": 72,
+      "fail": 0,
+      "skipped": 0
+    },
+    "audit": {
+      "registry": "https://registry.npmjs.org/",
+      "exitCode": 1,
+      "high": 1,
+      "dependency": "source-map-js",
+      "installedVersion": "1.2.1",
+      "advisory": "GHSA-68fv-2mgg-jv7q",
+      "dependencyPath": "vite@8.2.2 -> postcss@8.5.26 -> source-map-js@1.2.1"
+    },
+    "e2e": {
+      "tests": 23,
+      "pass": 23,
+      "durationSeconds": 47.2,
+      "ownedPort": 12437,
+      "serverStopped": true,
+      "syntheticOnly": true,
+      "readinessSamples": [
+        {
+          "coldReadyMs": 217.19999998807907,
+          "warmReadyMs": 228.30000001192093,
+          "saveUiMs": 107.55749999999989
+        },
+        {
+          "coldReadyMs": 212.2999999821186,
+          "warmReadyMs": 142.60000002384186,
+          "saveUiMs": 87.97010000000046
+        },
+        {
+          "coldReadyMs": 223.90000000596046,
+          "warmReadyMs": 133.59999999403954,
+          "saveUiMs": 112.62900000000081
+        }
+      ],
+      "latencyScope": "Descriptive existing absolute interaction checks only; not a new paired v15-relative latency PASS."
+    },
+    "deterministicBuild": {
+      "buildsAfterE2e": 2,
+      "sourceDateEpoch": 1791004826,
+      "fingerprint": "0accb71ddedabda3f6ec8d379871b423efd04448967b60ad558f4777f7d13d5f",
+      "scope": "Parent-epoch uncommitted local source, not future committed-head or CI fingerprint"
+    },
+    "appVerification": {
+      "chunks": 16,
+      "bytes": 237853,
+      "bytesAndShaVerified": true
+    },
+    "ocrVerification": {
+      "assets": 23,
+      "bytes": 88196906,
+      "bytesAndShaVerified": true,
+      "ocrExecuted": false
+    },
+    "budgetCli": {
+      "exitCode": 1,
+      "coldPass": true,
+      "allPass": false,
+      "allGzipBytes": 81195,
+      "coldGzipBytes": 42944,
+      "allBudgetBytes": 77227.7,
+      "coldBudgetBytes": 52241,
+      "remainingWholeBytes": 3968,
+      "importClosureVerified": false
+    }
+  },
+  "parentCi": {
+    "sha": "c303c7a5a75ee4a388886e7a2bc7af5f60da4d28",
+    "runId": 37099521564,
+    "attempt": 1,
+    "conclusion": "failure",
+    "candidateJobId": 111136151937,
+    "onlyFailedStep": "Enforce actual M3 app bundle budget",
+    "linuxUnit": {
+      "tests": 862,
+      "pass": 862,
+      "fail": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 190,
+    "e2e": {
+      "tests": 23,
+      "pass": 23,
+      "durationSeconds": 42.1
+    },
+    "auditVulnerabilitiesAtThenRun": 0,
+    "codeql": {
+      "workflowJobId": 111136151797,
+      "workflowConclusion": "success",
+      "analysisId": 1885066007,
+      "results": 3,
+      "warning": "Scan execution success is not zero alerts or new-SHA acceptance."
+    }
+  },
+  "parentDownloadedReviewArtifact": {
+    "artifactId": 11265368334,
+    "name": "fundval-candidate-c303c7a5a75ee4a388886e7a2bc7af5f60da4d28-1",
+    "fileCount": 125,
+    "totalFileBytes": 92489751,
+    "archiveSha256": "72d0d9c2722d99534a4305aeec0f3776f2f4f49e49b861c414e62685d0e8ad16",
+    "siteInventorySha256": "f5274843e049ecbced7f6b4db62c62d484949a68e3e8642933f940dd42f10627",
+    "actualReleaseCriticalFingerprint": "c88147c08e0ae4981141319fa7ef9ee859252222a05e230ccee4fcf76639f87c",
+    "declaredCriticalFingerprintMatched": true,
+    "actualApp": {
+      "chunks": 16,
+      "bytes": 240235,
+      "allGzipBytes": 81735,
+      "coldGzipBytes": 43486
+    },
+    "actualOcr": {
+      "assets": 23,
+      "bytes": 88196906,
+      "generatedAt": "2026-10-03T05:20:26.000Z",
+      "bytesAndShaVerified": true,
+      "executed": false
+    },
+    "verification": "Archive/header/regular unique safe paths/inventory and every file bytes/SHA verified without extracting or executing artifact code.",
+    "candidateAdmission": {
+      "exitCode": 1,
+      "reason": "Candidate provenance or manifest is invalid.",
+      "destinationCreated": false,
+      "scope": "Non-main WIP candidate remains inadmissible; budget is also red. No manifest modification to evade admission."
+    },
+    "crossPlatformFingerprint": {
+      "localCommittedParentFingerprint": "b91b033a89d780d6714b2249f415461c44bcf757cbb8a64d3fc7013fdf39b7b6",
+      "rawEqual": false,
+      "threeDifferentFiles": [
+        "index.html",
+        "manifest.json",
+        "sw.js"
+      ],
+      "differencesAreCrLfOnly": true,
+      "otherThirteenCriticalFilesRawEqual": true
+    }
+  },
+  "evidencePreservation": {
+    "historicalRawReports": "All four historical LF hashes freshly rechecked unchanged",
+    "newPairedLatencyAfterChanges": "NOT_RUN",
+    "newLiveDataProbe": "NOT_RUN; prior clock-skew failures are not reclassified"
+  },
+  "release": {
+    "m3Exit": false,
+    "m4Started": false,
+    "m5Started": false,
+    "m6Started": false,
+    "mergeMain": false,
+    "deploy": false,
+    "versionBump": false,
+    "currentVersion": "15.0.2",
+    "status": "IN_PROGRESS_NOT_RELEASED"
+  }
+}

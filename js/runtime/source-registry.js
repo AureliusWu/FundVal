@@ -33,11 +33,7 @@ const DESCRIPTORS = [
     id: 'local-cache', markets: ['cn', 'hk', 'us', 'jp', 'kr', 'gold', 'qdii', 'unknown'], capabilities: ['cached_quote'], priority: 10,
     timeoutMs: 0, freshnessPolicy: 'never-realtime', requiresProxy: false, sourceTier: 'cache',
   },
-].map(descriptor => Object.freeze({
-  ...descriptor,
-  markets: Object.freeze([...descriptor.markets]),
-  capabilities: Object.freeze([...descriptor.capabilities]),
-}));
+].map(freezeDescriptor);
 
 const BY_ID = new Map(DESCRIPTORS.map(descriptor => [descriptor.id, descriptor]));
 
@@ -460,4 +456,15 @@ export function selectAvailableSources(registry, criteria = {}, now = 0) {
     .sort((left, right) => right.descriptor.priority - left.descriptor.priority
       || left.descriptor.id.localeCompare(right.descriptor.id))
     .map(entry => entry.descriptor));
+}
+
+// Only fixed, declaration-time validated sources can enter the page runtime.
+// Each coordinator still receives its own descriptor, arrays, health and policy.
+export function createBuiltinSourceRegistry(withBuiltinSources = false) {
+  if (typeof withBuiltinSources !== 'boolean') throw new TypeError('Builtin registry selection must be boolean.');
+  return freezeRegistry(DEFAULT_SOURCE_HEALTH_POLICY, withBuiltinSources ? DESCRIPTORS.map(descriptor => freezeEntry(Object.freeze({
+    ...descriptor,
+    markets: Object.freeze([...descriptor.markets]),
+    capabilities: Object.freeze([...descriptor.capabilities]),
+  }))) : []);
 }
