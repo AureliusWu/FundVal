@@ -3,7 +3,7 @@
 > 更新：2026-10-11（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：固定内部刷新入口在保留公开 API / 完整声明验证后，all 非 OCR gzip 81,195 > 77,227.7 B 仍 FAIL，至少还需减少 3,968 B（第 23 节）。新 source-map-js 高危公告已做独立补丁验证，审计恢复 0，仍待安全 PR 的精确 CI / 集成（第 24 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
+> 最新：固定内部刷新入口在保留公开 API / 完整声明验证后，all 非 OCR gzip 81,195 > 77,227.7 B 仍 FAIL，至少还需减少 3,968 B（第 23 节）。source-map-js 安全 PR #17 已仅合入继续开发分支，精确合并 CI audit 0 / Linux 892 / E2E 23 均通过，唯一失败仍为预算（第 24 节末）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
 
 ## 1. 已实现的刷新边界
 
@@ -563,3 +563,13 @@ E2E 后两轮实际 build 同父 epoch **1791003593**，关键发布集指纹均
 实际预算仍 cold **42,944 PASS**、all **81,195 FAIL / exit 1**；补丁没有以依赖升级改善或隐藏包体积。回滚点为 411f49d，若需回滚只 revert 独立补丁提交；回退会重新引入已知漏洞，不能成为可发布状态。当前安全 PR 尚待精确提交 CI / 集成；M3 仍未退出，不进入 M4，不 merge main / deploy / bump。
 
 独立实际 API 有界探针 **exit 0**（64 MiB child heap、5 秒 timeout，实际 9.922 ms）：合法双 section 查询/遍历/flatten/basic roundtrip/SourceNode、4 层 2 叶、小 gap 与短 code 路径通过；21 个非法/越界/累计越界/乱序场景拒绝，非法和单上限在读取 map getter 前拒绝。首次使用 `SourceMapGenerator.fromSourceMap(indexed consumer)` 因 undefined sourceRoot 出现 TypeError；上游 tag diff 证实该便捷方法/constructor 未改，是原有限制，不混同补丁回归。没有执行旧版本资源耗尽 payload；此探针未新增永久项目测试。
+
+### 安全 PR 的实际集成与精确 CI（上述“待 PR”是实现时历史状态）
+
+证据：[m3-security-integration-20261011.json](performance-evidence/m3-security-integration-20261011.json)。[PR #17](https://github.com/AureliusWu/FundVal/pull/17) 的安全提交为 **f6265dac0d63bdbbffa5f1726f95a852b9bdc32d**；[CI 38108937985](https://github.com/AureliusWu/FundVal/actions/runs/38108937985) 实际 completed / failure，仅最后预算步骤失败。Linux **892/892、0 skip/fail**、syntax **192**、audit **0**、E2E **23/23（39.5 秒）**、build/app/OCR/封包上传全部成功。CodeQL workflow 与该 PR 独立 CodeQL check success，同 SHA analysis 1930483304、results 3，不是零告警。
+
+经独立只读审查与精确 head CAS，使用普通 PR merge（无 admin/bypass、未删除分支），仅合入 `codex/v16.0.0-m3-continuation`，得到 **501a4eb5af9ebd46659158c5a20f85abd73c7472**。合并 commit 与 f6265da 的 Git tree 精确相同（`d5a96495...`），不是绕过红线发布；部署仍仅允许指定 successful main-push 候选。main 保持 **abfb6313f12efb66b9096b60472b6dd457094485**。
+
+新合并 SHA 的 [CI 38109110899](https://github.com/AureliusWu/FundVal/actions/runs/38109110899) 亦实际 completed / failure，独立复核日志为 **Linux 892/892、syntax 192、audit 0、E2E 23/23（35.7 秒）**、build/app/OCR/封包上传成功；唯一失败是 **all 81,195 > 77,227.7**，cold 42,944 PASS。codeql workflow success，同 SHA analysis 1930488134、results 3；commit check-runs 只观察到 candidate/codeql，不继承 PR 的独立 CodeQL check。没有把前一个 SHA 的日志当作新合并验证。
+
+合并后两次本地 build 同 epoch **1791689991**，关键发布集指纹均 **`f68fe3bce16d7266eea51edd155740c5745335dcbeeed0389564cc83103e1d28`**，app/OCR 实核通过，budget CLI exit 1。它不是 Linux raw/生产指纹；远端上传包未另行下载实核，不声称新包获得发布准入。后续仅文档提交不继承此 CI。安全补丁已集成，剩余包体积与新源码配对时延等 M3 门禁继续推进；版本仍 15.0.2 / NOT RELEASED。

@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "integration": {
+    "pullRequest": "https://github.com/AureliusWu/FundVal/pull/17",
+    "state": "MERGED",
+    "baseBranch": "codex/v16.0.0-m3-continuation",
+    "headCommit": "f6265dac0d63bdbbffa5f1726f95a852b9bdc32d",
+    "mergeCommit": "501a4eb5af9ebd46659158c5a20f85abd73c7472",
+    "mergedAt": "2026-10-11T03:39:52Z",
+    "mergeMethod": "Ordinary PR merge with exact head CAS; no admin/bypass/deletion",
+    "mergeTree": "d5a96495b91f31cd548eb380d819da50bf6ce7d1",
+    "headTree": "d5a96495b91f31cd548eb380d819da50bf6ce7d1",
+    "treeEqual": true,
+    "mainChanged": false,
+    "mainCommit": "abfb6313f12efb66b9096b60472b6dd457094485"
+  },
+  "securityHeadCi": {
+    "sha": "f6265dac0d63bdbbffa5f1726f95a852b9bdc32d",
+    "runId": 38108937985,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "failure",
+    "candidateJobId": 114380251449,
+    "onlyFailedStep": "Enforce actual M3 app bundle budget",
+    "linuxUnit": {
+      "tests": 892,
+      "pass": 892,
+      "fail": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 192,
+    "auditVulnerabilities": 0,
+    "e2e": {
+      "tests": 23,
+      "pass": 23,
+      "durationSeconds": 39.5
+    },
+    "buildArtifactVerificationSealUpload": "SUCCESS",
+    "codeql": {
+      "workflowJobId": 114380251508,
+      "workflowConclusion": "success",
+      "analysisId": 1930483304,
+      "results": 3,
+      "independentCheck": "SUCCESS",
+      "warning": "Scan/check success is not zero alerts."
+    },
+    "reviewArtifact": {
+      "id": 11691556123,
+      "name": "fundval-candidate-f6265dac0d63bdbbffa5f1726f95a852b9bdc32d-1",
+      "downloadedAndIndependentlyVerified": false
+    },
+    "knownHardBudget": {
+      "allGzipBytes": 81195,
+      "allBudgetBytes": 77227.7,
+      "coldGzipBytes": 42944,
+      "coldBudgetBytes": 52241,
+      "coldPass": true,
+      "allPass": false,
+      "remainingWholeBytes": 3968
+    }
+  },
+  "independentReview": "Read-only lock inventory/top-level comparison, install policy, deployment scope and exact CI reviewed; no new patch blocker. WIP-only integration does not waive the unchanged red release gate.",
+  "mergedHeadLocal": {
+    "sourceDateEpoch": 1791689991,
+    "builds": 2,
+    "releaseCriticalFingerprint": "f68fe3bce16d7266eea51edd155740c5745335dcbeeed0389564cc83103e1d28",
+    "app": {
+      "chunks": 16,
+      "bytes": 237853,
+      "verified": true
+    },
+    "ocr": {
+      "assets": 23,
+      "bytes": 88196906,
+      "verified": true,
+      "executed": false
+    },
+    "budgetCliExitCode": 1,
+    "scope": "Exact merge epoch local builds, not production or Linux raw artifact fingerprint. No claimed new latency PASS."
+  },
+  "mergedHeadCi": {
+    "sha": "501a4eb5af9ebd46659158c5a20f85abd73c7472",
+    "runId": 38109110899,
+    "status": "completed",
+    "candidateJobId": 114380770292,
+    "codeql": {
+      "workflowJobId": 114380770373,
+      "workflowConclusion": "success",
+      "analysisId": 1930488134,
+      "results": 3,
+      "independentCheck": "NOT_OBSERVED in commit check-runs API; only candidate/codeql workflow checks observed",
+      "warning": "Scan execution success with three results is not zero alerts."
+    },
+    "conclusion": "failure",
+    "onlyFailedStep": "Enforce actual M3 app bundle budget",
+    "linuxUnit": {
+      "tests": 892,
+      "pass": 892,
+      "fail": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 192,
+    "auditVulnerabilities": 0,
+    "e2e": {
+      "tests": 23,
+      "pass": 23,
+      "durationSeconds": 35.7
+    },
+    "buildArtifactVerificationSealUpload": "SUCCESS",
+    "allGzipBytes": 81195,
+    "coldGzipBytes": 42944,
+    "allBudgetBytes": 77227.7,
+    "coldBudgetBytes": 52241,
+    "importClosureVerified": false
+  },
+  "release": {
+    "currentVersion": "15.0.2",
+    "m3Exit": false,
+    "m4Started": false,
+    "m5Started": false,
+    "m6Started": false,
+    "mergeMain": false,
+    "deploy": false,
+    "versionBump": false,
+    "status": "NOT_RELEASED"
+  }
+}
