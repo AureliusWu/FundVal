@@ -613,3 +613,11 @@ E2E 结束后两次连续实际 build，同父 epoch **1791690151**，关键发�
 ### 父 414 的精确 CI，不继承至本轮源码
 
 本轮实际读取父 **414958b** 的 [CI 38109263679](https://github.com/AureliusWu/FundVal/actions/runs/38109263679)：completed / failure，唯一失败仍旧 all 81,195 预算；Linux **892/892、0 skip/fail**、syntax **192**、audit **0**、E2E **23/23（42.6 秒）**、build/app/OCR/seal/upload 全成功。CodeQL workflow success，同 SHA analysis **1930493220** / results **3**；commit checks 未观察到独立 CodeQL check，不说零告警。review artifact **11691287219** 仅记录日志声明的清单/上传 digest，本轮没有下载独立核验，不声称其获得 main-only 发布准入。main live ref 保持 **abfb6313f12efb66b9096b60472b6dd457094485**，此父 CI 不代替新源码/新提交验证。
+
+### 修复提交已推送；新 SHA 独立 CI 已实核
+
+上述修复和测试已提交并推送为 **fa4922411db5139ebf0cfa0bfce66b06773dbdb8**，业务及新测试的 LF bytes 与该 Git blob 精确相同。补充证据：[m3-cache-identity-ci-20261011.json](performance-evidence/m3-cache-identity-ci-20261011.json)。提交后同新 epoch **1791691567** 两轮实际 build，关键发布集均 **`36c5c89f6cc8021c08c54ec40b663b7ab3c428690941483c8df89a421bffdf6a`**；app/OCR bytes/SHA 实核通过。该本地指纹不当作远端/Linux raw 或完整 site 清单。
+
+新 [CI 38110531850](https://github.com/AureliusWu/FundVal/actions/runs/38110531850) 实际 completed / failure，**唯一失败**为最后 all **81,263 > 77,227.7**；精确日志是 **Linux 943/943、0 skip/fail（5,713.660194 ms）**、syntax **195**、audit **0**、E2E **27/27（46.2 秒）**，build/app/OCR/seal/upload 均成功。CodeQL workflow success，同 SHA analysis **1930537778**、results **3**、error/warning 空；commit checks 仅 candidate/codeql，未观察到独立 check，不称零告警。
+
+review artifact **11691194411** 上传 ZIP **92,623,258 B** / digest `cd4405ffcf368c857e51018aeb0d828a375d56a0c627bb05e164a8fa9b2bd156`，日志声明 126 site files / inventory `2b8e681d...`；本轮没有下载独立核验。红预算和 continuation ref 均仍阻止 production admission。main 未动、版本仍 15.0.2、M3 未退出；后续文档提交不继承这次精确源 SHA 的 CI，下一轮改源码还需重新门禁。

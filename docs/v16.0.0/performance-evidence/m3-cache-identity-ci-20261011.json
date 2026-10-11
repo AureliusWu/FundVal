@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "binding": {
+    "sourceCommit": "fa4922411db5139ebf0cfa0bfce66b06773dbdb8",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "version": "15.0.2",
+    "appLfSha256": "422ee408e1f6aa072779a63a6d9b84a2b27a295d3f782a98fea8bd1b8e9b9bbe",
+    "diskSourceAndTestBlobsMatchedCommit": true,
+    "implementationReport": "m3-cache-identity-20261011.json",
+    "warning": "Only this exact source SHA has the CI results below; later documentation commits do not inherit its CI."
+  },
+  "ci": {
+    "url": "https://github.com/AureliusWu/FundVal/actions/runs/38110531850",
+    "runId": 38110531850,
+    "attempt": 1,
+    "event": "push",
+    "sha": "fa4922411db5139ebf0cfa0bfce66b06773dbdb8",
+    "status": "completed",
+    "conclusion": "failure",
+    "candidateJobId": 114384964236,
+    "onlyFailedStep": "Enforce actual M3 app bundle budget",
+    "linuxUnit": {
+      "tests": 943,
+      "pass": 943,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "durationMs": 5713.660194
+    },
+    "syntaxFiles": 195,
+    "auditVulnerabilities": 0,
+    "e2e": {
+      "tests": 27,
+      "pass": 27,
+      "durationSeconds": 46.2,
+      "scope": "Hermetic desktop Chrome; not physical Android/iOS or production."
+    },
+    "build": {
+      "conclusion": "success",
+      "appChunks": 16,
+      "appBytes": 238020,
+      "coldGzipBytes": 43015,
+      "allGzipBytes": 81263
+    },
+    "appAndOcrBytesShaVerification": "SUCCESS",
+    "ocr": {
+      "assets": 23,
+      "bytes": 88196906,
+      "executed": false
+    },
+    "sealUpload": "SUCCESS",
+    "failedE2eDiagnosticsUpload": "SKIPPED because no E2E failure",
+    "codeql": {
+      "workflowJobId": 114384964339,
+      "workflowConclusion": "success",
+      "analysisId": 1930537778,
+      "createdAt": "2026-10-11T04:07:46Z",
+      "results": 3,
+      "error": "",
+      "warning": "",
+      "independentCheck": "NOT_OBSERVED; commit check-runs only candidate/codeql",
+      "interpretation": "Execution succeeded, not zero alerts. Do not inherit another SHA's independent check or triage result."
+    },
+    "reviewArtifact": {
+      "id": 11691194411,
+      "name": "fundval-candidate-fa4922411db5139ebf0cfa0bfce66b06773dbdb8-1",
+      "createdAt": "2026-10-11T04:08:23Z",
+      "expired": false,
+      "uploadZipBytes": 92623258,
+      "uploadZipDigest": "cd4405ffcf368c857e51018aeb0d828a375d56a0c627bb05e164a8fa9b2bd156",
+      "ciDeclaredFiles": 126,
+      "ciDeclaredSiteInventorySha256": "2b8e681dc8de9e176bb1190a0e18abab52486500659f95a61ef9d39789020c1c",
+      "downloadedAndIndependentlyVerified": false,
+      "productionAdmitted": false,
+      "interpretation": "Log/API metadata only; not independently downloaded tar/file verification. Continuation branch and red budget cannot enter successful-main-push deployment."
+    },
+    "budget": {
+      "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+      "baselineAllNonOcrGzipBytes": 70207,
+      "allGzipBytes": 81263,
+      "allBudgetNumerator": 772277,
+      "allBudgetDenominator": 10,
+      "allBudgetBytes": 77227.7,
+      "coldGzipBytes": 43015,
+      "coldBudgetBytes": 52241,
+      "coldPass": true,
+      "allPass": false,
+      "verdict": "FAIL",
+      "remainingWholeBytes": 4036,
+      "importClosureVerified": false
+    }
+  },
+  "sourceCommitLocal": {
+    "sourceDateEpoch": 1791691567,
+    "consecutiveBuilds": 2,
+    "criticalSetFingerprint": "36c5c89f6cc8021c08c54ec40b663b7ab3c428690941483c8df89a421bffdf6a",
+    "identical": true,
+    "app": {
+      "chunks": 16,
+      "bytes": 238020,
+      "coldGzipBytes": 43015,
+      "allGzipBytes": 81263
+    },
+    "ocr": {
+      "assets": 23,
+      "bytes": 88196906,
+      "executed": false
+    },
+    "appOcrBytesShaVerification": "PASS in both builds",
+    "interpretation": "Exact fa49224 epoch local critical-set fingerprint, not Linux raw or full inventory/production fingerprint."
+  },
+  "release": {
+    "mainCommit": "abfb6313f12efb66b9096b60472b6dd457094485",
+    "mainChanged": false,
+    "currentPairedLatency": "NOT_RUN",
+    "currentPublicDataIngestion": "NOT_RUN",
+    "physicalAndroidIos": "NOT_RUN",
+    "m3Exit": false,
+    "m4Started": false,
+    "m5Started": false,
+    "m6Started": false,
+    "mergeMain": false,
+    "deploy": false,
+    "versionBump": false,
+    "status": "NOT_RELEASED"
+  }
+}
