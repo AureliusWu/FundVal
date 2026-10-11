@@ -39,6 +39,7 @@ exit $LASTEXITCODE
 | `m3-private-compaction-20261003.json` | 父检查点 f625062 上的私有参数 / latestSource 去重：3 次两侧虚拟重复、实际确定性构建，all 82,202（−84 B）/ cold 43,699；850 tests（3 Windows skip）/ E2E 23/23；元数据 setter 候选被真实 RED 测试否决并保留旧 literal。全包仍 FAIL / paired NOT_RUN；新 5 次完整主源拒绝，005844 NAV 四字段仅诊断精确匹配；非 CI/生产证据 |
 | `m3-runtime-surface-20261003.json` | 父检查点 54fc3a0 上的 4 窄 facade / 私有死排序分支裁剪：3 次各变体、实际确定性构建，all 81,735（−467 B）/ cold 43,486；862 tests（3 Windows skip）/ E2E 23/23；12 项新测试与 4,920 对排序对照。图有意新增零实现 facade，原业务/启动模块集合保持，预算仍 FAIL；paired / 新公开数据抽查 NOT_RUN，非 CI/生产证据 |
 | `m3-private-runtime-20261011.json` | 父 c303 上保留公开 API / 完整声明验证的固定内部刷新入口：两侧各 3 次、两轮实际 build，all 81,195（−540 B）/ cold 42,944；892 tests（3 Windows skip）/ E2E 23/23，新 30 项 runtime/AST/factory 契约；预算仍 FAIL，官方依赖审计新检出 1 high。另记录父 c303 实际下载候选 125 文件字节核验、main-only 准入拒绝及 CRLF 指纹边界；不是新 SHA CI/生产/paired PASS |
+| `m3-source-map-security-20261011.json` | 独立安全 PR：锁文件唯一 source-map-js 1.2.1→1.2.2，5 install-script policy 不变，冻结安装/全 audit 0、892 tests（3 Windows skip）、E2E 23/23；同 411 epoch 的两次关键指纹与补丁前一致。all 81,195 仍 FAIL；记录 411 CI 因新公告 audit 失败且后续步骤 skipped，不继承为 patch CI/生产证明 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 

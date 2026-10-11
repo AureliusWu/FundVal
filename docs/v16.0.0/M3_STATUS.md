@@ -3,7 +3,7 @@
 > 更新：2026-10-11（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：固定内部刷新入口在保留公开 API / 完整声明验证后，all 非 OCR gzip 81,195 > 77,227.7 B 仍 FAIL，至少还需减少 3,968 B（第 23 节）。另新检出 source-map-js 高危依赖公告，需独立安全补丁。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
+> 最新：固定内部刷新入口在保留公开 API / 完整声明验证后，all 非 OCR gzip 81,195 > 77,227.7 B 仍 FAIL，至少还需减少 3,968 B（第 23 节）。新 source-map-js 高危公告已做独立补丁验证，审计恢复 0，仍待安全 PR 的精确 CI / 集成（第 24 节）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
 
 ## 1. 已实现的刷新边界
 
@@ -547,3 +547,19 @@ E2E 后两轮实际 build 同父 epoch **1791003593**，关键发布集指纹均
 本轮实际下载 artifact **11265368334** 后，独立按真实 tar bytes 核验路径/类型/header/inventory 和逐文件大小/SHA：125 文件、92,489,751 B；archive SHA `72d0d9c2...`、site inventory `f5274843...`，16 app chunks 的实际 gzip / SHA 全部匹配，23 OCR assets 的 bytes / SHA 全匹配，未解包执行代码或运行 OCR。关键发布集实算 `c88147c0...` 与 manifest 声明匹配；与父提交本地 raw 指纹 `b91b033a...` 不相等，差异仅 index.html / manifest.json / sw.js 的 CRLF，LF 归一后相同，另外 13 个关键文件 raw 相同。
 
 原 candidate verifier 对这个继续开发分支的 review 包仍 **exit 1 / Candidate provenance or manifest is invalid**，未创建提取目标；不修改 manifest 绕过 main-only admission，红预算也是独立阻断。这是父候选字节完整性证据，不是发布准入、生产或新源码 CI。
+
+第 23 节已提交推送为 **411f49dd3385c0a466fd7b92b3a72abdee8f41f2**。提交后两次 build，同本提交 epoch **1791689435**，关键发布集指纹均 **`fc15bbea5b692a9c52aa99e4c2d01d407e0f238dd61607b27b26c4b90a5aba64`**；16 app chunks / 237,853 B 与 23 OCR assets / 88,196,906 B 实核通过。其 [CI 38108623940](https://github.com/AureliusWu/FundVal/actions/runs/38108623940) 实际 completed / failure，candidate 在 **Audit dependencies** 因上述新公告失败；远端 test/check/build/E2E/seal/upload/budget 全部 **SKIPPED**，不能把本地通过冒充新 CI 通过。codeql workflow job success，同 SHA analysis 1930472038、results 3、error/warning 空，不是零告警。
+
+## 24. 独立 source-map-js 高危安全补丁（2026-10-11）
+
+证据：[m3-source-map-security-20261011.json](performance-evidence/m3-source-map-security-20261011.json)。按升级方案第 12 节隔离到 `codex/v16.0.0-source-map-js-security`，基点 411f49d，PR 目标仅为继续开发分支，不是 main。
+
+实际仅更新 package-lock.json 中 `source-map-js` 的 version / resolved / integrity 三字段：**1.2.1 → 1.2.2**。109 个锁文件 entry 的 inventory 和其他全部 entry 不变；满足现有 PostCSS `^1.2.1`，无需升 Vite/PostCSS、添加 overrides 或修改 package.json。原 5 项安装脚本 allowlist 不变；官方 npm 冻结 `ci --ignore-scripts`、再次 policy 核验，仅执行既有 esbuild installer。
+
+[官方 GHSA](https://github.com/advisories/GHSA-68fv-2mgg-jv7q) / [上游修复 PR](https://github.com/7rulnik/source-map-js/pull/79) 指向恶意 indexed source map 的同步资源耗尽；修复版本为 1.2.2。实际链均为 dev：Vite 8.2.2 → PostCSS 8.5.26 → source-map-js。未发现持仓、行情或 OCR 图片输入到该解析器的生产路径，build-site CSS 直接复制、OCR esbuild sourcemap:false；但不以生产 omit-dev 0 为由豁免全量审计。
+
+补丁后全量 **892 tests / 889 pass / 0 fail / 3 Windows 条件 skip**，syntax **192**，官方 audit **0 vulnerabilities / exit 0**；桌面合成 E2E **23/23（54.4 秒）**，自有 12437 服务退出。3 个绝对 readiness 样本完整保留，不形成 paired latency 结论。E2E 后两次同父 411 epoch **1791689435** build，关键发布集均为上述 **fc15bbea...**，与补丁前同 epoch 完全一致；app/OCR bytes/SHA 全核验通过，未执行 OCR。原 5 个运行源码绑定 hash 未变；不声称未来 patch SHA / Linux raw 指纹或整个 site inventory 与该本地值相同。
+
+实际预算仍 cold **42,944 PASS**、all **81,195 FAIL / exit 1**；补丁没有以依赖升级改善或隐藏包体积。回滚点为 411f49d，若需回滚只 revert 独立补丁提交；回退会重新引入已知漏洞，不能成为可发布状态。当前安全 PR 尚待精确提交 CI / 集成；M3 仍未退出，不进入 M4，不 merge main / deploy / bump。
+
+独立实际 API 有界探针 **exit 0**（64 MiB child heap、5 秒 timeout，实际 9.922 ms）：合法双 section 查询/遍历/flatten/basic roundtrip/SourceNode、4 层 2 叶、小 gap 与短 code 路径通过；21 个非法/越界/累计越界/乱序场景拒绝，非法和单上限在读取 map getter 前拒绝。首次使用 `SourceMapGenerator.fromSourceMap(indexed consumer)` 因 undefined sourceRoot 出现 TypeError；上游 tag diff 证实该便捷方法/constructor 未改，是原有限制，不混同补丁回归。没有执行旧版本资源耗尽 payload；此探针未新增永久项目测试。
