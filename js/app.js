@@ -11,7 +11,7 @@ import {
   normalizeOfficialNavQuote,
   selectPreferredQuote,
 } from './runtime/quote-normalizer.js';
-import { normalizeQuoteDate, nullableNumber, parseQuoteTimestamp, quoteStatusRank } from './runtime/quote-contract.js';
+import { normalizeQuoteDate, nullableNumber, parseQuoteTimestamp, quoteStatusRank, unavailableQuote } from './runtime/quote-contract.js';
 import { marketClock } from './runtime/market-clock.js';
 import { createValuationPeriod } from './runtime/valuation-period.js';
 import { holdingQuoteAmounts } from './runtime/holding-quote-amounts.js';
@@ -1013,10 +1013,17 @@ function tryShowCache() {
   const cache = loadCache();
   if (!cache) return false;
   fundsData = cache.data.map(function(d) {
+    const holding = holdings.find(item => item.code === d.code);
+    const identityMismatch = [d.quote, d.source_quote].some(quote => quote && quote.fundCode !== d.code);
+    // A foreign/missing quote identity invalidates the entire cached projection,
+    // including legacy aliases and secondary notes. Never relabel its numbers.
+    if (identityMismatch) d = { code: d.code, name: holding?.name || d.name || d.code };
     var market = d.quote && d.quote.market || d.market || classifyMarketKind(d.name);
     var assetKind = d.quote && d.quote.assetKind || d.assetKind || classifyAssetKind(d.name, market);
     var fallbackIdentity = { fundCode: d.code, fundName: d.name || d.code, market, assetKind };
-    var sourceQuote = d.quote || selectPreferredQuote(buildFundQuoteCandidates(d, {
+    var sourceQuote = identityMismatch
+      ? unavailableQuote({ ...fallbackIdentity, reasonCodes: ['cache_fund_identity_mismatch'] })
+      : d.quote || selectPreferredQuote(buildFundQuoteCandidates(d, {
       ...fallbackIdentity,
       fetchedAt: cache.time ? new Date(cache.time).toISOString() : new Date(0).toISOString(),
     }), fallbackIdentity);
@@ -1026,7 +1033,6 @@ function tryShowCache() {
       cachedAt: cache.time, expiresAt: cache.expiresAt,
       fallbackIdentity,
     });
-    const holding = holdings.find(item => item.code === d.code);
     return {
       ...d,
       ...holdingQuoteAmounts(quote, holding, Date.now()),

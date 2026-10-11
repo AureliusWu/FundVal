@@ -3,7 +3,7 @@
 > 更新：2026-10-11（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：固定内部刷新入口在保留公开 API / 完整声明验证后，all 非 OCR gzip 81,195 > 77,227.7 B 仍 FAIL，至少还需减少 3,968 B（第 23 节）。source-map-js 安全 PR #17 已仅合入继续开发分支，精确合并 CI audit 0 / Linux 892 / E2E 23 均通过，唯一失败仍为预算（第 24 节末）。v2 配对 PASS 仅绑定旧采样 HEAD d9fdabc，不继承为本轮改写后的时延证明；M3 不能 EXIT。
+> 最新：第 25 节修复 P1 聚合缓存串基金，新增 51 项 Node 表征/回归与 4 项真实页面测试；本地 940 pass / 3 Windows 条件 skip、E2E 27/27、audit 0。正确性修复增加 all 68 B / cold 71 B：all 非 OCR gzip **81,263 > 77,227.7 B 仍 FAIL**，至少还需减少 **4,036 B**。source-map-js 安全补丁已集成，仅在继续开发分支推进。旧 v2 配对 PASS 只绑定 d9fdabc，不继承为当前时延证明；M3 不能 EXIT，不能进入 M4 或正式发布。
 
 ## 1. 已实现的刷新边界
 
@@ -573,3 +573,43 @@ E2E 后两轮实际 build 同父 epoch **1791003593**，关键发布集指纹均
 新合并 SHA 的 [CI 38109110899](https://github.com/AureliusWu/FundVal/actions/runs/38109110899) 亦实际 completed / failure，独立复核日志为 **Linux 892/892、syntax 192、audit 0、E2E 23/23（35.7 秒）**、build/app/OCR/封包上传成功；唯一失败是 **all 81,195 > 77,227.7**，cold 42,944 PASS。codeql workflow success，同 SHA analysis 1930488134、results 3；commit check-runs 只观察到 candidate/codeql，不继承 PR 的独立 CodeQL check。没有把前一个 SHA 的日志当作新合并验证。
 
 合并后两次本地 build 同 epoch **1791689991**，关键发布集指纹均 **`f68fe3bce16d7266eea51edd155740c5745335dcbeeed0389564cc83103e1d28`**，app/OCR 实核通过，budget CLI exit 1。它不是 Linux raw/生产指纹；远端上传包未另行下载实核，不声称新包获得发布准入。后续仅文档提交不继承此 CI。安全补丁已集成，剩余包体积与新源码配对时延等 M3 门禁继续推进；版本仍 15.0.2 / NOT RELEASED。
+
+## 25. 聚合缓存基金身份隔离：P1 先红后绿（2026-10-11）
+
+证据：[m3-cache-identity-20261011.json](performance-evidence/m3-cache-identity-20261011.json)。本轮父检查点为 **414958bbcbf75a87fa9fc97837cadc803abc9944**，业务改动只有 `js/app.js` 的 9 行增加 / 3 行删除；版本仍 15.0.2，没有修改预算、依赖、配置或公开校验器。
+
+### 根因与实际修复
+
+`loadCache` / 启动 reconciliation 检查了聚合行外层 code、持仓集合与时间，但旧 `tryShowCache` 未要求内层 `quote` / `source_quote` 的 fundCode 与该行相同。异常 JSON 缓存因此可能把另一基金 NAV、涨跌和旧金融说明用于当前持仓金额。这里是合成持久化缓存可复现的 **P1 金融身份错误**，不是声称已在用户真实持仓中观察到该事故。
+
+- 同时核对两个存在的 quote 身份；不同、缺失或类型不符均不借用其数值。即使主 quote 正确、内层 source_quote 错误也隔离。
+- 坏行只重建 `code + 当前持仓名称`，随后构造 unavailable Quote；整行金融/模型/legacy/secondary 字段丢弃，不依靠容易漏掉未来字段的 blacklist，不保留旧基准或错误净值说明。
+- 只有内存 map 的当前行替换；原 cache、Schema 3 和当前持仓均不修改，不自动修复持久化数据或续期。其他合法行继续显示，正常网络获取可按原刷新链更新。
+- matching canonical cache 与没有两个 quote 的 raw legacy 行保持原适配链；当前份额/成本、null 和真实 0 保持。公开 Quote/Worker/HTTP 校验器、原 coordinator、Bridge、迁移与时间策略未改。
+- 等价性限定于 `loadCache` 读出的真实 native JSON；前移 holding lookup 和新增 guard 可能调整敌对 getter/Proxy 的读取轨迹，不宣称整个私有函数在任意可执行对象上等价。
+
+### 真正 RED → GREEN 与独立审查
+
+新增 `test/cache-fund-identity-v16.test.js` 23 项：通过 AST 执行实际 `tryShowCache`，使用真实 normalizer、身份分类、金额与时间算法。旧源 **6 个合法控制 PASS / 17 个异常 FAIL**；修复后 **23/23 GREEN**。包含两个嵌套身份、5 种不合法身份、混合好坏行、金融残留字段、零份额和 null 成本，且输入不被 mutation。
+
+新增 `e2e/v16-cache-identity.spec.js` 4 项，真实 bootstrap / renderer / opaque Bridge，固定合成时钟及 Schema 3，所有外源阻断、本地代理 503。旧实际构建的 3 个坏例 **RED（999.1234 而非 --）**、1 个合法控制 **GREEN**，总 33.9 秒 / exit 1；原失败诊断在仓库外保留，没有把失败 trace 当原始截图提交。修复后 4 项均通过：坏行主值/基准/涨跌/展开金额均 --，错误说明不残留；另两行仍为 2.2000；匹配及 raw legacy 控制行显示基于当前份额成本的 +7.00。坏例 cache / Schema 3 原字节不变，无外部非 GET/HEAD 请求。
+
+另新增 `test/estimate-http-characterization-v16.test.js` **28 项**，旧实际 HTTP 源和最终源均 GREEN；HTTP 业务没有改动。完整 literal row / quote、字段及 JSON 顺序、冻结/引用、official interval、null/NaN/0、模型/QDII、错误/超时/取消/late fetch、getter 与变化时钟负控均保留。root 最终相关组 **51/51**。独立只读审查分别 23/23、相关 cache/amount/edge 63/63，另 20 组合法 native JSON 新旧全输出 / Date 轨迹一致、51 个任意未来字段被坏行隔离；这些组有重叠，不相加。未发现阻断项。
+
+### 不采用的减包试验
+
+- quote-first HTTP 不能消除仍服务旧聚合缓存的 generic normalizer；wire 与 cache alias/信任边界不能合并为宽松 validator。
+- 私有 HTTP helper 的父 414 固定三轮虚拟比较 all 81,195→81,067（−128 B）、cold −3 B，但真实 Date 负控改变第二次验证：旧路径安全 resolve unavailable/error，候选 reject `WORKER_ROW_INVALID`。已否决，未改业务；最初 Windows 路径探针没有应用替换，排除不算收益。
+- 固定私有 health 路径三轮仅 all −57 B / cold −59 B，外部 registry/getter/error 等价与双维护风险未证明，未采用。UI 已压缩模板仅有 raw 重复不代表包 gzip 收益，没有本轮新实测或声称可省 1 KB。
+
+### 全量本地门禁与实际产物
+
+全量 **943 tests / 940 pass / 0 fail / 3 Windows symlink 条件 skip（6,181.0861 ms）**；syntax **195**；官方 npm registry audit **0**；自有 12437 的合成桌面 E2E **27/27（48.1 秒）**，监听服务已退出。3 个 readiness 样本完整保留在报告，只是当前绝对交互阈值 / 描述性结果，不是新 paired latency 或真机验收。
+
+E2E 结束后两次连续实际 build，同父 epoch **1791690151**，关键发布集指纹均 **`e7f2f6483d640fb64e1e4282f78e45bc9ea9844cf380f8eb9acd8ef3104f249c`**。官方脚本两轮均按 bytes / SHA 实核 app **16 chunks / 238,020 B**、OCR **23 assets / 88,196,906 B**，未运行 OCR；启动/按需隔离 gate 通过。固定 Vite 8.2.2 / oxc / es2022 / 原分组，相对父 414 raw +167 B / all +68 B / cold +71 B，这是正确性成本，不是减包成果。指纹只绑定待提交本地源码与该 epoch，不冒充未来 commit、Linux raw、whole-site inventory 或生产。
+
+实际预算 CLI **cold 43,015 / 52,241 PASS，all 81,263 / 77,227.7 FAIL / exit 1**，至少仍需减 **4,036 B**。四份历史 raw 报告 LF SHA freshly rechecked 不变，原 public coordinator LF SHA 亦未变。当前源码 paired latency、公开主源完整摄取、手机真机和生产验收均 **NOT_RUN**；不把旧配对 PASS 或此前本机时钟探针失败重新归类。M3 **IN PROGRESS**，没有进入 M4/M5/M6，没有 merge main / deploy / bump。
+
+### 父 414 的精确 CI，不继承至本轮源码
+
+本轮实际读取父 **414958b** 的 [CI 38109263679](https://github.com/AureliusWu/FundVal/actions/runs/38109263679)：completed / failure，唯一失败仍旧 all 81,195 预算；Linux **892/892、0 skip/fail**、syntax **192**、audit **0**、E2E **23/23（42.6 秒）**、build/app/OCR/seal/upload 全成功。CodeQL workflow success，同 SHA analysis **1930493220** / results **3**；commit checks 未观察到独立 CodeQL check，不说零告警。review artifact **11691287219** 仅记录日志声明的清单/上传 digest，本轮没有下载独立核验，不声称其获得 main-only 发布准入。main live ref 保持 **abfb6313f12efb66b9096b60472b6dd457094485**，此父 CI 不代替新源码/新提交验证。

@@ -41,6 +41,7 @@ exit $LASTEXITCODE
 | `m3-private-runtime-20261011.json` | 父 c303 上保留公开 API / 完整声明验证的固定内部刷新入口：两侧各 3 次、两轮实际 build，all 81,195（−540 B）/ cold 42,944；892 tests（3 Windows skip）/ E2E 23/23，新 30 项 runtime/AST/factory 契约；预算仍 FAIL，官方依赖审计新检出 1 high。另记录父 c303 实际下载候选 125 文件字节核验、main-only 准入拒绝及 CRLF 指纹边界；不是新 SHA CI/生产/paired PASS |
 | `m3-source-map-security-20261011.json` | 独立安全 PR：锁文件唯一 source-map-js 1.2.1→1.2.2，5 install-script policy 不变，冻结安装/全 audit 0、892 tests（3 Windows skip）、E2E 23/23；同 411 epoch 的两次关键指纹与补丁前一致。all 81,195 仍 FAIL；记录 411 CI 因新公告 audit 失败且后续步骤 skipped，不继承为 patch CI/生产证明 |
 | `m3-security-integration-20261011.json` | PR #17 已仅合入 WIP continuation：f626 与 merge 501 tree 精确相同；两 SHA 实际 CI Linux892/892、audit0、syntax192、E2E23/23、build/资源核验/封包上传成功，唯一失败仍 all81,195预算。CodeQL扫描各3结果；merge两轮本地新epoch指纹实核，不冒充远端/生产，main未动、M3未退出 |
+| `m3-cache-identity-20261011.json` | 父 414 上修复 P1 聚合缓存串基金：旧 unit 6 PASS/17 RED、旧页面 1 PASS/3 RED，新增 HTTP 28 表征与 cache 23 / UI 4 回归；全量 943 tests（940 PASS / 3 Windows skip）、syntax195、audit0、E2E27/27。两次实际 build all81,263 / cold43,015，正确性成本 +68/+71 B，预算仍 FAIL / 当前 paired NOT_RUN；记录被真实负控否决的减包候选和精确父 414 CI，不继承至新源码，不是发布 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
