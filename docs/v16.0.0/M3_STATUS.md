@@ -3,7 +3,7 @@
 > 更新：2026-10-11（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：第 25 节修复 P1 聚合缓存串基金，新增 51 项 Node 表征/回归与 4 项真实页面测试；本地 940 pass / 3 Windows 条件 skip、E2E 27/27、audit 0。正确性修复增加 all 68 B / cold 71 B：all 非 OCR gzip **81,263 > 77,227.7 B 仍 FAIL**，至少还需减少 **4,036 B**。source-map-js 安全补丁已集成，仅在继续开发分支推进。旧 v2 配对 PASS 只绑定 d9fdabc，不继承为当前时延证明；M3 不能 EXIT，不能进入 M4 或正式发布。
+> 最新：第 26 节完成闭合私有持仓指纹裁剪与 OCR 构建单次读取，新增 23 项 Node 保护；本地 963 pass / 3 Windows 条件 skip、syntax197、E2E27/27、audit0。实际 all 减105 B / cold 减108 B：all 非 OCR gzip **81,158 > 77,227.7 B 仍 FAIL**，至少还需减少 **3,931 B**。第25节的 P1 聚合缓存隔离与 source-map-js 安全补丁已保留，仅在继续开发分支推进。旧 v2 配对 PASS 只绑定 d9fdabc，不继承为当前时延证明；新采样需先解决同依赖参考前置条件。M3 不能 EXIT，不能进入 M4 或正式发布。
 
 ## 1. 已实现的刷新边界
 
@@ -621,3 +621,40 @@ E2E 结束后两次连续实际 build，同父 epoch **1791690151**，关键发�
 新 [CI 38110531850](https://github.com/AureliusWu/FundVal/actions/runs/38110531850) 实际 completed / failure，**唯一失败**为最后 all **81,263 > 77,227.7**；精确日志是 **Linux 943/943、0 skip/fail（5,713.660194 ms）**、syntax **195**、audit **0**、E2E **27/27（46.2 秒）**，build/app/OCR/seal/upload 均成功。CodeQL workflow success，同 SHA analysis **1930537778**、results **3**、error/warning 空；commit checks 仅 candidate/codeql，未观察到独立 check，不称零告警。
 
 review artifact **11691194411** 上传 ZIP **92,623,258 B** / digest `cd4405ffcf368c857e51018aeb0d828a375d56a0c627bb05e164a8fa9b2bd156`，日志声明 126 site files / inventory `2b8e681d...`；本轮没有下载独立核验。红预算和 continuation ref 均仍阻止 production admission。main 未动、版本仍 15.0.2、M3 未退出；后续文档提交不继承这次精确源 SHA 的 CI，下一轮改源码还需重新门禁。
+
+## 26. 私有持仓指纹裁剪与 OCR 构建单次读取（2026-10-11）
+
+证据：[m3-private-hash-build-read-20261011.json](performance-evidence/m3-private-hash-build-read-20261011.json)。父检查点 **2f7e77f21c55b73508503a07c0aa859183aedcb5**。仅修改 app 的私有指纹函数与 build-paddle-ocr 的 emitted Worker 读取；没有改配置、依赖、预算、分组、公开校验器、SW 或版本。
+
+### 已采用的改动与边界
+
+- `holdingsHash(h)` 的 4 个私有调用均传 `holdings`；当前所有直接状态写入只有初始化、load/install。无文档时是 null + []，有文档时走原 canonical V3 全语义序列化。因此移除不可达 generic legacy 分支，保留函数名、单参数和调用表达式。名称、null/0、note、revision、device、tombstone、UTF-8 字段顺序、合法空文档及失败 reload 均保持；不是公开任意输入 serializer 或通用 JS 别名证明。
+- emitted Worker 不再 `access → readFile`：私有 helper 单次读 Buffer，用原 10 MB 下限及 3 个协议标记检查同一 Buffer，再用于 workerBytes。5 个缺失/权限类 code 保持原 missing 字符串、plain Error / 无 cause；其他错误包括 EISDIR/EIO/EMFILE 保持原对象。错误触发点改变为 read，不宣称所有文件系统错误轨迹等价。符合 [Node 原生 I/O 指南](https://nodejs.org/download/release/v24.14.0/docs/api/fs.html#fspromisesaccesspath-mode)，仅消除该冗余预检查窗口，不保证全部文件替换/TOCTOU 风险消失；manifest 仍按路径重读。
+
+新增 private-hash 测试旧实际源 **9/9 PASS**，覆盖真实仓储/WebLock 的成功、初始、阻断、损坏 reload、完整 canonical 字节和 72 组 native 状态矩阵。新增 Worker-read 测试旧实际源 **13 PASS / 1 RED**（唯一 RED 为仍调用 access），新源 **14/14 GREEN**；体积及三个 marker 校验块与父源 LF 字节完全相同。root 最终相关组 **25/25**；独立审查存储 45/45、构建 16/16，无阻断，组有重叠不相加。AST 保护当前直接写法，不声称对未来解构、别名或同名 shadow 提供通用证明；fs mock 不是实际 OS ACL/竞态验收。
+
+### 实际全量门禁与性能
+
+**966 tests / 963 pass / 0 fail / 3 Windows symlink 条件 skip（5,655.8974 ms）**；syntax **197**；官方 registry audit **0**。自有 12437 上桌面合成 E2E **27/27（47.7 秒）**，服务已退出。报告完整保留 3 个绝对 readiness/save 样本，不能由此宣称新相对时延通过。
+
+实际 build 共 3 次，E2E 后两次连续 build 同父 epoch **1791691843**，关键发布集均 **`0b2949b3744cd97ae0166866b96331ed0c5cb8dac914d7aaf3fc149991ddc4be`**。实核 app **16 chunks / 237,665 B**、OCR **23 assets / 88,196,906 B** 的 bytes/SHA；未执行 OCR。Vite 8.2.2 / oxc / es2022 / 原组固定；三轮 write:false 亲自运行真实配置的父/候选比较与实际候选产物一致：raw −355 B、all **81,263→81,158（−105 B）**、cold **43,015→42,907（−108 B）**。这个收益小，不夸大为 1 KB；build-only I/O 变更不是 OCR 速度优化。
+
+实际 budget CLI **cold 42,907 / 52,241 PASS、all 81,158 / 77,227.7 FAIL / exit 1**，至少仍需减 **3,931 B**。真实依赖图隔离由 build-site 验证；budget CLI 的 `importClosureVerified:false` 不冒充图证明。上述本地指纹不识别未来提交、Linux raw 或 whole-site inventory。历史四份 raw 报告及 public coordinator 的 LF hash 重新核对不变。
+
+私有 canonical UI/summary formatter 三轮仅 all −72 B / cold −74 B，1,152 组真实 presentation 的 22 own keys 比较相同，但 getter/Date/消费端证明与双维护风险未收敛，**未采用**。没有以删公共 validator 或调分组/预算换取过线。
+
+### 精确父 CI、安全告警与数据探针
+
+父 2f 的 [CI 38110763789](https://github.com/AureliusWu/FundVal/actions/runs/38110763789) 实际 completed / failure，唯一失败是 all 81,263 预算。精确日志为 Linux **943/943、0 skip/fail（6,303.371443 ms）**、syntax195、audit0、E2E27/27（49.8 秒），build/app/OCR/seal/upload 成功。同 SHA CodeQL analysis **1930544520** / results **3**，不是零告警；这次父 CI 不验证当前未提交源码。artifact 11690793455 只记录上传 digest/bytes，未下载独立实核。
+
+本轮实际 GitHub API 已确认 continuation 上三条告警均有 **2f 当前实例**：#3 high 为本次 selected check/use 修复，新 SHA 扫描仍待验证；#7 medium 是 SW 消息无 origin/client/scope 授权，未修改，后续修复不能只检查同源；#5 medium 是网络目录内容落盘，不是上游可控制 pathname，当前精确固定目标检查及 JSON 投影不能消除所有内容污染风险。没有 dismiss、放宽规则或修改远端安全设置。
+
+公开只读 `/estimates` 的固定 5 次 GET 全部保留：直接 Node transport（未启用 env-proxy）均 TypeError，未观察到 HTTP payload。这是本机直接网络探针失败，不能推断生产浏览器或上游必然不可用。应用超时、来源时间 guard、Worker 和系统时钟均未修改；Windows 仍 Leap3 / Stratum0 / Local CMOS Clock。不能把此次失败当作主源完整摄取已验收。
+
+当前 paired 还发现可复现前置阻断：固定 40e 与当前 normalized lock 仅 source-map-js 安全补丁三字段不同，但现采样器严格同依赖 gate 会在 sourceAndDependencyIdentity 拒绝，external 模式同样不能绕过。应先声明并证明仅含安全补丁、原业务不变的不可变本地参考，再运行新独占报告；不能降级依赖、忽略 lock 字段或继承旧 PASS。当前仍 **NOT_RUN / M3 IN PROGRESS / NOT RELEASED**，不进入 M4/M5/M6，不 merge main / deploy / bump。
+
+### 新配对测量的参考身份与预声明
+
+[m3-security-aligned-reference-20261011.json](performance-evidence/m3-security-aligned-reference-20261011.json) 记录本地固定参考 **c2980265d3c89f960517ced1527ba9cb85bf7c2b**，唯一父原40e。164 tree entries仅lock变，另外163全同；109 lock entries仅source-map-js version/resolved/integrity三字段采用已集成的1.2.2安全补丁。原业务和构建代码不变，实际原 `normalizedLock` 与当前一致，仍仅忽略原算法允许的root.engines。独立临时index创建本地Git对象/ref，真实index、当前业务工作树和普通分支均不改变；参考ref不推送。这不是原40e raw构建重跑，也不证明任何新时延PASS。
+
+运行前预声明：现有采样器与v2协议不改，**200 retained / 4 warm-up / bootstrap5000 / seed160003**，独占新输出 `performance-evidence/m3-pair-security-v15-200-20261011.json`。两侧相同依赖、原冷/暖/保存定义、原中位数15%/p95 20%与置信/稳定性政策；保留全部样本、失败不重试、不混入旧报告。预算原锚仍40e的70,207及77,227.7，不由参考补丁重算。先提交当前源码检查点、以该SHA构建后冻结源码/产物再测。此处是预声明，实测结果需另附；真机、真实Gist、公开网络和生产仍不由桌面合成时延证明。

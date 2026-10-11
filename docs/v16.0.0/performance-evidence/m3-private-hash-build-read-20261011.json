@@ -1,0 +1,349 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "binding": {
+    "parentCommit": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+    "parentEpoch": 1791691843,
+    "branch": "codex/v16.0.0-m3-continuation",
+    "version": "15.0.2",
+    "scope": "Local uncommitted source on the fixed parent. These build fingerprints do not identify a future commit, Linux build or production site.",
+    "sourceLfSha256": {
+      "js/app.js": "1172d217cd4bd00e700aeb0a07507c85fc102f0beedef30678b6c75525485130",
+      "scripts/build-paddle-ocr.mjs": "3b59d9c8afaa6c724091c97b8c07bf2a58ae79e35a9d5a71960fe9e2449047d8"
+    },
+    "testLfSha256": {
+      "test/app-holdings-hash-closed-v16.test.js": "2fedaa2baf90c6c28bffc4d314dc351b274f534b1b143e9bfa3751d58dd6bd96",
+      "test/paddle-worker-read-v16.test.js": "323af1d4615ad020d0a020ae600177d8817e5d7ef653b33cfdaaa4cdb3ed9edc"
+    },
+    "publicRefreshCoordinatorLfSha256": "088cf558a229731d64e0e824ccbb6319f91e9d0b678af7c651575d5468ce36c4"
+  },
+  "changes": {
+    "privateHoldingsHash": {
+      "file": "js/app.js:holdingsHash",
+      "implementation": "Remove unreachable generic legacy projection; keep private name, one parameter and all four existing call sites. A present native V3 document uses the unchanged complete canonical serializer; initial/failed null+empty state returns exactly [].",
+      "boundary": "All actual calls pass holdings. Current direct writers are initialization, loadHoldings and installHoldingsDocument; no private export or escape. Not an arbitrary-input public serializer or general JavaScript alias proof.",
+      "unchanged": [
+        "Schema 3 normalization and canonical byte order",
+        "null, genuine zero, timestamps, names, notes, revision, device IDs and tombstones",
+        "Cache binding, pending hash, refresh callback and persisted source state",
+        "Migration, locks, public validators, TTL and quote semantics"
+      ]
+    },
+    "emittedWorkerSingleRead": {
+      "file": "scripts/build-paddle-ocr.mjs:readEmittedPaddleWorker",
+      "implementation": "Remove emitted-Worker access precheck. Read once, check original 10,000,000-byte lower bound and all three pinned protocol markers on that exact Buffer, return it for workerBytes.",
+      "commonErrorCodes": [
+        "ENOENT",
+        "ENOTDIR",
+        "EACCES",
+        "EPERM",
+        "ELOOP"
+      ],
+      "commonErrorPolicy": "Existing missing-resource message, plain Error without cause; observed error point moves from access to read.",
+      "otherErrorPolicy": "Rethrow original Error identity, including EISDIR/EIO/EMFILE.",
+      "boundary": "Build-only redundant check/use window eliminated. Mock-fs tests do not prove OS ACL/race behavior. Lexical path guards and later manifest rereads remain; not a claim that every file replacement/TOCTOU risk is fixed.",
+      "references": [
+        "https://nodejs.org/download/release/v24.14.0/docs/api/fs.html#fspromisesaccesspath-mode",
+        "https://codeql.github.com/codeql-query-help/javascript/js-file-system-race/"
+      ],
+      "ocrExecuted": false
+    }
+  },
+  "regression": {
+    "oldActualSource": {
+      "privateHash": {
+        "tests": 9,
+        "pass": 9,
+        "fail": 0
+      },
+      "workerRead": {
+        "tests": 14,
+        "pass": 13,
+        "fail": 1,
+        "expectedRed": "Old code performs one access precheck; all protocol/error controls pass."
+      },
+      "rootCombined": {
+        "tests": 23,
+        "pass": 22,
+        "fail": 1,
+        "durationMs": 393.5794
+      }
+    },
+    "finalScoped": {
+      "tests": 25,
+      "pass": 25,
+      "fail": 0,
+      "durationMs": 1167.0426,
+      "includes": "Nine private-hash, fourteen new read checks and two existing OCR build tests."
+    },
+    "independentReview": {
+      "blockers": 0,
+      "storageScoped": "45/45 PASS",
+      "workerScoped": "16/16 PASS",
+      "protocolCheckBlock": "Original marker declaration and protocol IfStatement LF-byte-identical to parent.",
+      "note": "Overlapping test groups; do not sum. No reviewer build/OCR/E2E."
+    }
+  },
+  "localGates": {
+    "unit": {
+      "tests": 966,
+      "pass": 963,
+      "fail": 0,
+      "skipped": 3,
+      "cancelled": 0,
+      "durationMs": 5655.8974,
+      "exitCode": 0,
+      "skipScope": "Windows symlink privilege conditions; Linux evidence must separately establish no skip."
+    },
+    "syntax": {
+      "files": 197,
+      "exitCode": 0
+    },
+    "audit": {
+      "registry": "https://registry.npmjs.org",
+      "vulnerabilities": 0,
+      "exitCode": 0
+    },
+    "e2e": {
+      "tests": 27,
+      "pass": 27,
+      "fail": 0,
+      "durationSeconds": 47.7,
+      "exitCode": 0,
+      "port": 12437,
+      "ownedServerNoLongerListening": true,
+      "scope": "Desktop Chrome synthetic local browser regression; not physical Android/iOS, real Gist, live data or production acceptance.",
+      "absoluteReadinessSamples": [
+        {
+          "coldReadyMs": 216.7000000178814,
+          "warmReadyMs": 137.5,
+          "saveUiMs": 99.49139999999989
+        },
+        {
+          "coldReadyMs": 186.90000000596046,
+          "warmReadyMs": 130.40000000596046,
+          "saveUiMs": 91.46280000000024
+        },
+        {
+          "coldReadyMs": 194.59999999403954,
+          "warmReadyMs": 129.69999998807907,
+          "saveUiMs": 134.7497999999996
+        }
+      ],
+      "relativeLatencyVerdict": "NOT_RUN"
+    }
+  },
+  "artifact": {
+    "sourceDateEpoch": 1791691843,
+    "actualBuildCount": 3,
+    "postE2eConsecutiveBuilds": 2,
+    "criticalFingerprints": [
+      "0b2949b3744cd97ae0166866b96331ed0c5cb8dac914d7aaf3fc149991ddc4be",
+      "0b2949b3744cd97ae0166866b96331ed0c5cb8dac914d7aaf3fc149991ddc4be"
+    ],
+    "criticalSetDeterminism": "PASS",
+    "wholeSiteDeterminism": "NOT_CLAIMED",
+    "appBytesShaVerified": {
+      "chunkCount": 16,
+      "totalBytes": 237665
+    },
+    "ocrBytesShaVerified": {
+      "assetCount": 23,
+      "totalBytes": 88196906
+    },
+    "ocrExecuted": false,
+    "buildImportGraphIsolation": "PASS",
+    "comparison": {
+      "referenceParentAllGzip": 81263,
+      "referenceParentColdGzip": 43015,
+      "referenceParentRaw": 238020,
+      "currentAllGzip": 81158,
+      "currentColdGzip": 42907,
+      "currentRaw": 237665,
+      "deltaAllGzip": -105,
+      "deltaColdGzip": -108,
+      "deltaRaw": -355,
+      "method": "Fixed real Vite 8.2.2/oxc/es2022/original groups. Three write:false parent/candidate runs agree with actual candidate builds. Parent's exact CI independently reports 81,263/43,015. No minifier/target/group/dependency/budget changes."
+    },
+    "budget": {
+      "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+      "baselineAllGzip": 70207,
+      "currentAllGzip": 81158,
+      "allBudget": 77227.7,
+      "currentColdGzip": 42907,
+      "coldBudget": 52241,
+      "coldPass": true,
+      "allPass": false,
+      "remainingWholeBytes": 3931,
+      "exitCode": 1,
+      "importClosureVerifiedByBudgetCli": false
+    }
+  },
+  "notAdopted": [
+    {
+      "candidate": "Private canonical UI presentation/summary formatter",
+      "parentAllGzip": 81263,
+      "candidateAllGzip": 81191,
+      "deltaAllGzip": -72,
+      "runsEach": 3,
+      "actualPresentationComparisons": 1152,
+      "ownPresentationKeyCount": 22,
+      "decision": "Rejected, not applied. Small measured gain; arbitrary getter/Date/consumer proof and dual-maintenance risk unresolved."
+    },
+    {
+      "candidate": "Remove exported Worker/Quote/Bridge validators",
+      "decision": "Not applied. Real public and cache/live/model consumers retain these validators; eliminating trust-boundary checks is not a permitted bundle optimization."
+    }
+  ],
+  "parentExactCi": {
+    "runId": 38110763789,
+    "url": "https://github.com/AureliusWu/FundVal/actions/runs/38110763789",
+    "headSha": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+    "status": "completed",
+    "conclusion": "failure",
+    "candidateJob": 114385657739,
+    "codeqlJob": 114385657903,
+    "onlyFailedStep": "Enforce actual M3 app bundle budget",
+    "linuxUnit": {
+      "tests": 943,
+      "pass": 943,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 6303.371443
+    },
+    "syntaxFiles": 195,
+    "auditVulnerabilities": 0,
+    "e2e": {
+      "pass": 27,
+      "durationSeconds": 49.8
+    },
+    "buildAppOcrSealUpload": "success",
+    "budget": {
+      "all": 81263,
+      "cold": 43015,
+      "exitCode": 1
+    },
+    "codeql": {
+      "workflowJob": "success",
+      "analysisId": 1930544520,
+      "createdAt": "2026-10-11T04:11:50Z",
+      "resultsCount": 3,
+      "error": "",
+      "warning": "",
+      "zeroAlerts": false
+    },
+    "reviewArtifact": {
+      "id": 11690793455,
+      "zipBytes": 92623258,
+      "uploadedZipSha256": "b411593023576850977a212469b27980f9de490b71e8524e9c097d61b476dfc4",
+      "downloadedAndIndependentlyVerified": false
+    },
+    "doesNotValidateCurrentSource": true
+  },
+  "securityTriage": {
+    "exactParentAlerts": [
+      {
+        "number": 3,
+        "severity": "high",
+        "rule": "js/file-system-race",
+        "path": "scripts/build-paddle-ocr.mjs",
+        "parentLine": 545,
+        "ref": "refs/heads/codex/v16.0.0-m3-continuation",
+        "commit": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+        "currentChange": "Selected single-read fix; new exact-SHA CodeQL result remains to be checked."
+      },
+      {
+        "number": 7,
+        "severity": "medium",
+        "rule": "js/missing-origin-check",
+        "path": "sw.js",
+        "line": 79,
+        "commit": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+        "currentChange": "Not modified. Message commands lack origin/client/scope authorization. Future fix must validate actual in-scope WindowClient as well as origin, preserving requester-only activation and dirty guards."
+      },
+      {
+        "number": 5,
+        "severity": "medium",
+        "rule": "js/http-to-file-access",
+        "path": "scripts/refresh-fund-catalog.mjs",
+        "line": 65,
+        "commit": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+        "currentChange": "Not modified. Network content is intentionally projected to a fixed local catalog; this rule is content taint, not proof of remote-controlled output pathname. Existing parser 2/2 and three invalid target paths refused before fetch; response/row/field limits and atomic replacement remain future hardening."
+      }
+    ],
+    "alertDismissed": false,
+    "repositorySecurityStateModified": false
+  },
+  "publicDiagnostic": {
+    "sourceCommit": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+    "scope": "READ_ONLY_PUBLIC_DIAGNOSTIC_FIXED_5_ALL_RETAINED",
+    "endpoint": "Application-config-derived public /estimates",
+    "requestedCodes": [
+      "005844",
+      "012920"
+    ],
+    "method": "GET",
+    "transport": "Direct Node fetch without --use-env-proxy",
+    "diagnosticTimeoutMs": 20000,
+    "applicationTimeoutChanged": false,
+    "samples": [
+      {
+        "sample": 1,
+        "transportError": "TypeError",
+        "durationMs": 10785.9457
+      },
+      {
+        "sample": 2,
+        "transportError": "TypeError",
+        "durationMs": 10694.3454
+      },
+      {
+        "sample": 3,
+        "transportError": "TypeError",
+        "durationMs": 10722.779300000002
+      },
+      {
+        "sample": 4,
+        "transportError": "TypeError",
+        "durationMs": 10645.812199999997
+      },
+      {
+        "sample": 5,
+        "transportError": "TypeError",
+        "durationMs": 10663.603499999997
+      }
+    ],
+    "httpResponsesObserved": 0,
+    "completeEnvelopeIngestionVerified": false,
+    "interpretation": "Direct transport failures on this host; no upstream HTTP payload was observed. Not proof that the service or production browser is unavailable. No retry, discarded failure or server-time override.",
+    "hostClock": {
+      "leapIndicator": 3,
+      "stratum": 0,
+      "source": "Local CMOS Clock",
+      "synchronized": false,
+      "changed": false
+    },
+    "timeGuardsChanged": false
+  },
+  "historicalEvidenceLfSha256": {
+    "m3-pair-60.json": "88b927752e589553cea18dba88e3d2233c780f208beeb1ea77a1de6902a4611d",
+    "m3-pair-200.json": "b7abe1b6f9409a8ebf5543b0b380acbb252bc2db60676db5ead7d75491813ad9",
+    "m3-counter-probe.json": "94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707",
+    "m3-pair-v2-200.json": "323ff4087da0a1a836fe8147ef305cd8f315e3e0d10e706cbc4d25abfba74236"
+  },
+  "exitState": {
+    "m3": "IN_PROGRESS",
+    "m4": "NOT_STARTED",
+    "m5": "NOT_STARTED",
+    "m6": "NOT_STARTED",
+    "currentSourcePairedLatency": "NOT_RUN",
+    "realTwoDeviceGist": "NOT_RUN",
+    "physicalDeviceValidation": "NOT_RUN",
+    "productionDeployment": "NOT_RUN",
+    "mainObserved": "abfb6313f12efb66b9096b60472b6dd457094485",
+    "mainChanged": false,
+    "versionBumped": false,
+    "formalRelease": false
+  }
+}

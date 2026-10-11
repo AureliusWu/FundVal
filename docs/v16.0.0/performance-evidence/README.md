@@ -5,6 +5,7 @@
 ## 采样约定
 
 - 固定旧版 SHA：`40e68edab9cb3fba0b17338dc3672a82d13ad17e`，不是可变分支名。
+- 历史报告仍绑定原40e。2026-10-11新测量预声明：使用仅含source-map-js安全补丁的本地不可变旧业务参考 `c2980265d3c89f960517ced1527ba9cb85bf7c2b`，证明见 `m3-security-aligned-reference-20261011.json`。不降低依赖校验或预算、不改写历史报告；新文件 `m3-pair-security-v15-200-20261011.json`，200 retained + 4 warm-up、bootstrap5000、seed160003，其他协议与硬阈值不变。
 - 同机同浏览器、390×844、HTTP 缓存关闭/no-store，SW 不控制页面，固定合成时钟。
 - 每个 side 使用独立空 context；warm 为同 context reload；save 为真实 UI 保存合成份额。
 - 先声明样本数与 warm-up；交错 AB/BA，保留全部原始观察，不挑最快、不剔除 outlier、不自动重跑失败 pair。
@@ -43,6 +44,8 @@ exit $LASTEXITCODE
 | `m3-security-integration-20261011.json` | PR #17 已仅合入 WIP continuation：f626 与 merge 501 tree 精确相同；两 SHA 实际 CI Linux892/892、audit0、syntax192、E2E23/23、build/资源核验/封包上传成功，唯一失败仍 all81,195预算。CodeQL扫描各3结果；merge两轮本地新epoch指纹实核，不冒充远端/生产，main未动、M3未退出 |
 | `m3-cache-identity-20261011.json` | 父 414 上修复 P1 聚合缓存串基金：旧 unit 6 PASS/17 RED、旧页面 1 PASS/3 RED，新增 HTTP 28 表征与 cache 23 / UI 4 回归；全量 943 tests（940 PASS / 3 Windows skip）、syntax195、audit0、E2E27/27。两次实际 build all81,263 / cold43,015，正确性成本 +68/+71 B，预算仍 FAIL / 当前 paired NOT_RUN；记录被真实负控否决的减包候选和精确父 414 CI，不继承至新源码，不是发布 |
 | `m3-cache-identity-ci-20261011.json` | 修复已推送 fa49224；新 SHA CI38110531850 实核 Linux943/943 / 0 skip、syntax195、audit0、E2E27/27（46.2s）、build/app/OCR/seal/upload成功，唯一失败仍all81,263预算。精确CodeQL3结果；该提交新epoch两轮本地指纹实核，远端包未下载，不是main/生产/后续文档SHA或paired证明 |
+| `m3-private-hash-build-read-20261011.json` | 父2f上裁剪闭合私有hash、emitted Worker单次read；新增23测试，旧read13PASS/1RED→14GREEN。全量966 tests（963PASS/3skip）、syntax197、audit0、E2E27/27；共3次实际build，E2E后连续2次，all81,158/cold42,907（−105/−108 B），预算仍FAIL。父精确CI/3安全告警、5直接transport失败完整保留；不是paired/真机/发布证明 |
+| `m3-security-aligned-reference-20261011.json` | 新本地不可变参考c298026，唯一父原40e；164 tree entries仅lock变，109锁条目仅source-map-js3字段安全补丁，原业务不变；严格normalizedLock与当前相同，真实index/工作树/普通分支不变。未测量，旧PASS不继承，77,227.7预算原锚不变，local-only不push |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 

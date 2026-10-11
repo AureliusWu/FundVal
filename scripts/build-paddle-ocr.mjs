@@ -436,6 +436,27 @@ export function assertLightweightPaddleEntry(emittedEntry) {
   return bytes;
 }
 
+async function readEmittedPaddleWorker(emittedWorkerPath, workerReference) {
+  let emittedWorker;
+  try {
+    emittedWorker = await readFile(emittedWorkerPath);
+  } catch (error) {
+    if (['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM', 'ELOOP'].includes(error?.code)) {
+      throw new Error(`PaddleOCR build emitted a missing Worker resource: ${workerReference}`);
+    }
+    throw error;
+  }
+  const workerProtocolMarkers = [
+    'worker-transport-request',
+    'worker-transport-response',
+    'sourcePayloadToMat',
+  ];
+  if (emittedWorker.byteLength < 10_000_000 || workerProtocolMarkers.some(marker => !emittedWorker.includes(Buffer.from(marker)))) {
+    throw new Error('PaddleOCR emitted Worker is incomplete or missing the pinned worker protocol.');
+  }
+  return emittedWorker;
+}
+
 /**
  * Build the OCR-only ESM bundle and copy only same-origin OCR resources.
  * The function intentionally performs no network request and rejects unknown
@@ -537,20 +558,7 @@ export async function buildPaddleOcrAssets({
     resolve(dirname(engineEntryPath), workerReference),
     'PaddleOCR emitted Worker'
   );
-  try {
-    await access(emittedWorkerPath, constants.R_OK);
-  } catch {
-    throw new Error(`PaddleOCR build emitted a missing Worker resource: ${workerReference}`);
-  }
-  const emittedWorker = await readFile(emittedWorkerPath);
-  const workerProtocolMarkers = [
-    'worker-transport-request',
-    'worker-transport-response',
-    'sourcePayloadToMat',
-  ];
-  if (emittedWorker.byteLength < 10_000_000 || workerProtocolMarkers.some(marker => !emittedWorker.includes(Buffer.from(marker)))) {
-    throw new Error('PaddleOCR emitted Worker is incomplete or missing the pinned worker protocol.');
-  }
+  const emittedWorker = await readEmittedPaddleWorker(emittedWorkerPath, workerReference);
 
   const manifest = await writeOcrAssetManifest({
     root: normalizedRoot,

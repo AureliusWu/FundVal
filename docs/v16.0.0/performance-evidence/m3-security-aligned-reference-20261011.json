@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "status": "LOCAL_REFERENCE_CREATED_NOT_MEASURED_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "purpose": "Immutable local v15.0.2 business reference with the already-reviewed source-map-js 1.2.2 security patch for a future fresh paired comparison.",
+  "identityLimits": {
+    "newIdentity": "Security-aligned v15.0.2 business, not a raw rebuild of original 40e68ed.",
+    "originalPerformancePassInherited": false,
+    "originalBuildEqualityClaimed": false,
+    "referenceBuild": "NOT_RUN",
+    "pairedMeasurement": "NOT_RUN",
+    "fullTests": "NOT_RUN_IN_THIS_REFERENCE_PREPARATION",
+    "e2e": "NOT_RUN",
+    "worktreeCreated": false,
+    "dependencyInstallPerformed": false,
+    "currentDependencyOrBuildConfigChanged": false,
+    "referenceLockChanged": true,
+    "pushPerformed": false,
+    "deploymentPerformed": false,
+    "ordinaryBranchUpdated": false,
+    "reportAddedToReferenceTree": false,
+    "measurementRequirement": "A new build, hashes and fresh paired raw report must bind the exact new reference SHA and the exact future current checkpoint; no old PASS, CI, build fingerprint or production conclusion transfers.",
+    "epochRequirement": "Commit metadata is deterministic local-object identity, not a measurement timestamp. Future builds must record their actual SOURCE_DATE_EPOCH; no original-epoch artifact equality is asserted."
+  },
+  "fixedBudget": {
+    "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "originalBaselineAllNonOcrGzipBytes": 70207,
+    "coldBudgetBytes": 52241,
+    "allBudgetNumerator": 772277,
+    "allBudgetDenominator": 10,
+    "allBudgetBytes": 77227.7,
+    "unchanged": true,
+    "source": "scripts/release-fingerprint.mjs:10-14",
+    "note": "The local security-aligned reference does not replace the original M0 budget anchor or authorize recalibration."
+  },
+  "ref": "refs/fundval-performance/v15.0.2-source-map-js-1.2.2",
+  "commit": "c2980265d3c89f960517ced1527ba9cb85bf7c2b",
+  "parent": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+  "parentTree": "2f8b6ce7f391489e374832b48967a12dcdb1fbe7",
+  "tree": "1a572449940248f94df25b3c1840685325a49a5d",
+  "referenceIdentity": "Original v15.0.2 business with source-map-js 1.2.2 security-aligned dependency; not raw 40e68ed.",
+  "commitMetadata": {
+    "identity": "FundVal Performance Reference <fundval-performance-reference@invalid.example>",
+    "fixedDate": "2026-10-11T00:00:00+00:00",
+    "note": "Deterministic object identity metadata, not a measurement timestamp."
+  },
+  "treeProof": {
+    "parentEntryCount": 164,
+    "referenceEntryCount": 164,
+    "unchangedEntryCount": 163,
+    "changedPaths": [
+      "package-lock.json"
+    ],
+    "parentInventorySha256": "e38b779c47bd0f6252137911ec520411c3f3cde92b9362e391df7d3912dbb9e3",
+    "referenceInventorySha256": "8fa8c195c871389de356a2949ed75ee77ec70b0ddf7705520def21055d1e0a38"
+  },
+  "lockProof": {
+    "packageEntryCount": 109,
+    "unchangedPackageEntryCount": 108,
+    "fieldChanges": [
+      {
+        "path": "packages[\"node_modules/source-map-js\"].version",
+        "before": "1.2.1",
+        "after": "1.2.2"
+      },
+      {
+        "path": "packages[\"node_modules/source-map-js\"].resolved",
+        "before": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
+        "after": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz"
+      },
+      {
+        "path": "packages[\"node_modules/source-map-js\"].integrity",
+        "before": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==",
+        "after": "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw=="
+      }
+    ],
+    "parentBlob": "5e76fabd2d5406b5289bc714e01d48dab1fa3cc0",
+    "referenceBlob": "3e0b46572377255aa8e65e48c5a91526e87c3361",
+    "parentRawSha256": "bee46bdc3098dd585b4347847121c2c76615d99171a87ec8d19d9a23b5111c82",
+    "referenceRawSha256": "725b7ac8e8f74bba30739b1b39815165995a9621990430b526841f07af92153e",
+    "currentRawSha256": "4a9441b3e294166d25ea1c304574afe2afa169b75087a6d31ae15a52dcbd7b85",
+    "referenceRawBytes": 54984,
+    "normalizedLockSha256": "0b9db07c13394523bbee5d7b21d51cadb00f39b160794ebbda53ea8766b4aebf",
+    "normalizedLockMatchesCurrent": true,
+    "normalization": "Actual scripts/measure-performance-pair.mjs normalizedLock: omit only packages[''].engines; keep every other field.",
+    "currentRootEngineMetadataDifferencePreserved": {
+      "reference": null,
+      "current": {
+        "node": "24.14.0",
+        "npm": "11.9.0"
+      }
+    }
+  },
+  "scopeProof": {
+    "before": {
+      "head": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+      "localMain": "4c04e7fec9635d099191c0899dc57a25dd343fab",
+      "continuation": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+      "realIndexSha256": "6c3fe36501c695914c2bace85321354884e5e2b1d24ae45596cc8d95d9db2380",
+      "porcelain": " M docs/v16.0.0/M3_STATUS.md\n M docs/v16.0.0/performance-evidence/README.md\n M js/app.js\n M scripts/build-paddle-ocr.mjs\n?? docs/v16.0.0/performance-evidence/m3-private-hash-build-read-20261011.json\n?? test/app-holdings-hash-closed-v16.test.js\n?? test/paddle-worker-read-v16.test.js\n",
+      "existingFiles": {
+        "count": 282,
+        "bytes": 58556625,
+        "inventorySha256": "e9a7f5e64ddbbff10a5115a74af03bcc69e5b9b4b556939ab8d097b7d18b0bcc"
+      },
+      "businessFiles": {
+        "count": 230,
+        "bytes": 11767365,
+        "inventorySha256": "92aec0d2a78d1b6b5119218854975a4549bca036843e65c2836590dd8aaf6b42"
+      }
+    },
+    "after": {
+      "head": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+      "localMain": "4c04e7fec9635d099191c0899dc57a25dd343fab",
+      "continuation": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+      "realIndexSha256": "6c3fe36501c695914c2bace85321354884e5e2b1d24ae45596cc8d95d9db2380",
+      "porcelain": " M docs/v16.0.0/M3_STATUS.md\n M docs/v16.0.0/performance-evidence/README.md\n M js/app.js\n M scripts/build-paddle-ocr.mjs\n?? docs/v16.0.0/performance-evidence/m3-private-hash-build-read-20261011.json\n?? test/app-holdings-hash-closed-v16.test.js\n?? test/paddle-worker-read-v16.test.js\n",
+      "existingFiles": {
+        "count": 282,
+        "bytes": 58556625,
+        "inventorySha256": "e9a7f5e64ddbbff10a5115a74af03bcc69e5b9b4b556939ab8d097b7d18b0bcc"
+      },
+      "businessFiles": {
+        "count": 230,
+        "bytes": 11767365,
+        "inventorySha256": "92aec0d2a78d1b6b5119218854975a4549bca036843e65c2836590dd8aaf6b42"
+      }
+    },
+    "realIndexAndBusinessWorktreeUnchanged": true,
+    "statusIdenticalDuringCreation": true,
+    "fullExistingFileInventoryIdenticalDuringCreation": true,
+    "documentationConcurrency": "Root independently owns ongoing docs updates; only business, real index and ordinary branch identities are strict invariants.",
+    "temporaryIndex": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-m3-reference-20261011-a781f5c0\\reference.index",
+    "temporaryIndexSha256": "4a6fc62ac5302d8aba97912dd5d717db24f331de0a50cdeb27fe4aa13b318f3a"
+  },
+  "textualDiff": "diff --git a/package-lock.json b/package-lock.json\nindex 5e76fab..3e0b465 100644\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -1490,9 +1490,9 @@\n       }\n     },\n     \"node_modules/source-map-js\": {\n-      \"version\": \"1.2.1\",\n-      \"resolved\": \"https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz\",\n-      \"integrity\": \"sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==\",\n+      \"version\": \"1.2.2\",\n+      \"resolved\": \"https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz\",\n+      \"integrity\": \"sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==\",\n       \"dev\": true,\n       \"license\": \"BSD-3-Clause\",\n       \"engines\": {\n",
+  "build": "NOT_RUN",
+  "pairedMeasurement": "NOT_RUN",
+  "inheritedPerformancePass": false,
+  "reproduction": {
+    "strategy": "Read original parent lock in memory, replace only the three source-map-js literal values, hash-object --stdin, isolated GIT_INDEX_FILE read-tree/update-index/write-tree, deterministic commit-tree with one explicit parent, create-only update-ref CAS.",
+    "referenceProtection": "Existing same-name ref is acceptable only when it equals the exact deterministic expected commit. A different value is rejected; no overwrite or force update.",
+    "temporaryScript": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-m3-reference-20261011-a781f5c0\\create-reference.mjs",
+    "temporaryFiles": "Script was added with apply_patch outside the repository; Git alone generated the independent temporary binary index. No temp lock or worktree was written.",
+    "normalizationProof": "Imported the actual existing normalizedLock export without invoking the CLI; its only permitted omission is packages[''].engines."
+  }
+}

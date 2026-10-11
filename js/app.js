@@ -328,21 +328,7 @@ function saveSyncMeta(meta) {
 
 // 完整语义指纹：名称、null 成本、revision、设备与 tombstone 都参与。
 function holdingsHash(h) {
-  if (h === holdings && holdingsDocument) return canonicalHoldingsDocument(holdingsDocument);
-  return JSON.stringify((Array.isArray(h) ? h : []).map(function(x) {
-    return {
-      code: x.code,
-      name: x.name,
-      shares: x.shares,
-      cost: x.cost == null ? null : x.cost,
-      updated_at: x.updated_at || '',
-      deleted: x.deleted === true,
-      revision: x.revision || 0,
-      device_id: x.device_id || '',
-      deleted_at: x.deleted_at || null,
-      note: x.note == null ? null : x.note,
-    };
-  }).sort(function(a, b) { return a.code.localeCompare(b.code); }));
+  return holdingsDocument ? canonicalHoldingsDocument(holdingsDocument) : '[]';
 }
 
 function hasCloudConfig() {
