@@ -46,6 +46,9 @@ exit $LASTEXITCODE
 | `m3-cache-identity-ci-20261011.json` | 修复已推送 fa49224；新 SHA CI38110531850 实核 Linux943/943 / 0 skip、syntax195、audit0、E2E27/27（46.2s）、build/app/OCR/seal/upload成功，唯一失败仍all81,263预算。精确CodeQL3结果；该提交新epoch两轮本地指纹实核，远端包未下载，不是main/生产/后续文档SHA或paired证明 |
 | `m3-private-hash-build-read-20261011.json` | 父2f上裁剪闭合私有hash、emitted Worker单次read；新增23测试，旧read13PASS/1RED→14GREEN。全量966 tests（963PASS/3skip）、syntax197、audit0、E2E27/27；共3次实际build，E2E后连续2次，all81,158/cold42,907（−105/−108 B），预算仍FAIL。父精确CI/3安全告警、5直接transport失败完整保留；不是paired/真机/发布证明 |
 | `m3-security-aligned-reference-20261011.json` | 新本地不可变参考c298026，唯一父原40e；164 tree entries仅lock变，109锁条目仅source-map-js3字段安全补丁，原业务不变；严格normalizedLock与当前相同，真实index/工作树/普通分支不变。未测量，旧PASS不继承，77,227.7预算原锚不变，local-only不push |
+| `m3-pair-security-v15-200-20261011.json` | 新安全对齐参考c298026 vs 06aa，200 retained +4 warm-up，AB/BA各100，0 failed。cold/save PASS，warm p95区间宽24.457%>20%稳定性限制，总体INCONCLUSIVE；完整性/健康/仪器/清理PASS。LF22,410,202 B / SHA256 `5e4199a9268ecb8761dc3f91725daba3f1b63adedd7b86ef2a9b820f940b3ddd`；保留全部样本，不重跑挑PASS，不是M3 EXIT/真机/生产 |
+| `m3-private-hash-pair-ci-20261011.json` | 精确06aa CI38112117242：Linux966/966、syntax197、audit0、E2E27/27，构建/封包成功，唯一失败all81,158预算；CodeQL2结果，#3仅continuation fixed、main仍open，#5/#7仍在。提交后两build确定性及新pair独立重算/观测边界汇总；不是后续文档SHA、远端包独立下载或正式发布证明 |
+| `m3-public-source-readonly-20261013.json` | 真实HTTP客户端/env-proxy/缺省时钟：未强刷及app默认force:true各固定5次均5/5接受，首个9.89s/9.07s慢样本保留；005844 Oct12→13、012920 Oct9→12均正式NAV降级，非实时估算。另列显式请求开始now诊断1拒绝/4接受，不替换失败、不误报app Bug；无云写入/生产渲染或独立上游核对 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
@@ -63,3 +66,5 @@ exit $LASTEXITCODE
 ```
 
 它枚举完整 chunk 文件集并实算每份 gzip，不信任 manifest 自报压缩长度。报告 `importClosureVerified:false`：真实静态依赖图/冷启动隔离仍由 build-site 的 Rolldown 输出图校验负责。超预算的 WIP review artifact 可以封包保存，但 CI 必须红、standalone candidate/deploy 准入必须拒绝。
+
+最新06aa配对与精确CI见上级 `M3_STATUS.md` 第27节。第26节/reference JSON中的未测量状态是创建参考时的历史事实；本轮实测结果为INCONCLUSIVE，不继承历史v2 PASS。console计数与阻断计数相等但未保留逐条关联，不能断言全部错误根因；统计及source/artifact完整性结论不扩展为console-zero、生产或物理设备通过。

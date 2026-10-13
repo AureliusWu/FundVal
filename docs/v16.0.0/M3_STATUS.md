@@ -1,9 +1,9 @@
 # M3 刷新图、模块化与性能：阶段检查点
 
-> 更新：2026-10-11（Asia/Shanghai）。状态：`IN PROGRESS / NOT RELEASED`。
+> 更新：2026-10-13（Asia/Shanghai）；第27节实测发生于2026-10-11，复核于2026-10-13。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：第 26 节完成闭合私有持仓指纹裁剪与 OCR 构建单次读取，新增 23 项 Node 保护；本地 963 pass / 3 Windows 条件 skip、syntax197、E2E27/27、audit0。实际 all 减105 B / cold 减108 B：all 非 OCR gzip **81,158 > 77,227.7 B 仍 FAIL**，至少还需减少 **3,931 B**。第25节的 P1 聚合缓存隔离与 source-map-js 安全补丁已保留，仅在继续开发分支推进。旧 v2 配对 PASS 只绑定 d9fdabc，不继承为当前时延证明；新采样需先解决同依赖参考前置条件。M3 不能 EXIT，不能进入 M4 或正式发布。
+> 最新：第27节完成06aa源码的精确CI与新200组配对复核：Linux966/966、syntax197、E2E27/27、audit0，CI唯一失败为all预算；冷启动/保存PASS，暖启动p95区间稳定性不足，整体 **INCONCLUSIVE**，不重采样挑PASS。第26节all减105 B / cold减108 B；实际all非OCR gzip **81,158 > 77,227.7 B仍FAIL**，至少还需减少 **3,931 B**。P1聚合缓存隔离及source-map-js安全补丁保留；CodeQL #3仅在continuation修复，main仍未合入，#5/#7仍在。M3不能EXIT，不能进入M4或正式发布。
 
 ## 1. 已实现的刷新边界
 
@@ -658,3 +658,55 @@ review artifact **11691194411** 上传 ZIP **92,623,258 B** / digest `cd4405ffcf
 [m3-security-aligned-reference-20261011.json](performance-evidence/m3-security-aligned-reference-20261011.json) 记录本地固定参考 **c2980265d3c89f960517ced1527ba9cb85bf7c2b**，唯一父原40e。164 tree entries仅lock变，另外163全同；109 lock entries仅source-map-js version/resolved/integrity三字段采用已集成的1.2.2安全补丁。原业务和构建代码不变，实际原 `normalizedLock` 与当前一致，仍仅忽略原算法允许的root.engines。独立临时index创建本地Git对象/ref，真实index、当前业务工作树和普通分支均不改变；参考ref不推送。这不是原40e raw构建重跑，也不证明任何新时延PASS。
 
 运行前预声明：现有采样器与v2协议不改，**200 retained / 4 warm-up / bootstrap5000 / seed160003**，独占新输出 `performance-evidence/m3-pair-security-v15-200-20261011.json`。两侧相同依赖、原冷/暖/保存定义、原中位数15%/p95 20%与置信/稳定性政策；保留全部样本、失败不重试、不混入旧报告。预算原锚仍40e的70,207及77,227.7，不由参考补丁重算。先提交当前源码检查点、以该SHA构建后冻结源码/产物再测。此处是预声明，实测结果需另附；真机、真实Gist、公开网络和生产仍不由桌面合成时延证明。
+
+## 27. 精确源码CI与安全对齐参考的200组新配对（实测2026-10-11，复核2026-10-13）
+
+证据：[m3-private-hash-pair-ci-20261011.json](performance-evidence/m3-private-hash-pair-ci-20261011.json)；完整原始数据：[m3-pair-security-v15-200-20261011.json](performance-evidence/m3-pair-security-v15-200-20261011.json)。第26节的NOT_RUN与预声明是当时状态，不是本节之后的当前结论。实施源码已提交并推送为 **06aa5daaf6bfcfe21f8360c5426813f6d43262b9**；复核4个源/测试的LF字节与该Git blob及实施报告一致。后续纯证据文档提交不继承为精确SHA的CI证明。
+
+### 提交后的确定性构建与精确CI
+
+06aa epoch **1791693368** 的两次实际build，关键发布集指纹均 **`b299394a48447ad4232f949cf51a070615a970c8774714bbc0e27ed15147bfca`**；app **16 chunks / 237,665 raw B**，OCR **23 assets / 88,196,906 B**，bytes/SHA核验通过，未执行OCR。cold **42,907 / 52,241 PASS**，all **81,158 / 77,227.7 FAIL**；预算CLI exit1。这个关键文件集指纹与下文完整site inventory是不同算法，不互相替代，也不冒充未来提交或Linux产物。
+
+精确06aa的 [CI 38112117242](https://github.com/AureliusWu/FundVal/actions/runs/38112117242) completed / failure：Linux **966/966、0 skip/fail（6,559.787069 ms）**、syntax **197**、audit **0**、E2E **27/27（48.8秒）**，build/app/OCR/seal/upload全成功；唯一失败步骤为all预算。CodeQL workflow success，同SHA analysis **1930591681** / results **2**、error/warning空，不代表零安全告警。commit check-runs复核只见candidate/codeql，没有独立CodeQL check。
+
+#3 emitted Worker的检查/使用告警在continuation实例为fixed，last finding仍绑定父2f；main实例仍open、绑定abfb，不能宣称整个仓库或生产已修复。continuation的#5目录内容落盘、#7 SW消息授权仍open；未dismiss。review artifact **11691772731** 的ZIP **92,623,258 B** /上传digest `bae55ce0f291a504a9df3a67e327b58eacc0a27a8261eeb081e09716924f8814`仅记录API元数据，未下载独立核验，且红预算/非main ref没有production admission。
+
+### 新采样身份、方法与完整结果
+
+参考为仅安全补丁对齐的v15业务SHA **c2980265d3c89f960517ced1527ba9cb85bf7c2b**，不是原40e raw构建重跑；来源与严格lock相等证明见第26节。固定预算锚仍是原40e的70,207 B，未重新定预算。本轮没有继承d9fdabc的旧PASS。
+
+预声明的 **200 retained +4 warm-up、bootstrap5000、seed160003** 实际一次完成：204组原始pair全部保留，失败0，保留组AB/BA各100；没有剔除outlier、混样、改seed/阈值或失败重试。源码/依赖和两侧产物采样前后不变。独立调用真实`summarizePairs`后全summary deepEqual通过。
+
+| 指标（ms） | 参考中位数 / p95 | 06aa中位数 / p95 | 中位数 / p95变化 | 判定 |
+| --- | --- | --- | --- | --- |
+| 冷启动 | 141.40 / 183.40 | 133.10 / 169.20 | −5.87% / −7.74% | PASS |
+| 暖启动 | 77.00 / 118.10 | 67.75 / 105.90 | −12.01% / −10.33% | INCONCLUSIVE |
+| 保存 | 79.71 / 90.89 | 66.82 / 74.39 | −16.17% / −18.15% | PASS；保存p95为附加工具观察 |
+
+暖启动唯一未满足的是当前p95置信区间宽度 **24.457% > 原20%稳定性限制**；当前p95 95% CI **[93.20,119.10] ms**。相对p95 ratio CI **[0.80776,1.02865]**及中位数ratio CI **[0.85256,0.90122]**均满足原回归限制，但尾部稳定性不足，因此总体 **INCONCLUSIVE**，不是PASS，也没有建立置信回归。不能用点估计更快或99.98%的bootstrap pass fraction代替稳定性规则。旧结果保留，不立即重跑直到PASS。
+
+原始文件LF/raw **22,410,202 B**，SHA256 **`5e4199a9268ecb8761dc3f91725daba3f1b63adedd7b86ef2a9b820f940b3ddd`**；开始 **2026-10-11T04:36:33.506Z**，结束 **04:46:03.453Z**。初始PowerShell命令未单独捕获native LASTEXITCODE，终端wrapper观察exit1；采样器实现对INCONCLUSIVE声明exit2。保留二者及边界，以raw结论为准，不重跑替换日志。
+
+### 完整性、观测边界与下一步
+
+- integrity/health/instrumentation/cleanup均PASS，pageerror0、network instrumentation failures0；每侧612 drains全SETTLED，SW event/controller/registrations0。自有2029/2038/12437监听均已退出，未动其他项目4173。
+- 独立重算1,224个renderer对象、4,896个counter全一致且有限非负；每侧冷/暖各204 PARTIAL，保存204 MEASURED。启动counter只覆盖同文档commit后到collection，不是完整bootstrap或隔离OS CPU。
+- console error参考/当前 **1,836 / 2,652**，分别与明确阻断请求数量相等；仅保留数量而无逐条消息/关联，不能证明每条错误的根因都是provider阻断，更不是console-zero。完整request分类与计数保留，不冒充公网/生产结果。
+- reference记录的whole-site inventory前后均 `a18ee3fc...` /110 files/92,344,588 B；current均 `624e1caf...` /126 files/92,499,248 B。当前site实盘独立重算匹配；参考快照清理后只能再核对所记录inventory内部指纹，未声称重新读取已删除字节。
+- 这是同机桌面Chrome、390×844、无HTTP/SW缓存、外源阻断的合成单基金工作流；不能归因于105 B私有hash裁剪，不能替代多基金/公网/物理Android/iOS/Gist/生产验收。观测不到current启动long task也不能排除未覆盖调度或I/O，更不能断言暖启动噪声根因。
+
+M3仍 **IN PROGRESS**：all预算还差 **3,931 B**，新总体时延门禁证据不足，M4/M5/M6未开始。下一步优先做有实测收益、行为可证明的源码减包；材料性候选改变后另行预声明完整新配对，或先给独立合理的大样本方案，保留本轮INCONCLUSIVE，不进行即时挑PASS重试。版本保持15.0.2；main live ref复核仍abfb，未merge main / deploy / bump，目标继续保持active。
+
+### 2026-10-13公开主源真实只读摄取补充
+
+证据：[m3-public-source-readonly-20261013.json](performance-evidence/m3-public-source-readonly-20261013.json)。采用项目真实`fetchEstimateRows`、固定公开代码005844/012920、Node `--use-env-proxy`、原10秒timeout及完整校验器；没有改Worker/来源时间guard/系统时钟或发送云写入。第一组按app相同的缺省时钟处理不传`options.now`，但也不传force，不能代表完整默认refresh请求：固定5次順序GET **5/5 accepted**，中位数 **126.45 ms**、nearest-rank p95/最大 **9,892.81 ms**。另预先固定5次`force:true` / 不传now，匹配app默认估值HTTP的强刷与时钟选项，亦 **5/5 accepted**，中位数 **108.56 ms**、p95/最大 **9,073.48 ms**；未覆盖generation取消。两组首个慢样本全保留、接近默认超时，不挑最快或声称公网时延已稳定。每组内sourceFetchedAt相同只是一项上游观察，不能据此断言其缓存策略。未收集DNS/TLS/proxy/Worker/upstream各段时间，不能归因具体慢环节。
+
+- 005844：正式净值 **2026-10-12 /3.0167 → 2026-10-13 /3.0590，+1.40%**。
+- 012920：正式净值 **2026-10-09 /3.6843 → 2026-10-12 /3.5827，−2.76%**，不是10月13日行情或单日盘中估值。
+- 两条均为official/official_nav、eastmoney-official-nav，并保留上游空结果与date-only等降级原因；没有被当成实时估算。可信结论仅限这些已校验的正式净值区间；本探针未另读独立权威上游或验收生产浏览器渲染。
+
+此前额外5次诊断显式把请求开始时钟传入`options.now`，结果1 rejected（WORKER_METADATA_INVALID）/4 accepted，全部另列保留；它不是生产app的调用形状。validator要求generated_at/fetched_at不晚于传入now，因此请求开始时间可能早于新生成响应；首个拒绝payload未保留，不能断言其确切字段/上游时钟错误或报成已观察到的app Bug。随后预先固定的未强刷/默认强刷各5次是不同诊断协议，不替换该失败或第26节Oct11直接transport失败，也不是重采样配对挑PASS。
+
+独立只读减包调查未找到新材料性候选：9个核心模块/129个FunctionDeclaration去位置AST比较没有完全相同函数体；wire与persisted-cache的typed/alias/null/错误/provenance/freshness语义不同，不能合并删除校验；public coordinator不在实际生产消费者图，不能把源码重复当成当前gzip双份代码。6个没有生产writer的fundType/fundFee展示行仅441 B raw，未测gzip且已有Proxy/getter轨迹保护，不作为高收益实现。尚不能承诺一轮填平3,931 B；本轮未改业务来凑预算。
+
+固定更大1000组系列有尾部精度理由（200组p95约10个上尾样本、1000约50），但这是观察本轮之后的后置方案，不是原预计划，也不保证PASS或多次测试总体95%置信。当前优先材料性减包，尚未声明/启动新1000组；若后续采用，须另提交固定协议/独占输出、保留旧结果、不混样/早停/换seed/增样/失败后重试。

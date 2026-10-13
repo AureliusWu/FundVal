@@ -1,0 +1,520 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "binding": {
+    "sourceCommit": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+    "sourceEpoch": 1791693368,
+    "branch": "codex/v16.0.0-m3-continuation",
+    "version": "15.0.2",
+    "scope": "Exact implementation commit and a fresh security-aligned paired reference; later documentation commits do not inherit an exact-SHA CI claim.",
+    "localSourceAndTestsMatchRecordedLfHashes": true
+  },
+  "postCommitBuild": {
+    "builds": 2,
+    "sourceDateEpoch": 1791693368,
+    "criticalFingerprints": [
+      "b299394a48447ad4232f949cf51a070615a970c8774714bbc0e27ed15147bfca",
+      "b299394a48447ad4232f949cf51a070615a970c8774714bbc0e27ed15147bfca"
+    ],
+    "app": {
+      "chunks": 16,
+      "rawBytes": 237665,
+      "allGzipBytes": 81158,
+      "coldGzipBytes": 42907
+    },
+    "ocr": {
+      "assets": 23,
+      "bytes": 88196906,
+      "shaVerified": true,
+      "executed": false
+    },
+    "budget": {
+      "coldPass": true,
+      "allPass": false,
+      "allBudgetBytes": 77227.7,
+      "remainingWholeBytes": 3931
+    }
+  },
+  "exactCi": {
+    "runId": 38112117242,
+    "url": "https://github.com/AureliusWu/FundVal/actions/runs/38112117242",
+    "headSha": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+    "status": "completed",
+    "conclusion": "failure",
+    "candidateJob": 114389652636,
+    "codeqlJob": 114389652791,
+    "onlyFailedStep": "Enforce actual M3 app bundle budget",
+    "linuxUnit": {
+      "tests": 966,
+      "pass": 966,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 6559.787069
+    },
+    "syntaxFiles": 197,
+    "auditVulnerabilities": 0,
+    "e2e": {
+      "pass": 27,
+      "durationSeconds": 48.8
+    },
+    "buildAppOcrSealUpload": "success",
+    "budget": {
+      "cold": 42907,
+      "all": 81158,
+      "exitCode": 1
+    },
+    "codeql": {
+      "workflowJob": "success",
+      "analysisId": 1930591681,
+      "createdAt": "2026-10-11T04:37:27Z",
+      "commit": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+      "resultsCount": 2,
+      "error": "",
+      "warning": "",
+      "openOnContinuation": [
+        5,
+        7
+      ],
+      "alert3ContinuationInstance": {
+        "state": "fixed",
+        "lastFindingCommit": "2f7e77f21c55b73508503a07c0aa859183aedcb5"
+      },
+      "alert3MainInstance": {
+        "state": "open",
+        "commit": "abfb6313f12efb66b9096b60472b6dd457094485"
+      },
+      "zeroRepositoryAlerts": false,
+      "independentCodeqlCheck": "NOT_OBSERVED"
+    },
+    "reviewArtifact": {
+      "id": 11691772731,
+      "zipBytes": 92623258,
+      "uploadedZipSha256": "bae55ce0f291a504a9df3a67e327b58eacc0a27a8261eeb081e09716924f8814",
+      "downloadedAndIndependentlyVerified": false,
+      "productionAdmission": "NOT_GRANTED"
+    }
+  },
+  "paired": {
+    "rawFile": "m3-pair-security-v15-200-20261011.json",
+    "rawBytes": 22410202,
+    "rawSha256": "5e4199a9268ecb8761dc3f91725daba3f1b63adedd7b86ef2a9b820f940b3ddd",
+    "freshStatisticalRecompute": "PASS_EXACT_DEEP_EQUAL",
+    "observedShellExitCode": 1,
+    "declaredSamplerExitCodeForInconclusive": 2,
+    "exitCodeCaveat": "The initial PowerShell command did not separately capture native LASTEXITCODE. Preserve observed wrapper exit and authoritative raw status; do not rerun to replace results.",
+    "status": "INCONCLUSIVE",
+    "referenceSha": "c2980265d3c89f960517ced1527ba9cb85bf7c2b",
+    "currentSourceBefore": {
+      "head": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+      "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "buildRelevantUntrackedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "dirty": false,
+      "label": "Current working-tree candidate; HEAD is not an immutable identity for uncommitted changes."
+    },
+    "currentSourceAfter": {
+      "head": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+      "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "buildRelevantUntrackedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "dirty": false,
+      "label": "Current working-tree candidate; HEAD is not an immutable identity for uncommitted changes."
+    },
+    "requested": {
+      "retainedPairs": 200,
+      "warmupPairs": 4,
+      "bootstrap": 5000,
+      "seed": 160003
+    },
+    "observed": {
+      "retainedCompletePairs": 200,
+      "warmupCompletePairs": 4,
+      "failedPairs": 0
+    },
+    "summary": {
+      "verdict": "INCONCLUSIVE",
+      "retainedPairs": 200,
+      "balanced": true,
+      "orderCounts": {
+        "AB": 100,
+        "BA": 100
+      },
+      "metrics": {
+        "coldReadyMs": {
+          "reference": {
+            "samples": 200,
+            "median": 141.40000000596046,
+            "p95": 183.40000000596046,
+            "maximum": 245.5
+          },
+          "current": {
+            "samples": 200,
+            "median": 133.09999999403954,
+            "p95": 169.2000000178814,
+            "maximum": 215.7000000178814
+          },
+          "medianRatio": 0.9413012729026092,
+          "p95Ratio": 0.9225736096640264,
+          "medianDeltaPercent": -5.869872709739077,
+          "p95DeltaPercent": -7.742639033597365,
+          "confidenceIntervals95": {
+            "medianRatio": [
+              0.9106203994786651,
+              0.9679029957176702
+            ],
+            "p95Ratio": [
+              0.8351758793370807,
+              0.9789356987094319
+            ],
+            "referenceP95Ms": [
+              177.59999999403954,
+              199.2999999821186
+            ],
+            "currentP95Ms": [
+              161.09999999403954,
+              176.89999997615814
+            ]
+          },
+          "p95RelativeIntervalWidth": {
+            "reference": 0.11832061061817789,
+            "current": 0.09338061454165976
+          },
+          "p95Stable": true,
+          "passConfidence": 1,
+          "verdict": "PASS",
+          "reasons": [
+            "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+          ],
+          "orderEffect": {
+            "AB": {
+              "pairs": 100,
+              "referenceMedian": 142.1000000089407,
+              "currentMedian": 129.95000000298023
+            },
+            "BA": {
+              "pairs": 100,
+              "referenceMedian": 140.19999998807907,
+              "currentMedian": 134.54999999701977
+            }
+          }
+        },
+        "warmReadyMs": {
+          "reference": {
+            "samples": 200,
+            "median": 77.00000001490116,
+            "p95": 118.09999999403954,
+            "maximum": 162.09999999403954
+          },
+          "current": {
+            "samples": 200,
+            "median": 67.75,
+            "p95": 105.90000000596046,
+            "maximum": 208.2000000178814
+          },
+          "medianRatio": 0.879870129699856,
+          "p95Ratio": 0.8966977138975885,
+          "medianDeltaPercent": -12.012987030014399,
+          "p95DeltaPercent": -10.330228610241154,
+          "confidenceIntervals95": {
+            "medianRatio": [
+              0.8525641025641025,
+              0.9012178621857407
+            ],
+            "p95Ratio": [
+              0.8077601409984559,
+              1.0286506468981615
+            ],
+            "referenceP95Ms": [
+              106.40000000596046,
+              128.40000000596046
+            ],
+            "currentP95Ms": [
+              93.19999998807907,
+              119.09999999403954
+            ]
+          },
+          "p95RelativeIntervalWidth": {
+            "reference": 0.1862828111863703,
+            "current": 0.24457034942873193
+          },
+          "p95Stable": false,
+          "passConfidence": 0.9998,
+          "verdict": "INCONCLUSIVE",
+          "reasons": [
+            "A p95 confidence interval is wider than the declared stability limit.",
+            "Confidence bounds do not establish a stable pass or a confident relative regression."
+          ],
+          "orderEffect": {
+            "AB": {
+              "pairs": 100,
+              "referenceMedian": 77.40000000596046,
+              "currentMedian": 68.00000001490116
+            },
+            "BA": {
+              "pairs": 100,
+              "referenceMedian": 76.55000001192093,
+              "currentMedian": 65.90000000596046
+            }
+          }
+        },
+        "saveUiMs": {
+          "reference": {
+            "samples": 200,
+            "median": 79.70835000001534,
+            "p95": 90.88719999999739,
+            "maximum": 97.83160000000498
+          },
+          "current": {
+            "samples": 200,
+            "median": 66.82325000000128,
+            "p95": 74.39100000000326,
+            "maximum": 97.19530000002123
+          },
+          "medianRatio": 0.8383469235028503,
+          "p95Ratio": 0.8184980943411767,
+          "medianDeltaPercent": -16.165307649714965,
+          "p95DeltaPercent": -18.15019056588233,
+          "confidenceIntervals95": {
+            "medianRatio": [
+              0.8105867671231403,
+              0.8642396433221751
+            ],
+            "p95Ratio": [
+              0.797110643792737,
+              0.865051358132656
+            ],
+            "referenceP95Ms": [
+              88.56190000002971,
+              92.48340000000462
+            ],
+            "currentP95Ms": [
+              72.88530000000901,
+              78.54130000001169
+            ]
+          },
+          "p95RelativeIntervalWidth": {
+            "reference": 0.04314688977078208,
+            "current": 0.07603070263879273
+          },
+          "p95Stable": true,
+          "passConfidence": 1,
+          "verdict": "PASS",
+          "reasons": [
+            "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+          ],
+          "orderEffect": {
+            "AB": {
+              "pairs": 100,
+              "referenceMedian": 79.2080500000011,
+              "currentMedian": 66.98850000000675
+            },
+            "BA": {
+              "pairs": 100,
+              "referenceMedian": 80.8550999999934,
+              "currentMedian": 66.82325000000128
+            }
+          }
+        }
+      },
+      "method": {
+        "p95": "nearest rank: sorted[ceil(0.95 * n) - 1]",
+        "median": "arithmetic mean of the middle two values for even n",
+        "uncertainty": "95% percentile bootstrap, resampling whole pairs within AB/BA strata; deterministic PRNG seed; all retained samples included",
+        "bootstrap": 5000,
+        "seed": 160003,
+        "minimumPairs": 60,
+        "medianLimit": 1.15,
+        "p95Limit": 1.2,
+        "absoluteBudgetMs": 3000,
+        "stabilityLimit": 0.2,
+        "confidenceCaveat": "Bootstrap pass confidence is the fraction of resamples meeting the gate, not a probability that the population passes. Small tail counts and desktop scheduling limit inference."
+      }
+    },
+    "dependencies": {
+      "referenceRawLockSha256": "725b7ac8e8f74bba30739b1b39815165995a9621990430b526841f07af92153e",
+      "currentRawLockSha256": "4a9441b3e294166d25ea1c304574afe2afa169b75087a6d31ae15a52dcbd7b85",
+      "resolvedLockSha256": "0b9db07c13394523bbee5d7b21d51cadb00f39b160794ebbda53ea8766b4aebf",
+      "normalization": "Only packages[''].engines is omitted; resolved packages and all other lock fields must be equal.",
+      "installed": {
+        "@paddleocr/paddleocr-js": "0.4.2",
+        "@tesseract.js-data/chi_sim": "1.0.0",
+        "onnxruntime-web": "1.27.0",
+        "tesseract.js": "7.0.0",
+        "tesseract.js-core": "7.0.0",
+        "@playwright/test": "1.62.1",
+        "esbuild": "0.28.2",
+        "vite": "8.2.2"
+      },
+      "node": "v24.14.0"
+    },
+    "integrity": {
+      "status": "PASS",
+      "note": "Source identity and both artifact trees fingerprinted before/after; changes make the paired inference inconclusive."
+    },
+    "health": {
+      "status": "PASS",
+      "pageErrors": 0
+    },
+    "instrumentation": {
+      "status": "PASS"
+    },
+    "cleanup": [
+      {
+        "resource": "ownedBrowser",
+        "status": "PASS"
+      },
+      {
+        "resource": "ownedServer",
+        "origin": "http://127.0.0.1:2029",
+        "status": "PASS"
+      },
+      {
+        "resource": "ownedServer",
+        "origin": "http://127.0.0.1:2038",
+        "status": "PASS"
+      },
+      {
+        "resource": "validatedTemporarySnapshot",
+        "status": "PASS"
+      }
+    ],
+    "startedAt": "2026-10-11T04:36:33.506Z",
+    "finishedAt": "2026-10-11T04:46:03.453Z",
+    "environment": {
+      "node": "v24.14.0",
+      "platform": "win32",
+      "osRelease": "10.0.26200",
+      "architecture": "x64",
+      "cpuModel": "AMD Ryzen 5 3600 6-Core Processor              ",
+      "logicalCpus": 12,
+      "totalMemoryBytes": 17119784960,
+      "freeMemoryStartBytes": 3204800512,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "Installed desktop Chrome, one browser process for both sides",
+      "serviceWorkers": "Guarded registration denial + SW script route blocking + zero worker/controller/registration assertions; Playwright allow avoids its opaque-frame probe bug.",
+      "httpCache": "CDP disabled and context routing/no-store; CDP service-worker bypass also enabled",
+      "chromeVersion": "154.0.8037.98",
+      "freeMemoryEndBytes": 3037536256
+    },
+    "artifacts": {
+      "Before": {
+        "reference": {
+          "sha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+          "fileCount": 110,
+          "totalBytes": 92344588
+        },
+        "current": {
+          "sha256": "624e1caf0d5e8ffa6f60616942fbd4fa0104d89f922f3c2377f09473681e3ca0",
+          "fileCount": 126,
+          "totalBytes": 92499248
+        }
+      },
+      "After": {
+        "reference": {
+          "sha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+          "fileCount": 110,
+          "totalBytes": 92344588
+        },
+        "current": {
+          "sha256": "624e1caf0d5e8ffa6f60616942fbd4fa0104d89f922f3c2377f09473681e3ca0",
+          "fileCount": 126,
+          "totalBytes": 92499248
+        }
+      }
+    },
+    "interpretation": "Cold/save PASS; warm INCONCLUSIVE solely because current p95 confidence width 24.457% exceeds the predeclared 20% stability limit. Point values improved, but no overall latency PASS or confident regression is established. No retry, outlier removal, pooling or threshold/seed change.",
+    "causalLimits": "Same hardware/protocol under a desktop hermetic synthetic single-fund workflow. The whole v15-v16 bundle comparison cannot attribute improvements specifically to the 105-byte private hash trim or prove production/physical-device performance."
+  },
+  "retainedRawObservability": {
+    "includesWarmup": true,
+    "perSideSamples": 204,
+    "pageErrors": {
+      "reference": 0,
+      "current": 0
+    },
+    "consoleErrors": {
+      "reference": 1836,
+      "current": 2652
+    },
+    "instrumentationFailures": {
+      "reference": 0,
+      "current": 0
+    },
+    "settledDrainsPerSide": 612,
+    "renderer": {
+      "coldAndWarm": "204 PARTIAL per side per phase",
+      "save": "204 MEASURED per side",
+      "missingOrInvalidCounters": 0,
+      "coverage": "Same-document post-commit through collection for startup; not full bootstrap/isolated OS CPU."
+    },
+    "longTasks": {
+      "referenceCold": {
+        "count": 1,
+        "totalMs": 63
+      },
+      "referenceWarm": {
+        "count": 0,
+        "totalMs": 0
+      },
+      "currentCold": {
+        "count": 0,
+        "totalMs": 0
+      },
+      "currentWarm": {
+        "count": 0,
+        "totalMs": 0
+      },
+      "limit": "No observed current startup long task does not prove absence of scheduling, I/O or unobserved work."
+    },
+    "serviceWorkerEventsControllerRegistrations": 0,
+    "requestCategories": {
+      "reference": {
+        "localStatic": 8568,
+        "externalOrProxyBlocked": 1836,
+        "estimateFixture": 204,
+        "holdingsFixture": 204
+      },
+      "current": {
+        "localStatic": 6528,
+        "externalOrProxyBlocked": 2652,
+        "estimateFixture": 204,
+        "holdingsFixture": 204
+      }
+    },
+    "requestInstrumentation": {
+      "reference": {
+        "MEASURED": 8976,
+        "HERMETIC_POLICY_BLOCK": 1836
+      },
+      "current": {
+        "MEASURED": 6936,
+        "HERMETIC_POLICY_BLOCK": 2652
+      }
+    },
+    "consoleCaveat": "Console error counts equal the explicitly blocked request counts on each side, consistent with the hermetic policy. Individual console messages and request-to-error associations were not retained, so attribution of every error to blocked providers is not independently established. This is not console-zero or production network evidence."
+  },
+  "cleanup": {
+    "ownedPorts": [
+      2029,
+      2038,
+      12437
+    ],
+    "listenersAfter": 0,
+    "unrelated4173Touched": false,
+    "reportCleanupAllPass": true
+  },
+  "nextGate": {
+    "m3": "IN_PROGRESS",
+    "m4": "NOT_STARTED",
+    "remainingAllGzipWholeBytes": 3931,
+    "latency": "INCONCLUSIVE_WARM_P95_STABILITY",
+    "nextDirection": "Prioritize a material measured source-level bundle reduction without removing trust validators. Declare a new complete paired series after a material candidate change or an independently justified larger sample plan; preserve this inconclusive report. No immediate retry-until-pass.",
+    "production": false,
+    "mainChanged": false,
+    "mainObserved": "abfb6313f12efb66b9096b60472b6dd457094485",
+    "versionBumped": false,
+    "physicalDeviceAndRealGist": "NOT_RUN"
+  }
+}
