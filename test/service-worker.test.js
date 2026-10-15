@@ -27,6 +27,7 @@ function createServiceWorkerHarness(source, {
   let skipped = 0;
   const client = {
     id: 'client-1',
+    type: 'window',
     url: 'https://example.test/FundVal/',
     postMessage(message) { clientMessages.push(message); },
   };
@@ -69,6 +70,7 @@ function createServiceWorkerHarness(source, {
   async function dispatchWithLifetime(type, event = {}) {
     let lifetime = Promise.resolve();
     listeners.get(type)({
+      origin: 'https://example.test',
       ...event,
       waitUntil(promise) { lifetime = Promise.resolve(promise); },
     });
@@ -116,7 +118,6 @@ test('service worker isolates version caches, preserves old tabs during upgrades
   assert.match(source, /previous\.slice\(1\)/);
   assert.match(source, /updateRequester[\s\S]*self\.clients\.get\(updateRequester\.id\)[\s\S]*client\.postMessage\(\{ type: 'UPDATE_ACTIVATED'/);
   assert.doesNotMatch(source, /client\.navigate\(/);
-  assert.match(source, /event\.source\.id[\s\S]*event\.source\.url/);
   assert.match(source, /event\.waitUntil\(\(async \(\) => \{/);
   for (const name of ['networkFirst', 'cacheFirst', 'staleWhileRevalidate']) {
     assert.match(functionBody(source, name), /Response\.error\(\)/, `${name} must return a Response when offline without a cache`);
@@ -138,7 +139,11 @@ test('service worker isolates version caches, preserves old tabs during upgrades
   assert.doesNotMatch(functionBody(source, 'cacheFirst'), /caches\.match\(/);
   assert.match(source, /extendLifetime\(event, update\.then/);
   assert.match(source, /GET_VERSION[\s\S]*event\.ports\[0\]\.postMessage\(\{ cache: CACHE \}\)/);
-  assert.match(source, /SKIP_WAITING'[\s\S]*event\.waitUntil\(self\.skipWaiting\(\)\)/);
+  const authenticated = createServiceWorkerHarness(source);
+  await authenticated.dispatchWithLifetime('message', { data: { type: 'SKIP_WAITING' }, source: authenticated.client });
+  assert.equal(authenticated.skipped, 1, 'a legitimate waiting-worker requester remains supported');
+  await authenticated.dispatchWithLifetime('message', { origin: 'https://untrusted.invalid', data: { type: 'SKIP_WAITING' }, source: authenticated.client });
+  assert.equal(authenticated.skipped, 1, 'an untrusted origin cannot activate the worker');
   for (const runtimeModule of [
     'quote-contract.js', 'quote-presentation.js', 'quote-normalizer.js', 'market-session.js', 'source-registry.js',
     'refresh-generation.js', 'refresh-coordinator.js', 'request-signal.js',

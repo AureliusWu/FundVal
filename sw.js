@@ -68,33 +68,73 @@ self.addEventListener('activate', event => {
     // worker-side navigate() would bypass that last guard and could lose input
     // typed during activation.
     if (updateRequester && updateRequester.id) {
-      const client = await self.clients.get(updateRequester.id);
-      if (client && typeof client.postMessage === 'function') {
-        client.postMessage({ type: 'UPDATE_ACTIVATED', cache: CACHE });
-      }
+      try {
+        const client = await self.clients.get(updateRequester.id);
+        if (client && client.id === updateRequester.id && client.type === 'window'
+          && appPageUrl(client.url) === updateRequester.url && typeof client.postMessage === 'function') {
+          client.postMessage({ type: 'UPDATE_ACTIVATED', cache: CACHE });
+        }
+      } catch (_) { /* A closed or unavailable requester must not affect other tabs. */ }
     }
   })());
 });
 
+function appPageUrl(value) {
+  if (typeof value !== 'string') return null;
+  try {
+    const base = new URL('./', self.location.href);
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) && url.protocol === base.protocol
+      && !url.username && !url.password && url.origin === base.origin
+      && (url.pathname === base.pathname || url.pathname === base.pathname + 'index.html') ? url.href : null;
+  } catch (_) { return null; }
+}
+
+async function messageClient(event) {
+  const source = event.source;
+  if (!source || typeof source.id !== 'string' || !source.id.trim() || source.type !== 'window') return null;
+  const url = appPageUrl(source.url);
+  if (!url) return null;
+  // A waiting worker does not control its requester yet. Resolve identity,
+  // not controller membership, and recheck its current document URL.
+  const client = await self.clients.get(source.id);
+  return client && client.id === source.id && client.type === 'window' && appPageUrl(client.url) === url ? client : null;
+}
+
+function notificationTarget(value) {
+  const base = new URL('./', self.location.href).href;
+  if (typeof value !== 'string') return base;
+  try { return appPageUrl(new URL(value, base).href) || base; }
+  catch (_) { return base; }
+}
+
 self.addEventListener('message', event => {
-  const data = event.data || {};
-  if (data.type === 'SKIP_WAITING') {
-    updateRequester = event.source && event.source.id
-      ? { id: event.source.id, url: event.source.url || './' }
-      : null;
-    event.waitUntil(self.skipWaiting());
-    return;
-  }
-  if (data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
-    event.ports[0].postMessage({ cache: CACHE });
-    return;
-  }
-  if (data.type === 'notify') {
-    event.waitUntil(self.registration.showNotification(data.title || '蜉蝣基金', {
-      body: data.body || '', icon: './icon-192.png', badge: './icon-192.png',
-      tag: data.tag || 'fuyu-notify', renotify: true, data: { url: data.url || './' }
-    }));
-  }
+  if (event.origin !== self.location.origin) return;
+  const data = event.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)
+    || !['SKIP_WAITING', 'GET_VERSION', 'notify'].includes(data.type)) return;
+  // Register the entire authentication/action lifetime synchronously, before
+  // awaiting clients.get(). Never act on caller-supplied identity or URL alone.
+  event.waitUntil((async () => {
+    try {
+      const client = await messageClient(event);
+      if (!client) return;
+      if (data.type === 'SKIP_WAITING') {
+        const requesterUrl = appPageUrl(client.url);
+        if (!requesterUrl) return;
+        updateRequester = { id: client.id, url: requesterUrl };
+        await self.skipWaiting();
+      } else if (data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ cache: CACHE });
+      } else if (data.type === 'notify') {
+        await self.registration.showNotification(typeof data.title === 'string' && data.title || '蜉蝣基金', {
+          body: typeof data.body === 'string' ? data.body : '', icon: './icon-192.png', badge: './icon-192.png',
+          tag: typeof data.tag === 'string' && data.tag || 'fuyu-notify', renotify: true,
+          data: { url: notificationTarget(data.url) }
+        });
+      }
+    } catch (_) { /* Client disappearance or denied notifications safely do nothing; never log payloads. */ }
+  })());
 });
 
 self.addEventListener('fetch', event => {
@@ -140,11 +180,14 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const target = event.notification.data && event.notification.data.url || './';
-  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-    const client = list[0];
-    return client ? client.focus() : clients.openWindow(target);
-  }));
+  const target = notificationTarget(event.notification.data && event.notification.data.url);
+  event.waitUntil((async () => {
+    try {
+      const list = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const client = list.find(item => item.type === 'window' && appPageUrl(item.url) && typeof item.focus === 'function');
+      return client ? await client.focus() : await clients.openWindow(target);
+    } catch (_) { /* Notification clicks must not expose data or force another page to navigate. */ }
+  })());
 });
 
 async function networkFirst(request, event, navigationFallback = null, fetchOptions = undefined) {
