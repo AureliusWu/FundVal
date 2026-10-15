@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "observedAtHostUtc": "2026-10-15T06:51:34.324Z",
+  "scope": "Independent read-only GitHub CLI/API inspection of exact commit and run. No workflow rerun, artifact download, repository edits, network writes, deployment, or inheritance of older SHA results.",
+  "repository": "AureliusWu/FundVal",
+  "commit": "e750daebb0219ef17b227fdd9a6ceca3ae5b6382",
+  "run": {
+    "id": 38694431660,
+    "url": "https://github.com/AureliusWu/FundVal/actions/runs/38694431660",
+    "workflow": "FundVal CI",
+    "event": "push",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-10-15T06:46:22Z",
+    "updatedAt": "2026-10-15T06:48:14Z"
+  },
+  "jobs": [
+    {
+      "id": 116287575150,
+      "name": "codeql",
+      "status": "completed",
+      "conclusion": "success",
+      "failedSteps": []
+    },
+    {
+      "id": 116287575448,
+      "name": "candidate",
+      "status": "completed",
+      "conclusion": "failure",
+      "failedSteps": [
+        {
+          "number": 15,
+          "name": "Enforce actual M3 app bundle budget",
+          "exitCode": 1
+        }
+      ],
+      "passed": [
+        "Pin npm runtime",
+        "Install reviewed locked dependencies",
+        "Audit dependencies",
+        "Test and syntax check",
+        "Build static Pages candidate",
+        "Verify Pages artifact",
+        "Install Chrome for E2E",
+        "Run hermetic browser E2E",
+        "Seal immutable candidate",
+        "Upload immutable candidate"
+      ],
+      "skipped": [
+        "Preserve failed synthetic E2E diagnostics",
+        "Post Run actions/setup-node"
+      ]
+    }
+  ],
+  "checks": {
+    "source": "Exact candidate-job logs and job step metadata, not local commands.",
+    "npmAudit": {
+      "step": "Audit dependencies",
+      "command": "npm audit --audit-level=high --registry=https://registry.npmjs.org",
+      "conclusion": "success",
+      "log": "2026-10-15T06:46:43.1392319Z found 0 vulnerabilities",
+      "newDependencyCveObserved": false,
+      "boundary": "Registry assessment observed at this CI run time, not a future guarantee or a clean CodeQL claim."
+    },
+    "unit": {
+      "tests": 966,
+      "pass": 966,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 5545.212017,
+      "platform": "Linux ubuntu-latest"
+    },
+    "syntax": {
+      "files": 197,
+      "conclusion": "success"
+    },
+    "build": {
+      "chunks": 16,
+      "rawBytes": 237665,
+      "coldGzipBytes": 42907,
+      "allGzipBytes": 81158,
+      "conclusion": "success"
+    },
+    "assets": {
+      "appChunks": 16,
+      "appRawBytes": 237665,
+      "ocrAssets": 23,
+      "ocrBytes": 88196906,
+      "conclusion": "success",
+      "boundary": "CI bytes/SHA checks; OCR not executed."
+    },
+    "e2e": {
+      "passed": 27,
+      "total": 27,
+      "seconds": 45.4,
+      "conclusion": "success",
+      "boundary": "Hermetic synthetic browser suite, not real Gist/device/production."
+    },
+    "budget": {
+      "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+      "baselineAllNonOcrGzipBytes": 70207,
+      "actualColdStartGzipBytes": 42907,
+      "actualAllNonOcrGzipBytes": 81158,
+      "coldBudgetBytes": 52241,
+      "allBudgetNumerator": 772277,
+      "allBudgetDenominator": 10,
+      "allBudgetBytes": 77227.7,
+      "coldPass": true,
+      "allPass": false,
+      "pass": false,
+      "verdict": "FAIL",
+      "importClosureVerified": false,
+      "minimumIntegerReductionBytes": 3931
+    },
+    "seal": {
+      "siteFiles": 126,
+      "siteInventoryFingerprint": "3792400e7681f6d9131b6bdffbc6bc879c2736a8d84646cbaea0dea6815b6b30",
+      "conclusion": "success",
+      "fingerprintMeaning": "manifest.site.fingerprint printed by scripts/release-candidate.mjs:186; not releaseFingerprint, source SHA, artifact ZIP digest, or independent downloaded-byte verification."
+    }
+  },
+  "artifact": {
+    "id": 11953392758,
+    "name": "fundval-candidate-e750daebb0219ef17b227fdd9a6ceca3ae5b6382-1",
+    "sizeInBytes": 92623258,
+    "expired": false,
+    "createdAt": "2026-10-15T06:48:11Z",
+    "uploadedZipSha256": "65da897127016e6e5cc754d2231854bdbd21b0288f8612fdef833090f5657f64",
+    "url": "https://github.com/AureliusWu/FundVal/actions/runs/38694431660/artifacts/11953392758",
+    "downloaded": false,
+    "boundary": "Metadata and successful seal/upload logs only; red WIP artifact is not deployable release."
+  },
+  "codeql": {
+    "analysisId": 1957444784,
+    "commit": "e750daebb0219ef17b227fdd9a6ceca3ae5b6382",
+    "ref": "refs/heads/codex/v16.0.0-m3-continuation",
+    "createdAt": "2026-10-15T06:47:24Z",
+    "toolVersion": "2.27.2",
+    "rulesCount": 103,
+    "resultsCount": 2,
+    "error": "",
+    "warning": "",
+    "exactCommitAlerts": [
+      {
+        "number": 7,
+        "state": "open",
+        "ruleId": "js/missing-origin-check",
+        "securitySeverity": "medium",
+        "path": "sw.js",
+        "line": 79,
+        "message": "Postmessage handler has no origin check.",
+        "createdAt": "2026-09-30T07:47:46Z",
+        "updatedAt": "2026-10-03T04:13:33Z",
+        "url": "https://github.com/AureliusWu/FundVal/security/code-scanning/7"
+      },
+      {
+        "number": 5,
+        "state": "open",
+        "ruleId": "js/http-to-file-access",
+        "securitySeverity": "medium",
+        "path": "scripts/refresh-fund-catalog.mjs",
+        "line": 65,
+        "message": "Write to file system depends on Untrusted data.",
+        "createdAt": "2026-09-30T07:47:46Z",
+        "updatedAt": "2026-10-03T04:13:33Z",
+        "url": "https://github.com/AureliusWu/FundVal/security/code-scanning/5"
+      }
+    ],
+    "otherReturnedAlert": {
+      "number": 3,
+      "state": "fixed",
+      "ruleId": "js/file-system-race",
+      "securitySeverity": "high",
+      "mostRecentInstanceCommit": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+      "boundary": "Returned by branch alert query but not a current exact e750dae analysis result."
+    },
+    "boundary": "Analysis job success is not zero findings. Two current exact-SHA findings are existing open alerts created Sep30; no new alert observed in this response. No alert dismissal or exploitability/false-positive determination made.",
+    "checkRuns": {
+      "total": 2,
+      "names": [
+        "candidate",
+        "codeql"
+      ],
+      "independentCodeqlCheckObserved": false
+    }
+  },
+  "warnings": {
+    "artifactUploadAction": [
+      "DEP0040 punycode deprecated",
+      "DEP0169 url.parse() deprecation/security-implication warning"
+    ],
+    "boundary": "Observed action-runtime deprecation warnings, not npm audit CVEs or an additional failed CI step."
+  },
+  "verdict": "Exact run fails only the original all-non-OCR gzip gate among executed workflow steps. npm audit found zero vulnerabilities; CodeQL retains two existing medium alerts. No release/deployment approval.",
+  "commands": [
+    "gh run view 38694431660 --repo AureliusWu/FundVal --json databaseId,headSha,name,event,status,conclusion,createdAt,updatedAt,url,jobs",
+    "gh run view 38694431660 --repo AureliusWu/FundVal --job 116287575448 --log (selected stable outcome lines; initial phase-name filter was too broad and truncated, then reread same exact job with anchored message patterns)",
+    "gh api --method GET repos/AureliusWu/FundVal/code-scanning/analyses -f ref=refs/heads/codex/v16.0.0-m3-continuation -f per_page=30 (exact commit selection)",
+    "gh api --method GET repos/AureliusWu/FundVal/code-scanning/alerts -f ref=refs/heads/codex/v16.0.0-m3-continuation -f per_page=100",
+    "gh api repos/AureliusWu/FundVal/actions/runs/38694431660/artifacts",
+    "gh api repos/AureliusWu/FundVal/commits/e750daebb0219ef17b227fdd9a6ceca3ae5b6382/check-runs"
+  ]
+}

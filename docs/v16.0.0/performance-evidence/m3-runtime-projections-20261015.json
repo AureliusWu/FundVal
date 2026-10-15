@@ -1,0 +1,482 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "observedAt": "2026-10-15T07:17:08.636Z",
+  "version": "15.0.2",
+  "binding": {
+    "parentCommit": "e750daebb0219ef17b227fdd9a6ceca3ae5b6382",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "scope": "Frozen local working-tree implementation; source paths/bytes/hash identify measured content, not a claim of CI or deployment for a future commit.",
+    "runtime": "v24.14.0",
+    "sourceDateEpoch": "1792046773",
+    "productionInputsAndTests": {
+      "files": 214,
+      "bytes": 4895600,
+      "sha256": "48690b20efe19899291cf353a81ca0b8d6b0fef8270f1056f5e0e11c5b1684cf",
+      "unchanged": true
+    },
+    "modifiedFiles": [
+      {
+        "path": "e2e/v16-service-worker-messages.spec.js",
+        "bytes": 5752,
+        "sha256": "57366ebc35fdf88c463195a8889e1c85659772055f8ddcb3553a9855fe93bfba"
+      },
+      {
+        "path": "js/notifications/notification-controller.js",
+        "bytes": 4267,
+        "sha256": "818ef80ed17686b2cf03809122b0918828514e9066c7445cc390a443042647c4"
+      },
+      {
+        "path": "js/runtime/notification-policy-runtime.js",
+        "bytes": 2241,
+        "sha256": "be995d1fed7c6bc37dd9a10d8af8d7e81cb427e9ce662020eeb24c43b268f410"
+      },
+      {
+        "path": "js/runtime/refresh-execution.js",
+        "bytes": 17340,
+        "sha256": "6ce61199e3c8dc32e9b23f03f758afd2f0a745a21707ce4365f01d6e49f53583"
+      },
+      {
+        "path": "js/runtime/refresh-plan.js",
+        "bytes": 11956,
+        "sha256": "9b10a4a8d862d00d9bea3fd592f4dc439740f69f8c04161e619de7bfcbf7e9e5"
+      },
+      {
+        "path": "js/runtime/security-quote-batch.js",
+        "bytes": 12770,
+        "sha256": "6a944c6f279f865409ef57587bd4d80610b8a1786f5b3f8dabb18eea4317d529"
+      },
+      {
+        "path": "sw.js",
+        "bytes": 12436,
+        "sha256": "1f904830e069679ba55020dd8fd102dae6c8f48b0343c508ee7ce1d609b5979c"
+      },
+      {
+        "path": "test/notification-runtime-characterization-v16.test.js",
+        "bytes": 22789,
+        "sha256": "ce4c8d9805e19b95e1a912478fc3fda5934fd4071c8b701542a8dbe40ed55d2b"
+      },
+      {
+        "path": "test/runtime-plan-characterization-v16.test.js",
+        "bytes": 29177,
+        "sha256": "d323373e320148fb2b570ce20bacc5563740ec5346e8218c32563cbdd9855838"
+      },
+      {
+        "path": "test/service-worker-message-security-v16.test.js",
+        "bytes": 9419,
+        "sha256": "11dcca119b89ffc0a2b47d6c70cf38120d844c22a9998a93de900d3a1b7a24b0"
+      },
+      {
+        "path": "test/service-worker.test.js",
+        "bytes": 14719,
+        "sha256": "22361cc424ddb23782d80fd9927bf8d43e850c5c067b0a2718f4f5de5fd267df"
+      }
+    ],
+    "buildRecipeUnmodified": true,
+    "dependenciesConfigAndBudgetsUnmodified": true
+  },
+  "changes": {
+    "notification": {
+      "path": "js/runtime/notification-policy-runtime.js",
+      "contract": "Closed boolean result only; all original input/time/cache/valuation guards retained; original detailed API file byte-identical.",
+      "publicAliasGreen": {
+        "tests": 49,
+        "pass": 49
+      },
+      "candidateGreen": {
+        "tests": 50,
+        "pass": 50
+      },
+      "permanentTests": 12,
+      "nativeCases": 7542,
+      "proxyTraces": 32,
+      "sentinelCases": 192,
+      "independentAstProjectionNegativeControls": 3,
+      "productionClosureNegativeControls": true,
+      "virtualThreeRoundGzip": {
+        "before": 81158,
+        "after": 80674
+      },
+      "boundary": "Alias first stage has no candidate AST projection test; GREEN to GREEN characterization, not a bug-fix RED."
+    },
+    "runtimePlans": {
+      "path": "js/runtime/refresh-plan.js",
+      "contract": "Full shared cache validators; internal execution metadata projection. Public complete factories unchanged, including reason/key order/freezing; private validators are not dropped or duplicated.",
+      "publicContracts": [
+        {
+          "name": "createRefreshPlan",
+          "fullRawBytes": 3045,
+          "fullSha256": "efb78650b00a9f5777bdc3e2c8126e4624ed53d5ada2ad7094f0b27fb1f2a827",
+          "bodyRawBytes": 2874,
+          "bodySha256": "facbcc632d64a62ac5e87d64c0a28d26ba30a24a804265cae0baad61eb07e50a",
+          "byteIdentical": true
+        },
+        {
+          "name": "createSecurityQuotePlan",
+          "fullRawBytes": 1845,
+          "fullSha256": "541daa07c44d3030fe6d35b662c5a14ec437500db0a8efad1e0f99f1bf3bb027",
+          "bodyRawBytes": 1730,
+          "bodySha256": "cdb8afdf86c6a067711f7fad0f371991480e26322d2c8f57d00edc057656863f",
+          "byteIdentical": true
+        }
+      ],
+      "characterization": {
+        "wrapperBaseline": {
+          "tests": 170,
+          "pass": 170,
+          "fail": 0
+        },
+        "sharedCoreInitial": {
+          "tests": 170,
+          "pass": 170,
+          "fail": 0
+        },
+        "sharedCoreGuardFinal": {
+          "tests": 171,
+          "pass": 171,
+          "fail": 0
+        }
+      },
+      "permanentTests": 12,
+      "closedProductionCalls": {
+        "refresh": 1,
+        "security": 2
+      },
+      "independentReview": "No blocking finding; exact three qualified source files and unchanged public function bodies cross-checked; independent12/12 overlaps main171 and full1012.",
+      "virtualThreeRoundGzip": {
+        "before": 81158,
+        "sharedValidatorAfter": 80905,
+        "duplicateValidatorAfter": 80854,
+        "adopted": "sharedValidator",
+        "reason": "Avoid duplicated validator maintenance; do not add independent gains to infer combined result."
+      },
+      "fixtureNote": "Initial new TTL-expiry fixture had fetchedAt newer than cachedAt and failed with correct cache_metadata_invalid. Fixture corrected to genuinely reach expiry; business semantics not weakened. Later intentionally invalid-fixture reproduction is separately labeled, not the original first-run log."
+    },
+    "serviceWorker": {
+      "path": "sw.js",
+      "contract": "Exact origin and live app WindowClient authentication before actions; waiting old-controlled page allowed; one synchronous waitUntil; activation requester recheck; notify preserved with safe click targets/windows.",
+      "cacheVersionAndCoreUnchanged": true,
+      "initialOldSourceRed": {
+        "tests": 18,
+        "pass": 1,
+        "fail": 17
+      },
+      "finalOldSourceNegativeControl": {
+        "tests": 22,
+        "pass": 1,
+        "fail": 21
+      },
+      "finalTargetedGreen": {
+        "tests": 35,
+        "pass": 35,
+        "skip": 0
+      },
+      "nativeBrowser": {
+        "pass": true,
+        "durationSeconds": 2.7,
+        "boundary": "Actual source worker with synthetic same-origin document/CORE server; verifies real origin/Client/waiting/activation protocol, not production app UI/real notification permissions/physical devices."
+      },
+      "remaining": "Reverse UPDATE_ACTIVATED sender authentication and dynamic real-app two-tab dirty/drain coverage remain future adjacent work. No claim of isolating fully malicious same-origin JavaScript, cross-site exploit proof, CodeQL closure or #5 resolution."
+    }
+  },
+  "checks": {
+    "unit": {
+      "tests": 1012,
+      "pass": 1009,
+      "fail": 0,
+      "skipped": 3,
+      "durationMs": 6269.7289,
+      "skipReason": "Existing Windows symlink privilege-conditional cases; Linux exact new-SHA result not observed at this checkpoint."
+    },
+    "syntax": {
+      "files": 202,
+      "pass": true
+    },
+    "audit": {
+      "vulnerabilities": 0,
+      "highAuditExitCode": 0
+    },
+    "e2e": {
+      "tests": 28,
+      "pass": 28,
+      "seconds": 44.6,
+      "ownedPort": 12437,
+      "listenerExited": true,
+      "port4173Untouched": true,
+      "synthetic": true
+    },
+    "commands": [
+      {
+        "label": "unit",
+        "command": "npm test",
+        "exitCode": 0,
+        "signal": null,
+        "durationMs": 6695,
+        "stdoutSha256": "660970db8f18d28e37b304a959b8dcfecb8042cd34649964c9362462c05a84e5",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "error": null
+      },
+      {
+        "label": "syntax",
+        "command": "npm run check",
+        "exitCode": 0,
+        "signal": null,
+        "durationMs": 9976,
+        "stdoutSha256": "506acf9d9dafd2366c4de009cc7df18917185d78211060a4bba8a08071e1707d",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "error": null
+      },
+      {
+        "label": "audit",
+        "command": "npm audit --audit-level=high --registry=https://registry.npmjs.org",
+        "exitCode": 0,
+        "signal": null,
+        "durationMs": 9272,
+        "stdoutSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "error": null
+      },
+      {
+        "label": "build-1",
+        "command": "npm run build",
+        "exitCode": 0,
+        "signal": null,
+        "durationMs": 2669,
+        "stdoutSha256": "0b77f833f957d46040673a47bdb108d96ed70a7788f0c86085a9060432e6b5e9",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "error": null
+      },
+      {
+        "label": "e2e",
+        "command": "npm run test:e2e",
+        "exitCode": 0,
+        "signal": null,
+        "durationMs": 47365,
+        "stdoutSha256": "94932ad785769e44280089ea2a66df6962ce807d3a9bba11cf4dfa292ea0b07b",
+        "stderrSha256": "9bf69e1888e96983b75fba89bdb9a97b32d7d7dc6dc67498d04f0c5918319a85",
+        "error": null
+      },
+      {
+        "label": "build-2",
+        "command": "npm run build",
+        "exitCode": 0,
+        "signal": null,
+        "durationMs": 1941,
+        "stdoutSha256": "0b77f833f957d46040673a47bdb108d96ed70a7788f0c86085a9060432e6b5e9",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "error": null
+      },
+      {
+        "label": "build-3",
+        "command": "npm run build",
+        "exitCode": 0,
+        "signal": null,
+        "durationMs": 1445,
+        "stdoutSha256": "0b77f833f957d46040673a47bdb108d96ed70a7788f0c86085a9060432e6b5e9",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "error": null
+      },
+      {
+        "label": "budget",
+        "command": "node scripts/release-fingerprint.mjs --assert-app-bundle-budget site",
+        "exitCode": 1,
+        "signal": null,
+        "durationMs": 96,
+        "stdoutSha256": "27be1bf618dcbe04b933260570f85fdc7dc200396fb803205cff4400201d4940",
+        "stderrSha256": "76f01e1617df388e4f12f51a4dc37d9fb02bb322be1b3a69cb426cf597411405",
+        "error": null
+      }
+    ],
+    "deterministicBuilds": true,
+    "builds": [
+      {
+        "round": 1,
+        "app": {
+          "chunkCount": 16,
+          "totalBytes": 235415,
+          "actualColdStartGzipBytes": 42907,
+          "actualAllNonOcrGzipBytes": 80394
+        },
+        "ocr": {
+          "assetCount": 23,
+          "totalBytes": 88196906
+        },
+        "critical": "74c4a504c27c2b48fe8d91e981fef79d945d6e54c965da055e1b3154f81094a8",
+        "whole": {
+          "files": 127,
+          "bytes": 92506072,
+          "sha256": "3032ccdf6c57a945491bb44b00e7169e722977d81e2103934694fcb7bec5e07b"
+        }
+      },
+      {
+        "round": 2,
+        "app": {
+          "chunkCount": 16,
+          "totalBytes": 235415,
+          "actualColdStartGzipBytes": 42907,
+          "actualAllNonOcrGzipBytes": 80394
+        },
+        "ocr": {
+          "assetCount": 23,
+          "totalBytes": 88196906
+        },
+        "critical": "74c4a504c27c2b48fe8d91e981fef79d945d6e54c965da055e1b3154f81094a8",
+        "whole": {
+          "files": 127,
+          "bytes": 92506072,
+          "sha256": "3032ccdf6c57a945491bb44b00e7169e722977d81e2103934694fcb7bec5e07b"
+        }
+      },
+      {
+        "round": 3,
+        "app": {
+          "chunkCount": 16,
+          "totalBytes": 235415,
+          "actualColdStartGzipBytes": 42907,
+          "actualAllNonOcrGzipBytes": 80394
+        },
+        "ocr": {
+          "assetCount": 23,
+          "totalBytes": 88196906
+        },
+        "critical": "74c4a504c27c2b48fe8d91e981fef79d945d6e54c965da055e1b3154f81094a8",
+        "whole": {
+          "files": 127,
+          "bytes": 92506072,
+          "sha256": "3032ccdf6c57a945491bb44b00e7169e722977d81e2103934694fcb7bec5e07b"
+        }
+      }
+    ],
+    "warnings": [
+      "E2E child processes report FORCE_COLOR overriding NO_COLOR; not an additional failing test.",
+      "Git LF-to-CRLF checkout warnings, scoped/full diff --check exit0; no config changed."
+    ]
+  },
+  "performance": {
+    "baseline": {
+      "commit": "e750daebb0219ef17b227fdd9a6ceca3ae5b6382",
+      "chunks": 16,
+      "rawBytes": 237665,
+      "allGzipBytes": 81158,
+      "coldGzipBytes": 42907,
+      "wholeSiteBytes": 92499248
+    },
+    "current": {
+      "chunks": 16,
+      "rawBytes": 235415,
+      "allGzipBytes": 80394,
+      "coldGzipBytes": 42907,
+      "wholeSiteBytes": 92506072
+    },
+    "delta": {
+      "appRawBytes": -2250,
+      "appAllGzipBytes": -764,
+      "appColdGzipBytes": 0,
+      "wholeSiteBytes": 6824
+    },
+    "budget": {
+      "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+      "baselineAllNonOcrGzipBytes": 70207,
+      "actualColdStartGzipBytes": 42907,
+      "actualAllNonOcrGzipBytes": 80394,
+      "coldBudgetBytes": 52241,
+      "allBudgetNumerator": 772277,
+      "allBudgetDenominator": 10,
+      "allBudgetBytes": 77227.7,
+      "coldPass": true,
+      "allPass": false,
+      "pass": false,
+      "verdict": "FAIL",
+      "importClosureVerified": false
+    },
+    "minimumIntegerReductionStillRequired": 3167,
+    "interpretation": "Actual fixed3 combined builds, original recipe/groups/minifier unchanged. Entire copied website grows because source/SW plaintext retained. App bundle reduction does not prove startup/interaction speed improvement.",
+    "latencyPair": {
+      "rerun": false,
+      "prior": "200-pair security-aligned comparison remains INCONCLUSIVE; warm p95 CI width24.457% exceeds20% stability bound. No inherited latency PASS."
+    }
+  },
+  "liveSource": {
+    "protocol": {
+      "function": "fetchEstimateRows",
+      "codes": [
+        "005844",
+        "012920"
+      ],
+      "options": {
+        "force": true
+      },
+      "explicitNow": false,
+      "method": "GET",
+      "samples": 5,
+      "timeoutMs": 10000,
+      "runtime": "v24.14.0",
+      "envProxy": true,
+      "syntheticOrPublicDataOnly": true,
+      "holdingsTokenOrScreenshotsUsed": false
+    },
+    "accepted": 0,
+    "rejected": 5,
+    "errors": {
+      "REQUEST_TIMEOUT": 2,
+      "WORKER_METADATA_INVALID": 3
+    },
+    "comparedRows": 0,
+    "predicatesEquivalent": null,
+    "comparisonStatus": "NOT_EVALUATED_NO_ACCEPTED_ROWS",
+    "ingestionStatus": "SOURCE_INGESTION_NOT_VERIFIED",
+    "rawOriginalFieldsPreserved": {
+      "allRowsPredicatesEqual": true,
+      "verdict": "CONDITIONALLY_TRUSTED_SOURCE_BOUNDARY_ONLY"
+    },
+    "correction": "Original raw script boolean is vacuous over zero rows and unconditional trust label is not acceptance; both preserved for traceability, explicitly not used as PASS.",
+    "medianRejectedAttemptMs": 7164.9722,
+    "worstRejectedAttemptMs": 10018.938400000001,
+    "metadataDiagnostic": {
+      "schema": 1,
+      "kind": "One separately labeled raw metadata diagnostic, not a replacement of five failed app-shape samples",
+      "startedAt": "2026-10-15T07:13:53.051Z",
+      "method": "GET",
+      "readOnly": true,
+      "sourceGuardOrClockChanged": false,
+      "error": {
+        "name": "TimeoutError",
+        "code": 23
+      },
+      "durationMs": 10020
+    },
+    "rootCause": "UNCONFIRMED: no successful raw response metadata captured; cannot choose generated/fetched future, schema/capability, clock drift, or transport cause.",
+    "guardOrClockChanged": false,
+    "sourceUnchanged": true,
+    "trustVerdictForFreshDataAcceptance": "NOT TRUSTWORTHY: evidence has no accepted data, not a claim upstream quoted NAV values are false."
+  },
+  "archive": {
+    "file": "m3-runtime-projections-20261015.bundle.json.gz.b64",
+    "fileCount": 71,
+    "rawBytes": 1155199,
+    "rawSha256": "e6141b0e08aad86f588aca2a4f99c233ab0fd4ae6eb802f0ab6d6d23f50310fd",
+    "gzipBytes": 241774,
+    "gzipSha256": "d7538eee3f53371cc5425b24bb8e6ce7f97371ec404af6cc35bba8145b976a01",
+    "base64Chars": 325055,
+    "encoding": "gzip(JSON UTF8 contents with original CRLF/LF) + base64120-column"
+  },
+  "priorExactCi": {
+    "file": "m3-e750-ci-20261015.json",
+    "commit": "e750daebb0219ef17b227fdd9a6ceca3ae5b6382",
+    "run": 38694431660,
+    "conclusion": "failure",
+    "onlyExecutedStepFailure": "actual all-non-OCR gzip budget",
+    "codeqlExistingMediumAlerts": [
+      5,
+      7
+    ],
+    "artifactDownloaded": false,
+    "notInherited": true
+  },
+  "pending": [
+    "Original all-gzip gate still FAIL; M3 cannot EXIT to M4.",
+    "No current implementation-SHA CI/CodeQL or production validation at this record.",
+    "No new relative latency pair, real Gist two-device, OCR execution, physical Android/iOS or production deployment.",
+    "Version remains15.0.2; no formal v16 release, main mutation or deployment."
+  ]
+}

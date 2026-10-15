@@ -1,8 +1,8 @@
 # M3 刷新图、模块化与性能：阶段检查点
-> 更新：2026-10-15（Asia/Shanghai）；第29节为本轮独立检查，第28节保留10月13～14日证据。状态：`IN PROGRESS / NOT RELEASED`。
+> 更新：2026-10-15（Asia/Shanghai）；第30节为本轮实施与独立检查，第28/29节保留此前排除证据。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：第29节完成22个各自在脚本中预设的虚拟变体实测；HTTP私有投影被原有28项表征的真实反例否决，其余没有材料性gzip收益，业务源码未改。10月15日新本地966 tests（963 PASS/3 skip）、syntax197、E2E27/27、三次build与资源核验通过；all仍 **81,158 > 77,227.7 B FAIL**，差 **3,931 B**。第27节200组配对总体 **INCONCLUSIVE** 保留，不重采样挑PASS；既有CI不冒充新文档提交的CI。M3不能EXIT，不能进入M4或正式发布。
+> 最新：第30节实施通知/刷新计划闭合运行投影及独立SW消息加固。新全量1012 tests（1009 PASS/3 skip）、syntax202、audit0、E2E28/28通过；三次实际构建all **80,394 B（−764）/cold42,907 B**，仍 **80,394 > 77,227.7 B FAIL**，至少差 **3,167 B**。真实主源五次0接受（2超时/3metadata拒绝），未放宽校验或宣称行情恢复。第27节旧200组pair仍 **INCONCLUSIVE**，未重跑挑PASS；父e750精确CI不继承到新源码。M3不能EXIT，不能进入M4或正式发布。
 
 ## 1. 已实现的刷新边界
 
@@ -817,3 +817,45 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 额外的只读字段活性追溯排除了直接删除primary_change/primary_nav/display写入：当前`app.js:587`与`refresh-resource-cache.js:260`是黑名单式持久化，不能拿resource ROW_FIELDS白名单套用aggregate；worker-contract的`...row`→eastmoney-estimate的`...wire`→app的`...r`允许未知同名字段到达。`test/cache-fund-identity-v16.test.js:130`附近明确要求可信quote覆盖这些派生值。原40e旧app在hydrate时会重建这些字段，primary_nav计算reader属于它自己的新网络build；不能宣称“v15会因新缓存缺少这些字段而不能打开”。真正未闭合的是当前opaque同名覆盖、共享v1缓存输出和身份隔离契约；仅凭当前UI没有直接reader就删写，会使同名值不再被可信quote覆盖，不能称等价减包。没有为这个不闭合方向运行字节试验或改断言。
 
 **没有合入新候选，没有取得新业务减包收益。M3仍IN PROGRESS，版本15.0.2，M4/M5/M6与正式发布均未开始。** 后续须找真正闭合的私有路径或以完整兼容设计消除重复投影，不再重复这22项helper/布局试验；不能仅凭文本搜索没命中就删字段。本轮结论不证明更大重构不存在，也不保证能填平预算。
+
+## 30. 闭合运行投影与 SW 消息认证的实际实施（2026-10-15）
+
+第29节是此前无业务改动的历史检查点。本节实际父提交为`e750daebb0219ef17b227fdd9a6ceca3ae5b6382`，在同一continuation分支实施以下独立改动；版本/依赖/构建配置/原预算不变。
+
+### 私有执行投影，保留完整公开契约
+
+- `notification-policy-runtime.js`只面向控制器的布尔判断，保留原全部guard、读取/短路/异常顺序；原公开`notification-policy.js`整文件原字节未变。真正磁盘alias阶段49/49 GREEN（无候选AST test）→实源50/50 GREEN，新增12项永久表征；不是Bug修复RED。7542 native、32 Proxy、192 sentinel、时钟/选项/控制器矩阵与AST三负控保持，生产目录全部静态消费者被护栏锁定。
+- `refresh-plan.js`新增闭合运行计划，公开完整factory原文不变。共享`cacheDecisionCore`保留原完整验证及Math.min/getter顺序，仅分离返回表示；生产不再生成未逃逸的reason/phase/provider等元数据。采用共享validator的253 B独立候选，而非收益304 B但复制validator的变体。
+- `refresh-execution.js`和`security-quote-batch.js`仅切换factory import alias；私有refresh1处、security2处均封闭literal调用，不接受任意spread/indexCodes。结果和嵌套resource只能进入已审执行消费者，追加alias/escape/字段读取负控。
+- 真实旧包装170/170→实源170/170→最终171/171 GREEN。12项永久测试有独立旧reason/字段顺序/冻结/16次getter期望，以及真实executor/detail/cache/取消路径，不把public注入harness当私有集成资格。新增TTL fixture最初时间倒置，原校验正确拒绝；修正fixture而非业务预期，后来失败复核另存。独立12/12审查与前组重叠，不累计。
+
+### 独立 SW 纵深加固
+
+`sw.js`先严格检查event.origin，再用clients.get复核当前app WindowClient的id/type/绝对URL；只允许项目根/index，拒绝其他页面、credentials、非同协议HTTP(S)目标。等待worker不要求已控制发起页面，异步校验和动作统一由同步登记的waitUntil保活；activate重查发起者，notify及点击独立约束安全目标和app窗口。缓存版本/CORE、网络缓存函数、app dirty/drain和旧兼容入口未改，不navigate旧页面、不额外全局claim。
+
+真正旧源首批18项为1 PASS/17 FAIL；最终旧源负控22项1 PASS/21 FAIL；新定向35/35 GREEN。新增原生Chrome用例执行实际worker source，以合成同源页面/CORE服务器验证真实origin/Client、拒绝兄弟/OCR页面、旧worker控制的合法waiting请求和ACK来源，2.7s通过。它不是生产UI、真实通知权限、完整恶意同源JS隔离、正式v15→v16升级或真机证明。反向ACK消息入口认证、真实app双tab dirty/drain动态验收仍待后续；#5目录导入告警未改、不suppress，不能预先宣称#7关闭。
+
+### root 完整检查与真实组合构建
+
+| 检查 | 当前实测 |
+| --- | --- |
+| npm test | 1012项/1009 PASS/0 FAIL/3 Windows条件skip，6269.7289ms |
+| syntax / audit | 202文件通过；0 vulnerabilities |
+| 浏览器E2E | 28/28，44.6s；自有12437退出，4173未动；合成桌面数据 |
+| 固定3次实际build | 16chunks/raw235415/all80394/cold42907，每轮一致；后两轮在E2E之后 |
+| app/OCR字节核验 | 16 chunks/235415 B；23 OCR assets/88196906 B；没有执行OCR |
+| 原budget CLI | exit1；cold42907/52241 PASS，all80394/77227.7 FAIL，至少差3167 B |
+
+固定epoch1792046773；214份生产输入/测试/脚本的检查前后逐字相同，独立复核亦与实盘一致。关键发布集为`74c4a504c27c2b48fe8d91e981fef79d945d6e54c965da055e1b3154f81094a8`；whole-site127文件/92506072 B/hash`3032ccdf6c57a945491bb44b00e7169e722977d81e2103934694fcb7bec5e07b`。
+
+对e750冻结基线：实际app raw−2250 B、all gzip−764 B、cold0，不能把单候选收益相加推算。whole-site因保留新source/SW明文反而+6824 B/+1文件，不能称全站减包。Vite8.2.2/oxc/es2022/五分组/依赖/原预算不改，原启动阶段图校验通过。三次确定性和静态包体积不是新启动/保存时延结论；旧200-pair总体INCONCLUSIVE未重跑、不继承PASS。
+
+### 父精确 CI 与当前真实源失败边界
+
+已实核父e750 CI[38694431660](https://github.com/AureliusWu/FundVal/actions/runs/38694431660)：Linux966/966、syntax197、audit0、E2E27/27，唯一失败步骤为all81158原预算；CodeQL成功扫描但仍2个既存medium（#5/#7），不能写成无告警。上传artifact11953392758仅核元数据、未下载；seal的site fingerprint不是关键发布指纹。此父结果不继承到新实现SHA。
+
+当前实际HTTP客户端、force:true且now缺省，固定5次公开GET为0接受：2 REQUEST_TIMEOUT、3 WORKER_METADATA_INVALID。另一次独立raw诊断也超时，无response metadata，所以尚不能定位generated/fetched/capabilities、时钟或transport具体原因。原件的allRowsPredicatesEqual:true是空集合every，条件可信标签也是脚本无条件赋值，均**不能作为PASS**：比较行数0、等价结论null，正确验收状态SOURCE_INGESTION_NOT_VERIFIED / POLICY_COMPARISON_NOT_EVALUATED。所有失败保留，未改时钟、Worker或放宽契约，不声称实时行情恢复、独立净值对账或生产数据通过。
+
+机器摘要、三阶段完整证据和71份原件见[运行投影证据说明](performance-evidence/m3-runtime-projections-20261015.md)，父CI见`m3-e750-ci-20261015.json`。压缩归档只保存文档证据，不进产品预算/SW/OCR；有限行为与AST护栏不是全程序证明。
+
+**M3仍IN PROGRESS，版本15.0.2；M4/M5/M6和正式发布尚未开始。** 下一步仍须消除原all-gzip缺口、定位真实主源拒绝并取得可重复时延证据，不以降低预算口径或跳过门禁进入下一里程碑。

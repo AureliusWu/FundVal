@@ -51,6 +51,8 @@ exit $LASTEXITCODE
 | `m3-public-source-readonly-20261013.json` | 真实HTTP客户端/env-proxy/缺省时钟：未强刷及app默认force:true各固定5次均5/5接受，首个9.89s/9.07s慢样本保留；005844 Oct12→13、012920 Oct9→12均正式NAV降级，非实时估算。另列显式请求开始now诊断1拒绝/4接受，不替换失败、不误报app Bug；无云写入/生产渲染或独立上游核对 |
 | `m3-rejected-structural-probes-20261013.json` | 17bb 内容上的12个各自在脚本中预设的虚拟变体（含负控/组合）各三轮，以及两轮真实导出库存；最佳组合仅−14 B，不实施任何候选。归档精确脚本、变体与原结果；新本地963 PASS/3 skip、syntax197、E2E27/27、app/OCR核验通过，all81,158仍FAIL，旧pair INCONCLUSIVE保留。无业务/配置/依赖/预算/版本/main/生产修改；不是新文档SHA的CI或发布证明 |
 | `m3-larger-boundary-probes-20261015.json` | 17bb 内容上7个独立脚本族的22个预设变体各3轮，均未实施；私有HTTP投影−120 B但原28/28、候选27/28表征证明改变safe rescue而否决，其余最大仅−34 B。新全量963 PASS/3 skip、syntax197、E2E27/27、三build/资源核验通过；all81,158仍FAIL，旧pair未重跑。19份精确LF原脚本/报告/TAP压缩归档，非CI/生产或M3 EXIT |
+| `m3-e750-ci-20261015.json` | 精确父e750 CI38694431660：Linux966/966、syntax197、audit0、E2E27/27，唯一失败all81158预算；CodeQL仍2个既存medium（#5/#7）。artifact仅元数据/未下载；不继承到新实现SHA |
+| `m3-runtime-projections-20261015.json` | 正式通知布尔入口、共享完整validator的私有计划、独立SW消息认证。新全量1012/1009 PASS/3skip、syntax202、audit0、E2E28/28；三实际build all80394/cold42907，−764 B但原预算仍FAIL/差3167 B。五真实源0接受，空every不算等价PASS；旧pair未重跑、无新CI/真机/生产验收。71份完整原件见同名前缀md及gzip/base64归档 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
@@ -74,3 +76,5 @@ exit $LASTEXITCODE
 最新结构减包排除和本地复核见上级 `M3_STATUS.md` 第28节及 [精确探针归档](rejected-probes-20261013/README.md)。所有候选均未实施，旧配对未重跑。归档中的 `.mjs.txt` 不属于业务源码或 package scripts，不应直接执行或覆盖历史报告；库存投影与原报告、graph SHA与产物指纹的边界详见归档说明。
 
 10月15日新增22候选及HTTP反例见第29节与 [19份精确原件压缩归档说明](rejected-probes-20261015.md)。较大HTTP/模型/时间解析/UI职责和静态排布都未取得合格收益；不改变原预算或旧pair结论。压缩归档只保存文档证据，不属于发布资源或产品减包手段。
+
+10月15日正式闭合运行投影与SW加固见第30节及[71份完整原件说明](m3-runtime-projections-20261015.md)。新all80394是三次组合构建的实值，不是两候选收益相加；whole-site明文实际增长6824 B。原件中五次0接受的allRowsPredicatesEqual:true与无条件条件可信标签已明确否决，不作为真实源/通知等价验收。
