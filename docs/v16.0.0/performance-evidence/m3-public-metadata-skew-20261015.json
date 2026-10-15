@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "status": "SEPARATE_BOUNDED_METADATA_DIAGNOSTIC_NOT_REPLACEMENT",
+  "startedAt": "2026-10-15T07:27:54.301Z",
+  "protocol": {
+    "attempts": 3,
+    "client": "fetchEstimateRows",
+    "options": {
+      "force": true
+    },
+    "explicitNow": false,
+    "method": "GET",
+    "envProxy": true,
+    "instrumentation": "Native response.json wrapper observes top-level public metadata before returning the exact same payload; small instrumentation overhead disclosed. No payload/clock/source validator changes.",
+    "originalFailedFiveReplaced": false
+  },
+  "samples": [
+    {
+      "attempt": 1,
+      "startAt": "2026-10-15T07:27:54.302Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 07:28:05 GMT",
+        "headersReceivedAt": "2026-10-15T07:28:01.621Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T07:28:01.626Z",
+        "schemaVersion": null,
+        "serviceVersion": null,
+        "generatedAt": null,
+        "fetchedAt": "2026-10-15T07:28:05.171Z",
+        "status": "degraded",
+        "source": "eastmoney_official_nav",
+        "capabilities": null,
+        "itemCount": 2,
+        "generatedAtMinusCaptureMs": null,
+        "fetchedAtMinusCaptureMs": 3545,
+        "httpDateMinusCaptureMs": 3374
+      },
+      "status": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 7324.6293000000005
+    },
+    {
+      "attempt": 2,
+      "startAt": "2026-10-15T07:28:01.627Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 07:28:05 GMT",
+        "headersReceivedAt": "2026-10-15T07:28:01.769Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T07:28:01.771Z",
+        "schemaVersion": null,
+        "serviceVersion": null,
+        "generatedAt": null,
+        "fetchedAt": "2026-10-15T07:28:05.171Z",
+        "status": "degraded",
+        "source": "eastmoney_official_nav",
+        "capabilities": null,
+        "itemCount": 2,
+        "generatedAtMinusCaptureMs": null,
+        "fetchedAtMinusCaptureMs": 3400,
+        "httpDateMinusCaptureMs": 3229
+      },
+      "status": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 143.58889999999974
+    },
+    {
+      "attempt": 3,
+      "startAt": "2026-10-15T07:28:01.771Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 07:28:05 GMT",
+        "headersReceivedAt": "2026-10-15T07:28:01.908Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T07:28:01.909Z",
+        "schemaVersion": null,
+        "serviceVersion": null,
+        "generatedAt": null,
+        "fetchedAt": "2026-10-15T07:28:05.171Z",
+        "status": "degraded",
+        "source": "eastmoney_official_nav",
+        "capabilities": null,
+        "itemCount": 2,
+        "generatedAtMinusCaptureMs": null,
+        "fetchedAtMinusCaptureMs": 3262,
+        "httpDateMinusCaptureMs": 3091
+      },
+      "status": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 138.33230000000003
+    }
+  ],
+  "sourceHashes": {
+    "js/eastmoney-estimate.js": "5ed4a84b2d513c7289afd5facfe961f86ccc9d01653e72915a96c5bb5c5bd1d6",
+    "js/runtime/worker-contract.js": "54bab1e12f3127b8d28b98185175864ea4dc420b2c862954ab542b3293aa2b44"
+  },
+  "completedAt": "2026-10-15T07:28:01.909Z",
+  "summary": {
+    "accepted": 0,
+    "capturedResponses": 3,
+    "rootCause": "Infer only from actually captured metadata; no relaxed-clock acceptance or source freshness claim."
+  }
+}

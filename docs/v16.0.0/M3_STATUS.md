@@ -2,7 +2,7 @@
 > 更新：2026-10-15（Asia/Shanghai）；第30节为本轮实施与独立检查，第28/29节保留此前排除证据。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：第30节实施通知/刷新计划闭合运行投影及独立SW消息加固。新全量1012 tests（1009 PASS/3 skip）、syntax202、audit0、E2E28/28通过；三次实际构建all **80,394 B（−764）/cold42,907 B**，仍 **80,394 > 77,227.7 B FAIL**，至少差 **3,167 B**。真实主源五次0接受（2超时/3metadata拒绝），未放宽校验或宣称行情恢复。第27节旧200组pair仍 **INCONCLUSIVE**，未重跑挑PASS；父e750精确CI不继承到新源码。M3不能EXIT，不能进入M4或正式发布。
+> 最新：第30节实施通知/刷新计划闭合运行投影及独立SW消息加固。新全量1012 tests（1009 PASS/3 skip）、syntax202、audit0、E2E28/28通过；精确1a02 CI另证Linux1012/1012、E2E28和CodeQL #7 fixed，既存#5仍在。三次实际构建all **80,394 B（−764）/cold42,907 B**，仍 **80,394 > 77,227.7 B FAIL**，至少差 **3,167 B**。真实主源五次0接受；后续单独3次捕获到fetched_at比本机未来约3.3～3.5s并被拒绝，未放宽校验或宣称行情恢复。旧200组pair仍 **INCONCLUSIVE**，不重跑挑PASS；CI不继承到后续文档SHA。M3不能EXIT或进入M4/发布。
 
 ## 1. 已实现的刷新边界
 
@@ -859,5 +859,13 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 机器摘要、三阶段完整证据和71份原件见[运行投影证据说明](performance-evidence/m3-runtime-projections-20261015.md)，父CI见`m3-e750-ci-20261015.json`。压缩归档只保存文档证据，不进产品预算/SW/OCR；有限行为与AST护栏不是全程序证明。
 
 提交时补充：先前tracked diff检查未包括新未跟踪文件；staged检查额外报告4份新测试文件的EOF空行（notification/runtime-plan/SW-message/native SW E2E）。保留已冻结/测量字节并记录为非阻断格式warning，不称完整whitespace PASS；源码语法/行为/E2E结果不因此改变。
+
+后续独立有界诊断（不替换上述五失败）：2026-10-15 07:27:54～07:28:01 UTC，真实HTTP客户端固定3次，native response.json仅旁观顶层metadata并返回原payload，未传now。三次均HTTP200、缺schema_version按代码为v1、source=eastmoney_official_nav/status=degraded；fetched_at均为07:28:05.171Z，比本机捕获时钟分别未来3545/3400/3262ms，HTTP Date亦未来3374/3229/3091ms，三次WORKER_METADATA_INVALID。由v1控制流可定位**本批三次**到`worker-contract.js:179-180`的未来fetched_at拒绝；不能单凭同origin两个时间断言哪端钟错，不能倒推此前三条无payload的metadata错误。旁观有轻微开销、不构成完全无观测扰动；没有修改payload、系统时钟、Worker或校验，也没有新接受数据/净值核对。完整独立记录与精确脚本见`m3-public-metadata-skew-20261015.{json,mjs.txt}`；它们不在此前已冻结的71份归档内。
+
+### 已推送业务内容的精确新 CI（不继承到本节后续文档 SHA）
+
+性能实现提交`3f6698c`、独立SW修复`952d822`，证据/格式warning说明合并后实际推送`1a02e3c88ece09ef2620c638b61bf7ed30b28112`。[精确run38698735715](https://github.com/AureliusWu/FundVal/actions/runs/38698735715)已实核completed/failure，唯一失败step15为all80394/77227.7原预算；不是测试或构建失败。Linux1012/1012（0 skip）、syntax202、audit0、E2E28/28（51.8s），app16/raw235415、OCR23/88196906均通过。
+
+新CodeQL analysis1957643413（103rules）仅1个结果：既存medium #5，实例确为1a02；#7在新分析中fixed，保留的last-instance仍e750只是历史行，不能误称新SHA告警，也不宣称main/生产已修复。没有关闭/suppress #5。artifact11954259001/92633686B已上传但未下载；seal日志`3a036fef79323c4b546356595700121b8e435d4317e5f46e9770683d3c511fcb`是site inventory，不是critical发布指纹，不能同本地固定epoch指纹混比。单次Getrun EOF后对同一run只读重查成功，未rerun/dispatch。完整信息见`m3-1a02-ci-20261015.json`；其后新增的文档与独立诊断记录不自动继承此精确SHA CI。
 
 **M3仍IN PROGRESS，版本15.0.2；M4/M5/M6和正式发布尚未开始。** 下一步仍须消除原all-gzip缺口、定位真实主源拒绝并取得可重复时延证据，不以降低预算口径或跳过门禁进入下一里程碑。

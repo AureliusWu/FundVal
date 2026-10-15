@@ -53,6 +53,8 @@ exit $LASTEXITCODE
 | `m3-larger-boundary-probes-20261015.json` | 17bb 内容上7个独立脚本族的22个预设变体各3轮，均未实施；私有HTTP投影−120 B但原28/28、候选27/28表征证明改变safe rescue而否决，其余最大仅−34 B。新全量963 PASS/3 skip、syntax197、E2E27/27、三build/资源核验通过；all81,158仍FAIL，旧pair未重跑。19份精确LF原脚本/报告/TAP压缩归档，非CI/生产或M3 EXIT |
 | `m3-e750-ci-20261015.json` | 精确父e750 CI38694431660：Linux966/966、syntax197、audit0、E2E27/27，唯一失败all81158预算；CodeQL仍2个既存medium（#5/#7）。artifact仅元数据/未下载；不继承到新实现SHA |
 | `m3-runtime-projections-20261015.json` | 正式通知布尔入口、共享完整validator的私有计划、独立SW消息认证。新全量1012/1009 PASS/3skip、syntax202、audit0、E2E28/28；三实际build all80394/cold42907，−764 B但原预算仍FAIL/差3167 B。五真实源0接受，空every不算等价PASS；旧pair未重跑、无新CI/真机/生产验收。71份完整原件见同名前缀md及gzip/base64归档 |
+| `m3-public-metadata-skew-20261015.json` | 后续单独固定3次真实HTTP GET旁观：3次200/v1、fetched_at比本机未来3545/3400/3262ms，均metadata拒绝。本批可定位未来fetched_at分支，不倒推此前无payload错误、不判定哪端钟错、不替换五失败/放宽校验/调整时钟；精确脚本另存mjs.txt，不在71份旧包中 |
+| `m3-1a02-ci-20261015.json` | 精确1a02/run38698735715：Linux1012/1012（0 skip）、syntax202/audit0/E2E28均通过，唯一失败原all80394预算。新CodeQL103rules/1result为#5，#7 continuation fixed；不外推main/生产。127文件artifact仅元数据，未下载；seal为site inventory指纹，不是critical，不继承后续文档SHA |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
