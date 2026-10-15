@@ -858,4 +858,6 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 
 机器摘要、三阶段完整证据和71份原件见[运行投影证据说明](performance-evidence/m3-runtime-projections-20261015.md)，父CI见`m3-e750-ci-20261015.json`。压缩归档只保存文档证据，不进产品预算/SW/OCR；有限行为与AST护栏不是全程序证明。
 
+提交时补充：先前tracked diff检查未包括新未跟踪文件；staged检查额外报告4份新测试文件的EOF空行（notification/runtime-plan/SW-message/native SW E2E）。保留已冻结/测量字节并记录为非阻断格式warning，不称完整whitespace PASS；源码语法/行为/E2E结果不因此改变。
+
 **M3仍IN PROGRESS，版本15.0.2；M4/M5/M6和正式发布尚未开始。** 下一步仍须消除原all-gzip缺口、定位真实主源拒绝并取得可重复时延证据，不以降低预算口径或跳过门禁进入下一里程碑。

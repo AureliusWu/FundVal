@@ -349,7 +349,7 @@
     ],
     "warnings": [
       "E2E child processes report FORCE_COLOR overriding NO_COLOR; not an additional failing test.",
-      "Git LF-to-CRLF checkout warnings, scoped/full diff --check exit0; no config changed."
+      "Pre-staging tracked diff --check exit0 did not include new untracked tests. Staged source checks subsequently reported four new blank lines at EOF (notification/runtime-plan/SW-message tests and native SW E2E); retained to keep the qualified source bytes frozen. This is not a full whitespace PASS; no config changed."
     ]
   },
   "performance": {
