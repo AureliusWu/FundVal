@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { extname, isAbsolute, relative, resolve } from 'node:path';
+import { extname, isAbsolute, relative, resolve, win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Actual built bootstrap/app and native Chrome SW, not a minimal page or a
@@ -17,7 +17,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'applic
   '.css': 'text/css', '.png': 'image/png', '.wasm': 'application/wasm' };
 
 function siteAssetTarget(path) {
-  if (isAbsolute(path)) return null;
+  if (isAbsolute(path) || win32.parse(path).root) return null;
   const target = resolve(SITE, path), child = relative(SITE, target);
   return child.startsWith('..') || isAbsolute(child) ? null : target;
 }

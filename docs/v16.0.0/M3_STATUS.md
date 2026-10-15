@@ -877,3 +877,5 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 最终18项定向GREEN（旧17项5/12 RED、额外null反例17/1 RED），全量1030/1027 PASS/3 Windows skip，syntax204、官方registry audit0、E2E30/30。三次最终真实build raw235665/all80477/cold42992，bytes/SHA与确定性通过。修复成本all+83/cold+85 B，原all预算仍FAIL/exit1，缺口至少**3250 B**。旧pair INCONCLUSIVE，未重新采样。不是正式版本迁移/真机/真实云或发布，main/生产未改。
 
 完整范围与不继承边界见[修复说明](performance-evidence/m3-page-update-guards-20261015.md)及[机器摘要](performance-evidence/m3-page-update-guards-20261015.json)。较大职责审查未发现新合格减包候选；40e当前配方65275仅归因诊断，不替代原70207锚。M3继续，不能跳过原门禁进入M4。
+
+提交b9da的真实CI38704643538在Linux E2E路径负控失败（28PASS/2FAIL），budget步骤skipped，不能称只有budget红。已仅修测试helper跨平台root判断；双平台纯path矩阵58/58，新本地1030/1027PASS/3skip、syntax204、E2E30/30（54.4s）、三build/产品指纹不变。原失败保留，细节见[后续兼容证据](performance-evidence/m3-page-update-portable-harness-20261015.json)。后续SHA需新CI，M3依旧未退出。

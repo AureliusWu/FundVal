@@ -56,6 +56,7 @@ exit $LASTEXITCODE
 | `m3-public-metadata-skew-20261015.json` | 后续单独固定3次真实HTTP GET旁观：3次200/v1、fetched_at比本机未来3545/3400/3262ms，均metadata拒绝。本批可定位未来fetched_at分支，不倒推此前无payload错误、不判定哪端钟错、不替换五失败/放宽校验/调整时钟；精确脚本另存mjs.txt，不在71份旧包中 |
 | `m3-1a02-ci-20261015.json` | 精确1a02/run38698735715：Linux1012/1012（0 skip）、syntax202/audit0/E2E28均通过，唯一失败原all80394预算。新CodeQL103rules/1result为#5，#7 continuation fixed；不外推main/生产。127文件artifact仅元数据，未下载；seal为site inventory指纹，不是critical，不继承后续文档SHA |
 | `m3-page-update-guards-20261015.json` | 父fb559上真实app/native SW两次旧源1FAIL/1PASS发现peer自动重载；18项最终GREEN、全量1027PASS/3skip、syntax204、E2E30/30。原配方三build all80477/cold42992，正确性成本+83/+85 B，原all预算仍FAIL/差3250 B。只限同版本本地合成流程；非版本迁移/真机/CI/生产，完整原件在本机Temp，不称完整归档 |
+| `m3-page-update-portable-harness-20261015.json` | b9da真实Linux CI为路径负控E2E失败（28/2），非只有budget红；跨平台测试helper修正、win32/POSIX58/58纯path矩阵，新本地1027PASS/3skip、E2E30/30、三build/产品指纹不变。保留旧失败，不继承为新SHA CI或Linux浏览器通过；原all仍超3250 B |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 

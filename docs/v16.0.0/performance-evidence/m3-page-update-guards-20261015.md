@@ -32,3 +32,9 @@ cache读投影与序列化原记录语义不同，wire/cache是不同不可信�
 只证明同版本revision尾注释+旧cache marker的本地合成Chrome流程，不证明v15→v16迁移、真实云、物理设备或生产。page/iframe外部请求被阻，SW实际只请求同源CORE/资产及owned合成GET/HEAD服务器，不能称context.route为通用SW网络防火墙。late9.99只断言基金aggregate localStorage与可见NAV，不证明Cache Storage无写。
 
 完整原件仍在JSON列出的本地Temp目录，此MD/JSON**不是完整归档**；当前list/retain-on-failure不保留通过用例inline附件。未重新验证真实金融数据、调整时钟、放宽Worker契约或改版本/预算/分组/main/生产。M4/M5/M6未开始，不能据功能GREEN宣称M3退出或v16发布。
+
+## 提交后的 Linux harness 修正
+
+上述本地窗口提交为b9da4db；其[真实CI38704643538](https://github.com/AureliusWu/FundVal/actions/runs/38704643538)是**E2E失败**，不是只因budget红：28 PASS/2 FAIL（52.4s），新测试在打开页面前的路径负控失败，因为POSIX把C:/Windows路径当作site内字面文件名。单元/语法/build/资源/audit与CodeQL job成功，seal/upload/budget被跳过，不外推零告警或合格产物。
+
+测试helper前置补node:path.win32.parse的root拒绝，保留原负控。真实helper AST在win32/POSIX注入矩阵58/58；旧helper两个POSIX负控确实失败。它是纯path证明，不是Linux浏览器或文件系统沙箱证明。新本地全量1027PASS/3skip、syntax204、E2E30/30（54.4s）、三build及产品指纹完全不变。原窗口不覆盖/改写，新范围和摘要见[兼容修正JSON](m3-page-update-portable-harness-20261015.json)；新提交仍须独立CI，不继承b9da结果。
