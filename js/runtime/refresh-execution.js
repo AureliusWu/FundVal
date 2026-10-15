@@ -3,7 +3,7 @@ import { formatChinaQuoteTime } from '../holdings-estimate.js';
 import { parseQuoteTimestamp } from './quote-contract.js';
 import { normalizeCachedQuote } from './quote-normalizer.js';
 import { isRefreshAbort } from './refresh-generation.js';
-import { createRefreshPlan, createSecurityQuotePlan } from './refresh-plan.js';
+import { createRuntimeRefreshPlan as createRefreshPlan, createRuntimeSecurityQuotePlan as createSecurityQuotePlan } from './refresh-plan.js';
 import { createGenerationResourceScope } from './generation-resource-scope.js';
 import { makeRefreshResourceEntry, readRefreshResources, serializeRefreshAggregate, validateRefreshResourceEntry } from './refresh-resource-cache.js';
 import { executeSecurityQuotePlan } from './security-quote-batch.js';

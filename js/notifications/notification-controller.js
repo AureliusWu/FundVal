@@ -1,4 +1,4 @@
-import { isQuoteEligibleForNotification } from '../runtime/notification-policy.js';
+import { isQuoteEligibleForNotification } from '../runtime/notification-policy-runtime.js';
 
 const TARGET_MINUTE = 14 * 60 + 30;
 

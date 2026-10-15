@@ -23,25 +23,32 @@ function freeze(value) {
   return value;
 }
 
-function cacheDecision(cacheIndex, key, ttlMs, now) {
-  if (!isRecord(cacheIndex) || !own(cacheIndex, key)) return { action: 'fetch', reason: 'cache_miss' };
+function cacheDecisionCore(cacheIndex, key, ttlMs, now) {
+  if (!isRecord(cacheIndex) || !own(cacheIndex, key)) return [0];
   const meta = cacheIndex[key];
   if (!isRecord(meta) || !['validated', 'fetchedAt', 'cachedAt', 'expiresAt'].every(field => own(meta, field)) || meta.validated !== true
     || !isEpoch(meta.fetchedAt) || !isEpoch(meta.cachedAt) || !isEpoch(meta.expiresAt)
     || meta.fetchedAt > meta.cachedAt || meta.cachedAt > now || meta.expiresAt <= meta.cachedAt) {
-    return { action: 'fetch', reason: 'cache_metadata_invalid' };
+    return [1];
   }
   if ((own(meta, 'sourceTier') && !SOURCE_TIERS.has(meta.sourceTier))
     || (own(meta, 'status') && !USABLE_STATUSES.has(meta.status))
     || (own(meta, 'cacheState') && meta.cacheState !== 'fresh')) {
-    return { action: 'fetch', reason: 'cache_quality_unusable' };
+    return [2];
   }
   // A caller cannot enlarge a resource's canonical TTL by supplying a later
   // expiry. Reading this metadata never renews any acquisition timestamp.
   if (now >= meta.expiresAt || now - meta.cachedAt >= ttlMs) {
-    return { action: 'fetch', reason: 'cache_expired' };
+    return [3];
   }
-  return { action: 'cache', reason: 'fresh_cache', cacheExpiresAt: Math.min(meta.expiresAt, meta.cachedAt + ttlMs) };
+  return [4, Math.min(meta.expiresAt, meta.cachedAt + ttlMs)];
+}
+
+function cacheDecision(cacheIndex, key, ttlMs, now) {
+  const decision = cacheDecisionCore(cacheIndex, key, ttlMs, now);
+  return decision[0] === 4
+    ? { action: 'cache', reason: 'fresh_cache', cacheExpiresAt: decision[1] }
+    : { action: 'fetch', reason: ['cache_miss', 'cache_metadata_invalid', 'cache_quality_unusable', 'cache_expired'][decision[0]] };
 }
 
 /**
@@ -179,4 +186,102 @@ export function createSecurityQuotePlan({ generation, snapshots = [], selectedMo
     goldRequired,
     rejected,
   });
+}
+
+// Private closed page plan; public factory above is unchanged.
+export function createRuntimeSecurityQuotePlan({ generation, snapshots = [], selectedModels = [] } = {}) {
+  requireGeneration(generation);
+  const securities = new Set();
+  const models = new Set();
+  let goldRequired = false;
+
+  function addCode(collection, operation, code, kind, index) {
+    if (!allowedCode(operation, code)) {
+      // Do not echo untrusted upstream strings into diagnostics.
+      return;
+    }
+    collection.add(code.trim());
+  }
+
+  for (const [index, snapshot] of (Array.isArray(snapshots) ? snapshots : []).entries()) {
+    if (!isRecord(snapshot) || snapshot.validated !== true || snapshot.status !== 'ok' || !Array.isArray(snapshot.items)) {
+      continue;
+    }
+    snapshot.items.forEach((item, itemIndex) => addCode(securities, 'securityQuotes', item?.quoteCode, 'security', itemIndex));
+  }
+  for (const model of Array.isArray(selectedModels) ? selectedModels : []) {
+    const legs = [...(Array.isArray(model?.legs) ? model.legs : []),
+      ...(Array.isArray(model?.fallback?.legs) ? model.fallback.legs : [])];
+    legs.forEach((leg, index) => {
+      if (leg?.code === 'AU9999') goldRequired = true;
+      else addCode(models, 'overseasComponents', leg?.code, 'model', index);
+    });
+  }
+
+  return freeze({
+    generation,
+    securityCodes: [...securities].sort(),
+    modelCodes: [...models].sort(),
+    goldRequired,
+  });
+}
+
+// Private page planning projection; public contracts remain above unchanged.
+function runtimeCacheDecision(cacheIndex, key, ttlMs, now) {
+  const decision = cacheDecisionCore(cacheIndex, key, ttlMs, now);
+  return decision[0] === 4 ? { action: 'cache', cacheExpiresAt: decision[1] } : { action: 'fetch' };
+}
+export function createRuntimeRefreshPlan({
+  generation,
+  trigger = 'unknown',
+  now,
+  activeHoldings = [],
+  cacheIndex = {},
+  forceLive = false,
+  forceStable = [],
+} = {}) {
+  requireGeneration(generation);
+  if (!isEpoch(now)) throw new TypeError('Refresh plan now must be an explicit safe epoch.');
+  const planTrigger = typeof trigger === 'string' ? trigger.trim().slice(0, 40) || 'unknown' : 'unknown';
+  const activeCodes = activeHoldingCodes(activeHoldings);
+  const forcedStable = new Set(planTrigger === 'diagnostic' && Array.isArray(forceStable) ? forceStable : []);
+  const resources = [];
+
+  function add(key, isStable, eligible = true) {
+    const policy = refreshResourcePolicy(key);
+    const resource = { key, kind: policy.kind, codes: policy.codes, ttlMs: policy.ttlMs };
+    let decision;
+    if (!eligible) decision = { action: 'skip' };
+    else if (isStable && forcedStable.has(resource.key)) decision = { action: 'fetch' };
+    else if (!isStable && forceLive === true) decision = { action: 'fetch' };
+    else decision = runtimeCacheDecision(cacheIndex, resource.key, resource.ttlMs, now);
+    resources.push({ key: resource.key, kind: resource.kind, codes: resource.codes, cacheExpiresAt: null, ...decision });
+  }
+
+  if (activeCodes.length) {
+    const codes = [...activeCodes].sort();
+    for (let index = 0; index < codes.length; index += WORKER_REQUEST_LIMIT) {
+      const batch = codes.slice(index, index + WORKER_REQUEST_LIMIT);
+      add(`estimates:${batch.join(',')}`, false);
+    }
+  }
+  add(REFRESH_INDEX_KEY, false);
+  add('gold:AU9999', false);
+
+  for (const code of activeCodes) {
+    const holding = activeHoldings.find(item => item?.deleted !== true && !item?.deletedAt
+      && String(item?.code ?? item?.fundCode ?? '').trim() === code);
+    add(`nav:${code}`, true);
+    add(`holdings:${code}`, true,
+      HOLDINGS_MARKETS.has(classifyFundMarket(holding?.name)));
+    add(`meta:${code}`, true);
+  }
+
+  // Reserve phase-B scope keys now, while waiting for validated disclosures
+  // to determine the actual demand union. These are never global cache hits.
+  for (const [key, kind] of [['securities:union', 'securities'], ['models:active', 'model-quotes']]) {
+    resources.push({ key, kind, action: activeCodes.length ? 'fetch' : 'skip', cacheExpiresAt: null });
+  }
+
+  return freeze({ generation, activeCodes, resources });
 }
