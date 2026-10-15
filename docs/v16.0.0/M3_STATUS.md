@@ -869,3 +869,11 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 新CodeQL analysis1957643413（103rules）仅1个结果：既存medium #5，实例确为1a02；#7在新分析中fixed，保留的last-instance仍e750只是历史行，不能误称新SHA告警，也不宣称main/生产已修复。没有关闭/suppress #5。artifact11954259001/92633686B已上传但未下载；seal日志`3a036fef79323c4b546356595700121b8e435d4317e5f46e9770683d3c511fcb`是site inventory，不是critical发布指纹，不能同本地固定epoch指纹混比。单次Getrun EOF后对同一run只读重查成功，未rerun/dispatch。完整信息见`m3-1a02-ci-20261015.json`；其后新增的文档与独立诊断记录不自动继承此精确SHA CI。
 
 **M3仍IN PROGRESS，版本15.0.2；M4/M5/M6和正式发布尚未开始。** 下一步仍须消除原all-gzip缺口、定位真实主源拒绝并取得可重复时延证据，不以降低预算口径或跳过门禁进入下一里程碑。
+
+## 31. 真实双标签页更新误重载 P1（2026-10-15）
+
+父fb559上的真实构建app/native SW测试首次暴露peer自动重载，旧源两次独立负控均1 FAIL/1 PASS。浏览器原生更换peer controller正常；app无条件reload才是问题。现在显式请求worker身份+同源ACK认证、非请求页只提示手动重载；所有主动重载先排空并复查dirty，包含排空中别页激活、并行点击、失败重试和null防御。
+
+最终18项定向GREEN（旧17项5/12 RED、额外null反例17/1 RED），全量1030/1027 PASS/3 Windows skip，syntax204、官方registry audit0、E2E30/30。三次最终真实build raw235665/all80477/cold42992，bytes/SHA与确定性通过。修复成本all+83/cold+85 B，原all预算仍FAIL/exit1，缺口至少**3250 B**。旧pair INCONCLUSIVE，未重新采样。不是正式版本迁移/真机/真实云或发布，main/生产未改。
+
+完整范围与不继承边界见[修复说明](performance-evidence/m3-page-update-guards-20261015.md)及[机器摘要](performance-evidence/m3-page-update-guards-20261015.json)。较大职责审查未发现新合格减包候选；40e当前配方65275仅归因诊断，不替代原70207锚。M3继续，不能跳过原门禁进入M4。

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "observedAt": "2026-10-15T08:12:45Z",
+  "version": "15.0.2",
+  "parentCommit": "fb5591418a09cfd1b0b8cbb006657606a5f10f4a",
+  "branch": "codex/v16.0.0-m3-continuation",
+  "scope": "Frozen local implementation, synthetic desktop native Chrome; not CI, main, deployment, physical devices or v15-to-v16 migration.",
+  "files": [
+    {"path": "js/app.js", "bytes": 95913, "sha256": "ddc8b53ac9f8035749f6ab2478b3ac0d3d1b1bb6b37c3340396439cff9de8318", "lfSha256": "299283bd9462b7c24fda362ce7e94086c32e0ae4e13f70fc8832b7afd72d7107"},
+    {"path": "e2e/v16-app-update-guards.spec.js", "bytes": 20668, "sha256": "d9556975ab49359da747b78037f0b272eaa3f311a68fe5675980340b49813ce9"},
+    {"path": "test/service-worker-page-update-v16.test.js", "bytes": 14990, "sha256": "aac08a173bfb5d2ecff58621c4fb334994961e02a3d6d206d249702dfbae99cc"}
+  ],
+  "regression": {
+    "finding": "P1: native controllerchange reloads an unrequested peer after another tab activates a waiting worker.",
+    "firstNativeOldSource": {"passed": 1, "failed": 1, "seconds": 16.4, "specSha256": "15633ae063d4c2a115847e4b94f992dcc37db36aa59fd8cd070cbb0f084686ba"},
+    "correctedPermanentSpecOldSource": {"passed": 1, "failed": 1, "seconds": 15.9, "specSha256": "b573933a294ddc2d1e01608aea0301e4511859bcb046437dd3b3b20b3b3e2e9a", "samePeerReloadFailure": true},
+    "nativeIdentityDiagnostic": {"runs": 1, "chrome": "155.0.8059.41", "bothControllersBecameActive": true, "peerAckCount": 0, "withoutAppBothNavigationCounts": 1, "preStartEsmImportErrorRetainedSeparately": true},
+    "unitOldSource": {"tests": 17, "passed": 5, "failed": 12, "tapSha256": "7533a134cee06e13ce1d9fef1d3225448e2794e7d98850ae626165a99cc2a556"},
+    "unitIntermediate": {"tests": 17, "passed": 17},
+    "nullHistoryNegativeControl": {"tests": 18, "passed": 17, "failed": 1, "syntheticOnly": true},
+    "unitFinal": {"tests": 18, "passed": 18, "durationMs": 175.8501},
+    "independentExtraRaces": {"tests": 6, "passed": 6, "overlapNotAdditionalCoverage": true}
+  },
+  "checks": {
+    "test": {"exitCode": 0, "tests": 1030, "passed": 1027, "failed": 0, "skipped": 3, "durationMs": 5527.0761, "skipReason": "Existing Windows symlink permission conditions"},
+    "syntax": {"exitCode": 0, "files": 204},
+    "audit": {"defaultRegistryExitCode": 1, "reason": "npmmirror security endpoint 404 NOT_IMPLEMENTED", "officialCommand": "npm audit --registry=https://registry.npmjs.org --audit-level=high", "officialExitCode": 0, "vulnerabilities": 0, "configAndDependenciesUnchanged": true},
+    "e2e": {"exitCode": 0, "tests": 30, "passed": 30, "seconds": 57.8, "newCasesSeconds": [7.9, 2.4], "owned12437And12438Exited": true, "otherProject4173Untouched": true},
+    "build": {"finalRounds": 3, "sourceDateEpoch": "1792046773", "chunkCount": 16, "rawBytes": 235665, "allGzip": 80477, "coldGzip": 42992, "lastTwoAfterFinalE2e": true, "criticalFingerprint": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725", "wholeSiteFiles": 127, "wholeSiteBytes": 92507487, "wholeSiteSha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93", "wholeAlgorithm": "SHA256(JSON.stringify(localeCompare-sorted path/bytes/sha256 rows))", "intermediateBuildNotInFinalThree": {"raw": 235664, "all": 80484, "cold": 42992}},
+    "finalInputInventory": {"files": 213, "bytes": 4924357, "sha256": "4501f48332c481553c5a53bf144e5102ce765faf38beca099da7e8da3eff1240", "unchanged": true, "scope": "js/scripts/test/e2e/data/css plus sw/index/manifest/package/lock/playwright config; excludes docs. Not the older 214-file algorithm."},
+    "appAndOcrVerified": {"chunks": 16, "appBytes": 235665, "ocrAssets": 23, "ocrBytes": 88196906, "bytesAndSha": true, "ocrExecuted": false},
+    "budget": {"exitCode": 1, "originalBaselineAll": 70207, "allBudget": 77227.7, "coldBudget": 52241, "allPass": false, "coldPass": true, "minimumIntegerReductionRequired": 3250, "cliImportClosureVerified": false, "actualBuildPhaseIsolationPassed": true},
+    "deltaFromParent": {"rawBytes": 250, "allGzip": 83, "coldGzip": 85, "wholeSiteBytes": 1415},
+    "newRelativeLatencyRun": false,
+    "previousPairVerdict": "INCONCLUSIVE",
+    "absoluteSmokeOnly": [
+      {"coldReadyMs": 152.5, "warmReadyMs": 94.30000000074506, "saveUiMs": 75.70529999999962},
+      {"coldReadyMs": 174.39999999850988, "warmReadyMs": 137.10000000149012, "saveUiMs": 72.08899999999994},
+      {"coldReadyMs": 168.89999999850988, "warmReadyMs": 395.80000000074506, "saveUiMs": 214.6861000000008}
+    ]
+  },
+  "structuralAudit": {"currentRecipeRounds": 3, "currentAll": 80394, "historicalCurrentRecipeRounds": 3, "historicalCurrentRecipeAll": 65275, "notOriginal70207Budget": true, "historicalRecipe": "esbuild/codeSplitting:true", "currentRecipe": "Vite8.2.2/oxc/es2022/original five groups/write:false", "newCandidateVariants": 0, "materialClosedDuplicateFound": false, "cloudDesignStoppedBeforeBuild": true, "notProofAllFutureArchitecturesFail": true, "growthFilesManifestSha256": "f97dd2c68f027fafb94cad1f80a7e15b47f24704ae801d9d4f72db4c70c8ddcf", "cloudDesignSha256": "e58d4a00abebfb9b2f1cb4687f901887fbcf889c6800243c85a0fcf0b703d3a5"},
+  "limits": [
+    "Actual emitted app/bootstrap/SW; only trailing SW revision comment and old cache marker simulate same-version activation, not a version migration.",
+    "Page/iframe external requests are blocked. SW fetches same-origin CORE/assets and an owned synthetic GET/HEAD server. context.route is not a universal SW network firewall.",
+    "Late NAV9.99 assertions cover fund aggregate localStorage and visible NAV only, not all Cache Storage/persistence.",
+    "Complete raw logs/traces/designs stay in external local Temp, not in this repository summary. Passing inline attachments are not archived by list/retain-on-failure.",
+    "No new live financial-data validation, real cloud, credentials, user holdings, OCR, physical devices, production smoke or deployment. No clock/Worker-contract/budget/group/dependency/version changes. M4/M5/M6 not begun."
+  ],
+  "localEvidenceDirectories": [
+    "C:/Users/84046/AppData/Local/Temp/fundval-m3-page-update-root-20261015-5fe149f7f36e4e4786096f03f8e0cc66",
+    "C:/Users/84046/AppData/Local/Temp/fundval-m3-native-app-update-20261015-f5e88b2365b24c548af1ddbac1fd3af9",
+    "C:/Users/84046/AppData/Local/Temp/fundval-m3-app-update-p1-20261015-fb559",
+    "C:/Users/84046/AppData/Local/Temp/fundval-m3-retained-growth-20261015-d73c47c77dfa4e9a817e3e62f2bd5a57",
+    "C:/Users/84046/AppData/Local/Temp/fundval-m3-cache-scope-audit-20261015-4e65be923b0d4e599b6e6b2a41622586",
+    "C:/Users/84046/AppData/Local/Temp/fundval-m3-cloud-lifecycle-20261015-fb559-fixed"
+  ]
+}

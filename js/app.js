@@ -83,6 +83,7 @@ let syncDebounceTimer = null;  // 防抖定时器
 let autoPullTimer = null;      // 定时拉取
 let isSyncing = false;         // 是否正在同步中
 let pendingServiceWorker = null;
+let requestedServiceWorker = null;
 let serviceWorkerUpdateApplying = false;
 let serviceWorkerReloadPending = false;
 let serviceWorkerUpdateChannel = null;
@@ -1924,6 +1925,7 @@ function showServiceWorkerUpdate(worker) {
 }
 
 function handleActivatedServiceWorker(worker) {
+  requestedServiceWorker = null;
   if (reloadingForServiceWorkerUpdate) return;
   if (hasServiceWorkerUpdateBlocker()) {
     serviceWorkerReloadPending = true;
@@ -1951,16 +1953,12 @@ async function applyPendingServiceWorkerUpdate() {
     return;
   }
 
-  if (serviceWorkerReloadPending) {
-    serviceWorkerUpdateApplying = true;
-    location.reload();
-    return;
-  }
-  if (await otherPageBlocksServiceWorkerUpdate()) {
+  if (!serviceWorkerReloadPending && await otherPageBlocksServiceWorkerUpdate() && !serviceWorkerReloadPending) {
     if (text) text.textContent = '其他已打开页面有未保存输入，更新已暂停';
     showToast('请先处理其他页面中的未保存输入');
     return;
   }
+  if (serviceWorkerUpdateApplying) return;
 
   serviceWorkerUpdateApplying = true;
   if (autoRefreshTimer) {
@@ -1981,8 +1979,14 @@ async function applyPendingServiceWorkerUpdate() {
       startAutoRefresh();
       return;
     }
+    if (serviceWorkerReloadPending) {
+      handleActivatedServiceWorker(navigator.serviceWorker.controller || worker);
+      return;
+    }
+    requestedServiceWorker = worker;
     worker.postMessage({ type: 'SKIP_WAITING' });
   } catch (_) {
+    requestedServiceWorker = null;
     serviceWorkerUpdateApplying = false;
     showServiceWorkerUpdate(worker);
     if (text) text.textContent = '安全更新未完成，可稍后重试';
@@ -2007,6 +2011,7 @@ function consumeOcrImportReturn() {
 
 // ── Service Worker（含自动更新检测） ──────────────────────
 if ('serviceWorker' in navigator) {
+  var previousServiceWorkerController = navigator.serviceWorker.controller;
   serviceWorkerUpdateChannel = setupServiceWorkerUpdateChannel();
   navigator.serviceWorker.register('sw.js').then(function(reg) {
     if (reg.waiting && navigator.serviceWorker.controller) showServiceWorkerUpdate(reg.waiting);
@@ -2025,10 +2030,24 @@ if ('serviceWorker' in navigator) {
   }).catch(function() {});
   navigator.serviceWorker.addEventListener('message', function(event) {
     var message = event.data || {};
-    if (message.type === 'UPDATE_ACTIVATED') handleActivatedServiceWorker(event.source);
+    if (message.type === 'UPDATE_ACTIVATED' && event.origin === location.origin
+      && requestedServiceWorker && event.source === requestedServiceWorker) handleActivatedServiceWorker(event.source);
   });
   navigator.serviceWorker.addEventListener('controllerchange', function() {
-    handleActivatedServiceWorker(navigator.serviceWorker.controller);
+    var controller = navigator.serviceWorker.controller;
+    if (!controller || controller === previousServiceWorkerController) return;
+    var firstInstallation = !previousServiceWorkerController;
+    previousServiceWorkerController = controller;
+    if (reloadingForServiceWorkerUpdate) return;
+    if (firstInstallation || controller === requestedServiceWorker) {
+      handleActivatedServiceWorker(controller);
+    } else {
+      // Native activation can replace every tab's controller without claim().
+      // Only the requester reloads; peers keep their current document and UI.
+      serviceWorkerReloadPending = true;
+      pendingServiceWorker = controller;
+      if (!serviceWorkerUpdateApplying) showServiceWorkerUpdate(controller);
+    }
   });
 }
 

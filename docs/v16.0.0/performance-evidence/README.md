@@ -55,6 +55,7 @@ exit $LASTEXITCODE
 | `m3-runtime-projections-20261015.json` | 正式通知布尔入口、共享完整validator的私有计划、独立SW消息认证。新全量1012/1009 PASS/3skip、syntax202、audit0、E2E28/28；三实际build all80394/cold42907，−764 B但原预算仍FAIL/差3167 B。五真实源0接受，空every不算等价PASS；旧pair未重跑、无新CI/真机/生产验收。71份完整原件见同名前缀md及gzip/base64归档 |
 | `m3-public-metadata-skew-20261015.json` | 后续单独固定3次真实HTTP GET旁观：3次200/v1、fetched_at比本机未来3545/3400/3262ms，均metadata拒绝。本批可定位未来fetched_at分支，不倒推此前无payload错误、不判定哪端钟错、不替换五失败/放宽校验/调整时钟；精确脚本另存mjs.txt，不在71份旧包中 |
 | `m3-1a02-ci-20261015.json` | 精确1a02/run38698735715：Linux1012/1012（0 skip）、syntax202/audit0/E2E28均通过，唯一失败原all80394预算。新CodeQL103rules/1result为#5，#7 continuation fixed；不外推main/生产。127文件artifact仅元数据，未下载；seal为site inventory指纹，不是critical，不继承后续文档SHA |
+| `m3-page-update-guards-20261015.json` | 父fb559上真实app/native SW两次旧源1FAIL/1PASS发现peer自动重载；18项最终GREEN、全量1027PASS/3skip、syntax204、E2E30/30。原配方三build all80477/cold42992，正确性成本+83/+85 B，原all预算仍FAIL/差3250 B。只限同版本本地合成流程；非版本迁移/真机/CI/生产，完整原件在本机Temp，不称完整归档 |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
