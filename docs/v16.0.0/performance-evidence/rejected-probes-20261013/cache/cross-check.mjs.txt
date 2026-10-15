@@ -1,0 +1,96 @@
+import { readFile, readdir, realpath } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
+import { relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+
+const root = 'D:/AI项目/FundVal';
+const folder = 'C:/Users/84046/AppData/Local/Temp/fundval-m3-cache-fields-20261013-8da719bc';
+const req = createRequire(`${root}/package.json`);
+const { parseSync } = await import(pathToFileURL(req.resolve('rolldown/utils')));
+const lf = value => String(value).replaceAll('\r\n', '\n');
+const hash = value => createHash('sha256').update(value).digest('hex');
+const git = args => execFileSync('git', args, { cwd: root });
+const probe = lf(await readFile(`${folder}/measure.mjs`, 'utf8'));
+const reportText = await readFile(`${folder}/report.json`, 'utf8');
+const report = JSON.parse(reportText);
+const recipe = lf(await readFile(`${root}/scripts/build-site.mjs`, 'utf8'));
+const original = lf(await readFile(`${root}/js/runtime/refresh-resource-cache.js`, 'utf8'));
+assert.equal(hash(recipe), report.recipeLfHash);
+assert.equal(hash(original), report.sourceLfHash);
+assert.equal(recipe, lf(git(['show', 'HEAD:scripts/build-site.mjs'])));
+assert.equal(original, lf(git(['show', 'HEAD:js/runtime/refresh-resource-cache.js'])));
+const probeAst = parseSync('measure.mjs', probe).program;
+const literal = name => {
+  const init = probeAst.body.flatMap(n => n.type === 'VariableDeclaration' ? n.declarations : []).find(n => n.id?.name === name)?.init;
+  assert.equal(init.type, 'TemplateLiteral');
+  assert.equal(init.expressions.length, 0);
+  return init.quasis[0].value.cooked;
+};
+const replace = (source, search, replacement) => {
+  assert.equal(source.split(search).length, 2);
+  return source.replace(search, replacement);
+};
+const payload = replace(replace(original, literal('fieldBlock'), '  const allowed = PAYLOAD_FIELDS[spec.kind];'),
+  'const SKIP_DATA_FIELDS =', literal('table') + 'const SKIP_DATA_FIELDS =');
+const removed = replace(payload, "        const quoteFields = ['code', 'name', 'price', 'changePct', 'observedAt', 'status', 'cached'];\n", '');
+const indexed = replace(removed, 'const SKIP_DATA_FIELDS =',
+  "const INDEX_QUOTE_FIELDS = ['code', 'name', 'price', 'changePct', 'observedAt', 'status', 'cached'];\nconst SKIP_DATA_FIELDS =").replaceAll('quoteFields', 'INDEX_QUOTE_FIELDS');
+assert.equal(report.transformations.payloadFieldTable, payload);
+assert.equal(report.transformations.payloadAndIndexFieldTables, indexed);
+for (const source of [payload, indexed]) assert.equal(parseSync('cache.js', source).errors.length, 0);
+
+const recipeAst = parseSync('build-site.mjs', recipe).program;
+const names = new Set(['APP_SHELL_FILENAME', 'APP_CHUNK_FILENAME', 'OCR_BUNDLE_REFERENCE', 'COLD_LAZY_MODULE', 'STARTUP_MODULES', 'POST_INTEGRITY_MODULES', 'BUSINESS_MODULES', 'APP_CHUNK_GROUPS']);
+const functions = new Set(['modulePath', 'collectStaticChunkGraph', 'assertStartupPhaseIsolation']);
+const declarations = recipeAst.body.filter(n => n.type === 'VariableDeclaration' ? n.declarations.some(d => names.has(d.id.name)) : n.type === 'FunctionDeclaration' && functions.has(n.id?.name));
+const context = vm.createContext({ root, resolve, relative });
+vm.runInContext(declarations.map(n => recipe.slice(n.start, n.end)).join('\n'), context);
+const calls = [];
+function walk(node) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'CallExpression' && node.callee?.name === 'viteBuild') calls.push(node);
+  for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+}
+walk(recipeAst.body.find(n => n.type === 'FunctionDeclaration' && n.id?.name === 'buildAppShell'));
+assert.equal(calls.length, 1);
+const configSource = recipe.slice(calls[0].arguments[0].start, calls[0].arguments[0].end);
+const config = vm.runInContext(`(${configSource})`, context);
+assert.equal(config.configFile, false);
+assert.equal(config.build.write, false);
+assert.equal(config.build.minify, 'oxc');
+assert.equal(config.build.target, 'es2022');
+assert.equal(config.plugins, undefined);
+const measurement = {};
+for (const [name, rows] of Object.entries(report.variants)) {
+  assert.equal(rows.length, 3);
+  rows.forEach((row, index) => {
+    assert.equal(row.round, index + 1);
+    assert.deepEqual({ ...row, round: 0 }, { ...rows[0], round: 0 });
+    assert.equal(row.chunkCount, 16);
+    assert.equal(row.graphHash, report.variants.baseline[0].graphHash);
+  });
+  const base = report.variants.baseline[0];
+  measurement[name] = { rounds: 3, raw: rows[0].raw, allGzip: rows[0].all, coldGzip: rows[0].cold,
+    deltaRaw: rows[0].raw - base.raw, deltaAllGzip: rows[0].all - base.all, deltaColdGzip: rows[0].cold - base.cold };
+}
+const fingerprintSource = lf(await readFile(`${root}/scripts/measure-performance-pair.mjs`, 'utf8'));
+const fpAst = parseSync('pair.mjs', fingerprintSource).program;
+const fpNode = fpAst.body.find(n => n.type === 'ExportNamedDeclaration' && n.declaration?.id?.name === 'artifactFingerprint').declaration;
+const fpContext = vm.createContext({ realpath, readdir, resolve, createHash, createReadStream, sha256: hash });
+vm.runInContext(fingerprintSource.slice(fpNode.start, fpNode.end), fpContext);
+const currentSite = await vm.runInContext('artifactFingerprint', fpContext)(`${root}/site`);
+assert.equal(currentSite.sha256, '624e1caf0d5e8ffa6f60616942fbd4fa0104d89f922f3c2377f09473681e3ca0');
+assert.equal(currentSite.fileCount, 126);
+assert.equal(currentSite.totalBytes, 92499248);
+console.log(JSON.stringify({ checkedAt: new Date().toISOString(), head: lf(git(['rev-parse', 'HEAD'])).trim(),
+  status: lf(git(['status', '--porcelain=v1'])).trim(), reportSourceCommit: report.sourceCommit,
+  probeLfSha256: hash(probe), reportBytesSha256: hash(reportText), recipeLfSha256: hash(recipe), sourceLfSha256: hash(original),
+  configSourceLfSha256: hash(configSource), config: { write: false, minify: config.build.minify, target: config.build.target,
+    groups: config.build.rolldownOptions.output.codeSplitting.groups.length },
+  measurements: measurement, site: { sha256: currentSite.sha256, fileCount: currentSite.fileCount, totalBytes: currentSite.totalBytes },
+  transformationsValidated: true, noBuildRunByReviewer: true }, null, 2));

@@ -1,0 +1,116 @@
+{
+  "status": "READ_ONLY_VIRTUAL_PROBE",
+  "head": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+  "sourceSha256": "1172d217cd4bd00e700aeb0a07507c85fc102f0beedef30678b6c75525485130",
+  "candidateSha256": "dd40b9ed82f54d1891937d0ef62c1f602f1fe62584f9150ecfd57022cbafc241",
+  "measurements": [
+    {
+      "round": 1,
+      "original": {
+        "chunks": 16,
+        "raw": 237665,
+        "allGzip": 81158,
+        "coldGzip": 42907
+      },
+      "candidate": {
+        "chunks": 16,
+        "raw": 237639,
+        "allGzip": 81146,
+        "coldGzip": 42900
+      },
+      "delta": {
+        "raw": -26,
+        "allGzip": -12,
+        "coldGzip": -7
+      }
+    },
+    {
+      "round": 2,
+      "original": {
+        "chunks": 16,
+        "raw": 237665,
+        "allGzip": 81158,
+        "coldGzip": 42907
+      },
+      "candidate": {
+        "chunks": 16,
+        "raw": 237639,
+        "allGzip": 81146,
+        "coldGzip": 42900
+      },
+      "delta": {
+        "raw": -26,
+        "allGzip": -12,
+        "coldGzip": -7
+      }
+    },
+    {
+      "round": 3,
+      "original": {
+        "chunks": 16,
+        "raw": 237665,
+        "allGzip": 81158,
+        "coldGzip": 42907
+      },
+      "candidate": {
+        "chunks": 16,
+        "raw": 237639,
+        "allGzip": 81146,
+        "coldGzip": 42900
+      },
+      "delta": {
+        "raw": -26,
+        "allGzip": -12,
+        "coldGzip": -7
+      }
+    }
+  ],
+  "largeObjectDuplicates": {
+    "scannedOwners": [
+      "buildFundData",
+      "officialFundFallback",
+      "preferredDailyMove",
+      "slimFundCache",
+      "commitRefreshedFund",
+      "commitRefreshFailure",
+      "runRefresh",
+      "tryShowCache"
+    ],
+    "objectCounts": {
+      "buildFundData": 8,
+      "officialFundFallback": 2,
+      "preferredDailyMove": 4,
+      "slimFundCache": 0,
+      "commitRefreshedFund": 2,
+      "commitRefreshFailure": 7,
+      "runRefresh": 24,
+      "tryShowCache": 7
+    },
+    "exactDuplicatesAtLeast200RawBytes": [],
+    "boundary": "AST structural equality is narrow: distinct identifiers/labels/trust semantics prevent reuse; does not prove that all possible semantic or alpha-renamed compactions are absent."
+  },
+  "equivalence": {
+    "nativeChecks": 1944,
+    "getterChecks": 1944,
+    "throwChecks": 8,
+    "actualMarketCallbackAndStatus": true,
+    "boundary": "Actual market callback and status/cache-fallback functions, native/Proxy property and spread ordering, Date traces, exact output descriptors/aliases and same thrown sentinel observed. DOM renderer injected; no full app/E2E/latency/device or universal stack proof."
+  },
+  "sourceAndSiteUnchanged": true,
+  "siteSha256": "624e1caf0d5e8ffa6f60616942fbd4fa0104d89f922f3c2377f09473681e3ca0",
+  "exactPatch": {
+    "before1": "return { ...quote, name: cfg.name, cached: true,\n                status: Date.now() < goldEntry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' };",
+    "after1": "return cachedMarketQuote(quote, cfg, goldEntry);",
+    "before2": "return quote ? { ...quote, name: cfg.name, cached: true,\n              status: Date.now() < indexEntry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' }\n              : staleIndexItem(indexCache[index], cfg.name);",
+    "after2": "return quote ? cachedMarketQuote(quote, cfg, indexEntry)\n              : staleIndexItem(indexCache[index], cfg.name);",
+    "helper": "function cachedMarketQuote(quote, cfg, entry) {\n  return { ...quote, name: cfg.name, cached: true,\n    status: Date.now() < entry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' };\n}\n\n"
+  },
+  "policy": {
+    "dependenciesInstalledOrChanged": false,
+    "repositoryFilesEdited": false,
+    "siteWritten": false,
+    "network": false,
+    "latency": false,
+    "thresholdChanged": false
+  }
+}

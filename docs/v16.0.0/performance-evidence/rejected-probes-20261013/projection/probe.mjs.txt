@@ -1,0 +1,181 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { gzipSync } from 'node:zlib';
+
+const root = 'D:/AI项目/FundVal';
+const require = createRequire(resolve(root, 'package.json'));
+const { parseSync } = await import(pathToFileURL(require.resolve('rolldown/utils')));
+const { build: viteBuild } = await import(pathToFileURL(require.resolve('vite')));
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const lf = text => text.replaceAll('\r\n', '\n');
+const source = lf(await readFile(resolve(root, 'js/app.js'), 'utf8'));
+const buildSource = lf(await readFile(resolve(root, 'scripts/build-site.mjs'), 'utf8'));
+const sourceProgram = parseSync('app.js', source).program;
+const buildProgram = parseSync('build-site.mjs', buildSource).program;
+function declaration(program, name) {
+  const node = program.body.find(item => item.type === 'FunctionDeclaration' && item.id.name === name);
+  assert.ok(node, `Missing real function ${name}`);
+  return node;
+}
+function replaceOne(text, old, next) {
+  assert.equal(text.split(old).length, 2, 'Replacement must be unique');
+  return text.replace(old, next);
+}
+const oldFirst = `d.quoteCandidates = buildFundQuoteCandidates(d, {
+    fundCode: d.code,
+    fundName: d.name,
+    market: d.market,
+    assetKind: d.assetKind,
+    fetchedAt: new Date(d.updatedAt).toISOString(),
+    now: d.updatedAt,
+  });`;
+const nextFirst = `d.quoteCandidates = buildFundQuoteCandidates(d, {
+    ...fundQuoteIdentity(d),
+    fetchedAt: new Date(d.updatedAt).toISOString(),
+    now: d.updatedAt,
+  });`;
+const oldSecond = `d.quote = selectPreferredQuote(d.quoteCandidates, {
+    fundCode: d.code,
+    fundName: d.name,
+    market: d.market,
+    assetKind: d.assetKind,
+  }, { now: d.updatedAt });`;
+const nextSecond = `d.quote = selectPreferredQuote(d.quoteCandidates, fundQuoteIdentity(d), { now: d.updatedAt });`;
+const helper = `function fundQuoteIdentity(d) {
+  return { fundCode: d.code, fundName: d.name, market: d.market, assetKind: d.assetKind };
+}
+
+`;
+let candidate = replaceOne(source, oldFirst, nextFirst);
+candidate = replaceOne(candidate, oldSecond, nextSecond);
+candidate = replaceOne(candidate, 'function buildFundData(r, h, modelQuotes) {', helper + 'function buildFundData(r, h, modelQuotes) {');
+const candidateProgram = parseSync('candidate-app.js', candidate).program;
+assert.equal(candidateProgram.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === 'fundQuoteIdentity').length, 1);
+
+// Evaluate the exact existing build-site config/sets and graph guards, never its
+// output writes or top-level clean/copy/build workflow.
+const variableNames = new Set(['APP_SHELL_FILENAME', 'APP_CHUNK_FILENAME', 'OCR_BUNDLE_REFERENCE', 'COLD_LAZY_MODULE',
+  'STARTUP_MODULES', 'POST_INTEGRITY_MODULES', 'BUSINESS_MODULES', 'APP_CHUNK_GROUPS']);
+const declarations = buildProgram.body.filter(node => node.type === 'VariableDeclaration'
+  && node.declarations.some(item => item.id.type === 'Identifier' && variableNames.has(item.id.name)))
+  .map(node => buildSource.slice(node.start, node.end));
+const functions = ['modulePath', 'collectStaticChunkGraph', 'assertStartupPhaseIsolation'].map(name => {
+  const node = declaration(buildProgram, name); return buildSource.slice(node.start, node.end);
+});
+const appBuilder = declaration(buildProgram, 'buildAppShell');
+const resultDeclaration = appBuilder.body.body.find(node => node.type === 'VariableDeclaration'
+  && node.declarations.some(item => item.id.name === 'result')).declarations.find(item => item.id.name === 'result');
+assert.equal(resultDeclaration.init.type, 'AwaitExpression');
+assert.equal(resultDeclaration.init.argument.callee.name, 'viteBuild');
+const configNode = resultDeclaration.init.argument.arguments[0];
+const factory = new Function('root', 'relative', 'resolve', [...declarations, ...functions,
+  `return { config: ${buildSource.slice(configNode.start, configNode.end)}, modulePath, collectStaticChunkGraph, assertStartupPhaseIsolation, OCR_BUNDLE_REFERENCE };`].join('\n'));
+async function measure(label) {
+  const tools = factory(root, relative, resolve), config = tools.config;
+  assert.equal(config.build.write, false); assert.equal(config.build.minify, 'oxc'); assert.equal(config.build.target, 'es2022');
+  let transforms = 0;
+  if (label === 'candidate') config.plugins = [{ name: 'fundval-private-identity-probe', enforce: 'pre',
+    transform(code, id) {
+      if (id.replaceAll('\\', '/') !== resolve(root, 'js/app.js').replaceAll('\\', '/')) return;
+      assert.equal(lf(code), source); transforms++; return { code: candidate, map: null };
+    } }];
+  const result = await viteBuild(config), outputs = Array.isArray(result) ? result.flatMap(item => item.output || []) : result.output || [];
+  assert.equal(transforms, label === 'candidate' ? 1 : 0);
+  const chunks = outputs.filter(item => item.type === 'chunk');
+  const entries = chunks.filter(chunk => chunk.isEntry); assert.equal(entries.length, 1); assert.equal(entries[0].fileName, 'js/app-shell.js');
+  const graph = new Map(chunks.map(chunk => [chunk.fileName, chunk]));
+  for (const chunk of chunks) {
+    assert.ok(/^js\/(?:app-shell|chunks\/[A-Za-z0-9._-]+)\.js$/.test(chunk.fileName));
+    assert.ok(!tools.OCR_BUNDLE_REFERENCE.test(chunk.code));
+    for (const file of [...chunk.imports, ...chunk.dynamicImports]) assert.ok(graph.has(file));
+  }
+  const cold = tools.collectStaticChunkGraph(graph, [entries[0].fileName, ...entries[0].dynamicImports]);
+  tools.assertStartupPhaseIsolation(graph, entries[0], cold);
+  return { chunks: chunks.length, raw: chunks.reduce((sum, c) => sum + Buffer.byteLength(c.code), 0),
+    allGzip: chunks.reduce((sum, c) => sum + gzipSync(c.code).length, 0),
+    coldGzip: chunks.filter(c => cold.has(c.fileName)).reduce((sum, c) => sum + gzipSync(c.code).length, 0),
+    modules: [...new Set(chunks.flatMap(c => Object.keys(c.modules).map(tools.modulePath)))].sort(),
+    unchangedConfig: { minify: config.build.minify, target: config.build.target, groups: config.build.rolldownOptions.output.codeSplitting.groups.map(g => ({ name: g.name, priority: g.priority, test: g.test.toString() })) } };
+}
+
+// Execute both actual buildFundData bodies with real calculation/Quote helpers.
+// Only the unrelated optional model mutation boundary is injected so it can
+// instrument the candidate's intermediate plain data object.
+const quote = await import(pathToFileURL(resolve(root, 'js/runtime/quote-normalizer.js')));
+const calculator = await import(pathToFileURL(resolve(root, 'js/calculator.js')));
+const market = await import(pathToFileURL(resolve(root, 'js/runtime/market-session.js')));
+const amounts = await import(pathToFileURL(resolve(root, 'js/runtime/holding-quote-amounts.js')));
+const T0 = Date.parse('2026-10-13T06:45:10.000Z');
+const helperNames = ['isRealFundName', 'isUsableNav'];
+const helperTexts = helperNames.map(name => { const node = declaration(sourceProgram, name); return source.slice(node.start, node.end); });
+const oldNode = declaration(sourceProgram, 'buildFundData'), newNode = declaration(candidateProgram, 'buildFundData');
+const errorSentinel = Object.freeze({ synthetic: 'getter failure' });
+function run(text, injectedHelper, input, mode = 'native') {
+  const trace = [], optionShapes = []; let reads = 0;
+  class Clock extends Date {
+    constructor(...args) { trace.push(['Date.construct', args]); super(...args); }
+    static now() { trace.push(['Date.now']); return T0; }
+  }
+  const bindings = { ...quote, ...calculator, ...market, ...amounts, Date: Clock,
+    applyOverseasModelEstimate(d, models) {
+      trace.push(['model', models]);
+      if (mode !== 'native') for (const key of ['code', 'name', 'market', 'assetKind']) {
+        let value = d[key];
+        Object.defineProperty(d, key, { configurable: true, enumerable: true,
+          get() { trace.push(['get', key]); reads++; if (mode === 'throw' && reads === 8) throw errorSentinel; return value; },
+          set(next) { trace.push(['set', key, next]); value = next; } });
+      }
+    },
+    buildFundQuoteCandidates(d, options) { optionShapes.push({ keys: Reflect.ownKeys(options), descriptors: Object.getOwnPropertyDescriptors(options) }); return quote.buildFundQuoteCandidates(d, options); },
+    selectPreferredQuote(candidates, options, extra) { optionShapes.push({ keys: Reflect.ownKeys(options), descriptors: Object.getOwnPropertyDescriptors(options) }); return quote.selectPreferredQuote(candidates, options, extra); },
+  };
+  const fn = new Function(...Object.keys(bindings), [...helperTexts, injectedHelper, text, 'return buildFundData;'].join('\n'))(...Object.values(bindings));
+  let output, error;
+  try { output = fn(structuredClone(input.r), structuredClone(input.h), {}); } catch (e) { error = e; }
+  return { output, error, trace, optionShapes };
+}
+let nativeChecks = 0, getterChecks = 0, throwChecks = 0;
+for (const status of ['ok', 'ok_fallback', 'ok_official', 'error']) for (const shares of [null, 0, -0, 12.5]) for (const cost of [null, 0, -0, 1.1]) for (const nav of [null, 0, 1.2]) {
+  const input = { r: { code: '005844', name: '基金测试', status, last_nav: 1.19, est_nav: nav, est_change: 0,
+    base_nav: 1.19, base_nav_date: '2026-10-12', value_date: '2026-10-13', est_time: '2026-10-13 14:45:00', est_kind: 'estimate', est_realtime: false },
+    h: { code: '005844', name: '历史名', shares, cost } };
+  for (const mode of ['native', 'getters', 'throw']) {
+    const a = run(source.slice(oldNode.start, oldNode.end), '', input, mode);
+    const b = run(candidate.slice(newNode.start, newNode.end), helper, input, mode);
+    assert.deepEqual(a.trace, b.trace); assert.deepEqual(a.optionShapes, b.optionShapes);
+    assert.equal(a.error, b.error);
+    if (mode !== 'getters') assert.deepEqual(a.output, b.output);
+    else assert.deepEqual(JSON.parse(JSON.stringify(a.output)), JSON.parse(JSON.stringify(b.output)));
+    if (mode === 'native') nativeChecks++; else if (mode === 'getters') getterChecks++; else throwChecks++;
+  }
+}
+const headBefore = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+const statusBefore = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' });
+const { artifactFingerprint } = await import(pathToFileURL(resolve(root, 'scripts/measure-performance-pair.mjs')));
+const siteBefore = await artifactFingerprint(resolve(root, 'site'));
+const measurements = [];
+for (let round = 1; round <= 3; round++) {
+  const original = await measure('original'), next = await measure('candidate');
+  assert.deepEqual(original.modules, next.modules); assert.deepEqual(original.unchangedConfig, next.unchangedConfig);
+  assert.equal(original.allGzip, 81158); assert.equal(original.coldGzip, 42907);
+  measurements.push({ round, original: { chunks: original.chunks, raw: original.raw, allGzip: original.allGzip, coldGzip: original.coldGzip },
+    candidate: { chunks: next.chunks, raw: next.raw, allGzip: next.allGzip, coldGzip: next.coldGzip },
+    delta: { raw: next.raw - original.raw, allGzip: next.allGzip - original.allGzip, coldGzip: next.coldGzip - original.coldGzip } });
+}
+assert.equal(lf(await readFile(resolve(root, 'js/app.js'), 'utf8')), source);
+assert.equal(lf(await readFile(resolve(root, 'scripts/build-site.mjs'), 'utf8')), buildSource);
+const siteAfter = await artifactFingerprint(resolve(root, 'site')); assert.deepEqual(siteBefore, siteAfter);
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), headBefore);
+assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }), statusBefore);
+console.log(JSON.stringify({ status: 'READ_ONLY_VIRTUAL_PROBE', head: headBefore, sourceSha256: hash(source), candidateSha256: hash(candidate),
+  measurements, equivalence: { nativeChecks, getterChecks, throwChecks, realQuoteAndAmountHelpers: true,
+    boundary: 'Instrumented getters, Date traces, exact options own-key/descriptors and same thrown sentinel observed. Optional model boundary injected; no full app/E2E/latency/device proof, no universal JS stack/alias proof.' },
+  sourceAndSiteUnchanged: true, siteSha256: siteAfter.sha256,
+  exactPatch: { before1: oldFirst, after1: nextFirst, before2: oldSecond, after2: nextSecond, helper },
+  policy: { dependenciesInstalledOrChanged: false, repositoryFilesEdited: false, siteWritten: false, network: false, latency: false, thresholdChanged: false }
+}, null, 2));

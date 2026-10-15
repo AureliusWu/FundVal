@@ -1,9 +1,8 @@
 # M3 刷新图、模块化与性能：阶段检查点
-
-> 更新：2026-10-13（Asia/Shanghai）；第27节实测发生于2026-10-11，复核于2026-10-13。状态：`IN PROGRESS / NOT RELEASED`。
+> 更新：2026-10-15（Asia/Shanghai）；第29节为本轮独立检查，第28节保留10月13～14日证据。状态：`IN PROGRESS / NOT RELEASED`。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
 > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
-> 最新：第27节完成06aa源码的精确CI与新200组配对复核：Linux966/966、syntax197、E2E27/27、audit0，CI唯一失败为all预算；冷启动/保存PASS，暖启动p95区间稳定性不足，整体 **INCONCLUSIVE**，不重采样挑PASS。第26节all减105 B / cold减108 B；实际all非OCR gzip **81,158 > 77,227.7 B仍FAIL**，至少还需减少 **3,931 B**。P1聚合缓存隔离及source-map-js安全补丁保留；CodeQL #3仅在continuation修复，main仍未合入，#5/#7仍在。M3不能EXIT，不能进入M4或正式发布。
+> 最新：第29节完成22个各自在脚本中预设的虚拟变体实测；HTTP私有投影被原有28项表征的真实反例否决，其余没有材料性gzip收益，业务源码未改。10月15日新本地966 tests（963 PASS/3 skip）、syntax197、E2E27/27、三次build与资源核验通过；all仍 **81,158 > 77,227.7 B FAIL**，差 **3,931 B**。第27节200组配对总体 **INCONCLUSIVE** 保留，不重采样挑PASS；既有CI不冒充新文档提交的CI。M3不能EXIT，不能进入M4或正式发布。
 
 ## 1. 已实现的刷新边界
 
@@ -710,3 +709,111 @@ M3仍 **IN PROGRESS**：all预算还差 **3,931 B**，新总体时延门禁证�
 独立只读减包调查未找到新材料性候选：9个核心模块/129个FunctionDeclaration去位置AST比较没有完全相同函数体；wire与persisted-cache的typed/alias/null/错误/provenance/freshness语义不同，不能合并删除校验；public coordinator不在实际生产消费者图，不能把源码重复当成当前gzip双份代码。6个没有生产writer的fundType/fundFee展示行仅441 B raw，未测gzip且已有Proxy/getter轨迹保护，不作为高收益实现。尚不能承诺一轮填平3,931 B；本轮未改业务来凑预算。
 
 固定更大1000组系列有尾部精度理由（200组p95约10个上尾样本、1000约50），但这是观察本轮之后的后置方案，不是原预计划，也不保证PASS或多次测试总体95%置信。当前优先材料性减包，尚未声明/启动新1000组；若后续采用，须另提交固定协议/独占输出、保留旧结果、不混样/早停/换seed/增样/失败后重试。
+
+## 28. 结构减包候选的实际排除与保留导出筛查（2026-10-13～14）
+
+机器汇总：[m3-rejected-structural-probes-20261013.json](performance-evidence/m3-rejected-structural-probes-20261013.json)；完整精确变体、三轮数据和原测量脚本：[归档目录](performance-evidence/rejected-probes-20261013/README.md)。
+
+这轮按既定M3顺序继续处理体积缺口，不进入M4。测量源检查点 **17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1**，与06aa相比只有第27节的五份证据文档变化，业务内容、配置、预算、依赖和版本未变。没有实施下面的任何候选。保存否决证据的目的是限制下一轮重复探索，不把源码缩短或定向对照PASS当作包体积收益。
+
+### 真实配方、固定三轮与结果
+
+全部采用真实 `scripts/build-site.mjs` 的AST配置：**Vite8.2.2 / oxc / es2022 / 原groups / write:false**；只通过内存plugin替换精确模块。每个各自在脚本中预设的变体及基线各三轮，数值完全一致，都是16 chunks；并非12项统一事前注册。没有运行时延试验、改依赖或重分组。基线 **raw237,665 / all81,158 / cold42,907 B**。native template仅为coercion负控，组合项不是额外可相加的收益。
+
+| 候选 | all gzip变化 | cold gzip变化 | 处理 |
+| --- | ---: | ---: | --- |
+| 18处严格template拼接 | +15 B | +15 B | 增大，拒绝 |
+| native template负控 | +7 B | +5 B | 增大且不保留任意对象coercion，拒绝 |
+| 5处stat-cell HTML helper | +5 B | +1 B | 增大，拒绝 |
+| migration成功返回工厂 | +13 B | +9 B | 增大，拒绝 |
+| schema私有参数scalar | −4 B | −5 B | 收益不足，未完成行为资格验证，不实施 |
+| journal membership复用 | −3 B | −4 B | 收益不足，未完成行为资格验证，不实施 |
+| 上述三个存储变体组合 | −14 B | −9 B | 收益不足，不实施；不是单项gzip相加 |
+| cloud同步解析检查工厂 | +17 B | −1 B | 总包增大，拒绝 |
+| buildFundData身份工厂 | +8 B | +5 B | 总包增大，拒绝 |
+| cached market投影工厂 | −12 B | −7 B | 收益不足，不实施 |
+| cache payload字段表 | +25 B | +3 B | 增大，拒绝 |
+| cache payload+index字段表 | +33 B | 0 B | 增大，拒绝 |
+
+身份工厂定向 **192 native /192 getter /192 throw** 对照通过；market工厂 **1,944 native /1,944 Proxy /8 throw** 对照通过。保留字段/descriptor、spread与getter顺序、Date轨迹和同一sentinel；可选模型或DOM被注入，不能称完整app、任意JS异常栈、E2E或真机等价。其他候选已被包体积/收益检查排除，未继续投入完整行为证明。
+
+### 实际保留导出与较大重复检查
+
+另做两次原配方baseline库存，均raw237,665 / all81,158 B。10个dynamic entry已窄化或只有单一必需导出：business-features的18个、cloud-runtime的6个、gist-runtime的3个均有真实页面消费者；startup recovery/lock与migration保持先于app。独立accuracy动态产物仅 `loadAccuracy`（77 raw /92 gzip），其实现保留另六函数是 `updateFundAccuracy` 的内部调用链，不是未用namespace泄漏。证据含各模块AST声明导出和实际renderedExports；当前Rolldown没有提供removedExports，不能猜测。模块的renderedExports也不等于chunk对外exports。
+
+8个聚合函数的56个对象表达式没有找到≥200 raw B的精确结构重复；这个窄AST检查不排除语义/alpha-renaming优化。cloud push/pull较大重复跨越不同backup、await、readback、pending窗口，不合并异步引擎。旧integrity修复导出已经tree-shaken，删除raw源码不计作产物收益。
+
+cache独立交叉审查重建了两份完整虚拟源并检查原AST配置、三轮值与source/recipe的17bb Git blob LF hash。原报告 `sourceCommit:null` 没有改写成预先记录的SHA；缺少专属全树前后库存的限制仍保留。各探针graph SHA是不同序列化的有界拓扑指示，不是行为/导出/产物指纹证明。
+
+### 当前未改业务源的独立本地复核
+
+新运行 **966 tests /963 PASS /0 fail /3 Windows symlink条件skip（5,370.104 ms）**；syntax **197**；桌面合成E2E **27/27（41.9秒）**，自有12437已退出。三个readiness/save描述性样本全保留于机器报告，只属于原绝对交互smoke，不是新的relative/p95、真实设备或真实云同步。没有重新运行200组配对，第27节总体INCONCLUSIVE保持。
+
+实际build共4次；E2E后最后两次同17bb epoch **1791905438**，关键发布集均 **`c42ea9458cf28dd8e4c51306da6a86f46f1602dd947ad562006a380ce23267ae`**，whole-site均 **`20986cc3ead54ccf19733225097e8b4b908feb898fff8790df88fff634a1173d` /126 files/92,499,248 B**。两种算法不互相替代。官方核验app **16 chunks/237,665 B**、OCR **23 assets/88,196,906 B** 的bytes/SHA通过，没有执行OCR。fresh build只将OCR manifest生成时间改为新epoch；E2E曾产生45 B的忽略结果文件，后续正常build清除，所以不能将“虚拟探针未写site”扩展为整轮site始终没变。
+
+两次实际budget CLI仍 **cold42,907 /52,241 PASS，all81,158 /77,227.7 FAIL /exit1**，至少差 **3,931 B**。CLI的importClosureVerified仍false，启动图校验由真实build输出负责。以上是17bb内容和该epoch的本地结果，不验证未来文档提交SHA、Linux或生产。依赖审计未重跑、未安装或修改依赖；不继承为本轮新audit结果。
+
+两次只读GitHub run查询发生API EOF，未据此改变既有CI结论或制造新CI证明。新的 `git ls-remote` 读回continuation17bb、main仍abfb。归档前15份文件逐字LF核对，库存报告只删rendered code、另加顶层投影说明，其余metadata不变；归档读取截断、PowerShell quoting、CLI参数/root误用及末尾空行修正等诊断也保留。
+
+### 下一步范围
+
+这轮没有新的业务收益，不升级版本或发布。后续优先研究真实post-integrity（32,129 B gzip）和business-runtime（27,929 B gzip）的可达调用链与较大闭合职责，而不是继续为个位字节增加工厂；这只是筛查方向，不承诺已经找到减包方案。任何共享必须保留wire/cache不同边界、source/date/null/0、Schema3、取消与写入时序，先实测再资格验证。材料性源码变化后，按原协议预声明完整新配对，保留旧INCONCLUSIVE。
+
+**M3 IN PROGRESS / NOT RELEASED**。业务源码、公开校验器、配置、依赖、预算、版本、main与生产均未改；M4/M5/M6未开始。
+
+## 29. 较大职责、函数排布与 HTTP 私有边界排除（2026-10-15）
+
+机器汇总：[m3-larger-boundary-probes-20261015.json](performance-evidence/m3-larger-boundary-probes-20261015.json)；精确原脚本、完整虚拟源、逐轮记录和失败TAP见 [压缩归档说明](performance-evidence/rejected-probes-20261015.md)。本轮承接中断的20份暂存证据，没有覆盖旧数据。测量时HEAD仍17bb、业务仍06aa，业务/配置/依赖/预算/版本未改。
+
+### 7个独立脚本族、22个候选
+
+每个脚本各自先定义变体，再运行固定三轮；不是22项统一事前注册。仍用真实build-site AST配置、write:false、Vite8.2.2/oxc/es2022及原5groups。基线均 **raw237,665 / all81,158 / cold42,907 B、16chunks**；下列每项三轮稳定。组合行不是单项压缩收益相加。
+
+| 候选 | all变化 | cold变化 | 结论 |
+| --- | ---: | ---: | --- |
+| app共同cloud编排 | −30 B | −26 B | 无材料性收益，且有getter/微任务风险 |
+| app Map事件分派 | +21 B | +23 B | 拒绝 |
+| 上两项组合 | +2 B | +3 B | 拒绝 |
+| 函数保持源序后集中排布 | −19 B | −20 B | 不实施 |
+| 函数字母序 | +221 B | +226 B | 拒绝 |
+| 函数反向源序 | +125 B | +126 B | 拒绝 |
+| 函数长度升序 | −17 B | −17 B | 不实施 |
+| 直接调用名称启发式DFS | +181 B | +186 B | 拒绝 |
+| 模型envelope条件装配 | +8 B | +9 B | 拒绝 |
+| 模型envelope前缀装配 | −9 B | −8 B | 不实施 |
+| descriptor tuple且保留验证 | +9 B | +11 B | 拒绝 |
+| period复用enum | −3 B | −6 B | 不实施 |
+| 上述模型/tuple/enum组合 | −18 B | −17 B | 不实施 |
+| quote/wire共用最终parse尾部 | −9 B | −4 B | 不实施 |
+| 再含overseas的parse尾部 | 0 B | −3 B | 不实施 |
+| 完整Worker HTTP transport收敛 | −22 B | −2 B | 不实施 |
+| Bridge私有错误helper | +9 B | +4 B | 拒绝 |
+| transport/Bridge组合 | −16 B | 0 B | 不实施 |
+| HTTP canonical私有投影且保留二次validator | −120 B | +3 B | **行为回归，拒绝** |
+| 43处静态DOM ID查找门面 | −34 B | −30 B | 不实施 |
+| 18项action switch | 0 B | +3 B | 不实施 |
+| DOM/action switch组合 | −30 B | −28 B | 不实施 |
+
+原28项HTTP表征：基线 **28/28 PASS**，私有投影 **27 PASS/1 FAIL**。具体反例是 `test/estimate-http-characterization-v16.test.js:243`：ChangingDate第一次时钟允许envelope，第二次时钟回拨触发ROW_INVALID。原实现应保留legacy safe rescue并返回不可用行，候选却拒绝整次请求。候选虽保留第二次wire validator，仍不能称等价；不得借“已校验canonical”删去二次校验或rescue，也没有修改测试期望。完整TAP确认对另存，原spec观察和工具启动错误没有替换成PASS。
+
+函数排布通过独立重建确认138个函数声明文本逐字不变、104个非函数语句文本及相对顺序不变；没有运行行为等价或采用这些排布。DFS只是直接标识符调用名启发式，不是解析了词法绑定/动态调用的完整调用图。初次工具的Windows斜杠替换错误导致三轮baseline后首个候选touched=0失败；修正仓库外工具后固定完整6×3系列，最终18条，不把此前3条拼成21条。失败来自root已观察的工具输出，没有虚构独立失败文件。
+
+orchestration记录230个tracked/126个site文件的专属前后库存；layout仅验证app前后相同，不借前者追认其全树窗口。UI有独立91源文件/126site库存。graph SHA两个算法族不同，不横比、不证明行为。共享时间解析没有统一各自语法：wire严格文本/offset边界、quote日期语法、overseas斜杠日期、Tencent当地时区均继续保持区别。
+
+### 本轮新本地检查与范围
+
+以下命令结果由root实际执行观察；归档交叉审查只核验数据与边界，没有再次运行这些门禁。
+
+- `npm test`：**966 /963 PASS /0 FAIL /3 Windows条件skip，5,757.9025 ms**。
+- `npm run check`：**197**个JS文件。
+- `npm run test:e2e`：**27/27，40.6秒**，自有12437监听已退出，未动4173。三个绝对readiness/save样本完整保留，不是新relative/p95或真机/云/生产证据。
+- `npm run build`：**三次成功**；E2E后最后两次同17bb epoch1791905438，关键发布集均 **c42ea9458cf28dd8e4c51306da6a86f46f1602dd947ad562006a380ce23267ae**；本轮whole-site采用明确的path/bytes/sha256排序JSON算法，均 **a10e39af54a2429f405e03a92ccadced75a9d2abb226960c3b1af7cf8773ec10 /126文件/92,499,248 B**。与第28节不同键名算法的whole hash不能直接横比。
+- 独立官方CLI核验：app **16 chunks/237,665 B**、OCR **23 assets/88,196,906 B** bytes/SHA通过；没有执行OCR。
+- 原budget CLI **exit1**：cold42,907/52,241 PASS，all **81,158/77,227.7 FAIL，至少差3,931 B**。importClosureVerified=false仍不冒充真实build图校验。
+- 未重新audit依赖、未重新采集200组pair、未进行本轮CI/生产验收；旧pair仍INCONCLUSIVE，不重跑挑PASS。
+
+19份精确LF原文件以gzip+base64归档，解码后JSON **999,622 B** /SHA256 **2b7115730a163c2476edab5b3a9e7debcfedcd65f83c6c89a477f5bb37e7a40c**，gzip **203,381 B** /SHA256 **236faa2aa36a8e99750bb9eb32e3b07477f7ed9f84f3d5fc6964b1091afb0af1**；19份逐字LF、8个JSON解析与逐文件hash已实核。仅是文档归档，不进入app、SW CORE、资源预算或OCR资产。
+
+额外的只读字段活性追溯排除了直接删除primary_change/primary_nav/display写入：当前`app.js:587`与`refresh-resource-cache.js:260`是黑名单式持久化，不能拿resource ROW_FIELDS白名单套用aggregate；worker-contract的`...row`→eastmoney-estimate的`...wire`→app的`...r`允许未知同名字段到达。`test/cache-fund-identity-v16.test.js:130`附近明确要求可信quote覆盖这些派生值。原40e旧app在hydrate时会重建这些字段，primary_nav计算reader属于它自己的新网络build；不能宣称“v15会因新缓存缺少这些字段而不能打开”。真正未闭合的是当前opaque同名覆盖、共享v1缓存输出和身份隔离契约；仅凭当前UI没有直接reader就删写，会使同名值不再被可信quote覆盖，不能称等价减包。没有为这个不闭合方向运行字节试验或改断言。
+
+**没有合入新候选，没有取得新业务减包收益。M3仍IN PROGRESS，版本15.0.2，M4/M5/M6与正式发布均未开始。** 后续须找真正闭合的私有路径或以完整兼容设计消除重复投影，不再重复这22项helper/布局试验；不能仅凭文本搜索没命中就删字段。本轮结论不证明更大重构不存在，也不保证能填平预算。

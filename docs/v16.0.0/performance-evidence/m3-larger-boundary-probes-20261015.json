@@ -1,0 +1,1028 @@
+{
+  "schema": 1,
+  "status": "NO_CANDIDATE_ADOPTED_M3_IN_PROGRESS",
+  "recordedAtHostUtc": "2026-10-15T05:28:05Z",
+  "sourceObservedCommit": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+  "businessSourceCommit": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+  "sourceEdits": false,
+  "version": "15.0.2",
+  "method": {
+    "families": 7,
+    "candidates": 22,
+    "baseline": {
+      "chunks": 16,
+      "raw": 237665,
+      "all": 81158,
+      "cold": 42907
+    },
+    "roundsPerDeclaredVariant": 3,
+    "config": "Exact scripts/build-site.mjs AST configuration, write:false, Vite8.2.2 / oxc / es2022 / original five groups; no dependency/compiler/target/group/budget changes.",
+    "preregistrationBoundary": "Each script declared its own candidate set before its valid three-round loop. No claim of a unified preregistration for all 22 candidates.",
+    "graphBoundary": "60130... and UI 01150... use different serialization; topology does not prove behavior, exports, time or artifact equality.",
+    "invalidInitialLayoutAttempt": "Three baseline rounds completed, then candidate touched=0 due overescaped Windows path replacement. Corrected outside tool only, then fixed full 6x3 series; old three are not pooled into final 18. Observed root tool log, no invented standalone failure file."
+  },
+  "outcomes": [
+    {
+      "family": "app/layout-report.json",
+      "id": "sourceOrderGrouped",
+      "deltaRaw": 2,
+      "deltaAll": -19,
+      "deltaCold": -20,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81139,
+          "cold": 42887,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81139,
+          "cold": 42887,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81139,
+          "cold": 42887,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "app/layout-report.json",
+      "id": "alphabetical",
+      "deltaRaw": 2,
+      "deltaAll": 221,
+      "deltaCold": 226,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81379,
+          "cold": 43133,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81379,
+          "cold": 43133,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81379,
+          "cold": 43133,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "app/layout-report.json",
+      "id": "reverseSource",
+      "deltaRaw": 2,
+      "deltaAll": 125,
+      "deltaCold": 126,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81283,
+          "cold": 43033,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81283,
+          "cold": 43033,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81283,
+          "cold": 43033,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "app/layout-report.json",
+      "id": "lengthAscending",
+      "deltaRaw": 2,
+      "deltaAll": -17,
+      "deltaCold": -17,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81141,
+          "cold": 42890,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81141,
+          "cold": 42890,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81141,
+          "cold": 42890,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "app/layout-report.json",
+      "id": "callGraphDepthFirst",
+      "deltaRaw": 2,
+      "deltaAll": 181,
+      "deltaCold": 186,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81339,
+          "cold": 43093,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81339,
+          "cold": 43093,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237667,
+          "all": 81339,
+          "cold": 43093,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "app/report.json",
+      "id": "sharedCloudOrchestration",
+      "deltaRaw": -305,
+      "deltaAll": -30,
+      "deltaCold": -26,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237360,
+          "all": 81128,
+          "cold": 42881,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237360,
+          "all": 81128,
+          "cold": 42881,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237360,
+          "all": 81128,
+          "cold": 42881,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "app/report.json",
+      "id": "actionDispatchMap",
+      "deltaRaw": 3,
+      "deltaAll": 21,
+      "deltaCold": 23,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237668,
+          "all": 81179,
+          "cold": 42930,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237668,
+          "all": 81179,
+          "cold": 42930,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237668,
+          "all": 81179,
+          "cold": 42930,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "app/report.json",
+      "id": "combined",
+      "deltaRaw": -302,
+      "deltaAll": 2,
+      "deltaCold": 3,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237363,
+          "all": 81160,
+          "cold": 42910,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237363,
+          "all": 81160,
+          "cold": 42910,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237363,
+          "all": 81160,
+          "cold": 42910,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "post/report.json",
+      "id": "modelEnvelopeConditional",
+      "deltaRaw": -100,
+      "deltaAll": 8,
+      "deltaCold": 9,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237565,
+          "all": 81166,
+          "cold": 42916,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237565,
+          "all": 81166,
+          "cold": 42916,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237565,
+          "all": 81166,
+          "cold": 42916,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "post/report.json",
+      "id": "modelEnvelopePrefix",
+      "deltaRaw": -251,
+      "deltaAll": -9,
+      "deltaCold": -8,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237414,
+          "all": 81149,
+          "cold": 42899,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237414,
+          "all": 81149,
+          "cold": 42899,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237414,
+          "all": 81149,
+          "cold": 42899,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "post/report.json",
+      "id": "descriptorTuplesValidated",
+      "deltaRaw": -548,
+      "deltaAll": 9,
+      "deltaCold": 11,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237117,
+          "all": 81167,
+          "cold": 42918,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237117,
+          "all": 81167,
+          "cold": 42918,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237117,
+          "all": 81167,
+          "cold": 42918,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "post/report.json",
+      "id": "periodSharedEnums",
+      "deltaRaw": -180,
+      "deltaAll": -3,
+      "deltaCold": -6,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237485,
+          "all": 81155,
+          "cold": 42901,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237485,
+          "all": 81155,
+          "cold": 42901,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237485,
+          "all": 81155,
+          "cold": 42901,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "post/report.json",
+      "id": "combinedModelsTuplesEnums",
+      "deltaRaw": -979,
+      "deltaAll": -18,
+      "deltaCold": -17,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 236686,
+          "all": 81140,
+          "cold": 42890,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 236686,
+          "all": 81140,
+          "cold": 42890,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 236686,
+          "all": 81140,
+          "cold": 42890,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "post/timestamp-report.json",
+      "id": "contractAndWireFinalParse",
+      "deltaRaw": -31,
+      "deltaAll": -9,
+      "deltaCold": -4,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237634,
+          "all": 81149,
+          "cold": 42903,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237634,
+          "all": 81149,
+          "cold": 42903,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237634,
+          "all": 81149,
+          "cold": 42903,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "post/timestamp-report.json",
+      "id": "contractWireOverseasFinalParse",
+      "deltaRaw": -36,
+      "deltaAll": 0,
+      "deltaCold": -3,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237629,
+          "all": 81158,
+          "cold": 42904,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237629,
+          "all": 81158,
+          "cold": 42904,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237629,
+          "all": 81158,
+          "cold": 42904,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "business/adapter-report.json",
+      "id": "canonicalAdapterRetainWire",
+      "deltaRaw": -390,
+      "deltaAll": -120,
+      "deltaCold": 3,
+      "decision": "REJECT_BEHAVIOR_REGRESSION",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237275,
+          "all": 81038,
+          "cold": 42910,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237275,
+          "all": 81038,
+          "cold": 42910,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237275,
+          "all": 81038,
+          "cold": 42910,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "business/report.json",
+      "id": "workerTransport",
+      "deltaRaw": -291,
+      "deltaAll": -22,
+      "deltaCold": -2,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237374,
+          "all": 81136,
+          "cold": 42905,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237374,
+          "all": 81136,
+          "cold": 42905,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237374,
+          "all": 81136,
+          "cold": 42905,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "business/report.json",
+      "id": "bridgePrivateErrors",
+      "deltaRaw": -381,
+      "deltaAll": 9,
+      "deltaCold": 4,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237284,
+          "all": 81167,
+          "cold": 42911,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237284,
+          "all": 81167,
+          "cold": 42911,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237284,
+          "all": 81167,
+          "cold": 42911,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "business/report.json",
+      "id": "combined",
+      "deltaRaw": -673,
+      "deltaAll": -16,
+      "deltaCold": 0,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 236992,
+          "all": 81142,
+          "cold": 42907,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 236992,
+          "all": 81142,
+          "cold": 42907,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 236992,
+          "all": 81142,
+          "cold": 42907,
+          "graphHash": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c"
+        }
+      ]
+    },
+    {
+      "family": "ui/report.json",
+      "id": "domLookup",
+      "deltaRaw": -889,
+      "deltaAll": -34,
+      "deltaCold": -30,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 236776,
+          "all": 81124,
+          "cold": 42877,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 236776,
+          "all": 81124,
+          "cold": 42877,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 236776,
+          "all": 81124,
+          "cold": 42877,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        }
+      ]
+    },
+    {
+      "family": "ui/report.json",
+      "id": "actionSwitch",
+      "deltaRaw": 112,
+      "deltaAll": 0,
+      "deltaCold": 3,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 237777,
+          "all": 81158,
+          "cold": 42910,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 237777,
+          "all": 81158,
+          "cold": 42910,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 237777,
+          "all": 81158,
+          "cold": 42910,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        }
+      ]
+    },
+    {
+      "family": "ui/report.json",
+      "id": "domActionSwitch",
+      "deltaRaw": -777,
+      "deltaAll": -30,
+      "deltaCold": -28,
+      "decision": "REJECT_NO_MATERIAL_GZIP_BENEFIT",
+      "rounds": [
+        {
+          "round": 1,
+          "chunks": 16,
+          "raw": 236888,
+          "all": 81128,
+          "cold": 42879,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        },
+        {
+          "round": 2,
+          "chunks": 16,
+          "raw": 236888,
+          "all": 81128,
+          "cold": 42879,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        },
+        {
+          "round": 3,
+          "chunks": 16,
+          "raw": 236888,
+          "all": 81128,
+          "cold": 42879,
+          "graphHash": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+        }
+      ]
+    }
+  ],
+  "behavior": {
+    "canonicalAdapterRetainWire": {
+      "baseline": {
+        "tests": 28,
+        "pass": 28,
+        "fail": 0,
+        "exitCode": 0
+      },
+      "candidate": {
+        "tests": 28,
+        "pass": 27,
+        "fail": 1,
+        "exitCode": 1
+      },
+      "counterexample": "test/estimate-http-characterization-v16.test.js:243; ChangingDate second wire validation invokes WORKER_ROW_INVALID legacy safe rescue. Candidate rejects the request instead of returning an unusable row.",
+      "completeSavedTap": "business/qualification.json in compressed archive",
+      "decision": "REJECT; keep public legacy API, second validation and rescue.",
+      "note": "Archive records an initial spec pair and a fixed TAP confirmation, not a single inferred result."
+    },
+    "allOtherCandidates": "No complete runtime behavior qualification because deterministic gzip benefit was absent or too small.",
+    "sharedCloudRisk": "Pull changed getter is read up to three times rather than once; async wrapper microtasks not qualified. Measurement only, never deployed.",
+    "layoutChecks": "Independent reconstruction: 138 function declaration texts unchanged, 104 non-function statements unchanged in relative order. Direct-call heuristic is not a resolved whole-app call graph.",
+    "layoutInventoryLimit": "Only app before/after equality was asserted for layout. Separate orchestration 230 tracked/126site inventories do not retroactively prove the layout window."
+  },
+  "fieldLivenessAudit": {
+    "scope": "Read-only tracing of primary_change / primary_nav / display across current source, aggregate serializers, original 40e and existing identity regression tests; not another byte candidate.",
+    "finding": "Not a closed removable projection. Aggregate cache is blacklist-based, while wire ...row / estimate ...wire / app ...r preserve opaque same-name fields. Trusted quote rewrites are explicit in test/cache-fund-identity-v16.test.js:130. Removing writes can retain poisoned opaque values.",
+    "locations": ["js/app.js:587", "js/app.js:654", "js/runtime/refresh-resource-cache.js:260", "test/cache-fund-identity-v16.test.js:130"],
+    "historicalBoundary": "Original 40e computed amounts from primary_nav in its own network build and rehydrated primary_change/nav/display from quote. This does not prove old v15 fails to open a cache without these fields. Current opaque overwrite/shared cache output/identity semantics are the actual non-closed boundary.",
+    "decision": "Do not remove writes or weaken tests; no byte measurement or business edit."
+  },
+  "localChecks": {
+    "observedBy": "root, actual command output this turn; not rerun by archive cross-review",
+    "unit": {
+      "command": "npm test",
+      "exitCode": 0,
+      "tests": 966,
+      "pass": 963,
+      "fail": 0,
+      "skip": 3,
+      "skipReason": "Windows conditional symlink tests",
+      "durationMs": 5757.9025
+    },
+    "syntax": {
+      "command": "npm run check",
+      "exitCode": 0,
+      "files": 197
+    },
+    "build": {
+      "command": "npm run build",
+      "runs": 3,
+      "allExitCodes": 0,
+      "epoch": "1791905438",
+      "note": "Two final post-E2E builds fingerprinted; no SOURCE_DATE_EPOCH override.",
+      "finalPair": [
+        {
+          "critical": "c42ea9458cf28dd8e4c51306da6a86f46f1602dd947ad562006a380ce23267ae",
+          "wholeInventorySha256": "a10e39af54a2429f405e03a92ccadced75a9d2abb226960c3b1af7cf8773ec10",
+          "algorithm": "SHA256(JSON.stringify(sortedByLocalePath [{path,bytes,sha256}]))",
+          "files": 126,
+          "bytes": 92499248
+        },
+        {
+          "critical": "c42ea9458cf28dd8e4c51306da6a86f46f1602dd947ad562006a380ce23267ae",
+          "wholeInventorySha256": "a10e39af54a2429f405e03a92ccadced75a9d2abb226960c3b1af7cf8773ec10",
+          "algorithm": "SHA256(JSON.stringify(sortedByLocalePath [{path,bytes,sha256}]))",
+          "files": 126,
+          "bytes": 92499248
+        }
+      ]
+    },
+    "e2e": {
+      "command": "npm run test:e2e",
+      "exitCode": 0,
+      "pass": 27,
+      "total": 27,
+      "seconds": 40.6,
+      "descriptiveSmokeSamples": [
+        {
+          "coldReadyMs": 152.19999999925494,
+          "warmReadyMs": 82.30000000074506,
+          "saveUiMs": 83.76180000000022
+        },
+        {
+          "coldReadyMs": 137.69999999925494,
+          "warmReadyMs": 97.09999999962747,
+          "saveUiMs": 64.29259999999977
+        },
+        {
+          "coldReadyMs": 142.19999999925494,
+          "warmReadyMs": 93.89999999850988,
+          "saveUiMs": 87.01959999999963
+        }
+      ],
+      "boundary": "Synthetic desktop browser / providers blocked. Absolute smoke, not relative/p95, physical device, real cloud sync or production. Owned 12437 listener absent after completion; 4173 untouched."
+    },
+    "appAssets": {
+      "command": "node scripts/release-fingerprint.mjs --verify-app-chunks-directory site",
+      "exitCode": 0,
+      "chunks": 16,
+      "rawBytes": 237665
+    },
+    "ocrAssets": {
+      "command": "node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr",
+      "exitCode": 0,
+      "assets": 23,
+      "bytes": 88196906,
+      "boundary": "Bytes/SHA verification only; OCR not executed."
+    },
+    "budget": {
+      "command": "node scripts/release-fingerprint.mjs --assert-app-bundle-budget site",
+      "exitCode": 1,
+      "cold": 42907,
+      "coldBudget": 52241,
+      "coldPass": true,
+      "all": 81158,
+      "allBudgetNumerator": 772277,
+      "allBudgetDenominator": 10,
+      "allPass": false,
+      "integerBytesRequired": 3931,
+      "importClosureVerified": false
+    },
+    "dependencyAudit": "NOT_RERUN",
+    "pairedLatency": "NOT_RERUN; prior 200 retained result remains INCONCLUSIVE",
+    "ci": "No current-turn CI query/deployment claim."
+  },
+  "archive": {
+    "files": [
+      {
+        "path": "app/layout-probe.mjs",
+        "lfBytes": 8025,
+        "lfSha256": "d6609ddbfc8c5ae64d9b0dd086129fd02a8ffab3b096a27a4de45a85dc0f8550"
+      },
+      {
+        "path": "app/layout-report.json",
+        "lfBytes": 24955,
+        "lfSha256": "46b19118aee283c0d8929e7a2d34a9fb486eea22d76f5ef887b54a2f0ccf0605"
+      },
+      {
+        "path": "app/measure.mjs",
+        "lfBytes": 10698,
+        "lfSha256": "63dfa09aee591a973e78800e73e288ee06adc4065bc4fa9f6fef912f93ab1cde"
+      },
+      {
+        "path": "app/report.json",
+        "lfBytes": 419302,
+        "lfSha256": "ab696c75d9b775e623a2606f3328bb0aeae5c148d1eba193368e43a2e9f01f5e"
+      },
+      {
+        "path": "post/README.md",
+        "lfBytes": 9364,
+        "lfSha256": "4f7a4293910ec11c6899da20f7bf50746312082f245c563d77c6f4ae9e3efcf0"
+      },
+      {
+        "path": "post/probe.mjs",
+        "lfBytes": 12058,
+        "lfSha256": "a36fdba846ef85b0bd821d18098f0ac5971ad13d815a6333c59a212ff0fec68d"
+      },
+      {
+        "path": "post/report.json",
+        "lfBytes": 107545,
+        "lfSha256": "43973cc9ec895ee61d50078db43e24e19b0ef129421ba6ae3797c82903f478e4"
+      },
+      {
+        "path": "post/timestamp-probe.mjs",
+        "lfBytes": 7727,
+        "lfSha256": "d49bb2518ad31db5f1100e97b3ef12d1c5b433a030d38bbe72f3d2f262ccbcc9"
+      },
+      {
+        "path": "post/timestamp-report.json",
+        "lfBytes": 77108,
+        "lfSha256": "9d4ad6009e10e67e5f6976d580c39a23cea122e00413b3c6757021f3836839be"
+      },
+      {
+        "path": "business/README.md",
+        "lfBytes": 7218,
+        "lfSha256": "0ec883ba65c42dd3d18c3cfc9daec9406ec307cd5e7cbb02313011a83d0bba24"
+      },
+      {
+        "path": "business/adapter-loader.mjs",
+        "lfBytes": 614,
+        "lfSha256": "ae93844f6884301dac57d3c7c367eba4cf17f41e6a221347b4bb3710a10c05eb"
+      },
+      {
+        "path": "business/adapter-probe.mjs",
+        "lfBytes": 14064,
+        "lfSha256": "d1d4ac4a19f2defc5bccb42dd36f9b7ee3caf2a0b90757f0035222895608eef7"
+      },
+      {
+        "path": "business/adapter-report.json",
+        "lfBytes": 32729,
+        "lfSha256": "b699478e7fecab1bcc6b29026d01db5033e0d3a19eb4bf6f042801626a34f950"
+      },
+      {
+        "path": "business/probe.mjs",
+        "lfBytes": 12817,
+        "lfSha256": "906bd8cfbb70ba5b7c9a62d0db9e63b239d9f80ef5704069d06386f3e5a303fa"
+      },
+      {
+        "path": "business/qualification.json",
+        "lfBytes": 18963,
+        "lfSha256": "7f776da3c23e965acab305874fb3f9a81b345a168d0428fde3c4d6b31e667582"
+      },
+      {
+        "path": "business/qualify.mjs",
+        "lfBytes": 3338,
+        "lfSha256": "07306c3d57431ed23c1e97c6b784eae0fbe01fbc9d451a3cf634911a83c7d639"
+      },
+      {
+        "path": "business/report.json",
+        "lfBytes": 71841,
+        "lfSha256": "d640ef9a4744e7b41d951a7d7b230a5d985d58d90e83163975f3f0906da85118"
+      },
+      {
+        "path": "ui/probe.mjs",
+        "lfBytes": 9617,
+        "lfSha256": "9b0a766f137611dc214f09049059ee306896c53b997fdae853e04035c671765a"
+      },
+      {
+        "path": "ui/report.json",
+        "lfBytes": 106082,
+        "lfSha256": "1f9339775dba38070d53462fed69b11c724f2e213e0c721e1a5c843c194a7872"
+      }
+    ],
+    "bundleBytes": 999622,
+    "bundleSha256": "2b7115730a163c2476edab5b3a9e7debcfedcd65f83c6c89a477f5bb37e7a40c",
+    "gzipBytes": 203381,
+    "gzipSha256": "236faa2aa36a8e99750bb9eb32e3b07477f7ed9f84f3d5fc6964b1091afb0af1",
+    "base64Chars": 271176,
+    "path": "rejected-probes-20261015.bundle.json.gz.b64",
+    "encoding": "Base64 of gzip of JSON containing 19 exact LF text files; no projection or original file dropped.",
+    "verification": {
+      "archiveIntegrity": true,
+      "exactLfFiles": 19,
+      "jsonParsed": 8,
+      "gzipBytes": 203381,
+      "gzipSha256": "236faa2aa36a8e99750bb9eb32e3b07477f7ed9f84f3d5fc6964b1091afb0af1"
+    }
+  },
+  "boundaries": {
+    "businessConfigBudgetDependencyVersionEdited": false,
+    "mainMerged": false,
+    "deployed": false,
+    "m4Started": false,
+    "m5Started": false,
+    "m6Started": false,
+    "actualCloudWrites": false,
+    "realUserDataUsed": false
+  },
+  "diagnostics": [
+    "Root report-summary shape inspection initially treated observations object as array; failed read-only, corrected inspection; original qualification file unchanged.",
+    "UI initial literal-ID assertion 52 vs actual43 failed before builds; corrected outside assertion, then fixed full three-round series.",
+    "Business initial Bridge constructor assertion19 vs actual17 failed before builds; Windows absolute loader path rejected as c: scheme before tests; corrected file URL. Original diagnostics remain in archive."
+  ]
+}

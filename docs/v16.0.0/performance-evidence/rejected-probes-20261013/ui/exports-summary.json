@@ -1,0 +1,1679 @@
+{
+  "projectionNote": "Original outside-repository inventory contained rendered module code; this saved projection omits code only. Not a behavior or deployment proof.",
+  "head": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+  "viteVersion": "8.2.2",
+  "recipeSha": "51a4d35902ad2e6510dd3e82fea7198a12a9b722ef3098c791aeb4c8327ac9a4",
+  "configSha": "fc809c7569d3034f422cd58f57c1efcee09461285cc68e3af9dc928adfed6282",
+  "declarationsSha": "f57e1fc7cee84dca28aa3314bcf43e4c2bd4436cbec86ebe0ba6e82442be07d9",
+  "totals": {
+    "chunks": 16,
+    "raw": 237665,
+    "allGzip": 81158
+  },
+  "chunks": [
+    {
+      "fileName": "js/app-shell.js",
+      "name": "bootstrap",
+      "isEntry": true,
+      "isDynamicEntry": false,
+      "facadeModuleId": "D:/AI项目/FundVal/js/bootstrap.js",
+      "exports": [],
+      "imports": [
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "dynamicImports": [
+        "js/chunks/startup-repository-B04CzfgI.js",
+        "js/chunks/startup-migrations-CEzhCYv4.js",
+        "js/chunks/app-BAigyVSJ.js"
+      ],
+      "raw": 5056,
+      "gzip": 2233,
+      "modules": [
+        {
+          "id": "js/resilience.js",
+          "renderedLength": 5717,
+          "renderedExports": [
+            "installRuntimeGuards",
+            "runStartupIntegrityChecks"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "235c911fe340bb3de2e5c686032ff86d7c217eaeb2ba2ee2f27d10af836e6721",
+          "declaredPublicExports": [
+            "runStartupIntegrityChecks",
+            "runStartupIntegrityChecksLocked",
+            "installRuntimeGuards"
+          ],
+          "declaredButNotRendered": [
+            "runStartupIntegrityChecksLocked"
+          ]
+        },
+        {
+          "id": "js/bootstrap.js",
+          "renderedLength": 1720,
+          "renderedExports": [],
+          "removedExportsProvided": false,
+          "originalSourceSha": "aeaf4f803b08b48a5470b2d3a23ef0c65886fb4e92d31a5d54acad30b6cd3735",
+          "declaredPublicExports": [],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/accuracy-F_h1Jzn2.js",
+      "name": "accuracy",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/accuracy.js",
+      "exports": [
+        "loadAccuracy"
+      ],
+      "imports": [
+        "js/chunks/business-runtime-DQt5UCEf.js"
+      ],
+      "dynamicImports": [],
+      "raw": 77,
+      "gzip": 92,
+      "modules": []
+    },
+    {
+      "fileName": "js/chunks/app-BAigyVSJ.js",
+      "name": "app",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/app.js",
+      "exports": [],
+      "imports": [
+        "js/chunks/post-integrity-Cmu3O4AN.js"
+      ],
+      "dynamicImports": [],
+      "raw": 37,
+      "gzip": 57,
+      "modules": []
+    },
+    {
+      "fileName": "js/chunks/business-features-DorcQxik.js",
+      "name": "business-features",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/runtime/business-features.js",
+      "exports": [
+        "applyOverseasModelEstimate",
+        "assessDetailSecurityQuote",
+        "calculateHoldingsEstimate",
+        "commitHoldingEdit",
+        "composeFundEnrichment",
+        "createHoldingsTransfer",
+        "createNotificationController",
+        "createQuoteBridgeClient",
+        "executeDetailSecurityQuotes",
+        "executeRefreshPlan",
+        "fetchEstimateRows",
+        "fetchFundHoldings",
+        "getOverseasConfig",
+        "holdingQuoteCode",
+        "loadOverseasModels",
+        "normalizeTencentQuoteTime",
+        "selectOverseasModel",
+        "updateFundAccuracy"
+      ],
+      "imports": [
+        "js/chunks/business-runtime-DQt5UCEf.js"
+      ],
+      "dynamicImports": [],
+      "raw": 665,
+      "gzip": 372,
+      "modules": [
+        {
+          "id": "js/runtime/business-features.js",
+          "renderedLength": 0,
+          "renderedExports": [
+            "updateFundAccuracy",
+            "holdingQuoteCode",
+            "composeFundEnrichment",
+            "applyOverseasModelEstimate",
+            "getOverseasConfig",
+            "normalizeTencentQuoteTime",
+            "createHoldingsTransfer",
+            "commitHoldingEdit",
+            "loadOverseasModels",
+            "createQuoteBridgeClient",
+            "assessDetailSecurityQuote",
+            "fetchEstimateRows",
+            "calculateHoldingsEstimate",
+            "selectOverseasModel",
+            "fetchFundHoldings",
+            "createNotificationController",
+            "executeDetailSecurityQuotes",
+            "executeRefreshPlan"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "8c1f92acda542ba8129651748469b0394c9fe84565097f61bc9b70beae937240",
+          "declaredPublicExports": [
+            "updateFundAccuracy",
+            "fetchEstimateRows",
+            "fetchFundHoldings",
+            "holdingQuoteCode",
+            "calculateHoldingsEstimate",
+            "composeFundEnrichment",
+            "normalizeTencentQuoteTime",
+            "applyOverseasModelEstimate",
+            "getOverseasConfig",
+            "loadOverseasModels",
+            "selectOverseasModel",
+            "createQuoteBridgeClient",
+            "createNotificationController",
+            "commitHoldingEdit",
+            "createHoldingsTransfer",
+            "executeRefreshPlan",
+            "executeDetailSecurityQuotes",
+            "assessDetailSecurityQuote"
+          ],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/business-runtime-DQt5UCEf.js",
+      "name": "business-runtime",
+      "isEntry": false,
+      "isDynamicEntry": false,
+      "facadeModuleId": null,
+      "exports": [
+        "C",
+        "S",
+        "_",
+        "a",
+        "b",
+        "c",
+        "d",
+        "f",
+        "g",
+        "h",
+        "i",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y"
+      ],
+      "imports": [
+        "js/chunks/startup-pure-v6vu1dD4.js",
+        "js/chunks/post-integrity-Cmu3O4AN.js"
+      ],
+      "dynamicImports": [
+        "js/chunks/accuracy-F_h1Jzn2.js"
+      ],
+      "raw": 83233,
+      "gzip": 27929,
+      "modules": [
+        {
+          "id": "js/accuracy.js",
+          "renderedLength": 4089,
+          "renderedExports": [
+            "loadAccuracy",
+            "updateFundAccuracy",
+            "accuracyStats",
+            "settlePredictions",
+            "normalizeAccuracyRows",
+            "recordPrediction",
+            "saveAccuracy"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "eed3f70300a5cd43c387052512bcfc5bf99b574c94f56e74cafba2a59c998581",
+          "declaredPublicExports": [
+            "normalizeAccuracyRows",
+            "loadAccuracy",
+            "saveAccuracy",
+            "recordPrediction",
+            "settlePredictions",
+            "accuracyStats",
+            "updateFundAccuracy"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/holding-set-contract.js",
+          "renderedLength": 3003,
+          "renderedExports": [
+            "contractText",
+            "contractNumber",
+            "contractClock",
+            "contractChinaDay",
+            "validateHoldingSet",
+            "contractRecord",
+            "contractOwn"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "c54512b44c356cc61eb529776a30989f66528bfd324172dd1934989519521eca",
+          "declaredPublicExports": [
+            "contractOwn",
+            "contractRecord",
+            "contractClock",
+            "contractChinaDay",
+            "contractText",
+            "contractNumber",
+            "validateHoldingSet"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/worker-contract.js",
+          "renderedLength": 16521,
+          "renderedExports": [
+            "normalizeWorkerEstimateRow",
+            "parseWorkerEnvelope",
+            "WorkerContractError"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "54bab1e12f3127b8d28b98185175864ea4dc420b2c862954ab542b3293aa2b44",
+          "declaredPublicExports": [
+            "validateHoldingSet",
+            "WORKER_REQUEST_LIMIT",
+            "WorkerContractError",
+            "normalizeWorkerEstimateRow",
+            "parseWorkerEnvelope"
+          ],
+          "declaredButNotRendered": [
+            "validateHoldingSet",
+            "WORKER_REQUEST_LIMIT"
+          ]
+        },
+        {
+          "id": "js/eastmoney-estimate.js",
+          "renderedLength": 4048,
+          "renderedExports": [
+            "fetchEstimateRows",
+            "normalizeEstimateRow"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "5ed4a84b2d513c7289afd5facfe961f86ccc9d01653e72915a96c5bb5c5bd1d6",
+          "declaredPublicExports": [
+            "normalizeEstimateRow",
+            "fetchEstimateRows"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/fund-holdings.js",
+          "renderedLength": 2100,
+          "renderedExports": [
+            "holdingQuoteCode",
+            "fetchFundHoldings"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "cf973abf1bd30dc1cf3b2f0095d66cb70a8d368c2278c6b7c2c5bfae0c8894db",
+          "declaredPublicExports": [
+            "normalizeHoldingRow",
+            "holdingQuoteCode",
+            "fetchFundHoldings"
+          ],
+          "declaredButNotRendered": [
+            "normalizeHoldingRow"
+          ]
+        },
+        {
+          "id": "js/holdings-estimate.js",
+          "renderedLength": 7655,
+          "renderedExports": [
+            "calculateHoldingsEstimate",
+            "formatChinaQuoteTime",
+            "composeFundEnrichment",
+            "normalizeTencentQuoteTime",
+            "applyHoldingsEstimate",
+            "parseTencentQuoteTime",
+            "isCurrentHoldingsReport",
+            "latestOfficialNavBase"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "72dadaf00f44e8e388044b7bfada6af4eb2b6f1de75056b16803ee32c7a9dcf2",
+          "declaredPublicExports": [
+            "formatChinaQuoteTime",
+            "parseTencentQuoteTime",
+            "normalizeTencentQuoteTime",
+            "isCurrentHoldingsReport",
+            "calculateHoldingsEstimate",
+            "latestOfficialNavBase",
+            "applyHoldingsEstimate",
+            "composeFundEnrichment"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/overseas-model.js",
+          "renderedLength": 9010,
+          "renderedExports": [
+            "calculateOverseasEstimate",
+            "MAX_QUOTE_AGE_MS",
+            "selectOverseasModel",
+            "normalizeOverseasConfig",
+            "loadOverseasModels",
+            "getOverseasConfig",
+            "validateOverseasEstimatePeriod"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "6f372642cbc45505d7b8066dff307c0e41aa9cf43ec5b95677af530ffb6be895",
+          "declaredPublicExports": [
+            "MAX_QUOTE_AGE_MS",
+            "normalizeOverseasConfig",
+            "loadOverseasModels",
+            "getOverseasConfig",
+            "selectOverseasModel",
+            "validateOverseasEstimatePeriod",
+            "calculateOverseasEstimate"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/fund-model-enrichment.js",
+          "renderedLength": 2249,
+          "renderedExports": [
+            "selectOverseasModel",
+            "applyOverseasModelEstimate"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "94424e9c72658bd84175f4e8743a1b13416a0e7e4207d169bc1a432dc2cc51c4",
+          "declaredPublicExports": [
+            "getOverseasConfig",
+            "loadOverseasModels",
+            "selectOverseasModel",
+            "applyOverseasModelEstimate"
+          ],
+          "declaredButNotRendered": [
+            "getOverseasConfig",
+            "loadOverseasModels"
+          ]
+        },
+        {
+          "id": "js/runtime/remote-schema.js",
+          "renderedLength": 11148,
+          "renderedExports": [
+            "createBridgeRequest",
+            "validateBridgeOperationData",
+            "RemoteSchemaError",
+            "validateBridgeRequest",
+            "validateBridgeResponse",
+            "validateBridgeParams",
+            "BRIDGE_RESPONSE_TYPE",
+            "BRIDGE_OPERATIONS",
+            "BRIDGE_REQUEST_TYPE",
+            "BRIDGE_ERROR_CODES",
+            "BRIDGE_LIMITS"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "663513d9244ca5a442b69148d74146de8e86237dcef46dc98255a26050d96029",
+          "declaredPublicExports": [
+            "BRIDGE_REQUEST_TYPE",
+            "BRIDGE_RESPONSE_TYPE",
+            "BRIDGE_OPERATIONS",
+            "BRIDGE_ERROR_CODES",
+            "BRIDGE_LIMITS",
+            "RemoteSchemaError",
+            "validateBridgeParams",
+            "validateBridgeRequest",
+            "createBridgeRequest",
+            "validateBridgeOperationData",
+            "validateBridgeResponse"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/quote-bridge-client.js",
+          "renderedLength": 9748,
+          "renderedExports": [
+            "QuoteBridgeClient",
+            "createQuoteBridgeClient",
+            "QuoteBridgeError"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "1f30ccc4210c809b183a44d4963b71bc6dca553ebcddffe575e714b7243ab40c",
+          "declaredPublicExports": [
+            "QuoteBridgeError",
+            "QuoteBridgeClient",
+            "createQuoteBridgeClient"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/notification-policy.js",
+          "renderedLength": 3946,
+          "renderedExports": [
+            "NOTIFICATION_REJECTION_REASONS",
+            "DEFAULT_NOTIFICATION_MAX_AGE_MS",
+            "DEFAULT_NOTIFICATION_FUTURE_SKEW_MS",
+            "evaluateNotificationEligibility",
+            "isQuoteEligibleForNotification"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "b55794b7cf7a19b7ca67928feb7ad419e6eb9901b8d53595d233b97b6fff49e4",
+          "declaredPublicExports": [
+            "DEFAULT_NOTIFICATION_MAX_AGE_MS",
+            "DEFAULT_NOTIFICATION_FUTURE_SKEW_MS",
+            "NOTIFICATION_REJECTION_REASONS",
+            "evaluateNotificationEligibility",
+            "isQuoteEligibleForNotification"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/notifications/notification-controller.js",
+          "renderedLength": 4006,
+          "renderedExports": [
+            "buildEligibleNotificationLines",
+            "createNotificationController"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "5489c88cc178c62756adb49d7cde61d23dc992f6d9136d1ec805aaf06cc28f59",
+          "declaredPublicExports": [
+            "buildEligibleNotificationLines",
+            "createNotificationController"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/holding-edit.js",
+          "renderedLength": 1536,
+          "renderedExports": [
+            "commitHoldingEdit"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "fdd153e0e80e0cfc25ddd96686b6ad29f1958c8529580d5ddd6e90c1d484a64a",
+          "declaredPublicExports": [
+            "commitHoldingEdit"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/holdings-transfer.js",
+          "renderedLength": 4348,
+          "renderedExports": [
+            "createHoldingsTransfer"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "d93390c96aa08f3f1174c5ff6fa4c82c673e9fa468606963230c50fd16c2bcc5",
+          "declaredPublicExports": [
+            "createHoldingsTransfer"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/refresh-resource-policy.js",
+          "renderedLength": 1711,
+          "renderedExports": [
+            "REFRESH_INDEX_KEY",
+            "policyRecord",
+            "policyOwn",
+            "policyEpoch",
+            "refreshResourcePolicy"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "2071a40d189c0bce39e2ce367296c02f3cd1139ee24f9713d216023ec4de51b3",
+          "declaredPublicExports": [
+            "REFRESH_INDEX_KEY",
+            "policyOwn",
+            "policyRecord",
+            "policyEpoch",
+            "refreshResourcePolicy"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/refresh-plan.js",
+          "renderedLength": 6585,
+          "renderedExports": [
+            "createRefreshPlan",
+            "createSecurityQuotePlan"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "c7afbfd988d4d46d9d5152fb8fb6e6a2e5c3c1ffc1865a21c3236c6a7e02d94d",
+          "declaredPublicExports": [
+            "createRefreshPlan",
+            "createSecurityQuotePlan"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/generation-resource-scope.js",
+          "renderedLength": 5867,
+          "renderedExports": [
+            "createGenerationResourceScope"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "66bdb6c89399ded70f9566a0f797a842f74ee8095cbce2447db96b80f7f959ff",
+          "declaredPublicExports": [
+            "createGenerationResourceScope"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/cache-envelope.js",
+          "renderedLength": 3438,
+          "renderedExports": [
+            "readCacheEnvelope",
+            "adaptLegacyNavMoveCache",
+            "createCacheEnvelope"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "eb17a18bb97d260236e9fa043b87471ef56c93bab37f20288e5629a3bd476849",
+          "declaredPublicExports": [
+            "createCacheEnvelope",
+            "readCacheEnvelope",
+            "adaptLegacyNavMoveCache"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/refresh-resource-cache.js",
+          "renderedLength": 16734,
+          "renderedExports": [
+            "serializeRefreshAggregate",
+            "validateRefreshResourceEntry",
+            "makeRefreshResourceEntry",
+            "readRefreshResources"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "7f0103a803f83b31df0631cb3a7c53949e7f80259c909becf4eccc6ce0fb6231",
+          "declaredPublicExports": [
+            "validateRefreshResourceEntry",
+            "makeRefreshResourceEntry",
+            "readRefreshResources",
+            "serializeRefreshAggregate"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/security-quote-batch.js",
+          "renderedLength": 10869,
+          "renderedExports": [
+            "assessDetailSecurityQuote",
+            "executeSecurityQuotePlan",
+            "executeDetailSecurityQuotes"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "5105b4409f9c4df1f169f7b7f6100b7a1e6ca3e69a7fbda3a4e2be8499c5d2d7",
+          "declaredPublicExports": [
+            "assessDetailSecurityQuote",
+            "executeSecurityQuotePlan",
+            "executeDetailSecurityQuotes"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/refresh-execution.js",
+          "renderedLength": 15566,
+          "renderedExports": [
+            "executeRefreshPlan"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "2217d27d83f9be144436f60228822b68c01973ec287e83d1836aac093116d265",
+          "declaredPublicExports": [
+            "executeRefreshPlan"
+          ],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/cloud-DkJZUsuw.js",
+      "name": "cloud",
+      "isEntry": false,
+      "isDynamicEntry": false,
+      "facadeModuleId": null,
+      "exports": [
+        "a",
+        "c",
+        "i",
+        "l",
+        "n",
+        "o",
+        "r",
+        "s",
+        "t",
+        "u"
+      ],
+      "imports": [
+        "js/chunks/startup-pure-v6vu1dD4.js",
+        "js/chunks/post-integrity-Cmu3O4AN.js"
+      ],
+      "dynamicImports": [],
+      "raw": 18694,
+      "gzip": 6381,
+      "modules": [
+        {
+          "id": "js/storage/cloud-archive-ui.js",
+          "renderedLength": 8718,
+          "renderedExports": [
+            "createCloudArchiveFeature"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "e5814744a1716688bd471a0957fda210d6ab442cff20b10c379aec83a3f7be65",
+          "declaredPublicExports": [
+            "createCloudArchiveFeature"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/storage/cloud-sync.js",
+          "renderedLength": 20204,
+          "renderedExports": [
+            "synchronizeHoldingsCloud",
+            "finalizeCreatedArchiveState",
+            "makeCloudWritePayload",
+            "canonicalCloudPayload",
+            "finalizeCloudSyncMetadata",
+            "pullHoldingsCloud",
+            "reconcileCloudBridgePayloadSet"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "411123b806536e68925e1011a3dca8f0488963b92cf34953a6ae45794f295a4f",
+          "declaredPublicExports": [
+            "makeCloudWritePayload",
+            "canonicalCloudPayload",
+            "finalizeCreatedArchiveState",
+            "finalizeCloudSyncMetadata",
+            "reconcileCloudBridgePayload",
+            "reconcileCloudBridgePayloadSet",
+            "requiresSchema3CloudUpgrade",
+            "synchronizeHoldingsCloud",
+            "pullHoldingsCloud"
+          ],
+          "declaredButNotRendered": [
+            "reconcileCloudBridgePayload",
+            "requiresSchema3CloudUpgrade"
+          ]
+        },
+        {
+          "id": "js/storage/cloud-runtime.js",
+          "renderedLength": 0,
+          "renderedExports": [
+            "pullHoldingsCloud",
+            "canonicalCloudPayload",
+            "synchronizeHoldingsCloud",
+            "makeCloudWritePayload",
+            "finalizeCloudSyncMetadata",
+            "finalizeCreatedArchiveState"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "7f281d4914c2134f9fda8c5c0affd9b03460cc83141946b1ee9fb7287425b3d5",
+          "declaredPublicExports": [
+            "synchronizeHoldingsCloud",
+            "pullHoldingsCloud",
+            "canonicalCloudPayload",
+            "makeCloudWritePayload",
+            "finalizeCreatedArchiveState",
+            "finalizeCloudSyncMetadata"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/storage/gist-remote.js",
+          "renderedLength": 5788,
+          "renderedExports": [
+            "createGistRemoteAdapter",
+            "LEGACY_GIST_FILENAME",
+            "V3_GIST_CANONICAL_FILENAME",
+            "V3_GIST_DEVICE_PREFIX",
+            "findExistingHoldingsGist",
+            "isV3GistFilename",
+            "v3GistFilename",
+            "hasV3GistFile"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "d8638b33ce988eda9446593986bfc3c0cfbdb883d3302978e2ee10d51fd404f0",
+          "declaredPublicExports": [
+            "LEGACY_GIST_FILENAME",
+            "V3_GIST_CANONICAL_FILENAME",
+            "V3_GIST_DEVICE_PREFIX",
+            "MAX_V3_GIST_FILES",
+            "v3GistFilename",
+            "isV3GistFilename",
+            "hasV3GistFile",
+            "hasHoldingsGistFile",
+            "createGistRemoteAdapter",
+            "findExistingHoldingsGist"
+          ],
+          "declaredButNotRendered": [
+            "MAX_V3_GIST_FILES",
+            "hasHoldingsGistFile"
+          ]
+        },
+        {
+          "id": "js/storage/gist-runtime.js",
+          "renderedLength": 0,
+          "renderedExports": [
+            "createGistRemoteAdapter",
+            "findExistingHoldingsGist",
+            "v3GistFilename"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "a5d7d13b16990bd7c0c48e6c949c36dd5bb7d56c7c1ff4d7b21968b6b9c3a524",
+          "declaredPublicExports": [
+            "createGistRemoteAdapter",
+            "findExistingHoldingsGist",
+            "v3GistFilename"
+          ],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/cloud-archive-ui-CGecnXlV.js",
+      "name": "cloud-archive-ui",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/storage/cloud-archive-ui.js",
+      "exports": [
+        "createCloudArchiveFeature"
+      ],
+      "imports": [
+        "js/chunks/cloud-DkJZUsuw.js"
+      ],
+      "dynamicImports": [],
+      "raw": 79,
+      "gzip": 92,
+      "modules": []
+    },
+    {
+      "fileName": "js/chunks/cloud-runtime-CH5p4lja.js",
+      "name": "cloud-runtime",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/storage/cloud-runtime.js",
+      "exports": [
+        "canonicalCloudPayload",
+        "finalizeCloudSyncMetadata",
+        "finalizeCreatedArchiveState",
+        "makeCloudWritePayload",
+        "pullHoldingsCloud",
+        "synchronizeHoldingsCloud"
+      ],
+      "imports": [
+        "js/chunks/cloud-DkJZUsuw.js"
+      ],
+      "dynamicImports": [],
+      "raw": 254,
+      "gzip": 186,
+      "modules": []
+    },
+    {
+      "fileName": "js/chunks/diagnostics-tcV_lGP3.js",
+      "name": "diagnostics",
+      "isEntry": false,
+      "isDynamicEntry": false,
+      "facadeModuleId": null,
+      "exports": [
+        "n",
+        "t"
+      ],
+      "imports": [
+        "js/chunks/startup-pure-v6vu1dD4.js",
+        "js/chunks/post-integrity-Cmu3O4AN.js"
+      ],
+      "dynamicImports": [],
+      "raw": 5628,
+      "gzip": 2883,
+      "modules": [
+        {
+          "id": "js/runtime/diagnostics-ui.js",
+          "renderedLength": 6728,
+          "renderedExports": [
+            "createDiagnosticsCenter"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "79b9135190b62170cf3ec6a302034b8e9822d402bc83200754b6c6cf9f579b6a",
+          "declaredPublicExports": [
+            "createDiagnosticsCenter"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/quote-diagnostics.js",
+          "renderedLength": 1456,
+          "renderedExports": [
+            "renderQuoteDiagnostics"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "9e936327b94ee04116748091b7c9f37d8ab3c55529c6d867cb59394bf6ddd44b",
+          "declaredPublicExports": [
+            "renderQuoteDiagnostics"
+          ],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/diagnostics-ui-Dn06Pr_X.js",
+      "name": "diagnostics-ui",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/runtime/diagnostics-ui.js",
+      "exports": [
+        "createDiagnosticsCenter"
+      ],
+      "imports": [
+        "js/chunks/diagnostics-tcV_lGP3.js"
+      ],
+      "dynamicImports": [],
+      "raw": 83,
+      "gzip": 90,
+      "modules": []
+    },
+    {
+      "fileName": "js/chunks/gist-runtime-ghvWpzhg.js",
+      "name": "gist-runtime",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/storage/gist-runtime.js",
+      "exports": [
+        "createGistRemoteAdapter",
+        "findExistingHoldingsGist",
+        "v3GistFilename"
+      ],
+      "imports": [
+        "js/chunks/cloud-DkJZUsuw.js"
+      ],
+      "dynamicImports": [],
+      "raw": 141,
+      "gzip": 137,
+      "modules": []
+    },
+    {
+      "fileName": "js/chunks/post-integrity-Cmu3O4AN.js",
+      "name": "post-integrity",
+      "isEntry": false,
+      "isDynamicEntry": false,
+      "facadeModuleId": null,
+      "exports": [
+        "A",
+        "C",
+        "D",
+        "E",
+        "M",
+        "N",
+        "O",
+        "P",
+        "S",
+        "T",
+        "_",
+        "a",
+        "b",
+        "c",
+        "d",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y"
+      ],
+      "imports": [
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "dynamicImports": [
+        "js/chunks/business-features-DorcQxik.js",
+        "js/chunks/cloud-runtime-CH5p4lja.js",
+        "js/chunks/gist-runtime-ghvWpzhg.js",
+        "js/chunks/cloud-archive-ui-CGecnXlV.js",
+        "js/chunks/quote-diagnostics-CSsDkFA_.js",
+        "js/chunks/diagnostics-ui-Dn06Pr_X.js"
+      ],
+      "raw": 96083,
+      "gzip": 32129,
+      "modules": [
+        {
+          "id": "js/version.js",
+          "renderedLength": 65,
+          "renderedExports": [
+            "APP_VERSION"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "56ab690292d6fe5432eefeb68f4fbee19c785a244f02f7194321e5b7f9d4b260",
+          "declaredPublicExports": [
+            "APP_VERSION"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/market-session.js",
+          "renderedLength": 3989,
+          "renderedExports": [
+            "marketStateFromParts",
+            "classifyMarketKind",
+            "classifyAssetKind",
+            "MARKET_SESSION_REGISTRY",
+            "normalizeMarketKind"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "d09955352829070f178501007db1a284f904c7e373b804004c1a3f89a7755bbd",
+          "declaredPublicExports": [
+            "MARKET_SESSION_REGISTRY",
+            "normalizeMarketKind",
+            "classifyMarketKind",
+            "classifyAssetKind",
+            "marketStateFromParts",
+            "marketSession",
+            "refreshDelayForMarketKinds"
+          ],
+          "declaredButNotRendered": [
+            "marketSession",
+            "refreshDelayForMarketKinds"
+          ]
+        },
+        {
+          "id": "js/runtime/source-registry.js",
+          "renderedLength": 14197,
+          "renderedExports": [
+            "canonicalSourceId",
+            "SOURCE_HEALTH",
+            "claimSourceAttempt",
+            "canAttemptSource",
+            "recordSourceSuccess",
+            "sourceTierFor",
+            "getDataSourceDescriptor",
+            "DEFAULT_SOURCE_HEALTH_POLICY",
+            "recordSourcePartial",
+            "createBuiltinSourceRegistry",
+            "getSourceHealth",
+            "releaseSourceAttempt",
+            "isAbortedSourceFailure",
+            "recordSourceFailure"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "40795e1a3c19be86e8e828d58dfcca75c11e18c946ced8da8abb4b9871d1a9bc",
+          "declaredPublicExports": [
+            "DATA_SOURCE_REGISTRY",
+            "canonicalSourceId",
+            "getDataSourceDescriptor",
+            "sourceTierFor",
+            "listDataSources",
+            "SOURCE_HEALTH",
+            "DEFAULT_SOURCE_HEALTH_POLICY",
+            "isAbortedSourceFailure",
+            "createSourceRegistry",
+            "registerSource",
+            "getSourceDescriptor",
+            "getSourceHealth",
+            "recordSourceSuccess",
+            "recordSourcePartial",
+            "recordSourceFailure",
+            "canAttemptSource",
+            "claimSourceAttempt",
+            "releaseSourceAttempt",
+            "selectAvailableSources",
+            "createBuiltinSourceRegistry"
+          ],
+          "declaredButNotRendered": [
+            "DATA_SOURCE_REGISTRY",
+            "listDataSources",
+            "createSourceRegistry",
+            "registerSource",
+            "getSourceDescriptor",
+            "selectAvailableSources"
+          ]
+        },
+        {
+          "id": "js/runtime/quote-contract.js",
+          "renderedLength": 12956,
+          "renderedExports": [
+            "ASSET_KINDS",
+            "normalizeConfidence",
+            "createQuoteEnvelope",
+            "normalizeQuoteDate",
+            "quoteStatusRank",
+            "MARKET_KINDS",
+            "nullableNumber",
+            "normalizeReasonCodes",
+            "quoteStatusLabel",
+            "QUOTE_VALUE_KINDS",
+            "nextWeekdayDate",
+            "QUOTE_SOURCE_TIERS",
+            "normalizeReasonCode",
+            "quoteValueKindLabel",
+            "quoteToLegacyFreshness",
+            "compareQuotesByQuality",
+            "unavailableQuote",
+            "parseQuoteTimestamp",
+            "QUOTE_STATUSES",
+            "quoteIsUsable",
+            "MAX_QUOTE_FUTURE_SKEW_MS"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "3ad71a9914d1c198222cb395a7cf92392a2afb0ab0a918ad00ead040d7ffcc8f",
+          "declaredPublicExports": [
+            "QUOTE_VALUE_KINDS",
+            "QUOTE_STATUSES",
+            "QUOTE_SOURCE_TIERS",
+            "MARKET_KINDS",
+            "ASSET_KINDS",
+            "MAX_QUOTE_FUTURE_SKEW_MS",
+            "nullableNumber",
+            "normalizeConfidence",
+            "normalizeReasonCode",
+            "normalizeReasonCodes",
+            "parseQuoteTimestamp",
+            "normalizeQuoteDate",
+            "nextWeekdayDate",
+            "createQuoteEnvelope",
+            "unavailableQuote",
+            "quoteStatusRank",
+            "quoteIsUsable",
+            "compareQuotesByQuality",
+            "quoteStatusLabel",
+            "quoteValueKindLabel",
+            "quoteToLegacyFreshness"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "data/market-calendars.json",
+          "renderedLength": 2100,
+          "renderedExports": [
+            "default",
+            "calendars",
+            "version"
+          ],
+          "removedExportsProvided": false
+        },
+        {
+          "id": "js/runtime/market-clock.js",
+          "renderedLength": 5800,
+          "renderedExports": [
+            "marketClock",
+            "isSingleMarketSession",
+            "chinaDateKey",
+            "marketRefreshDelay",
+            "installMarketCalendars",
+            "zonedTimeParts",
+            "chinaTimeParts"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "1589765feafd9e19d4fe2ce4ce33f9ccc34e5f0fca262552d11675badbd574c8",
+          "declaredPublicExports": [
+            "chinaTimeParts",
+            "chinaDateKey",
+            "zonedTimeParts",
+            "installMarketCalendars",
+            "loadMarketCalendars",
+            "marketClock",
+            "marketRefreshDelay",
+            "isSingleMarketSession"
+          ],
+          "declaredButNotRendered": [
+            "loadMarketCalendars"
+          ]
+        },
+        {
+          "id": "js/config.js",
+          "renderedLength": 966,
+          "renderedExports": [
+            "fundDataApiUrl",
+            "TTL",
+            "MODEL_URL",
+            "TIMING"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "58475a6048577a9267e2513c8c789ad074a95cf6b941ae4431b331578b4d61e4",
+          "declaredPublicExports": [
+            "TIMING",
+            "TTL",
+            "MODEL_URL",
+            "fundDataApiUrl",
+            "refreshInterval"
+          ],
+          "declaredButNotRendered": [
+            "refreshInterval"
+          ]
+        },
+        {
+          "id": "js/calculator.js",
+          "renderedLength": 1146,
+          "renderedExports": [
+            "calculateHolding",
+            "resolveQuoteBaseNav"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "38c755b7c2415fa5d53de47a252a6f42b44773a3737d7bd200d6f6370b8334c8",
+          "declaredPublicExports": [
+            "normalizeFundEstimate",
+            "calculateHolding",
+            "resolveQuoteBaseNav",
+            "chooseDisplayValue"
+          ],
+          "declaredButNotRendered": [
+            "normalizeFundEstimate",
+            "chooseDisplayValue"
+          ]
+        },
+        {
+          "id": "js/freshness.js",
+          "renderedLength": 473,
+          "renderedExports": [
+            "classifyFundMarket",
+            "refreshDelayForMarkets"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "f0f27185402738fa6be66ee9971d19e5a79d5db54beb71800aacd5295292620d",
+          "declaredPublicExports": [
+            "MAX_FUTURE_SOURCE_SKEW_MS",
+            "parseChinaSourceTime",
+            "classifyFundMarket",
+            "marketState",
+            "refreshDelayForMarkets",
+            "buildFreshness"
+          ],
+          "declaredButNotRendered": [
+            "MAX_FUTURE_SOURCE_SKEW_MS",
+            "parseChinaSourceTime",
+            "marketState",
+            "buildFreshness"
+          ]
+        },
+        {
+          "id": "js/runtime/quote-normalizer.js",
+          "renderedLength": 14265,
+          "renderedExports": [
+            "normalizeOfficialNavQuote",
+            "normalizeMarketModelQuote",
+            "normalizeExistingQuoteFreshness",
+            "normalizeHoldingLookthroughQuote",
+            "normalizeCachedQuote",
+            "legacyFreshnessFromQuote",
+            "normalizeEstimateQuote",
+            "buildFundQuoteCandidates",
+            "selectPreferredQuote"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "9454458c08316229f3dfab94c50ae2a3792611a80ec0193cb790a1cde665d76b",
+          "declaredPublicExports": [
+            "normalizeExistingQuoteFreshness",
+            "normalizeEstimateQuote",
+            "normalizeOfficialNavQuote",
+            "normalizeMarketModelQuote",
+            "normalizeHoldingLookthroughQuote",
+            "buildFundQuoteCandidates",
+            "selectPreferredQuote",
+            "normalizeCachedQuote",
+            "legacyFreshnessFromQuote"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/valuation-period.js",
+          "renderedLength": 3818,
+          "renderedExports": [
+            "createValuationPeriod"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "4ecb2f53859eab1539151d1e523092c03baefb8fe6f2dd1cbfa6ece72cdf4793",
+          "declaredPublicExports": [
+            "createValuationPeriod"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/holding-quote-amounts.js",
+          "renderedLength": 615,
+          "renderedExports": [
+            "holdingQuoteAmounts"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "0b885a19013db710005ecdd247b95ed317c4caec4f39773fd84959727d5f17b1",
+          "declaredPublicExports": [
+            "holdingQuoteAmounts"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/index-quote.js",
+          "renderedLength": 1009,
+          "renderedExports": [
+            "indexQuoteStatus",
+            "normalizeGoldQuote"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "f8c7ec61d048b0973242178f541c4605b5b6c7dd36974db3ead065569fc811be",
+          "declaredPublicExports": [
+            "indexQuoteStatus",
+            "normalizeGoldQuote"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/quote-presentation.js",
+          "renderedLength": 7637,
+          "renderedExports": [
+            "quoteReasonSummary",
+            "quoteConfidenceLabel",
+            "formatQuoteDateTime",
+            "formatQuoteDataTime",
+            "createQuotePresentation",
+            "quoteCoverageLabel"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "fcbe53e309cfa1fb0eb4fccbe2e5fc11bfa4ca15b1a4089b2140d40e4d568af4",
+          "declaredPublicExports": [
+            "formatQuoteDateTime",
+            "formatQuoteDataTime",
+            "quoteConfidenceLabel",
+            "quoteCoverageLabel",
+            "quoteReasonSummary",
+            "createQuotePresentation"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/refresh-generation.js",
+          "renderedLength": 1532,
+          "renderedExports": [
+            "createRefreshGeneration",
+            "isRefreshAbort"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "5dbfde625ee4caab0db63b6af0c016096dea7bab8cf199a3e932eda1d9cccaea",
+          "declaredPublicExports": [
+            "isRefreshAbort",
+            "createRefreshGeneration"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/refresh-runtime.js",
+          "renderedLength": 8479,
+          "renderedExports": [
+            "RefreshCoordinator"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "a8b20f6f2bbe355baf741e279e3bd8ed921c29189667fffc45d5e1730f676cff",
+          "declaredPublicExports": [
+            "RefreshCoordinator"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/request-signal.js",
+          "renderedLength": 1765,
+          "renderedExports": [
+            "throwIfAborted",
+            "createRequestSignal"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "3dbb61e56051422627f6b9d9a6d20d6fb99adb17a7f8c1eff1ea8cf6aa3b5e50",
+          "declaredPublicExports": [
+            "throwIfAborted",
+            "createRequestSignal"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/runtime/active-holdings.js",
+          "renderedLength": 725,
+          "renderedExports": [
+            "activeHoldingCodes",
+            "retainActiveFundData"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "3372ed0320f2803d6be01678f8120bbb5006fc01d526179ccfbf02597f305fba",
+          "declaredPublicExports": [
+            "activeHoldingCodes",
+            "retainActiveFundData"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/app.js",
+          "renderedLength": 79042,
+          "renderedExports": [],
+          "removedExportsProvided": false,
+          "originalSourceSha": "1172d217cd4bd00e700aeb0a07507c85fc102f0beedef30678b6c75525485130",
+          "declaredPublicExports": [],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/quote-diagnostics-CSsDkFA_.js",
+      "name": "quote-diagnostics",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/runtime/quote-diagnostics.js",
+      "exports": [
+        "renderQuoteDiagnostics"
+      ],
+      "imports": [
+        "js/chunks/diagnostics-tcV_lGP3.js"
+      ],
+      "dynamicImports": [],
+      "raw": 82,
+      "gzip": 89,
+      "modules": []
+    },
+    {
+      "fileName": "js/chunks/startup-migrations-CEzhCYv4.js",
+      "name": "startup-migrations",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/startup-migrations.js",
+      "exports": [
+        "runLocalMigrations"
+      ],
+      "imports": [
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "dynamicImports": [],
+      "raw": 79,
+      "gzip": 94,
+      "modules": [
+        {
+          "id": "js/startup-migrations.js",
+          "renderedLength": 0,
+          "renderedExports": [
+            "runLocalMigrations"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "009dfd3561903ec69798c556845671b43b4861e32aacf614c38fa5df0cf3970e",
+          "declaredPublicExports": [
+            "runLocalMigrations"
+          ],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/startup-pure-v6vu1dD4.js",
+      "name": "startup-pure",
+      "isEntry": false,
+      "isDynamicEntry": false,
+      "facadeModuleId": null,
+      "exports": [
+        "C",
+        "D",
+        "E",
+        "O",
+        "S",
+        "T",
+        "_",
+        "a",
+        "b",
+        "c",
+        "d",
+        "f",
+        "g",
+        "h",
+        "i",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y"
+      ],
+      "imports": [],
+      "dynamicImports": [],
+      "raw": 27349,
+      "gzip": 8263,
+      "modules": [
+        {
+          "id": "js/integrity.js",
+          "renderedLength": 6074,
+          "renderedExports": [
+            "appendDiagnostic",
+            "reconcileFundCache",
+            "collectOrphanNavCacheKeys",
+            "safeJsonParse",
+            "selectSafeDiagnosticEvents",
+            "redactDiagnosticText",
+            "normalizeOcrDiagnosticForDisplay"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "fd10f8af3b48ac06c43a98dd15179fe5e8ea7affa0e673ef7228d482cc8cca6e",
+          "declaredPublicExports": [
+            "safeJsonParse",
+            "shouldReplaceHolding",
+            "normalizeHoldings",
+            "mergeHoldingsByTimestamp",
+            "repairHoldingsState",
+            "reconcileFundCache",
+            "collectOrphanNavCacheKeys",
+            "redactDiagnosticText",
+            "appendDiagnostic",
+            "selectSafeDiagnosticEvents",
+            "normalizeOcrDiagnosticForDisplay"
+          ],
+          "declaredButNotRendered": [
+            "shouldReplaceHolding",
+            "normalizeHoldings",
+            "mergeHoldingsByTimestamp",
+            "repairHoldingsState"
+          ]
+        },
+        {
+          "id": "js/storage/holdings-schema.js",
+          "renderedLength": 7476,
+          "renderedExports": [
+            "normalizeHoldingRecordV3",
+            "createEmptyHoldingsDocument",
+            "HoldingSchemaError",
+            "LEGACY_HOLDING_EPOCH",
+            "normalizeHoldingTimestamp",
+            "normalizeHoldingsDocumentV3",
+            "stableHoldingId",
+            "toLegacyHoldings",
+            "compareHoldingRecords",
+            "canonicalHoldingsDocument",
+            "holdingRecordFingerprint"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "e434b09df5e024f4a6817241ee1ac88048c70e4a13cf7901295184eeb8df2232",
+          "declaredPublicExports": [
+            "HOLDINGS_SCHEMA_VERSION",
+            "LEGACY_HOLDING_EPOCH",
+            "HoldingSchemaError",
+            "normalizeHoldingTimestamp",
+            "stableHoldingId",
+            "normalizeHoldingRecordV3",
+            "normalizeHoldingsDocumentV3",
+            "createEmptyHoldingsDocument",
+            "holdingRecordFingerprint",
+            "compareHoldingRecords",
+            "mergeHoldingsDocuments",
+            "toLegacyHoldings",
+            "canonicalHoldingsDocument"
+          ],
+          "declaredButNotRendered": [
+            "HOLDINGS_SCHEMA_VERSION",
+            "mergeHoldingsDocuments"
+          ]
+        },
+        {
+          "id": "js/storage/holdings-migration.js",
+          "renderedLength": 10394,
+          "renderedExports": [
+            "migrateLegacyHoldingsToV3",
+            "parseAndMigrateHoldings",
+            "mergeParsedHoldings"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "e32e94aa7959b517b38c2f2cf3619ad7c436ac9c7fbf988fe2b839d1ab96257a",
+          "declaredPublicExports": [
+            "migrateLegacyHoldingsToV3",
+            "parseAndMigrateHoldings",
+            "mergeParsedHoldings"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "js/storage/holdings-repository.js",
+          "renderedLength": 21781,
+          "renderedExports": [
+            "HOLDINGS_V1_COMPAT_KEY",
+            "getOrCreateDeviceId",
+            "recoverPendingRepositoryTransaction",
+            "persistHoldingsDocument",
+            "HOLDINGS_BACKUP_LATEST_KEY",
+            "HOLDINGS_PROJECTION_META_KEY",
+            "HOLDINGS_V3_KEY",
+            "reconcileLegacyHoldings",
+            "backupCloudSyncSnapshot",
+            "saveLegacyHoldingsTransaction",
+            "HOLDINGS_BACKUP_PREVIOUS_KEY",
+            "backupRepositoryState",
+            "HOLDINGS_JOURNAL_KEY",
+            "HOLDINGS_CLOUD_BACKUP_PREVIOUS_KEY",
+            "HOLDINGS_LOCK_NAME",
+            "withHoldingsLock",
+            "HOLDINGS_DEVICE_KEY",
+            "HOLDINGS_CLOUD_BACKUP_LATEST_KEY",
+            "loadHoldingsRepository"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "48772b48eb19d1eddfe7f2385c06847a1b8437835c8d062f7a74442b06680f8d",
+          "declaredPublicExports": [
+            "HOLDINGS_V3_KEY",
+            "HOLDINGS_V1_COMPAT_KEY",
+            "HOLDINGS_DEVICE_KEY",
+            "HOLDINGS_BACKUP_LATEST_KEY",
+            "HOLDINGS_BACKUP_PREVIOUS_KEY",
+            "HOLDINGS_JOURNAL_KEY",
+            "HOLDINGS_PROJECTION_META_KEY",
+            "HOLDINGS_CLOUD_BACKUP_LATEST_KEY",
+            "HOLDINGS_CLOUD_BACKUP_PREVIOUS_KEY",
+            "HOLDINGS_LOCK_NAME",
+            "withHoldingsLock",
+            "getOrCreateDeviceId",
+            "backupRepositoryState",
+            "backupCloudSyncSnapshot",
+            "recoverPendingRepositoryTransaction",
+            "persistHoldingsDocument",
+            "loadHoldingsRepository",
+            "reconcileLegacyHoldings",
+            "saveLegacyHoldingsTransaction"
+          ],
+          "declaredButNotRendered": []
+        },
+        {
+          "id": "\u0000vite/preload-helper.js",
+          "renderedLength": 2142,
+          "renderedExports": [
+            "__vitePreload"
+          ],
+          "removedExportsProvided": false
+        },
+        {
+          "id": "js/storage.js",
+          "renderedLength": 932,
+          "renderedExports": [
+            "safeSetItem",
+            "safeGetItem",
+            "safeStorageKeys",
+            "safeRemoveItem"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "72acaf42c23e9230f17b7b2289c8ded1a7bc19b8b7ff9680627cbfe34c9048e3",
+          "declaredPublicExports": [
+            "safeGetItem",
+            "safeSetItem",
+            "safeRemoveItem",
+            "safeStorageKeys",
+            "getCached",
+            "setCached",
+            "isCacheFresh",
+            "backupHoldings",
+            "parseCloudPayload",
+            "makeCloudPayload"
+          ],
+          "declaredButNotRendered": [
+            "getCached",
+            "setCached",
+            "isCacheFresh",
+            "backupHoldings",
+            "parseCloudPayload",
+            "makeCloudPayload"
+          ]
+        },
+        {
+          "id": "js/migrations.js",
+          "renderedLength": 1775,
+          "renderedExports": [
+            "LEGACY_MIGRATION_KEY",
+            "LEGACY_CLOUD_PENDING_KEY",
+            "MIGRATION_REVIEW_KEY",
+            "RETIRED_MIGRATION_STATE",
+            "runLocalMigrations"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "35ff5a925b2a89df343aef3ffdf571e548868a383c49986c6ded616e7ff661ac",
+          "declaredPublicExports": [
+            "LEGACY_MIGRATION_KEY",
+            "LEGACY_CLOUD_PENDING_KEY",
+            "MIGRATION_REVIEW_KEY",
+            "RETIRED_MIGRATION_STATE",
+            "runLocalMigrations"
+          ],
+          "declaredButNotRendered": []
+        }
+      ]
+    },
+    {
+      "fileName": "js/chunks/startup-repository-B04CzfgI.js",
+      "name": "startup-repository",
+      "isEntry": false,
+      "isDynamicEntry": true,
+      "facadeModuleId": "D:/AI项目/FundVal/js/storage/startup-repository.js",
+      "exports": [
+        "recoverPendingRepositoryTransaction",
+        "withHoldingsLock"
+      ],
+      "imports": [
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "dynamicImports": [],
+      "raw": 125,
+      "gzip": 131,
+      "modules": [
+        {
+          "id": "js/storage/startup-repository.js",
+          "renderedLength": 0,
+          "renderedExports": [
+            "recoverPendingRepositoryTransaction",
+            "withHoldingsLock"
+          ],
+          "removedExportsProvided": false,
+          "originalSourceSha": "9f919702956156fd2d86e87fff90f0b2f503b19800074d2b7c33f9b821b72a7a",
+          "declaredPublicExports": [
+            "recoverPendingRepositoryTransaction",
+            "withHoldingsLock"
+          ],
+          "declaredButNotRendered": []
+        }
+      ]
+    }
+  ]
+}

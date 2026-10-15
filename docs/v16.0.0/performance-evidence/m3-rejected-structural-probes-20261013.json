@@ -1,0 +1,414 @@
+{
+  "schema": 1,
+  "status": "NO_MATERIAL_CANDIDATE_IMPLEMENTED_M3_IN_PROGRESS",
+  "recordedAtHostUtc": "2026-10-13T16:00:35.993Z",
+  "sourceObservedCommit": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+  "businessSourceCommit": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+  "sourceContentMatchesObservedCommit": true,
+  "sourceLfHashes": {
+    "js/app.js": {
+      "lfBytes": 93915,
+      "lfSha256": "1172d217cd4bd00e700aeb0a07507c85fc102f0beedef30678b6c75525485130"
+    },
+    "scripts/build-site.mjs": {
+      "lfBytes": 15701,
+      "lfSha256": "51a4d35902ad2e6510dd3e82fea7198a12a9b722ef3098c791aeb4c8327ac9a4"
+    },
+    "js/runtime/refresh-resource-cache.js": {
+      "lfBytes": 17764,
+      "lfSha256": "7f0103a803f83b31df0631cb3a7c53949e7f80259c909becf4eccc6ce0fb6231"
+    },
+    "package.json": {
+      "lfBytes": 978,
+      "lfSha256": "739dbd9806008604c9184a9d9be1a475fcd5f6cf5f4035d13bbea6097efe6384"
+    },
+    "package-lock.json": {
+      "lfBytes": 55063,
+      "lfSha256": "3b7b4fab7cb18df296ae48c04448b5971cf468506cdef42beeb5ca9bedf23bcc"
+    }
+  },
+  "baseline": {
+    "chunks": 16,
+    "raw": 237665,
+    "allGzip": 81158,
+    "coldGzip": 42907
+  },
+  "method": {
+    "configuration": "Actual scripts/build-site.mjs AST-derived config; only exact in-memory plugin.transform",
+    "write": false,
+    "vite": "8.2.2",
+    "minify": "oxc",
+    "target": "es2022",
+    "chunkGroups": "Original unchanged",
+    "roundsPerVariant": 3,
+    "exportInventoryRounds": 2,
+    "meaning": "Artifact byte measurements, not latency"
+  },
+  "outcomes": [
+    {
+      "id": "ui-strict-template",
+      "raw": 237744,
+      "allGzip": 81173,
+      "coldGzip": 42922,
+      "deltaRaw": 79,
+      "deltaAll": 15,
+      "deltaCold": 15,
+      "decision": "REJECT_GZIP_INCREASE"
+    },
+    {
+      "id": "ui-native-template-negative-control",
+      "raw": 237615,
+      "allGzip": 81165,
+      "coldGzip": 42912,
+      "deltaRaw": -50,
+      "deltaAll": 7,
+      "deltaCold": 5,
+      "decision": "REJECT_GZIP_INCREASE_AND_COERCION_NEGATIVE_CONTROL"
+    },
+    {
+      "id": "ui-stat-cells",
+      "raw": 237440,
+      "allGzip": 81163,
+      "coldGzip": 42908,
+      "deltaRaw": -225,
+      "deltaAll": 5,
+      "deltaCold": 1,
+      "decision": "REJECT_GZIP_INCREASE"
+    },
+    {
+      "id": "migration-success-factory",
+      "raw": 237493,
+      "allGzip": 81171,
+      "coldGzip": 42916,
+      "deltaRaw": -172,
+      "deltaAll": 13,
+      "deltaCold": 9,
+      "decision": "REJECT_GZIP_INCREASE"
+    },
+    {
+      "id": "schema-private-scalars",
+      "raw": 237491,
+      "allGzip": 81154,
+      "coldGzip": 42902,
+      "deltaRaw": -174,
+      "deltaAll": -4,
+      "deltaCold": -5,
+      "decision": "REJECT_NOT_MATERIAL_UNQUALIFIED"
+    },
+    {
+      "id": "journal-membership",
+      "raw": 237629,
+      "allGzip": 81155,
+      "coldGzip": 42903,
+      "deltaRaw": -36,
+      "deltaAll": -3,
+      "deltaCold": -4,
+      "decision": "REJECT_NOT_MATERIAL_UNQUALIFIED"
+    },
+    {
+      "id": "storage-three-way-combination",
+      "raw": 237283,
+      "allGzip": 81144,
+      "coldGzip": 42898,
+      "deltaRaw": -382,
+      "deltaAll": -14,
+      "deltaCold": -9,
+      "decision": "REJECT_NOT_MATERIAL"
+    },
+    {
+      "id": "cloud-parse-factory",
+      "raw": 237569,
+      "allGzip": 81175,
+      "coldGzip": 42906,
+      "deltaRaw": -96,
+      "deltaAll": 17,
+      "deltaCold": -1,
+      "decision": "REJECT_GZIP_INCREASE"
+    },
+    {
+      "id": "fund-identity-factory",
+      "raw": 237631,
+      "allGzip": 81166,
+      "coldGzip": 42912,
+      "deltaRaw": -34,
+      "deltaAll": 8,
+      "deltaCold": 5,
+      "decision": "REJECT_GZIP_INCREASE"
+    },
+    {
+      "id": "cached-market-factory",
+      "raw": 237639,
+      "allGzip": 81146,
+      "coldGzip": 42900,
+      "deltaRaw": -26,
+      "deltaAll": -12,
+      "deltaCold": -7,
+      "decision": "REJECT_NOT_MATERIAL"
+    },
+    {
+      "id": "cache-payload-table",
+      "raw": 237715,
+      "allGzip": 81183,
+      "coldGzip": 42910,
+      "deltaRaw": 50,
+      "deltaAll": 25,
+      "deltaCold": 3,
+      "decision": "REJECT_GZIP_INCREASE"
+    },
+    {
+      "id": "cache-payload-and-index-tables",
+      "raw": 237699,
+      "allGzip": 81191,
+      "coldGzip": 42907,
+      "deltaRaw": 34,
+      "deltaAll": 33,
+      "deltaCold": 0,
+      "decision": "REJECT_GZIP_INCREASE"
+    }
+  ],
+  "behaviorQualification": {
+    "fundIdentity": {
+      "native": 192,
+      "getter": 192,
+      "throw": 192
+    },
+    "cachedMarket": {
+      "native": 1944,
+      "proxy": 1944,
+      "throw": 8
+    },
+    "others": "Not behavior-qualified; rejected on artifact evidence before broad runtime qualification",
+    "limits": "Injected model or DOM boundaries; not universal JS/stack/DOM equivalence, candidate app E2E, real device or production proof."
+  },
+  "inventoryReview": {
+    "dynamicEntries": 10,
+    "businessExportsUsed": 18,
+    "cloudExportsUsed": 6,
+    "gistExportsUsed": 3,
+    "accuracyDynamicExports": [
+      "loadAccuracy"
+    ],
+    "removedExportsProvided": false,
+    "noNewNamespaceLeakDemonstrated": true,
+    "renderedExportsAreNotChunkPublicExports": true,
+    "largeObjectScan": {
+      "owners": 8,
+      "objects": 56,
+      "exactDuplicatesAtLeast200RawBytes": 0,
+      "limit": "Exact AST structure only, not exhaustive semantic or alpha-renaming impossibility proof."
+    }
+  },
+  "localChecksAtObservedCommit": {
+    "unit": {
+      "command": "npm test",
+      "exit": 0,
+      "tests": 966,
+      "pass": 963,
+      "fail": 0,
+      "skipped": 3,
+      "skipReason": "Windows symlink conditions",
+      "durationMs": 5370.104
+    },
+    "syntax": {
+      "command": "npm run check",
+      "exit": 0,
+      "files": 197
+    },
+    "build": {
+      "command": "npm run build",
+      "exit": 0,
+      "calls": 4,
+      "sourceDateEpoch": 1791905438,
+      "finalTwoAfterE2ECriticalFingerprints": [
+        "c42ea9458cf28dd8e4c51306da6a86f46f1602dd947ad562006a380ce23267ae",
+        "c42ea9458cf28dd8e4c51306da6a86f46f1602dd947ad562006a380ce23267ae"
+      ],
+      "finalTwoWholeSiteInventories": [
+        {
+          "sha256": "20986cc3ead54ccf19733225097e8b4b908feb898fff8790df88fff634a1173d",
+          "files": 126,
+          "bytes": 92499248
+        },
+        {
+          "sha256": "20986cc3ead54ccf19733225097e8b4b908feb898fff8790df88fff634a1173d",
+          "files": 126,
+          "bytes": 92499248
+        }
+      ],
+      "limit": "Observed-commit epoch and unchanged business source only; not later docs SHA, Linux or production proof."
+    },
+    "appVerification": {
+      "command": "node scripts/release-fingerprint.mjs --verify-app-chunks-directory site",
+      "exit": 0,
+      "chunks": 16,
+      "raw": 237665
+    },
+    "ocrVerification": {
+      "command": "node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr",
+      "exit": 0,
+      "assets": 23,
+      "bytes": 88196906,
+      "ocrExecuted": false
+    },
+    "e2e": {
+      "command": "npm run test:e2e",
+      "exit": 0,
+      "passed": 27,
+      "durationSeconds": 41.9,
+      "scope": "Synthetic desktop Playwright, providers blocked, owned port 12437, not real devices or Gist",
+      "ownedPortGone": true,
+      "readinessSamples": [
+        {
+          "coldReadyMs": 156.69999998807907,
+          "warmReadyMs": 122.59999996423721,
+          "saveUiMs": 87.01129999999921
+        },
+        {
+          "coldReadyMs": 151.19999998807907,
+          "warmReadyMs": 96.19999998807907,
+          "saveUiMs": 101.29470000000038
+        },
+        {
+          "coldReadyMs": 182.5999999642372,
+          "warmReadyMs": 98.90000003576279,
+          "saveUiMs": 76.59349999999995
+        }
+      ],
+      "readinessMeaning": "All 3 descriptive samples retained; absolute smoke, not paired relative/p95 admission."
+    },
+    "budget": {
+      "command": "node scripts/release-fingerprint.mjs --assert-app-bundle-budget site",
+      "exit": 1,
+      "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+      "baselineAll": 70207,
+      "actualAll": 81158,
+      "actualCold": 42907,
+      "coldBudget": 52241,
+      "allBudget": 77227.7,
+      "coldPass": true,
+      "allPass": false,
+      "remainingWholeBytes": 3931,
+      "importClosureVerifiedByBudgetCli": false
+    },
+    "dependencyAudit": "NOT_RERUN; no dependency edits or installations",
+    "pairedLatency": "NOT_RERUN; prior 200-pair INCONCLUSIVE retained"
+  },
+  "limits": [
+    "Cache report originally sourceCommit=null; cross-review adds retrospective LF Git blob binding, not an invented original SHA.",
+    "Cache probe did not record its own whole-tree before/after inventory; matching frozen site before fresh rebuild supplements but does not retroactively prove that window.",
+    "Topology fingerprint algorithms differ between families and omit code/export/behavior. Equal topology hashes are not behavior proof.",
+    "Projection JSON was saved from prior complete stdout without new measurements; storage report was also a summary of recorded output.",
+    "Export inventory archive recursively removes rendered code and adds top-level projectionNote; other metadata is unchanged. Original full inventory remains outside repository.",
+    "15 archives match original LF text exactly; the inventory projection is deliberately different. .mjs.txt files are evidence, not newly executable package scripts.",
+    "Reproduction must use a new outside-repository output directory plus frozen source/lock/config; scripts contain historical paths and output filenames. Do not run them in place or overwrite old reports.",
+    "Fresh builds changed OCR manifest generatedAt to observed-commit epoch. E2E created an ignored 45-byte .playwright-results/.last-run.json; post-E2E official builds removed it. Not business or probe edits."
+  ],
+  "diagnostics": [
+    "Initial archive read hit output truncation and failed JSON parsing before writes; corrected with fixed-size read chunks.",
+    "One PowerShell JSON-quoting diagnostic failed before file operations; corrected single-quoted native argument.",
+    "Archive exactness check detected two missing trailing newlines in market-probe text; restored with apply_patch, then all 15 exact-LF comparisons passed.",
+    "Unsupported --verify-app/--verify-ocr flags returned Usage. --verify-ocr-directory site used the wrong root and returned missing manifest. Correct documented commands then passed.",
+    "Two gh run view 38422707290 attempts returned GitHub API EOF. No new CI conclusion claimed this turn.",
+    "Final projection equality diagnostic initially omitted its documented projectionNote and failed comparison; an intermediate command had a syntax error before reads. Corrected comparison excluded only the added note and passed against original metadata with code removed. No measurement or source bytes were changed.",
+    "git diff --cached --check exited 1 solely for the original trailing blank line in projection/market-probe.mjs.txt:219, intentionally preserved for exact LF evidence. Other changed files had no whitespace warning. Git LF-to-CRLF checkout notices do not change LF-normalized hash results."
+  ],
+  "remoteReadback": {
+    "method": "git ls-remote before docs commit",
+    "continuation": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+    "main": "abfb6313f12efb66b9096b60472b6dd457094485"
+  },
+  "boundary": {
+    "businessEdited": false,
+    "configBudgetGroupsDependenciesEdited": false,
+    "version": "15.0.2",
+    "mainMerged": false,
+    "deployed": false,
+    "m4Started": false,
+    "m5Started": false,
+    "m6Started": false,
+    "actualCloudWrites": false,
+    "realUserDataUsed": false
+  },
+  "archives": [
+    {
+      "path": "rejected-probes-20261013/cache/measure.mjs.txt",
+      "lfBytes": 7282,
+      "lfSha256": "7b7a5f9fbc47b3d1d8d3800fc1aca6a646705df221e3326e1d135db68b9320be"
+    },
+    {
+      "path": "rejected-probes-20261013/cache/report.json",
+      "lfBytes": 38810,
+      "lfSha256": "636e9bca3569bafac3ab50bc9260968f6577f49c02c6b0483dee450a015bc1d8"
+    },
+    {
+      "path": "rejected-probes-20261013/cache/cross-check.mjs.txt",
+      "lfBytes": 6497,
+      "lfSha256": "b5f3243c32c83f3d8a3a9fa61f94af2ecfcc1cc7e1d3de271be13b895fe5d209"
+    },
+    {
+      "path": "rejected-probes-20261013/cache/cross-review.json",
+      "lfBytes": 4457,
+      "lfSha256": "ad58526247f7b61004525382224a8eb1fdb4ede2306a53c354bb8380f47753a0"
+    },
+    {
+      "path": "rejected-probes-20261013/storage/measure.mjs.txt",
+      "lfBytes": 12283,
+      "lfSha256": "7b414dc147a716e9bac0e141f2929b9e31dfe51652869619babbd5cf0db0446c"
+    },
+    {
+      "path": "rejected-probes-20261013/storage/evidence.json",
+      "lfBytes": 5043,
+      "lfSha256": "43d3bdd42722d4696fbd0693f2df0272c5caf05a9acfabb9e45835f346a245f6"
+    },
+    {
+      "path": "rejected-probes-20261013/ui/probe.mjs.txt",
+      "lfBytes": 9477,
+      "lfSha256": "e8cca9c3e6d95b3769dc2b986c04a779d7a640af39510df7782d4ef8131713fc"
+    },
+    {
+      "path": "rejected-probes-20261013/ui/report.json",
+      "lfBytes": 14879,
+      "lfSha256": "8b6d59cc0c9fd2d85f73e7b55487a6ae0815666a262712f075ef27c8d2b03cf7"
+    },
+    {
+      "path": "rejected-probes-20261013/ui/stats-probe.mjs.txt",
+      "lfBytes": 4918,
+      "lfSha256": "06affb497fff5bcff1e7f343979f87dc38309caad7ec9d99e05541c37c296d76"
+    },
+    {
+      "path": "rejected-probes-20261013/ui/stats-report.json",
+      "lfBytes": 4582,
+      "lfSha256": "6f5ae4e9553104b73016d2e0c4fe31254fc87ee32721073a620201e67e2a7ab9"
+    },
+    {
+      "path": "rejected-probes-20261013/ui/exports-probe.mjs.txt",
+      "lfBytes": 5156,
+      "lfSha256": "a6af2556ac43e3bd51da98f34aad6121d4225456fbeb6a4984da7169a142d9f2"
+    },
+    {
+      "path": "rejected-probes-20261013/projection/probe.mjs.txt",
+      "lfBytes": 12721,
+      "lfSha256": "739034107c25cb9930846aa91fc7f66e2f536cc3a2cdae49aea041d59e1e672d"
+    },
+    {
+      "path": "rejected-probes-20261013/projection/identity-report.json",
+      "lfBytes": 3006,
+      "lfSha256": "3fe01291e68b22c50900e95441761168f6ce139b963f31ecd922d8affd60ebf3"
+    },
+    {
+      "path": "rejected-probes-20261013/projection/market-probe.mjs.txt",
+      "lfBytes": 17459,
+      "lfSha256": "0250c700c00c8ff355ae3564bebf8725237deca906c9e27ce06f905156a98059"
+    },
+    {
+      "path": "rejected-probes-20261013/projection/market-report.json",
+      "lfBytes": 3788,
+      "lfSha256": "adfe289cf33fea2211cfd32c142beabba847ae29d2cac0a0a028767fc7daa67e"
+    },
+    {
+      "path": "rejected-probes-20261013/ui/exports-summary.json",
+      "lfBytes": 53454,
+      "lfSha256": "633206d897eda94a8112d378f2ef95ce3ef6a22bad1961fc53df456a3b251f91"
+    }
+  ]
+}

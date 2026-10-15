@@ -1,0 +1,186 @@
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import { resolve, relative } from 'node:path';
+import { createHash } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+
+const root = 'D:/AI项目/FundVal';
+const require = createRequire(`${root}/package.json`);
+const { build: viteBuild } = await import(pathToFileURL(require.resolve('vite')));
+const { parseSync } = await import(pathToFileURL(require.resolve('rolldown/utils')));
+const sha = value => createHash('sha256').update(value).digest('hex');
+const lf = value => value.replaceAll('\r\n', '\n');
+const recipe = lf(await readFile(`${root}/scripts/build-site.mjs`, 'utf8'));
+const program = parseSync('build-site.mjs', recipe).program;
+const constants = new Set(['APP_SHELL_FILENAME', 'APP_CHUNK_FILENAME', 'OCR_BUNDLE_REFERENCE', 'COLD_LAZY_MODULE',
+  'STARTUP_MODULES', 'POST_INTEGRITY_MODULES', 'BUSINESS_MODULES', 'APP_CHUNK_GROUPS']);
+const functions = new Set(['modulePath', 'collectStaticChunkGraph', 'assertStartupPhaseIsolation']);
+const statements = program.body.filter(node => node.type === 'VariableDeclaration'
+  ? node.declarations.some(declaration => constants.has(declaration.id.name))
+  : node.type === 'FunctionDeclaration' && functions.has(node.id?.name));
+assert.equal(statements.length, constants.size + functions.size);
+const recipeContext = vm.createContext({ root, resolve, relative });
+vm.runInContext(statements.map(node => recipe.slice(node.start, node.end)).join('\n'), recipeContext);
+const appBuilder = program.body.find(node => node.type === 'FunctionDeclaration' && node.id?.name === 'buildAppShell');
+let configArgument;
+function findConfig(node) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'CallExpression' && node.callee?.name === 'viteBuild') configArgument = node.arguments[0];
+  for (const item of Object.values(node)) {
+    if (Array.isArray(item)) item.forEach(findConfig);
+    else if (item && typeof item === 'object') findConfig(item);
+  }
+}
+findConfig(appBuilder);
+assert.ok(configArgument);
+const configSource = recipe.slice(configArgument.start, configArgument.end);
+assert.equal(vm.runInContext(`(${configSource}).build.write`, recipeContext), false);
+
+const files = ['js/storage/holdings-migration.js', 'js/storage/holdings-schema.js', 'js/storage/holdings-repository.js', 'js/storage/cloud-sync.js'];
+const original = new Map(await Promise.all(files.map(async file => [file, lf(await readFile(`${root}/${file}`, 'utf8'))])));
+function replaceOne(source, search, replacement) {
+  const start = source.indexOf(search);
+  assert.ok(start >= 0, `Missing replacement ${search.slice(0, 100)}`);
+  assert.equal(source.indexOf(search, start + search.length), -1, `Nonunique replacement ${search.slice(0, 100)}`);
+  return source.slice(0, start) + replacement + source.slice(start + search.length);
+}
+
+function migrationSuccess(source) {
+  const helper = `function successfulHoldingsParse(document, sourceSchema, migrated) {
+  return Object.freeze({ ok: true, sourceSchema, readonly: false, migrated, empty: document.holdings.length === 0, document });
+}
+
+`;
+  source = replaceOne(source, 'export function parseAndMigrateHoldings(value, options = {}) {', helper + 'export function parseAndMigrateHoldings(value, options = {}) {');
+  source = replaceOne(source,
+    'return Object.freeze({ ok: true, sourceSchema: 1, readonly: false, migrated: true, empty: document.holdings.length === 0, document });',
+    'return successfulHoldingsParse(document, 1, true);');
+  source = replaceOne(source,
+    'return Object.freeze({ ok: true, sourceSchema, readonly: false, migrated: false, empty: document.holdings.length === 0, document });',
+    'return successfulHoldingsParse(document, sourceSchema, false);');
+  return replaceOne(source,
+    'return Object.freeze({ ok: true, sourceSchema, readonly: false, migrated: true, empty: document.holdings.length === 0, document });',
+    'return successfulHoldingsParse(document, sourceSchema, true);');
+}
+
+function schemaPrivateScalar(source) {
+  source = replaceOne(source,
+    "function text(value, field, { fallback = '', required = false, maximum = MAX_TEXT, nullable = false } = {}) {",
+    "function text(value, field, fallback = '', required = false, maximum = MAX_TEXT, nullable = false) {");
+  const replacements = [
+    ["text(value, field, { required: true, maximum: 80 })", "text(value, field, '', true, 80)"],
+    ["text(value.fundCode, 'fundCode', { required: true, maximum: 6 })", "text(value.fundCode, 'fundCode', '', true, 6)"],
+    ["text(value.id, 'id', { required: true, maximum: 120 })", "text(value.id, 'id', '', true, 120)"],
+    ["text(value.fundName, 'fundName', { fallback: fundCode, maximum: 120 })", "text(value.fundName, 'fundName', fundCode, false, 120)"],
+    ["text(value.note, 'note', { maximum: 500, nullable: true })", "text(value.note, 'note', '', false, 500, true)"],
+    ["function nonNegativeNumber(value, field, { nullable = false } = {}) {", "function nonNegativeNumber(value, field, nullable = false) {"],
+    ["nonNegativeNumber(value.costNav, 'costNav', { nullable: true })", "nonNegativeNumber(value.costNav, 'costNav', true)"],
+  ];
+  for (const [search, replacement] of replacements) source = replaceOne(source, search, replacement);
+  const deviceSearch = "text(value.deviceId, 'deviceId', { required: true, maximum: 120 })";
+  assert.equal(source.split(deviceSearch).length - 1, 2);
+  return source.replaceAll(deviceSearch, "text(value.deviceId, 'deviceId', '', true, 120)");
+}
+
+function journalMembership(source) {
+  source = replaceOne(source, 'function parseJournal(raw) {', `function snapshotBelongsToJournal(current, previous, next) {
+  return ['v3Raw', 'v1Raw', 'projectionMetaRaw'].every(key => (
+    current[key] === previous[key] || current[key] === next[key]
+  ));
+}
+
+function parseJournal(raw) {`);
+  source = replaceOne(source, `const belongsToJournal = ['v3Raw', 'v1Raw', 'projectionMetaRaw'].every(key => (
+    current[key] === parsed.journal.previous[key] || current[key] === parsed.journal.next[key]
+  ));`, 'const belongsToJournal = snapshotBelongsToJournal(current, parsed.journal.previous, parsed.journal.next);');
+  return replaceOne(source, `const safe = ['v3Raw', 'v1Raw', 'projectionMetaRaw'].every(key => (
+      current[key] === previous[key] || current[key] === next[key]
+    ));`, 'const safe = snapshotBelongsToJournal(current, previous, next);');
+}
+
+function validatedCloudRead(source) {
+  source = replaceOne(source, 'function targetWriteSchema(sourceSchema, upgradeSchema) {', `function parsedCloudRead(read, rejectFutureSchema = false) {
+  const parsed = parseAndMigrateHoldings(read.value);
+  if (!parsed.ok) return failure('remote_payload_invalid', { error: parsed.error });
+  if (parsed.readonly || (rejectFutureSchema && parsed.sourceSchema > HOLDINGS_SCHEMA_VERSION) || !parsed.document) {
+    return failure('remote_schema_future', { remoteSchema: parsed.sourceSchema });
+  }
+  return parsed;
+}
+
+function targetWriteSchema(sourceSchema, upgradeSchema) {`);
+  source = replaceOne(source, `const remoteParsed = parseAndMigrateHoldings(initialRemote.value);
+  if (!remoteParsed.ok) return failure('remote_payload_invalid', { error: remoteParsed.error });
+  if (remoteParsed.readonly || remoteParsed.sourceSchema > HOLDINGS_SCHEMA_VERSION || !remoteParsed.document) {
+    return failure('remote_schema_future', { remoteSchema: remoteParsed.sourceSchema });
+  }`, `const remoteParsed = parsedCloudRead(initialRemote, true);
+  if (!remoteParsed.ok) return remoteParsed;`);
+  return replaceOne(source, `const remoteParsed = parseAndMigrateHoldings(remoteRead.value);
+  if (!remoteParsed.ok) return failure('remote_payload_invalid', { error: remoteParsed.error });
+  if (remoteParsed.readonly || !remoteParsed.document) {
+    return failure('remote_schema_future', { remoteSchema: remoteParsed.sourceSchema });
+  }`, `const remoteParsed = parsedCloudRead(remoteRead);
+  if (!remoteParsed.ok) return remoteParsed;`);
+}
+
+const transforms = {
+  baseline: new Map(),
+  migrationSuccess: new Map([['js/storage/holdings-migration.js', migrationSuccess(original.get('js/storage/holdings-migration.js'))]]),
+  schemaPrivateScalar: new Map([['js/storage/holdings-schema.js', schemaPrivateScalar(original.get('js/storage/holdings-schema.js'))]]),
+  journalMembership: new Map([['js/storage/holdings-repository.js', journalMembership(original.get('js/storage/holdings-repository.js'))]]),
+};
+transforms.combined = new Map([...transforms.migrationSuccess, ...transforms.schemaPrivateScalar, ...transforms.journalMembership]);
+transforms.cloudParsedRead = new Map([['js/storage/cloud-sync.js', validatedCloudRead(original.get('js/storage/cloud-sync.js'))]]);
+
+function collect(chunks, roots) {
+  const byName = new Map(chunks.map(chunk => [chunk.fileName, chunk]));
+  const included = new Set();
+  const queue = [...roots];
+  while (queue.length) {
+    const file = queue.shift();
+    if (included.has(file)) continue;
+    included.add(file);
+    assert.ok(byName.has(file));
+    queue.push(...byName.get(file).imports);
+  }
+  return included;
+}
+
+const result = { recipeLfHash: sha(recipe), sourceLfHashes: Object.fromEntries([...original].map(([file, source]) => [file, sha(source)])),
+  method: 'actual build-site AST-derived config, only virtual plugin.transform, write:false, no filesystem build writes', variants: {} };
+for (const [variant, transformed] of Object.entries(transforms)) {
+  if (process.argv[2] && variant !== process.argv[2]) continue;
+  const measurements = [];
+  for (let round = 1; round <= 3; round++) {
+    const config = vm.runInContext(`(${configSource})`, recipeContext);
+    const touched = new Set();
+    if (transformed.size) config.plugins = [{ name: 'fundval-readonly-storage-probe', enforce: 'pre', transform(code, id) {
+      const path = relative(root, id).replaceAll('\\', '/');
+      if (!transformed.has(path)) return null;
+      assert.equal(lf(code), original.get(path));
+      touched.add(path);
+      return { code: transformed.get(path), map: null };
+    } }];
+    const built = await viteBuild(config);
+    const chunks = (Array.isArray(built) ? built.flatMap(item => item.output || []) : built.output || []).filter(item => item.type === 'chunk');
+    assert.deepEqual([...touched].sort(), [...transformed.keys()].sort());
+    const entry = chunks.filter(chunk => chunk.isEntry);
+    assert.equal(entry.length, 1);
+    const cold = collect(chunks, [entry[0].fileName, ...entry[0].dynamicImports]);
+    const graphKeys = new Map(chunks.map(chunk => [chunk.fileName, Object.keys(chunk.modules).map(id => relative(root, id).replaceAll('\\', '/')).sort().join('|')]));
+    const graph = chunks.map(chunk => ({ modules: graphKeys.get(chunk.fileName), cold: cold.has(chunk.fileName),
+      imports: chunk.imports.map(file => graphKeys.get(file)).sort(), dynamicImports: chunk.dynamicImports.map(file => graphKeys.get(file)).sort() })).sort((a, b) => a.modules.localeCompare(b.modules));
+    measurements.push({ round, chunkCount: chunks.length, raw: chunks.reduce((total, chunk) => total + Buffer.byteLength(chunk.code), 0),
+      all: chunks.reduce((total, chunk) => total + gzipSync(chunk.code).length, 0),
+      cold: chunks.filter(chunk => cold.has(chunk.fileName)).reduce((total, chunk) => total + gzipSync(chunk.code).length, 0), graphHash: sha(JSON.stringify(graph)),
+      renderedModules: Object.fromEntries(chunks.flatMap(chunk => Object.entries(chunk.modules)).filter(([id]) => /js\/(?:storage\/(?:cloud-sync|holdings-schema|holdings-repository|holdings-migration)|resilience|integrity)\.js$/.test(id.replaceAll('\\', '/'))).map(([id, module]) => [relative(root, id).replaceAll('\\', '/'), module.renderedLength])) });
+  }
+  assert.ok(measurements.every(item => JSON.stringify({ ...item, round: 0 }) === JSON.stringify({ ...measurements[0], round: 0 })));
+  result.variants[variant] = measurements;
+  process.stdout.write(JSON.stringify({ variant, measurements }) + '\n');
+}
+for (const [file, expected] of original) assert.equal(lf(await readFile(`${root}/${file}`, 'utf8')), expected);
+process.stdout.write('FINAL ' + JSON.stringify(result) + '\n');

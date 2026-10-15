@@ -49,6 +49,8 @@ exit $LASTEXITCODE
 | `m3-pair-security-v15-200-20261011.json` | 新安全对齐参考c298026 vs 06aa，200 retained +4 warm-up，AB/BA各100，0 failed。cold/save PASS，warm p95区间宽24.457%>20%稳定性限制，总体INCONCLUSIVE；完整性/健康/仪器/清理PASS。LF22,410,202 B / SHA256 `5e4199a9268ecb8761dc3f91725daba3f1b63adedd7b86ef2a9b820f940b3ddd`；保留全部样本，不重跑挑PASS，不是M3 EXIT/真机/生产 |
 | `m3-private-hash-pair-ci-20261011.json` | 精确06aa CI38112117242：Linux966/966、syntax197、audit0、E2E27/27，构建/封包成功，唯一失败all81,158预算；CodeQL2结果，#3仅continuation fixed、main仍open，#5/#7仍在。提交后两build确定性及新pair独立重算/观测边界汇总；不是后续文档SHA、远端包独立下载或正式发布证明 |
 | `m3-public-source-readonly-20261013.json` | 真实HTTP客户端/env-proxy/缺省时钟：未强刷及app默认force:true各固定5次均5/5接受，首个9.89s/9.07s慢样本保留；005844 Oct12→13、012920 Oct9→12均正式NAV降级，非实时估算。另列显式请求开始now诊断1拒绝/4接受，不替换失败、不误报app Bug；无云写入/生产渲染或独立上游核对 |
+| `m3-rejected-structural-probes-20261013.json` | 17bb 内容上的12个各自在脚本中预设的虚拟变体（含负控/组合）各三轮，以及两轮真实导出库存；最佳组合仅−14 B，不实施任何候选。归档精确脚本、变体与原结果；新本地963 PASS/3 skip、syntax197、E2E27/27、app/OCR核验通过，all81,158仍FAIL，旧pair INCONCLUSIVE保留。无业务/配置/依赖/预算/版本/main/生产修改；不是新文档SHA的CI或发布证明 |
+| `m3-larger-boundary-probes-20261015.json` | 17bb 内容上7个独立脚本族的22个预设变体各3轮，均未实施；私有HTTP投影−120 B但原28/28、候选27/28表征证明改变safe rescue而否决，其余最大仅−34 B。新全量963 PASS/3 skip、syntax197、E2E27/27、三build/资源核验通过；all81,158仍FAIL，旧pair未重跑。19份精确LF原脚本/报告/TAP压缩归档，非CI/生产或M3 EXIT |
 
 后续修复 harness 不会改变第一轮结论。新报告按实际结果追加；总包 gzip 独立硬门禁不能被桌面工具 PASS 覆盖。
 
@@ -68,3 +70,7 @@ exit $LASTEXITCODE
 它枚举完整 chunk 文件集并实算每份 gzip，不信任 manifest 自报压缩长度。报告 `importClosureVerified:false`：真实静态依赖图/冷启动隔离仍由 build-site 的 Rolldown 输出图校验负责。超预算的 WIP review artifact 可以封包保存，但 CI 必须红、standalone candidate/deploy 准入必须拒绝。
 
 最新06aa配对与精确CI见上级 `M3_STATUS.md` 第27节。第26节/reference JSON中的未测量状态是创建参考时的历史事实；本轮实测结果为INCONCLUSIVE，不继承历史v2 PASS。console计数与阻断计数相等但未保留逐条关联，不能断言全部错误根因；统计及source/artifact完整性结论不扩展为console-zero、生产或物理设备通过。
+
+最新结构减包排除和本地复核见上级 `M3_STATUS.md` 第28节及 [精确探针归档](rejected-probes-20261013/README.md)。所有候选均未实施，旧配对未重跑。归档中的 `.mjs.txt` 不属于业务源码或 package scripts，不应直接执行或覆盖历史报告；库存投影与原报告、graph SHA与产物指纹的边界详见归档说明。
+
+10月15日新增22候选及HTTP反例见第29节与 [19份精确原件压缩归档说明](rejected-probes-20261015.md)。较大HTTP/模型/时间解析/UI职责和静态排布都未取得合格收益；不改变原预算或旧pair结论。压缩归档只保存文档证据，不属于发布资源或产品减包手段。

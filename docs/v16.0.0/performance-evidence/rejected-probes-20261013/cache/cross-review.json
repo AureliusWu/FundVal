@@ -1,0 +1,57 @@
+{
+  "reviewStatus": "CONSISTENT_WITH_LIMITS_REJECT_BOTH_ON_GZIP",
+  "reviewedAtUtc": "2026-10-13T15:50:06.957Z",
+  "reviewer": "m3_structural_dedup",
+  "reviewedFiles": ["measure.mjs", "report.json"],
+  "reviewCheckScript": "cross-check.mjs",
+  "source": {
+    "currentHead": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+    "currentGitStatus": "clean",
+    "reportSourceCommit": null,
+    "recipeLfSha256": "51a4d35902ad2e6510dd3e82fea7198a12a9b722ef3098c791aeb4c8327ac9a4",
+    "cacheSourceLfSha256": "7f0103a803f83b31df0631cb3a7c53949e7f80259c909becf4eccc6ce0fb6231",
+    "probeLfSha256": "7b7a5f9fbc47b3d1d8d3800fc1aca6a646705df221e3326e1d135db68b9320be",
+    "reportBytesSha256": "636e9bca3569bafac3ab50bc9260968f6577f49c02c6b0483dee450a015bc1d8",
+    "verified": "Recorded recipe/cache hashes match current files and current HEAD Git blobs. This is a retrospective content binding; original report did not record an immutable SHA."
+  },
+  "configuration": {
+    "method": "AST selects the actual buildAppShell viteBuild argument and original declarations/functions; config text is evaluated verbatim on every round.",
+    "configSourceLfSha256": "fc809c7569d3034f422cd58f57c1efcee09461285cc68e3af9dc928adfed6282",
+    "configFile": false,
+    "write": false,
+    "minify": "oxc",
+    "target": "es2022",
+    "currentPinnedAndInstalledVite": "8.2.2",
+    "groupCount": 5,
+    "candidateOnlyChange": "Adds a pre transform for exactly js/runtime/refresh-resource-cache.js. Virtual candidate source, one touched module asserted. No target/group/minifier change."
+  },
+  "measurements": {
+    "origin": "Root's recorded three-round results; reviewed script awaits real Vite build(config). Reviewer independently checked report consistency and virtual sources, did not rerun builds.",
+    "baseline": {"rounds": 3, "raw": 237665, "allGzip": 81158, "coldGzip": 42907},
+    "payloadFieldTable": {"rounds": 3, "raw": 237715, "allGzip": 81183, "coldGzip": 42910, "deltaRaw": 50, "deltaAllGzip": 25, "deltaColdGzip": 3},
+    "payloadAndIndexFieldTables": {"rounds": 3, "raw": 237699, "allGzip": 81191, "coldGzip": 42907, "deltaRaw": 34, "deltaAllGzip": 33, "deltaColdGzip": 0},
+    "checks": "Exactly rounds 1/2/3 per variant, identical within variant, 16 chunks and identical recorded graph hash. Both full transformed sources independently reconstructed byte-for-byte and parsed without errors."
+  },
+  "graphFingerprint": {
+    "recordedSha256": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c",
+    "includes": "Sorted relative module-ID sets per emitted chunk; static/dynamic edges mapped to those sets; cold-closure membership. Startup-isolation assertion from actual recipe is executed by probe.",
+    "excludes": "Chunk code, exported bindings, export signatures, bytes, runtime behavior, source/date/null/getter semantics. It is not behavioral equivalence or the full deployment artifact fingerprint.",
+    "limits": "Module IDs are joined with |; edge keys could be undefined if a dependency lacks an emitted chunk. Probe does not retain the full graph or enforce injective keys, so equal hashes are a bounded topology indication, not a universal graph proof."
+  },
+  "sourceAndSite": {
+    "probeSpecificCacheCheck": "Probe compares LF-normalized cache source before/after and reports sourceUnchanged=true. Its only explicit writeFile target is external report.json; build write:false and virtual transform do not write site output.",
+    "currentSiteWholeTreeSha256": "624e1caf0d5e8ffa6f60616942fbd4fa0104d89f922f3c2377f09473681e3ca0",
+    "currentSiteFiles": 126,
+    "currentSiteBytes": 92499248,
+    "currentSiteEvidence": "Fresh read-only execution of actual exported artifactFingerprint function matches Before/After current artifact in docs/v16.0.0/performance-evidence/m3-private-hash-pair-ci-20261011.json.",
+    "limits": "Probe report has no all-source or whole-site before/after inventory. Current clean HEAD and matching frozen site supplement provenance; they do not retroactively prove the probe's exact start/end whole-tree bytes."
+  },
+  "disposition": {
+    "bothCandidates": "REJECT: all gzip increases by 25 B / 33 B; no material package saving.",
+    "behavioralEquivalence": "NOT ESTABLISHED, NOT CLAIMED; candidates rejected on package evidence before behavior qualification.",
+    "repoBusinessChanges": false,
+    "reviewerBuilds": false,
+    "runtimeBenchmarkE2ENetwork": false,
+    "m3Closure": false
+  }
+}
