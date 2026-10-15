@@ -879,3 +879,15 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 完整范围与不继承边界见[修复说明](performance-evidence/m3-page-update-guards-20261015.md)及[机器摘要](performance-evidence/m3-page-update-guards-20261015.json)。较大职责审查未发现新合格减包候选；40e当前配方65275仅归因诊断，不替代原70207锚。M3继续，不能跳过原门禁进入M4。
 
 提交b9da的真实CI38704643538在Linux E2E路径负控失败（28PASS/2FAIL），budget步骤skipped，不能称只有budget红。已仅修测试helper跨平台root判断；双平台纯path矩阵58/58，新本地1030/1027PASS/3skip、syntax204、E2E30/30（54.4s）、三build/产品指纹不变。原失败保留，细节见[后续兼容证据](performance-evidence/m3-page-update-portable-harness-20261015.json)。后续SHA需新CI，M3依旧未退出。
+
+## 32. 本机未同步时钟的独立证据与较大职责审查（2026-10-15）
+
+本轮基于f926，仅文档归档，不改产品。独立只读NTP三样本显示本机约慢3.75秒，Windows状态为未同步/CMOS。用户明确允许仅一次校时，实际一次`w32tm /resync`被`0x80070005`拒绝（exit -2147024891），未成功校时，未再次尝试或修改服务配置。后续两个NTP样本仍约+3.751秒，第三个超时保留。该步需管理员完成，不是项目文件访问权限问题，也不应放宽项目时间校验。
+
+校时失败后事前固定5次真实客户端GET：均200/v1/正式NAV降级，但fetched_at比本机未来3689/3513/3387/3270/3151ms，5次WORKER_METADATA_INVALID、0接受。本批可定位未来fetched_at拒绝，独立NTP支持本机偏移有贡献，不倒推所有历史原因或宣称Worker绝对正确。完整原JSON/脚本byte-for-byte归档，无成功样本替换失败。
+
+新增渲染/启动恢复/较大估值DTO三个只读职责审查，均未找到可证明安全的大幅删码切面，没有新变体/build或收益数字。完整人工报告已归档，附属Temp脚本/JSON未全量打包。不能复用跨锁旧持仓快照，不能把资源缓存白名单套用旧聚合，也不能通过移动HTML到data规避预算。
+
+原CLI对现有产物新实核all80477/77227.7 FAIL、cold42992/52241 PASS，缺口至少3250 B；不是新构建。f926精确CI38705211689已确认Linux1030/1030、E2E30/30等通过，唯一失败step15原all预算；CodeQL仍既存#5，不等于零告警，不继承后续文档SHA。本轮未重跑完整测试/build/E2E/pair，旧pair仍INCONCLUSIVE。
+
+详见[校时与职责证据](performance-evidence/m3-clock-and-boundaries-20261015.md)。**M3仍IN PROGRESS / 15.0.2，未进入M4，未部署或发布v16。**

@@ -1,0 +1,189 @@
+{
+  "schema": 1,
+  "status": "READ_ONLY_POST_DENIED_CLOCK_SYNC_FIXED_FIVE",
+  "sourceHead": "f926ee5c11d13c68802dfda3fd4ec3cfd5e50a96",
+  "startedAt": "2026-10-15T08:33:55.178Z",
+  "protocol": {
+    "attempts": 5,
+    "codes": [
+      "005844",
+      "012920"
+    ],
+    "realClient": "fetchEstimateRows",
+    "force": true,
+    "explicitNow": false,
+    "envProxy": true,
+    "perAttemptTimeout": "unchanged client default 10000ms",
+    "noAdaptiveRetries": true,
+    "originalFailedSamplesReplaced": false,
+    "instrumentation": "Native response.json observes limited public metadata and returns the exact payload; small observer overhead disclosed. No Date, payload, validator, source or timeout changes."
+  },
+  "clockAttempt": {
+    "authorized": true,
+    "resyncCalls": 1,
+    "result": "ACCESS_DENIED",
+    "errorHex": "0x80070005",
+    "clockUnchanged": true,
+    "configurationUnchanged": true
+  },
+  "sourceHashesBefore": {
+    "js/eastmoney-estimate.js": "5ed4a84b2d513c7289afd5facfe961f86ccc9d01653e72915a96c5bb5c5bd1d6",
+    "js/config.js": "58475a6048577a9267e2513c8c789ad074a95cf6b941ae4431b331578b4d61e4",
+    "js/runtime/worker-contract.js": "54bab1e12f3127b8d28b98185175864ea4dc420b2c862954ab542b3293aa2b44",
+    "js/runtime/quote-contract.js": "3ad71a9914d1c198222cb395a7cf92392a2afb0ab0a918ad00ead040d7ffcc8f",
+    "js/runtime/quote-normalizer.js": "9454458c08316229f3dfab94c50ae2a3792611a80ec0193cb790a1cde665d76b"
+  },
+  "samples": [
+    {
+      "attempt": 1,
+      "startedAt": "2026-10-15T08:33:55.197Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 08:34:02 GMT",
+        "receivedAt": "2026-10-15T08:33:59.262Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T08:33:59.267Z",
+        "schemaVersion": null,
+        "source": "eastmoney_official_nav",
+        "status": "degraded",
+        "fetchedAt": "2026-10-15T08:34:02.956Z",
+        "generatedAt": null,
+        "itemCount": 2,
+        "fetchedMinusCaptureMs": 3689,
+        "generatedMinusCaptureMs": null,
+        "httpDateMinusCaptureMs": 2733
+      },
+      "result": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 4070.7715000000003
+    },
+    {
+      "attempt": 2,
+      "startedAt": "2026-10-15T08:33:59.268Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 08:34:03 GMT",
+        "receivedAt": "2026-10-15T08:33:59.442Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T08:33:59.443Z",
+        "schemaVersion": null,
+        "source": "eastmoney_official_nav",
+        "status": "degraded",
+        "fetchedAt": "2026-10-15T08:34:02.956Z",
+        "generatedAt": null,
+        "itemCount": 2,
+        "fetchedMinusCaptureMs": 3513,
+        "generatedMinusCaptureMs": null,
+        "httpDateMinusCaptureMs": 3557
+      },
+      "result": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 174.6183000000001
+    },
+    {
+      "attempt": 3,
+      "startedAt": "2026-10-15T08:33:59.443Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 08:34:03 GMT",
+        "receivedAt": "2026-10-15T08:33:59.568Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T08:33:59.569Z",
+        "schemaVersion": null,
+        "source": "eastmoney_official_nav",
+        "status": "degraded",
+        "fetchedAt": "2026-10-15T08:34:02.956Z",
+        "generatedAt": null,
+        "itemCount": 2,
+        "fetchedMinusCaptureMs": 3387,
+        "generatedMinusCaptureMs": null,
+        "httpDateMinusCaptureMs": 3431
+      },
+      "result": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 126.05000000000018
+    },
+    {
+      "attempt": 4,
+      "startedAt": "2026-10-15T08:33:59.569Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 08:34:03 GMT",
+        "receivedAt": "2026-10-15T08:33:59.685Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T08:33:59.686Z",
+        "schemaVersion": null,
+        "source": "eastmoney_official_nav",
+        "status": "degraded",
+        "fetchedAt": "2026-10-15T08:34:02.956Z",
+        "generatedAt": null,
+        "itemCount": 2,
+        "fetchedMinusCaptureMs": 3270,
+        "generatedMinusCaptureMs": null,
+        "httpDateMinusCaptureMs": 3314
+      },
+      "result": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 117.54129999999986
+    },
+    {
+      "attempt": 5,
+      "startedAt": "2026-10-15T08:33:59.686Z",
+      "http": {
+        "status": 200,
+        "date": "Thu, 15 Oct 2026 08:34:03 GMT",
+        "receivedAt": "2026-10-15T08:33:59.804Z"
+      },
+      "metadata": {
+        "capturedAt": "2026-10-15T08:33:59.805Z",
+        "schemaVersion": null,
+        "source": "eastmoney_official_nav",
+        "status": "degraded",
+        "fetchedAt": "2026-10-15T08:34:02.956Z",
+        "generatedAt": null,
+        "itemCount": 2,
+        "fetchedMinusCaptureMs": 3151,
+        "generatedMinusCaptureMs": null,
+        "httpDateMinusCaptureMs": 3195
+      },
+      "result": "REJECTED",
+      "error": {
+        "name": "WorkerContractError",
+        "code": "WORKER_METADATA_INVALID"
+      },
+      "durationMs": 118.80590000000029
+    }
+  ],
+  "sourceHashesAfter": {
+    "js/eastmoney-estimate.js": "5ed4a84b2d513c7289afd5facfe961f86ccc9d01653e72915a96c5bb5c5bd1d6",
+    "js/config.js": "58475a6048577a9267e2513c8c789ad074a95cf6b941ae4431b331578b4d61e4",
+    "js/runtime/worker-contract.js": "54bab1e12f3127b8d28b98185175864ea4dc420b2c862954ab542b3293aa2b44",
+    "js/runtime/quote-contract.js": "3ad71a9914d1c198222cb395a7cf92392a2afb0ab0a918ad00ead040d7ffcc8f",
+    "js/runtime/quote-normalizer.js": "9454458c08316229f3dfab94c50ae2a3792611a80ec0193cb790a1cde665d76b"
+  },
+  "sourceUnchanged": true,
+  "completedAt": "2026-10-15T08:33:59.806Z",
+  "summary": {
+    "acceptedRequests": 0,
+    "capturedMetadata": 5,
+    "acceptedRows": 0,
+    "notIndependentNavReconciliation": true,
+    "noProductionUiOrReleaseProof": true
+  }
+}
