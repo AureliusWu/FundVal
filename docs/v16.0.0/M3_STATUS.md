@@ -911,3 +911,13 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 新机器记录/脚本/负控/实际网络集成均见[维护器报告最新增补](performance-evidence/catalog-maintenance-20261015/README.md)。旧29/1057与72d3/native.json保留为10/15窗口，不继承给新源码。Windows只读状态现为时间服务未启动（0x80070426），固定三NTP样本两超时、一+2.4010562s，不继续声称旧3.75s为当前钟差；未再次校时或更改服务。
 
 **版本仍15.0.2，M3 IN PROGRESS；main、M4/M5/M6及正式发布均未推进。** 本实现仍需精确提交CI/CodeQL复扫，不预先关闭/suppress #5。
+
+## 35. 大持仓正式净值排队失败的真实复现与调度修复（2026-10-18）
+
+基于5186回到M3刷新图：105只基金同时需要NAV fallback时，getNav无界fanout撞上真实Bridge等待队列100上限。Node真实request/pump＋合成dispatch旧源101/105（4个busy）；原生Chrome实际app/opaque iframe/路由合成JSONP旧产物100/105（5个--）。不是同一环境计数，不互相外推。新增独立2-slot官方lane，fallback/metadata两处都在获slot后进入原scope.dispatch，不与披露limiter共用；Bridge容量、期限、sandbox/schema、缓存TTL/日期/来源和版本不变。
+
+最终5项新测试对冻结旧源0/5、对新源5/5，涵盖105 fallback/metadata、取消排空、前2次失败释放slot和披露挂起时先显示fallback；后两项旧源基本流程可完成，失败点为新有界需求断言，不能全部说成原源丢数据。新executor40/40、最终全量1064/1061PASS/0FAIL/3Windows skip（6476.4943ms）、syntax205、Chrome31/31（1.0m）、官方audit0。初次全量唯一旧源码正则失配已保留，改为同时要求两入口、独立lane和唯一NAV调用点，未放宽行为测试。
+
+两侧各3次原配方真实build：raw235665→235647（−18 B）、all80477→80494（**+17 B**）、cold42992→42985（−7 B），最终critical均4bda36bc、whole均7d4d8c1e/127files/92507677B。这是可靠性修复，不是减包优化；原budget CLI仍exit1/all FAIL，至少还差**3267 B**。无新pair，旧200组INCONCLUSIVE保留；没有真实金融源/真机/云写入/生产验收。
+
+较大重复职责与固定全图函数扫描没有发现新材料性删码机会；不证明未来优化不存在，不修改编译器/组/原预算。详见[调度证据与明确局限](performance-evidence/nav-scheduler-20261018/README.md)及机器summary。**M3仍IN PROGRESS /15.0.2，未进入M4/M5/M6，未merge/deploy/bump。** 本次工作树需要新的精确CI，不继承5186结果。

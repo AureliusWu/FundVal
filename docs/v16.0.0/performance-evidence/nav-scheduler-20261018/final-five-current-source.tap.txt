@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: 105 QDII NAV fallbacks stay bounded at the real Bridge queue and share metadata without busy failures
+ok 1 - 105 QDII NAV fallbacks stay bounded at the real Bridge queue and share metadata without busy failures
+  ---
+  duration_ms: 72.7057
+  type: 'test'
+  ...
+# {"total":105,"refreshed":105,"requested":105,"dispatched":105,"rejected":[],"maximumActive":1,"maximumQueued":1,"maximumDemand":2,"maximumPending":0,"published":105,"metadata":105,"enriched":105}
+# Subtest: cancelling 105 queued QDII NAV fallbacks drains admitted Bridge work without dispatching the rest
+ok 2 - cancelling 105 queued QDII NAV fallbacks drains admitted Bridge work without dispatching the rest
+  ---
+  duration_ms: 14.8578
+  type: 'test'
+  ...
+# {"total":105,"beforeStop":{"requested":2,"dispatched":1,"queued":1,"diagnostics":0},"requested":2,"dispatched":1,"settled":2,"queue":0,"active":0,"timers":0,"unhandled":0}
+# Subtest: 105 warm NAVs with missing metadata use the same bounded official lane while preserving every NAV envelope
+ok 3 - 105 warm NAVs with missing metadata use the same bounded official lane while preserving every NAV envelope
+  ---
+  duration_ms: 114.0292
+  type: 'test'
+  ...
+# {"total":105,"refreshed":105,"requested":105,"dispatched":105,"metadata":105,"rejected":[],"active":0,"maximumActive":1,"maximumQueued":1,"maximumDemand":2,"settled":105}
+# Subtest: two failed official NAV requests release their slots so the following five funds drain once
+ok 4 - two failed official NAV requests release their slots so the following five funds drain once
+  ---
+  duration_ms: 4.2093
+  type: 'test'
+  ...
+# {"refreshed":5,"requested":["005000","005001","005002","005003","005004","005005","005006"],"dispatched":["005000","005001","005002","005003","005004","005005","005006"],"rejected":[{"code":"005000","errorCode":"synthetic_nav_failed"},{"code":"005001","errorCode":"synthetic_nav_failed"}],"active":0,"maximumActive":1,"maximumQueued":1,"maximumDemand":2,"settled":7}
+# Subtest: five official NAV fallbacks publish while both disclosure slots remain pending and drain after release
+ok 5 - five official NAV fallbacks publish while both disclosure slots remain pending and drain after release
+  ---
+  duration_ms: 6.3638
+  type: 'test'
+  ...
+# {"beforeDisclosureRelease":{"holdingsRequested":2,"published":5,"navRequests":5,"finished":false,"cacheWrites":0},"maximumOfficialDemand":2}
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 350.4711
+

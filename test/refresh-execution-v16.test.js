@@ -6,6 +6,7 @@ import { RefreshCoordinator } from '../js/runtime/refresh-coordinator.js';
 import { makeRefreshResourceEntry } from '../js/runtime/refresh-resource-cache.js';
 import { getSourceHealth, listDataSources, recordSourceFailure } from '../js/runtime/source-registry.js';
 import { calculateOverseasEstimate } from '../js/overseas-model.js';
+import { QuoteBridgeClient } from '../js/runtime/quote-bridge-client.js';
 
 // Synthetic inputs only. Exercise the production executor, generation guards,
 // source-health registry and real Storage mutation boundary together.
@@ -38,6 +39,45 @@ function estimateRow(at = NOW, code = CODE) {
 function nav() {
   return { nav: 1.1, prevNav: 1, date: '2026-09-29', prevDate: '2026-09-28', change: 10,
     changeAmt: 0.1, fundName: 'Synthetic fund', meta: { manager: 'Synthetic manager', currentRate: '0.15' } };
+}
+function syntheticQueuedNav(transport) {
+  const requested = [], dispatched = [], rejected = [], timers = new Set();
+  const state = { active: 0, maximumActive: 0, maximumQueued: 0, maximumDemand: 0, settled: 0 };
+  const bridge = new QuoteBridgeClient({
+    window: {
+      setTimeout(callback, delay) {
+        const timer = setTimeout(() => { timers.delete(timer); callback(); }, delay);
+        timers.add(timer);
+        return timer;
+      },
+      clearTimeout(timer) { timers.delete(timer); clearTimeout(timer); },
+    },
+    document: { createElement() { throw new Error('Synthetic queue test must not create an iframe'); } },
+  });
+  const observe = () => {
+    state.maximumActive = Math.max(state.maximumActive, state.active);
+    state.maximumQueued = Math.max(state.maximumQueued, bridge.queue.length);
+    state.maximumDemand = Math.max(state.maximumDemand, state.active + bridge.queue.length);
+  };
+  // Preserve production request/pump/queue timers; replace only frame transport.
+  bridge.dispatch = async (operation, params, { signal } = {}) => {
+    assert.equal(operation, 'officialFundData');
+    dispatched.push(params.fundCode);
+    state.active++;
+    observe();
+    try { return await transport(params.fundCode, signal); }
+    finally { state.active--; observe(); }
+  };
+  return { bridge, requested, dispatched, rejected, timers, state,
+    async nav(code, signal) {
+      requested.push(code);
+      const task = bridge.officialFundData(code, { signal });
+      observe();
+      try { return await task; }
+      catch (error) { rejected.push({ code, errorCode: error.code || error.name }); throw error; }
+      finally { state.settled++; }
+    },
+  };
 }
 function disclosure(at = NOW) {
   return { status: 'ok', sourceStatus: 'ok', wireVersion: 2, reportDate: '2026-06-30',
@@ -338,6 +378,333 @@ test('NAV fallback and enrichment share one actual request and one metadata acqu
   assert.equal(h.writes.length, 1);
   assert.equal(h.writes[0].value.refreshResources[`nav:${CODE}`].fetchedAt, NOW);
   assert.equal(h.writes[0].value.refreshResources[`meta:${CODE}`].fetchedAt, NOW);
+});
+
+test('105 QDII NAV fallbacks stay bounded at the real Bridge queue and share metadata without busy failures', async t => {
+  const snapshot = Array.from({ length: 105 }, (_, index) => ({
+    code: String(2000 + index).padStart(6, '0'), name: 'Synthetic QDII', shares: 0, cost: null,
+  }));
+  const requested = [];
+  const dispatched = [];
+  const rejected = [];
+  let active = 0;
+  let maximumActive = 0;
+  let maximumQueued = 0;
+  let maximumDemand = 0;
+  let maximumPending = 0;
+  const bridge = new QuoteBridgeClient({
+    window: { setTimeout, clearTimeout },
+    document: { createElement() { throw new Error('Synthetic queue test must not create an iframe'); } },
+  });
+  const observe = () => {
+    maximumActive = Math.max(maximumActive, active);
+    maximumQueued = Math.max(maximumQueued, bridge.queue.length);
+    maximumDemand = Math.max(maximumDemand, active + bridge.queue.length);
+    maximumPending = Math.max(maximumPending, bridge.pending.size);
+  };
+  // Only transport dispatch is synthetic. request(), its real 100-job queue,
+  // the 60-second queue deadline, cancellation and pump() remain production
+  // code. This is not an iframe, response-schema or native-browser exercise.
+  bridge.dispatch = async (operation, params, { signal } = {}) => {
+    assert.equal(operation, 'officialFundData');
+    dispatched.push(params.fundCode);
+    active++;
+    observe();
+    try {
+      await tick();
+      if (signal?.aborted) throw abortError();
+      return nav();
+    } finally {
+      active--;
+      observe();
+    }
+  };
+  try {
+    const h = harness({ snapshot, clients: {
+      estimates: async (_snapshot, _options, _context, dispatch) => dispatch(async () => new Map()),
+      nav: async (code, signal) => {
+        requested.push(code);
+        const task = bridge.officialFundData(code, { signal });
+        observe();
+        try { return await task; }
+        catch (error) {
+          rejected.push({ code, errorCode: error.code, message: error.message });
+          throw error;
+        }
+      },
+    } });
+    const result = await h.run();
+    const published = h.events.filter(event => event[0] === 'publish');
+    const metadata = h.events.filter(event => event[0] === 'metadata');
+    const enriched = h.events.filter(event => event[0] === 'enriched');
+    t.diagnostic(JSON.stringify({ total: snapshot.length, refreshed: result.result?.refreshed,
+      requested: requested.length, dispatched: dispatched.length, rejected,
+      maximumActive, maximumQueued, maximumDemand, maximumPending,
+      published: published.length, metadata: metadata.length, enriched: enriched.length }));
+    assert.deepEqual(rejected, [], 'Executor scheduling must not overflow the real Bridge queue or lose NAV fallback coverage');
+    assert.equal(result.status, 'completed');
+    assert.equal(result.result.refreshed, snapshot.length, 'Every fund must retain its official NAV fallback');
+    assert.deepEqual(result.result.results, snapshot.map(holding => ({ code: holding.code, status: 'fulfilled' })));
+    assert.deepEqual(requested, snapshot.map(holding => holding.code), 'Fallback, enrichment and metadata share one NAV acquisition per fund');
+    assert.deepEqual(dispatched, requested, 'Every requested NAV must reach synthetic dispatch exactly once');
+    assert.equal(h.calls.holdings, 0, 'QDII fixtures must skip domestic disclosure acquisition');
+    assert.equal(published.length, snapshot.length);
+    assert.deepEqual(metadata.map(event => event[1]), requested);
+    assert.equal(enriched.length, snapshot.length);
+    assert.equal(result.result.diagnostics.providers['eastmoney-official-nav'], snapshot.length);
+    assert.ok(maximumDemand <= 2, `At most two NAV requests may reach Bridge concurrently or wait in its queue; saw ${maximumDemand}`);
+    assert.equal(maximumActive, 1, 'The production Bridge pump remains serial');
+    assert.equal(maximumPending, 0, 'Synthetic dispatch must not claim coverage of the real frame response map');
+    assert.equal(bridge.queue.length, 0);
+    assert.equal(active, 0);
+    assert.equal(h.writes.length, 1);
+    for (const { code } of snapshot) {
+      assert.ok(h.writes[0].value.refreshResources[`nav:${code}`]);
+      assert.ok(h.writes[0].value.refreshResources[`meta:${code}`]);
+    }
+  } finally {
+    bridge.destroy();
+  }
+});
+
+test('cancelling 105 queued QDII NAV fallbacks drains admitted Bridge work without dispatching the rest', async t => {
+  const snapshot = Array.from({ length: 105 }, (_, index) => ({
+    code: String(3000 + index).padStart(6, '0'), name: 'Synthetic QDII', shares: 0, cost: null,
+  }));
+  const entered = deferred();
+  const release = deferred();
+  const unhandled = [];
+  const onUnhandled = error => unhandled.push(error);
+  const queued = syntheticQueuedNav(async (_code, signal) => {
+    const onAbort = () => release.reject(abortError());
+    signal.addEventListener('abort', onAbort, { once: true });
+    entered.resolve();
+    try {
+      if (signal.aborted) throw abortError();
+      return await release.promise;
+    } finally { signal.removeEventListener('abort', onAbort); }
+  });
+  const h = harness({ snapshot, clients: {
+    estimates: async (_snapshot, _options, _context, dispatch) => dispatch(async () => new Map()),
+    nav: queued.nav,
+  } });
+  process.on('unhandledRejection', onUnhandled);
+  const task = h.run();
+  try {
+    await entered.promise;
+    await tick();
+    const beforeStop = { requested: queued.requested.length, dispatched: queued.dispatched.length,
+      queued: queued.bridge.queue.length, diagnostics: h.coordinator.snapshot().diagnosticCount };
+    h.coordinator.stop('synthetic queued NAV stop');
+    const eventsAtStop = clone(h.events);
+    const diagnosticsAtStop = clone(h.diagnostics);
+    const result = await task;
+    for (let turn = 0; turn < 3; turn++) await tick();
+    t.diagnostic(JSON.stringify({ total: snapshot.length, beforeStop, requested: queued.requested.length,
+      dispatched: queued.dispatched.length, settled: queued.state.settled, queue: queued.bridge.queue.length,
+      active: queued.state.active, timers: queued.timers.size, unhandled: unhandled.length }));
+    assert.equal(beforeStop.requested, 2, 'Only two provider-bound requests may be admitted before cancellation');
+    assert.equal(beforeStop.dispatched, 1, 'The first synthetic dispatch is deliberately held until abort');
+    assert.equal(beforeStop.queued, 1, 'One admitted request must exercise production queued cancellation');
+    assert.ok(['aborted', 'superseded'].includes(result.status));
+    assert.equal(queued.requested.length, beforeStop.requested, 'Cancelled scheduler work must not reach the NAV provider boundary');
+    assert.equal(queued.dispatched.length, beforeStop.dispatched, 'Queued cancellation must not reach synthetic frame dispatch');
+    assert.equal(queued.state.settled, beforeStop.requested, 'Every admitted Bridge request must settle');
+    assert.deepEqual(queued.rejected.map(entry => entry.errorCode), ['aborted', 'AbortError']);
+    assert.equal(queued.state.active, 0);
+    assert.equal(queued.bridge.queue.length, 0);
+    assert.equal(queued.bridge.pending.size, 0, 'Synthetic dispatch does not exercise real frame response pending entries');
+    assert.equal(queued.bridge.running, false);
+    assert.equal(queued.timers.size, 0, 'Production queued cancellation clears every queue deadline');
+    assert.deepEqual(h.events, eventsAtStop, 'Cancelled and drained tasks cannot commit late UI');
+    assert.deepEqual(h.diagnostics, diagnosticsAtStop);
+    assert.equal(h.coordinator.snapshot().diagnosticCount, beforeStop.diagnostics, 'Cancelled queue work cannot add coordinator diagnostics');
+    assert.equal(h.diagnostics.some(entry => entry.type === 'refresh_resources'), false, 'An aborted generation cannot claim completed provider diagnostics');
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.calls.holdings, 0);
+    assert.deepEqual(unhandled, []);
+  } finally {
+    h.coordinator.stop('synthetic queued NAV cleanup');
+    release.resolve(nav());
+    queued.bridge.destroy();
+    await task;
+    process.off('unhandledRejection', onUnhandled);
+  }
+});
+
+test('105 warm NAVs with missing metadata use the same bounded official lane while preserving every NAV envelope', async t => {
+  const snapshot = Array.from({ length: 105 }, (_, index) => ({
+    code: String(4000 + index).padStart(6, '0'), name: 'Synthetic QDII', shares: 0, cost: null,
+  }));
+  const at = NOW - 1000;
+  const resources = Object.fromEntries(snapshot.map(({ code }) => {
+    const key = `nav:${code}`;
+    const entry = makeRefreshResourceEntry(key, { ...nav(), code, source: 'eastmoney-official-nav', status: 'current' },
+      { now: at, fetchedAt: at, sourceDate: '2026-09-29' });
+    assert.ok(entry, `Warm NAV fixture must satisfy the production cache contract: ${code}`);
+    return [key, entry];
+  }));
+  const previous = { data: [], refreshResources: resources, fetchedAt: at, expiresAt: at + TTL.INTRADAY,
+    source: 'fund-estimate', holdingsHash: 'synthetic' };
+  const before = clone(previous);
+  const nextMeta = { manager: 'Synthetic metadata-lane manager', currentRate: '0.25' };
+  const queued = syntheticQueuedNav(async (_code, signal) => {
+    await tick();
+    if (signal.aborted) throw abortError();
+    return { ...nav(), date: '2026-09-30', prevDate: '2026-09-29', meta: nextMeta };
+  });
+  try {
+    const h = harness({ snapshot, previous, options: { force: false }, clients: { nav: queued.nav } });
+    const result = await h.run('timer');
+    const metadata = h.events.filter(event => event[0] === 'metadata');
+    const published = h.events.filter(event => event[0] === 'publish');
+    t.diagnostic(JSON.stringify({ total: snapshot.length, refreshed: result.result?.refreshed,
+      requested: queued.requested.length, dispatched: queued.dispatched.length, metadata: metadata.length,
+      rejected: queued.rejected, ...queued.state }));
+    assert.equal(result.status, 'completed');
+    assert.equal(result.result.refreshed, snapshot.length);
+    assert.deepEqual(queued.rejected, [], 'Metadata-only acquisition must not bypass the bounded official lane');
+    assert.deepEqual(queued.requested, snapshot.map(holding => holding.code));
+    assert.deepEqual(queued.dispatched, queued.requested);
+    assert.equal(result.result.diagnostics.providers['eastmoney-official-nav'], snapshot.length);
+    assert.ok(queued.state.maximumDemand <= 2, `Metadata-only Bridge demand must stay at most two; saw ${queued.state.maximumDemand}`);
+    assert.equal(queued.state.maximumActive, 1);
+    assert.equal(queued.state.settled, snapshot.length);
+    assert.equal(published.length, snapshot.length);
+    assert.deepEqual(published.map(event => event[2].source_quote?.fundCode), snapshot.map(holding => holding.code),
+      'Every fund retains its normal primary estimate independently of metadata');
+    assert.deepEqual(metadata.map(event => event[1]), queued.requested);
+    assert.ok(metadata.every(event => JSON.stringify(event[2]) === JSON.stringify(nextMeta)));
+    assert.equal(h.calls.holdings, 0);
+    assert.equal(h.writes.length, 1);
+    const persisted = h.writes[0].value.refreshResources;
+    for (const { code } of snapshot) {
+      assert.deepEqual(persisted[`nav:${code}`], resources[`nav:${code}`], 'Metadata demand must not renew or replace a warm NAV');
+      assert.deepEqual(persisted[`meta:${code}`].payload.meta, nextMeta);
+      assert.equal(persisted[`meta:${code}`].sourceDate, '2026-09-30');
+      assert.equal(persisted[`meta:${code}`].fetchedAt, NOW);
+    }
+    assert.deepEqual(previous, before);
+    assert.equal(queued.bridge.queue.length, 0);
+    assert.equal(queued.bridge.pending.size, 0);
+    assert.equal(queued.bridge.running, false);
+    assert.equal(queued.timers.size, 0);
+  } finally { queued.bridge.destroy(); }
+});
+
+test('two failed official NAV requests release their slots so the following five funds drain once', async t => {
+  const snapshot = Array.from({ length: 7 }, (_, index) => ({
+    code: String(5000 + index).padStart(6, '0'), name: 'Synthetic QDII', shares: 0, cost: null,
+  }));
+  const failedCodes = snapshot.slice(0, 2).map(holding => holding.code);
+  const successfulCodes = snapshot.slice(2).map(holding => holding.code);
+  const queued = syntheticQueuedNav(async (code, signal) => {
+    await tick();
+    if (signal.aborted) throw abortError();
+    if (failedCodes.includes(code)) throw Object.assign(new Error('Synthetic official NAV outage'), { code: 'synthetic_nav_failed' });
+    return nav();
+  });
+  try {
+    const h = harness({ snapshot, clients: {
+      estimates: async (_snapshot, _options, _context, dispatch) => dispatch(async () => new Map()),
+      nav: queued.nav,
+    } });
+    const result = await h.run();
+    t.diagnostic(JSON.stringify({ refreshed: result.result?.refreshed, requested: queued.requested,
+      dispatched: queued.dispatched, rejected: queued.rejected, ...queued.state }));
+    assert.equal(result.status, 'completed');
+    assert.equal(result.result.refreshed, 5, 'The initial failures must not strand queued official requests');
+    assert.deepEqual(result.result.results, snapshot.map((holding, index) => ({
+      code: holding.code, status: index < 2 ? 'failed' : 'fulfilled',
+    })));
+    assert.deepEqual(queued.requested, snapshot.map(holding => holding.code));
+    assert.deepEqual(queued.dispatched, queued.requested);
+    assert.deepEqual(queued.rejected, failedCodes.map(code => ({ code, errorCode: 'synthetic_nav_failed' })));
+    assert.ok(queued.state.maximumDemand <= 2);
+    assert.equal(queued.state.settled, snapshot.length);
+    assert.equal(result.result.diagnostics.providers['eastmoney-official-nav'], snapshot.length);
+    assert.equal(result.result.diagnostics.failedRequests, 2, 'Only the two synthetic upstream failures count as provider failures');
+    assert.deepEqual(h.events.filter(event => event[0] === 'failure').map(event => event[1]), failedCodes);
+    for (const kind of ['publish', 'metadata', 'enriched']) {
+      assert.deepEqual(h.events.filter(event => event[0] === kind).map(event => event[1]), successfulCodes,
+        `${kind} must occur once for each successful fund without retrying the failed NAVs`);
+    }
+    assert.equal(h.writes.length, 1);
+    assert.equal(result.result.diagnostics.cacheWrites, 1);
+    for (const code of successfulCodes) {
+      assert.ok(h.writes[0].value.refreshResources[`nav:${code}`]);
+      assert.ok(h.writes[0].value.refreshResources[`meta:${code}`]);
+    }
+    assert.equal(queued.bridge.queue.length, 0);
+    assert.equal(queued.bridge.running, false);
+    assert.equal(queued.state.active, 0);
+    assert.equal(queued.timers.size, 0);
+  } finally { queued.bridge.destroy(); }
+});
+
+test('five official NAV fallbacks publish while both disclosure slots remain pending and drain after release', async t => {
+  const snapshot = Array.from({ length: 5 }, (_, index) => ({
+    code: String(6000 + index).padStart(6, '0'), name: 'Synthetic 混合基金', shares: 0, cost: null,
+  }));
+  const disclosureSlotsEntered = deferred();
+  const releaseDisclosures = deferred();
+  const holdingsRequested = [];
+  const queued = syntheticQueuedNav(async (_code, signal) => {
+    await tick();
+    if (signal.aborted) throw abortError();
+    return nav();
+  });
+  const h = harness({ snapshot, clients: {
+    estimates: async (_snapshot, _options, _context, dispatch) => dispatch(async () => new Map()),
+    nav: queued.nav,
+    holdings: async code => {
+      holdingsRequested.push(code);
+      if (holdingsRequested.length === 2) disclosureSlotsEntered.resolve();
+      return releaseDisclosures.promise;
+    },
+  } });
+  let finished = false;
+  const task = h.run().then(result => { finished = true; return result; });
+  try {
+    await disclosureSlotsEntered.promise;
+    for (let turn = 0; turn < 20 && h.events.filter(event => event[0] === 'publish').length < snapshot.length; turn++) await tick();
+    const publishedBeforeRelease = h.events.filter(event => event[0] === 'publish').map(event => event[1]);
+    t.diagnostic(JSON.stringify({ beforeDisclosureRelease: { holdingsRequested: holdingsRequested.length,
+      published: publishedBeforeRelease.length, navRequests: queued.requested.length, finished,
+      cacheWrites: h.writes.length }, maximumOfficialDemand: queued.state.maximumDemand }));
+    assert.deepEqual(holdingsRequested, snapshot.slice(0, 2).map(holding => holding.code),
+      'Both stable disclosure slots must remain occupied before their controlled release');
+    assert.deepEqual(publishedBeforeRelease, snapshot.map(holding => holding.code),
+      'Official fallback must publish independently of the saturated disclosure limiter');
+    assert.equal(finished, false, 'The generation still drains the intentionally pending disclosure work');
+    assert.equal(h.events.filter(event => event[0] === 'enriched').length, 0);
+    assert.equal(h.events.some(event => event[0] === 'complete'), false);
+    assert.equal(h.writes.length, 0, 'Partial NAV publication cannot flush an incomplete generation');
+  } finally {
+    releaseDisclosures.resolve(disclosure());
+    await task;
+    queued.bridge.destroy();
+  }
+  const result = await task;
+  assert.equal(result.status, 'completed');
+  assert.equal(result.result.refreshed, snapshot.length);
+  assert.deepEqual(holdingsRequested, snapshot.map(holding => holding.code));
+  assert.deepEqual(queued.requested, snapshot.map(holding => holding.code));
+  assert.deepEqual(queued.dispatched, queued.requested);
+  assert.deepEqual(queued.rejected, []);
+  assert.ok(queued.state.maximumDemand <= 2);
+  assert.equal(h.events.filter(event => event[0] === 'enriched').length, snapshot.length);
+  assert.equal(h.events.filter(event => event[0] === 'metadata').length, snapshot.length);
+  assert.equal(h.events.filter(event => event[0] === 'complete').length, 1);
+  assert.equal(result.result.diagnostics.providers['eastmoney-official-nav'], snapshot.length);
+  assert.equal(result.result.diagnostics.providers['sinan-holdings-proxy'], snapshot.length);
+  assert.equal(h.writes.length, 1);
+  assert.equal(result.result.diagnostics.cacheWrites, 1);
+  assert.equal(queued.state.settled, snapshot.length);
+  assert.equal(queued.state.active, 0);
+  assert.equal(queued.bridge.queue.length, 0);
+  assert.equal(queued.bridge.running, false);
+  assert.equal(queued.timers.size, 0);
 });
 
 test('expired estimate fallback keeps original source identity and acquisition clocks without renewal', async () => {

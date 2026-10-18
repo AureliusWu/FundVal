@@ -17,7 +17,12 @@ test('startup, visibility, network recovery and manual refresh all route through
   assert.match(execution, /const official = raw\?\.status === 'ok' \? null : await getNav\(holding\)/);
   assert.match(execution, /const primary = ui\.primary\(holding, raw, official\)/);
   assert.match(execution, /if \(navTasks\.has\(holding\.code\)\) return navTasks\.get\(holding\.code\)/);
-  assert.match(execution, /scope\.dispatch\('eastmoney-official-nav', signal => clients\.nav\(holding\.code, signal\)\)/);
+  assert.match(execution, /const runOfficial = limited\(2\)/);
+  assert.match(execution, /const requestOfficial = code => runOfficial\(\(\) => scope\.dispatch\('eastmoney-official-nav', signal => clients\.nav\(code, signal\)\)\)/);
+  assert.equal((execution.match(/await requestOfficial\(holding\.code\)/g) || []).length, 2,
+    'NAV fallback and metadata-only acquisition must both use the bounded official lane');
+  assert.equal((execution.match(/clients\.nav\(/g) || []).length, 1,
+    'Only the generation-guarded official lane may enter the NAV client');
   assert.match(execution, /Promise\.all\(\[getNav\(holding\), securityTask\]\)/);
   assert.match(source, /status: 'ok_official', last_nav: navMove\.prevNav,[\s\S]*est_kind: 'official_nav'/);
   assert.doesNotMatch(source, /`估算时间 \$\{pad\(now\.getHours\(\)\)/);

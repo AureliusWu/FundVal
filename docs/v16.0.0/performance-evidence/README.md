@@ -86,3 +86,5 @@ exit $LASTEXITCODE
 10月15日新增22候选及HTTP反例见第29节与 [19份精确原件压缩归档说明](rejected-probes-20261015.md)。较大HTTP/模型/时间解析/UI职责和静态排布都未取得合格收益；不改变原预算或旧pair结论。压缩归档只保存文档证据，不属于发布资源或产品减包手段。
 
 10月15日正式闭合运行投影与SW加固见第30节及[71份完整原件说明](m3-runtime-projections-20261015.md)。新all80394是三次组合构建的实值，不是两候选收益相加；whole-site明文实际增长6824 B。原件中五次0接受的allRowsPredicatesEqual:true与无条件条件可信标签已明确否决，不作为真实源/通知等价验收。
+
+10月18日105基金真实Bridge队列溢出与独立官方2-slot修复见第35节及[原始RED/GREEN、Chrome与三次构建证据](nav-scheduler-20261018/README.md)。新all80494（+17B）/cold42985，仍差3267B；是刷新可靠性修复，不是减包收益。最终1064/1061PASS/3skip、E2E31/31；原pair仍INCONCLUSIVE，不进入M4或发布。

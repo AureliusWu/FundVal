@@ -31,6 +31,10 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
     activeHoldings: snapshot, cacheIndex: cached.cacheIndex, forceLive: options.force !== false,
     forceStable: options.forceStable });
   const scope = createGenerationResourceScope({ context, plan, now });
+  // Keep portfolio fan-out outside the Bridge's bounded, serial queue. NAV
+  // fallback and metadata share this lane, independently of disclosure work.
+  const runOfficial = limited(2);
+  const requestOfficial = code => runOfficial(() => scope.dispatch('eastmoney-official-nav', signal => clients.nav(code, signal)));
   const acquired = new Map();
   const navTasks = new Map();
   const metadataTasks = [];
@@ -68,7 +72,7 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
     let navAttempted = false;
     const task = acquireEntry(key, async () => {
       navAttempted = true;
-      const move = await scope.dispatch('eastmoney-official-nav', signal => clients.nav(holding.code, signal));
+      const move = await requestOfficial(holding.code);
       return move && makeRefreshResourceEntry(key, { ...move, code: holding.code, source: 'eastmoney-official-nav', status: 'current' },
         { now: now(), sourceDate: move.date });
     }).then(entry => {
@@ -80,7 +84,7 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
           // The shared official script is also the metadata endpoint. Fetch it
           // only when metadata actually needs acquisition; retain a warm NAV's
           // original envelope instead of implicitly forcing its separate TTL.
-          const move = await scope.dispatch('eastmoney-official-nav', signal => clients.nav(holding.code, signal));
+          const move = await requestOfficial(holding.code);
           source = move && makeRefreshResourceEntry(key, { ...move, code: holding.code, source: 'eastmoney-official-nav', status: 'current' },
             { now: now(), sourceDate: move.date });
         }

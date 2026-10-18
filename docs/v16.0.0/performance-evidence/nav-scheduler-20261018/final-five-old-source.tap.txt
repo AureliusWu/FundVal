@@ -1,0 +1,196 @@
+TAP version 13
+# Subtest: 105 QDII NAV fallbacks stay bounded at the real Bridge queue and share metadata without busy failures
+not ok 1 - 105 QDII NAV fallbacks stay bounded at the real Bridge queue and share metadata without busy failures
+  ---
+  duration_ms: 62.3242
+  type: 'test'
+  location: 'C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-nav-scheduler-bba070e079664a38a32355075a582ece\\tests-baseline.mjs:383:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Executor scheduling must not overflow the real Bridge queue or lose NAV fallback coverage
+    + actual - expected
+    
+    + [
+    +   {
+    +     code: '002101',
+    +     errorCode: 'bridge_unavailable',
+    +     message: 'Quote bridge is unavailable or busy'
+    +   },
+    +   {
+    +     code: '002102',
+    +     errorCode: 'bridge_unavailable',
+    +     message: 'Quote bridge is unavailable or busy'
+    +   },
+    +   {
+    +     code: '002103',
+    +     errorCode: 'bridge_unavailable',
+    +     message: 'Quote bridge is unavailable or busy'
+    +   },
+    +   {
+    +     code: '002104',
+    +     errorCode: 'bridge_unavailable',
+    +     message: 'Quote bridge is unavailable or busy'
+    +   }
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0:
+      code: '002101'
+      errorCode: 'bridge_unavailable'
+      message: 'Quote bridge is unavailable or busy'
+    1:
+      code: '002102'
+      errorCode: 'bridge_unavailable'
+      message: 'Quote bridge is unavailable or busy'
+    2:
+      code: '002103'
+      errorCode: 'bridge_unavailable'
+      message: 'Quote bridge is unavailable or busy'
+    3:
+      code: '002104'
+      errorCode: 'bridge_unavailable'
+      message: 'Quote bridge is unavailable or busy'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/84046/AppData/Local/Temp/fundval-nav-scheduler-bba070e079664a38a32355075a582ece/tests-baseline.mjs:444:12)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+  ...
+# {"total":105,"refreshed":101,"requested":105,"dispatched":101,"rejected":[{"code":"002101","errorCode":"bridge_unavailable","message":"Quote bridge is unavailable or busy"},{"code":"002102","errorCode":"bridge_unavailable","message":"Quote bridge is unavailable or busy"},{"code":"002103","errorCode":"bridge_unavailable","message":"Quote bridge is unavailable or busy"},{"code":"002104","errorCode":"bridge_unavailable","message":"Quote bridge is unavailable or busy"}],"maximumActive":1,"maximumQueued":100,"maximumDemand":101,"maximumPending":0,"published":101,"metadata":101,"enriched":101}
+# Subtest: cancelling 105 queued QDII NAV fallbacks drains admitted Bridge work without dispatching the rest
+not ok 2 - cancelling 105 queued QDII NAV fallbacks drains admitted Bridge work without dispatching the rest
+  ---
+  duration_ms: 15.6019
+  type: 'test'
+  location: 'C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-nav-scheduler-bba070e079664a38a32355075a582ece\\tests-baseline.mjs:470:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Only two provider-bound requests may be admitted before cancellation
+    
+    105 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 105
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/84046/AppData/Local/Temp/fundval-nav-scheduler-bba070e079664a38a32355075a582ece/tests-baseline.mjs:506:12)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# {"total":105,"beforeStop":{"requested":105,"dispatched":1,"queued":100,"diagnostics":0},"requested":105,"dispatched":1,"settled":105,"queue":0,"active":0,"timers":0,"unhandled":0}
+# Subtest: 105 warm NAVs with missing metadata use the same bounded official lane while preserving every NAV envelope
+not ok 3 - 105 warm NAVs with missing metadata use the same bounded official lane while preserving every NAV envelope
+  ---
+  duration_ms: 106.4905
+  type: 'test'
+  location: 'C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-nav-scheduler-bba070e079664a38a32355075a582ece\\tests-baseline.mjs:535:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Metadata-only acquisition must not bypass the bounded official lane
+    + actual - expected
+    
+    + [
+    +   {
+    +     code: '004101',
+    +     errorCode: 'bridge_unavailable'
+    +   },
+    +   {
+    +     code: '004102',
+    +     errorCode: 'bridge_unavailable'
+    +   },
+    +   {
+    +     code: '004103',
+    +     errorCode: 'bridge_unavailable'
+    +   },
+    +   {
+    +     code: '004104',
+    +     errorCode: 'bridge_unavailable'
+    +   }
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0:
+      code: '004101'
+      errorCode: 'bridge_unavailable'
+    1:
+      code: '004102'
+      errorCode: 'bridge_unavailable'
+    2:
+      code: '004103'
+      errorCode: 'bridge_unavailable'
+    3:
+      code: '004104'
+      errorCode: 'bridge_unavailable'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/84046/AppData/Local/Temp/fundval-nav-scheduler-bba070e079664a38a32355075a582ece/tests-baseline.mjs:566:12)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# {"total":105,"refreshed":105,"requested":105,"dispatched":101,"metadata":101,"rejected":[{"code":"004101","errorCode":"bridge_unavailable"},{"code":"004102","errorCode":"bridge_unavailable"},{"code":"004103","errorCode":"bridge_unavailable"},{"code":"004104","errorCode":"bridge_unavailable"}],"active":0,"maximumActive":1,"maximumQueued":100,"maximumDemand":101,"settled":105}
+# Subtest: two failed official NAV requests release their slots so the following five funds drain once
+not ok 4 - two failed official NAV requests release their slots so the following five funds drain once
+  ---
+  duration_ms: 10.4559
+  type: 'test'
+  location: 'C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-nav-scheduler-bba070e079664a38a32355075a582ece\\tests-baseline.mjs:595:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(queued.state.maximumDemand <= 2)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/84046/AppData/Local/Temp/fundval-nav-scheduler-bba070e079664a38a32355075a582ece/tests-baseline.mjs:623:12)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# {"refreshed":5,"requested":["005000","005001","005002","005003","005004","005005","005006"],"dispatched":["005000","005001","005002","005003","005004","005005","005006"],"rejected":[{"code":"005000","errorCode":"synthetic_nav_failed"},{"code":"005001","errorCode":"synthetic_nav_failed"}],"active":0,"maximumActive":1,"maximumQueued":6,"maximumDemand":7,"settled":7}
+# Subtest: five official NAV fallbacks publish while both disclosure slots remain pending and drain after release
+not ok 5 - five official NAV fallbacks publish while both disclosure slots remain pending and drain after release
+  ---
+  duration_ms: 6.9436
+  type: 'test'
+  location: 'C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-nav-scheduler-bba070e079664a38a32355075a582ece\\tests-baseline.mjs:645:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(queued.state.maximumDemand <= 2)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/84046/AppData/Local/Temp/fundval-nav-scheduler-bba070e079664a38a32355075a582ece/tests-baseline.mjs:695:10)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# {"beforeDisclosureRelease":{"holdingsRequested":2,"published":5,"navRequests":5,"finished":false,"cacheWrites":0},"maximumOfficialDemand":5}
+1..5
+# tests 5
+# suites 0
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 328.6301
+

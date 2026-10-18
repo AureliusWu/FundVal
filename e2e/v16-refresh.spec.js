@@ -247,6 +247,27 @@ test('one generation shares official NAV between fallback and enrichment', async
   expect(harness.state.gistWrites).toEqual([]);
 });
 
+test('large official-only portfolio drains without overflowing the real Bridge queue', async ({ context, page }) => {
+  const rows = Array.from({ length: 105 }, (_, index) => ({
+    code: String(200000 + index), name: `合成日本基金${index}`, shares: 0, cost: null,
+    deleted: false, ts: 1790640000000,
+  }));
+  const harness = await installHarness(context, { rows, failEstimates: true });
+  await page.goto('/');
+  await harness.settle(page);
+  const navs = page.locator('#fund-list .nav-cur');
+  await expect(navs).toHaveCount(rows.length);
+  expect(await navs.allTextContents(), 'All official fallbacks must survive parent-queue admission').toEqual(rows.map(() => '1.2000'));
+  const dates = page.locator('#fund-list .quote-time');
+  expect(await dates.allTextContents(), 'Request completion must not turn the official NAV date into today').toEqual(rows.map(() => '2026-09-28'));
+  expect(harness.requests('cold', 'nav')).toHaveLength(rows.length);
+  expect(new Set(harness.requests('cold', 'nav').map(row => new URL(row.url).pathname)).size).toBe(rows.length);
+  const writes = await harness.writes(page, 'cold');
+  expect(writes).toHaveLength(1);
+  expect(JSON.parse(writes[0].value).data).toHaveLength(rows.length);
+  expect(harness.state.gistWrites).toEqual([]);
+});
+
 test('warm manual refresh respects stable holdings and official NAV TTL', async ({ context, page }) => {
   const harness = await installHarness(context);
   await page.goto('/');

@@ -1,0 +1,3 @@
+{"baselineCommit":"40e68edab9cb3fba0b17338dc3672a82d13ad17e","baselineAllNonOcrGzipBytes":70207,"actualColdStartGzipBytes":42985,"actualAllNonOcrGzipBytes":80494,"coldBudgetBytes":52241,"allBudgetNumerator":772277,"allBudgetDenominator":10,"allBudgetBytes":77227.7,"coldPass":true,"allPass":false,"pass":false,"verdict":"FAIL","importClosureVerified":false}
+App bundle exceeds all non-OCR gzip budget: 80494 > 77227.7 bytes.
+

@@ -1,0 +1,256 @@
+TAP version 13
+# Subtest: all primary and NAV failures cannot persist or renew the fund aggregate when indices succeed
+ok 1 - all primary and NAV failures cannot persist or renew the fund aggregate when indices succeed
+  ---
+  duration_ms: 15.3424
+  type: 'test'
+  ...
+# Subtest: half-open holdings probe is settled or released after success
+ok 2 - half-open holdings probe is settled or released after success
+  ---
+  duration_ms: 5.5927
+  type: 'test'
+  ...
+# Subtest: half-open holdings probe is settled or released after failure
+ok 3 - half-open holdings probe is settled or released after failure
+  ---
+  duration_ms: 3.2219
+  type: 'test'
+  ...
+# Subtest: half-open holdings probe is settled or released after empty
+ok 4 - half-open holdings probe is settled or released after empty
+  ---
+  duration_ms: 3.1466
+  type: 'test'
+  ...
+# Subtest: half-open holdings probe is settled or released after abort
+ok 5 - half-open holdings probe is settled or released after abort
+  ---
+  duration_ms: 1.188
+  type: 'test'
+  ...
+# Subtest: warm resources within the 12-hour holdings TTL load nothing stable and claim no source
+ok 6 - warm resources within the 12-hour holdings TTL load nothing stable and claim no source
+  ---
+  duration_ms: 2.678
+  type: 'test'
+  ...
+# Subtest: manual refresh forces volatile resources only, not NAV, holdings or metadata
+ok 7 - manual refresh forces volatile resources only, not NAV, holdings or metadata
+  ---
+  duration_ms: 3.1859
+  type: 'test'
+  ...
+# Subtest: diagnostic-force metadata acquires its shared official endpoint once while preserving the fresh NAV envelope
+ok 8 - diagnostic-force metadata acquires its shared official endpoint once while preserving the fresh NAV envelope
+  ---
+  duration_ms: 3.1034
+  type: 'test'
+  ...
+# Subtest: missing metadata acquires its shared official endpoint once while preserving the fresh NAV envelope
+ok 9 - missing metadata acquires its shared official endpoint once while preserving the fresh NAV envelope
+  ---
+  duration_ms: 3.1318
+  type: 'test'
+  ...
+# Subtest: a slow metadata acquisition drains before the generation finishes and performs its only aggregate flush
+ok 10 - a slow metadata acquisition drains before the generation finishes and performs its only aggregate flush
+  ---
+  duration_ms: 10.4268
+  type: 'test'
+  ...
+# Subtest: cancelling a pending late-added metadata task produces no unhandled rejection or late UI/cache write
+ok 11 - cancelling a pending late-added metadata task produces no unhandled rejection or late UI/cache write
+  ---
+  duration_ms: 3.2296
+  type: 'test'
+  ...
+# Subtest: NAV fallback and enrichment share one actual request and one metadata acquisition
+ok 12 - NAV fallback and enrichment share one actual request and one metadata acquisition
+  ---
+  duration_ms: 3.216
+  type: 'test'
+  ...
+# Subtest: 105 QDII NAV fallbacks stay bounded at the real Bridge queue and share metadata without busy failures
+ok 13 - 105 QDII NAV fallbacks stay bounded at the real Bridge queue and share metadata without busy failures
+  ---
+  duration_ms: 44.7831
+  type: 'test'
+  ...
+# {"total":105,"refreshed":105,"requested":105,"dispatched":105,"rejected":[],"maximumActive":1,"maximumQueued":1,"maximumDemand":2,"maximumPending":0,"published":105,"metadata":105,"enriched":105}
+# Subtest: cancelling 105 queued QDII NAV fallbacks drains admitted Bridge work without dispatching the rest
+ok 14 - cancelling 105 queued QDII NAV fallbacks drains admitted Bridge work without dispatching the rest
+  ---
+  duration_ms: 13.2853
+  type: 'test'
+  ...
+# {"total":105,"beforeStop":{"requested":2,"dispatched":1,"queued":1,"diagnostics":0},"requested":2,"dispatched":1,"settled":2,"queue":0,"active":0,"timers":0,"unhandled":0}
+# Subtest: 105 warm NAVs with missing metadata use the same bounded official lane while preserving every NAV envelope
+ok 15 - 105 warm NAVs with missing metadata use the same bounded official lane while preserving every NAV envelope
+  ---
+  duration_ms: 87.2553
+  type: 'test'
+  ...
+# {"total":105,"refreshed":105,"requested":105,"dispatched":105,"metadata":105,"rejected":[],"active":0,"maximumActive":1,"maximumQueued":1,"maximumDemand":2,"settled":105}
+# Subtest: two failed official NAV requests release their slots so the following five funds drain once
+ok 16 - two failed official NAV requests release their slots so the following five funds drain once
+  ---
+  duration_ms: 4.5042
+  type: 'test'
+  ...
+# {"refreshed":5,"requested":["005000","005001","005002","005003","005004","005005","005006"],"dispatched":["005000","005001","005002","005003","005004","005005","005006"],"rejected":[{"code":"005000","errorCode":"synthetic_nav_failed"},{"code":"005001","errorCode":"synthetic_nav_failed"}],"active":0,"maximumActive":1,"maximumQueued":1,"maximumDemand":2,"settled":7}
+# Subtest: five official NAV fallbacks publish while both disclosure slots remain pending and drain after release
+ok 17 - five official NAV fallbacks publish while both disclosure slots remain pending and drain after release
+  ---
+  duration_ms: 4.4817
+  type: 'test'
+  ...
+# {"beforeDisclosureRelease":{"holdingsRequested":2,"published":5,"navRequests":5,"finished":false,"cacheWrites":0},"maximumOfficialDemand":2}
+# Subtest: expired estimate fallback keeps original source identity and acquisition clocks without renewal
+ok 18 - expired estimate fallback keeps original source identity and acquisition clocks without renewal
+  ---
+  duration_ms: 1.4689
+  type: 'test'
+  ...
+# Subtest: a cached estimate with a different fund identity is rejected instead of reassigned
+ok 19 - a cached estimate with a different fund identity is rejected instead of reassigned
+  ---
+  duration_ms: 1.486
+  type: 'test'
+  ...
+# Subtest: cold acquisition counts actual provider dispatches and makes only one aggregate Storage write
+ok 20 - cold acquisition counts actual provider dispatches and makes only one aggregate Storage write
+  ---
+  duration_ms: 1.8499
+  type: 'test'
+  ...
+# Subtest: the detail UI receives the same generation security quotes and real disclosure-cache clock
+ok 21 - the detail UI receives the same generation security quotes and real disclosure-cache clock
+  ---
+  duration_ms: 1.8349
+  type: 'test'
+  ...
+# Subtest: warm disclosure detail projection preserves the original clock rather than refreshing its 12-hour TTL
+ok 22 - warm disclosure detail projection preserves the original clock rather than refreshing its 12-hour TTL
+  ---
+  duration_ms: 1.4596
+  type: 'test'
+  ...
+# Subtest: a holdings cache expiring between planning and acquire claims health only for the actual request
+ok 23 - a holdings cache expiring between planning and acquire claims health only for the actual request
+  ---
+  duration_ms: 2.896
+  type: 'test'
+  ...
+# Subtest: empty portfolio may acquire market resources and persist once without requesting any fund
+ok 24 - empty portfolio may acquire market resources and persist once without requesting any fund
+  ---
+  duration_ms: 0.6604
+  type: 'test'
+  ...
+# Subtest: 51 active funds retain primary estimates through canonical provider batches of at most 50
+ok 25 - 51 active funds retain primary estimates through canonical provider batches of at most 50
+  ---
+  duration_ms: 36.2511
+  type: 'test'
+  ...
+# Subtest: selected AU9999 model uses the real China text clock accepted by the existing overseas calculator
+ok 26 - selected AU9999 model uses the real China text clock accepted by the existing overseas calculator
+  ---
+  duration_ms: 2.3072
+  type: 'test'
+  ...
+# Subtest: market-model cooldown suppresses model-only acquisition without blocking domestic holdings
+ok 27 - market-model cooldown suppresses model-only acquisition without blocking domestic holdings
+  ---
+  duration_ms: 1.918
+  type: 'test'
+  ...
+# Subtest: market-model half-open probe settles or releases after success
+ok 28 - market-model half-open probe settles or releases after success
+  ---
+  duration_ms: 2.3122
+  type: 'test'
+  ...
+# Subtest: market-model half-open probe settles or releases after partial
+ok 29 - market-model half-open probe settles or releases after partial
+  ---
+  duration_ms: 1.8076
+  type: 'test'
+  ...
+# Subtest: market-model half-open probe settles or releases after failure
+ok 30 - market-model half-open probe settles or releases after failure
+  ---
+  duration_ms: 1.7741
+  type: 'test'
+  ...
+# Subtest: market-model half-open probe settles or releases after empty
+ok 31 - market-model half-open probe settles or releases after empty
+  ---
+  duration_ms: 1.7746
+  type: 'test'
+  ...
+# Subtest: market-model half-open probe settles or releases after null-change
+ok 32 - market-model half-open probe settles or releases after null-change
+  ---
+  duration_ms: 1.9444
+  type: 'test'
+  ...
+# Subtest: market-model half-open probe settles or releases after abort
+ok 33 - market-model half-open probe settles or releases after abort
+  ---
+  duration_ms: 5.8238
+  type: 'test'
+  ...
+# Subtest: warm usINX seed consumes no market-model probe and does not change source-health history
+ok 34 - warm usINX seed consumes no market-model probe and does not change source-health history
+  ---
+  duration_ms: 3.3114
+  type: 'test'
+  ...
+# Subtest: warm AU9999 seed consumes no market-model probe and does not change source-health history
+ok 35 - warm AU9999 seed consumes no market-model probe and does not change source-health history
+  ---
+  duration_ms: 2.0073
+  type: 'test'
+  ...
+# Subtest: valid partial index response remains visible instead of being discarded with missing instruments
+ok 36 - valid partial index response remains visible instead of being discarded with missing instruments
+  ---
+  duration_ms: 2.4113
+  type: 'test'
+  ...
+# Subtest: indices becomes visible before an unrelated slow gold request completes
+ok 37 - indices becomes visible before an unrelated slow gold request completes
+  ---
+  duration_ms: 10.043
+  type: 'test'
+  ...
+# Subtest: domestic-securities becomes visible before an unrelated slow gold request completes
+ok 38 - domestic-securities becomes visible before an unrelated slow gold request completes
+  ---
+  duration_ms: 4.1508
+  type: 'test'
+  ...
+# Subtest: non-gold-model becomes visible before an unrelated slow gold request completes
+ok 39 - non-gold-model becomes visible before an unrelated slow gold request completes
+  ---
+  duration_ms: 3.8436
+  type: 'test'
+  ...
+# Subtest: cancelled background branches are observed and cannot write or commit late UI
+ok 40 - cancelled background branches are observed and cannot write or commit late UI
+  ---
+  duration_ms: 1.4762
+  type: 'test'
+  ...
+1..40
+# tests 40
+# suites 0
+# pass 40
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 420.7273
+

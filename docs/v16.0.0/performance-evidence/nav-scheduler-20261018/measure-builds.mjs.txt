@@ -1,0 +1,47 @@
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { resolve, relative } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+const root = 'D:/AI项目/FundVal';
+const directory = fileURLToPath(new URL('.', import.meta.url));
+const phase = process.argv[2];
+if (!['baseline', 'candidate'].includes(phase)) throw new Error('Invalid fixed phase');
+const { verifyAppChunkReleaseDirectory, verifyOcrReleaseDirectory, fingerprintReleaseDirectory, analyzeAppChunkBudgets } =
+  await import(pathToFileURL(resolve(root, 'scripts/release-fingerprint.mjs')));
+const hash = data => createHash('sha256').update(data).digest('hex');
+async function inventory(base) {
+  const rows = [];
+  async function walk(path) {
+    for (const entry of await readdir(path, { withFileTypes: true })) {
+      const file = resolve(path, entry.name);
+      if (entry.isDirectory()) await walk(file);
+      else if (entry.isFile()) { const bytes = await readFile(file); rows.push({ path: relative(base, file).replaceAll('\\','/'), bytes: bytes.length, sha256: hash(bytes) }); }
+      else throw new Error('Unexpected inventory entry');
+    }
+  }
+  await walk(base); rows.sort((a,b)=>a.path.localeCompare(b.path));
+  return { files: rows.length, bytes: rows.reduce((n,row)=>n+row.bytes,0), sha256: hash(JSON.stringify(rows)), rows };
+}
+const sourceBefore = await inventory(resolve(root, 'js'));
+const runs = [];
+await mkdir(resolve(directory, phase), { recursive: true });
+for (let round=1; round<=3; round++) {
+  const command = spawnSync(process.execPath, ['scripts/build-site.mjs'], { cwd:root, encoding:'utf8', env:{...process.env,SOURCE_DATE_EPOCH:'1792046773'}, maxBuffer:10*1024*1024 });
+  await writeFile(resolve(directory,phase,'build-'+round+'.log'), command.stdout+'\n'+command.stderr);
+  if (command.error || command.status !== 0) throw command.error || new Error('Build failed '+command.status);
+  const site = resolve(root,'site');
+  const app = await verifyAppChunkReleaseDirectory(site);
+  const ocr = await verifyOcrReleaseDirectory(resolve(site,'assets/ocr'));
+  const critical = await fingerprintReleaseDirectory(site);
+  const whole = await inventory(site);
+  await writeFile(resolve(directory,phase,'site-inventory-'+round+'.json'),JSON.stringify(whole,null,2)+'\n');
+  runs.push({round,app,ocr,critical,whole:{files:whole.files,bytes:whole.bytes,sha256:whole.sha256},budget:analyzeAppChunkBudgets(app)});
+  process.stdout.write(JSON.stringify({phase,...runs.at(-1)})+'\n');
+}
+const sourceAfter = await inventory(resolve(root,'js'));
+if (sourceBefore.sha256 !== sourceAfter.sha256) throw new Error('JS source changed during fixed phase');
+const report = {schema:1,phase,hostRecordedAt:new Date().toISOString(),node:process.version,sourceDateEpoch:'1792046773',recipe:'Original build-site Vite 8.2.2 / oxc / es2022 / five groups, unchanged',sourceBefore,sourceAfter,runs};
+await writeFile(resolve(directory,phase+'-builds.json'),JSON.stringify(report,null,2)+'\n');
+
+
