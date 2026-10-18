@@ -1,0 +1,451 @@
+TAP version 13
+# Subtest: maintenance limits are explicit and do not replace the existing public parser/refresh API
+not ok 1 - maintenance limits are explicit and do not replace the existing public parser/refresh API
+  ---
+  duration_ms: 2.2147
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:64:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + undefined
+    - {
+    -   nameLength: 128,
+    -   outputBytes: 16777216,
+    -   pinyinLength: 512,
+    -   rows: 100000,
+    -   sourceBytes: 16777216,
+    -   timeoutMs: 20000
+    - }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    sourceBytes: 16777216
+    rows: 100000
+    nameLength: 128
+    pinyinLength: 512
+    outputBytes: 16777216
+    timeoutMs: 20000
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:65:10)
+    Test.runInAsyncScope (node:async_hooks:228:14)
+    Test.run (node:internal/test_runner/test:1118:25)
+    Test.start (node:internal/test_runner/test:1015:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:358:17)
+  ...
+# Subtest: parser preserves BOM, escaping, first-valid deduplication, order and non-executed suffix
+ok 2 - parser preserves BOM, escaping, first-valid deduplication, order and non-executed suffix
+  ---
+  duration_ms: 1.4833
+  type: 'test'
+  ...
+# Subtest: parser keeps original numeric-code coercion and selected-pinyin truthiness before trim
+ok 3 - parser keeps original numeric-code coercion and selected-pinyin truthiness before trim
+  ---
+  duration_ms: 0.2511
+  type: 'test'
+  ...
+# Subtest: source budget counts UTF8 bytes before trimming oversized whitespace
+not ok 4 - source budget counts UTF8 bytes before trimming oversized whitespace
+  ---
+  duration_ms: 13.5712
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:92:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:95:10)
+    Test.runInAsyncScope (node:async_hooks:228:14)
+    Test.run (node:internal/test_runner/test:1118:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+    Test.postRun (node:internal/test_runner/test:1247:19)
+    Test.run (node:internal/test_runner/test:1175:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: source byte boundary is inclusive and name limits count trimmed UTF16 code units
+ok 5 - source byte boundary is inclusive and name limits count trimmed UTF16 code units
+  ---
+  duration_ms: 15.1327
+  type: 'test'
+  ...
+# Subtest: raw row budget rejects invalid-row floods before filtering
+not ok 6 - raw row budget rejects invalid-row floods before filtering
+  ---
+  duration_ms: 19.762
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:104:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:105:10)
+    Test.runInAsyncScope (node:async_hooks:228:14)
+    Test.run (node:internal/test_runner/test:1118:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+    Test.postRun (node:internal/test_runner/test:1247:19)
+    Test.run (node:internal/test_runner/test:1175:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: raw row boundary remains inclusive even when most rows are skipped
+ok 7 - raw row boundary remains inclusive even when most rows are skipped
+  ---
+  duration_ms: 12.6743
+  type: 'test'
+  ...
+# Subtest: a valid-code overlong name rejects the batch instead of truncating or silently dropping a fund
+not ok 8 - a valid-code overlong name rejects the batch instead of truncating or silently dropping a fund
+  ---
+  duration_ms: 0.2775
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:112:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:113:10)
+    Test.runInAsyncScope (node:async_hooks:228:14)
+    Test.run (node:internal/test_runner/test:1118:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+    Test.postRun (node:internal/test_runner/test:1247:19)
+    Test.run (node:internal/test_runner/test:1175:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: an overlong selected pinyin rejects the batch while its exact boundary is accepted
+not ok 9 - an overlong selected pinyin rejects the batch while its exact boundary is accepted
+  ---
+  duration_ms: 0.2229
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:116:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:118:10)
+    Test.runInAsyncScope (node:async_hooks:228:14)
+    Test.run (node:internal/test_runner/test:1118:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+    Test.postRun (node:internal/test_runner/test:1247:19)
+    Test.run (node:internal/test_runner/test:1175:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: refresh uses the fixed public source and fixed local target with no user payload
+ok 10 - refresh uses the fixed public source and fixed local target with no user payload
+  ---
+  duration_ms: 42.8735
+  type: 'test'
+  ...
+# Subtest: an arbitrary output path is rejected before fetch, including the real repository target from a fixture
+ok 11 - an arbitrary output path is rejected before fetch, including the real repository target from a fixture
+  ---
+  duration_ms: 9.5986
+  type: 'test'
+  ...
+# Subtest: HTTP failures do not consume or publish a body
+ok 12 - HTTP failures do not consume or publish a body
+  ---
+  duration_ms: 7.9466
+  type: 'test'
+  ...
+# Subtest: text-only injected fallback is supported but checked against UTF8 source bytes after it resolves
+not ok 13 - text-only injected fallback is supported but checked against UTF8 source bytes after it resolves
+  ---
+  duration_ms: 28.1805
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:152:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Rejected input must not replace the pre-existing catalog.
+    + actual - expected
+    
+    + '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+    - '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+  actual: '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+  operator: 'strictEqual'
+  stack: |-
+    Object.unchanged (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:44:14)
+    async rejectedWithoutReplacement (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:60:3)
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:154:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: an excessive Content-Length rejects before reading even a small text fallback
+not ok 14 - an excessive Content-Length rejects before reading even a small text fallback
+  ---
+  duration_ms: 9.4445
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:157:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Rejected input must not replace the pre-existing catalog.
+    + actual - expected
+    
+    + '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+    - '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+  actual: '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+  operator: 'strictEqual'
+  stack: |-
+    Object.unchanged (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:44:14)
+    async rejectedWithoutReplacement (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:60:3)
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:159:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: a low Content-Length cannot bypass actual stream byte accounting or cancellation
+not ok 15 - a low Content-Length cannot bypass actual stream byte accounting or cancellation
+  ---
+  duration_ms: 19.9144
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:164:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Rejected input must not replace the pre-existing catalog.
+    + actual - expected
+    
+    + '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+    - '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+  actual: '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+  operator: 'strictEqual'
+  stack: |-
+    Object.unchanged (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:44:14)
+    async rejectedWithoutReplacement (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:60:3)
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:170:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: stream decoding preserves multibyte names split at every byte and does not use text fallback
+not ok 16 - stream decoding preserves multibyte names split at every byte and does not use text fallback
+  ---
+  duration_ms: 8.5997
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:176:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:183:10)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: a stream read error never retries through response.text or replaces the old catalog
+not ok 17 - a stream read error never retries through response.text or replaces the old catalog
+  ---
+  duration_ms: 9.2292
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:187:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Rejected input must not replace the pre-existing catalog.
+    + actual - expected
+    
+    + '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+    - '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+  actual: '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+  operator: 'strictEqual'
+  stack: |-
+    Object.unchanged (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:44:14)
+    async rejectedWithoutReplacement (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:60:3)
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:190:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: getReader failure never falls back to a second response consumer
+not ok 18 - getReader failure never falls back to a second response consumer
+  ---
+  duration_ms: 9.5916
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:194:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Rejected input must not replace the pre-existing catalog.
+    + actual - expected
+    
+    + '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+    - '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+  actual: '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+  operator: 'strictEqual'
+  stack: |-
+    Object.unchanged (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:44:14)
+    async rejectedWithoutReplacement (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:60:3)
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:196:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: malformed UTF8 in a stream fails closed without publishing
+not ok 19 - malformed UTF8 in a stream fails closed without publishing
+  ---
+  duration_ms: 9.3856
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:201:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Rejected input must not replace the pre-existing catalog.
+    + actual - expected
+    
+    + '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+    - '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+  actual: '6a2ff85ecfcd13bfc8ed1600147ffff5c4624b7b546f17121b6b04e2e7f88d34'
+  operator: 'strictEqual'
+  stack: |-
+    Object.unchanged (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:44:14)
+    async rejectedWithoutReplacement (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:60:3)
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:203:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: a fetch ignoring abort rejects at its deadline and cannot publish a late valid response
+not ok 20 - a fetch ignoring abort rejects at its deadline and cannot publish a late valid response
+  ---
+  duration_ms: 10.8816
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:206:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+        aborted: true,
+    +   atDeadline: 'pending',
+    +   cancelled: 0,
+    +   preserved: false
+    -   atDeadline: 'rejected',
+    -   cancelled: 1,
+    -   preserved: true
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    atDeadline: 'rejected'
+    preserved: true
+    aborted: true
+    cancelled: 1
+  actual:
+    atDeadline: 'pending'
+    preserved: false
+    aborted: true
+    cancelled: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:221:10)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: a body consumer ignoring abort cannot publish text after the deadline
+not ok 21 - a body consumer ignoring abort cannot publish text after the deadline
+  ---
+  duration_ms: 9.6811
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:226:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   atDeadline: 'pending',
+    +   preserved: false
+    -   atDeadline: 'rejected',
+    -   preserved: true
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    atDeadline: 'rejected'
+    preserved: true
+  actual:
+    atDeadline: 'pending'
+    preserved: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:239:10)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: output bytes are independently bounded even when source, row and field budgets pass
+not ok 22 - output bytes are independently bounded even when source, row and field budgets pass
+  ---
+  duration_ms: 397.7704
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:244:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Rejected input must not replace the pre-existing catalog.
+    + actual - expected
+    
+    + '61168fc088e1aa3136bab6790794b50fd1dc333b461ef98066a7412ca261b3c0'
+    - '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '37edd119f0eae48dbccf36dd085ec7692f76ff2fb8f56966670bdb95c8c8d07d'
+  actual: '61168fc088e1aa3136bab6790794b50fd1dc333b461ef98066a7412ca261b3c0'
+  operator: 'strictEqual'
+  stack: |-
+    Object.unchanged (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:44:14)
+    async rejectedWithoutReplacement (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:60:3)
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:250:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:787:7)
+  ...
+# Subtest: rename failure cleans the owned temporary sibling and does not damage an existing destination directory
+ok 23 - rename failure cleans the owned temporary sibling and does not damage an existing destination directory
+  ---
+  duration_ms: 10.592
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 8
+# fail 15
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 753.9744

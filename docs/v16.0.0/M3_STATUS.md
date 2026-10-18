@@ -891,3 +891,23 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout�
 原CLI对现有产物新实核all80477/77227.7 FAIL、cold42992/52241 PASS，缺口至少3250 B；不是新构建。f926精确CI38705211689已确认Linux1030/1030、E2E30/30等通过，唯一失败step15原all预算；CodeQL仍既存#5，不等于零告警，不继承后续文档SHA。本轮未重跑完整测试/build/E2E/pair，旧pair仍INCONCLUSIVE。
 
 详见[校时与职责证据](performance-evidence/m3-clock-and-boundaries-20261015.md)。**M3仍IN PROGRESS / 15.0.2，未进入M4，未部署或发布v16。**
+
+## 33. 目录维护器有界输入与失败不覆盖（2026-10-15）
+
+在M3预算仍失败期间，独立处理既存#5相关的实际健壮性缺口：维护器增加16MiB输入/输出、100000原始行、接纳name128/pinyin512 UTF16预算，native stream按实际字节限流及严格UTF8；保持合法身份/顺序/去重和固定目标。20秒下载deadline同时使用Promise/abort/单调clock，在读取前后及出口检查，异步晚回与ready空分片不能进入发布。成功下载后独占同目录temp，通过descriptor写/sync/close后rename，失败不回退截断旧目标。不是M4或业务减包。
+
+原源真实23项8PASS/15RED；后补两个单调deadline单项均先RED，再最终29/29GREEN。新全量1057/1054PASS/0FAIL/3Windows条件skip，syntax205、E2E30/30（50.0s）、官方audit0。E2E后3次原配方build critical/127文件whole-site均与此前产品相同，all80477/cold42992；原预算仍FAIL/差3250 B，未重跑pair。
+
+现有27487行/2822600B目录逐字兼容且未改。一次真实公开GET在独立Temp镜像成功生成28065行/2885045B，证明native stream+原子替换正常，不是源完整性、最新身份或金融行情可信证明；无真实用户数据写入，也未再次校时。最初RED、两个负控、机器摘要与网络脚本已归档，全量stdout仅Temp，不夸大全部原件归档。
+
+完整证据及局限见[目录维护器说明](performance-evidence/catalog-maintenance-20261015/README.md)。尚未逐点注入所有FS故障，不保证掉电durability/并发版本排序；#5需新精确CI/CodeQL，不关闭或suppress。**M3仍IN PROGRESS / 15.0.2，未推进main/部署/v16正式发布。**
+
+## 34. 中断恢复后的固定流缓冲与新验证（2026-10-18）
+
+33节改动中断后仍未提交，按现状恢复，未覆盖旧证据。独立审查发现按片保存Buffer会因空/极小片产生大量对象，16MiB字节cap不限制片数；新增负控先真实1FAIL，再改一次固定16MiB缓冲逐片set+仅decode有效段。该容量只约束保留正文，不冒充整个堆/RSS上限。新增decoder长度与恰好16MiB流测试，最终31/31定向通过。
+
+当前1a9c维护器与552c新测试，完整新门禁1059/1056PASS/0FAIL/3Windows条件skip、syntax205、E2E30/30（57.8s）、官方audit0；E2E后3次build产品指纹与原窗口相同。原all80477/77227.7仍FAIL、缺3250B；未重跑pair，不能退出M3。当前本地27487目录逐字兼容未改，最终模块一次真实GET在Temp成功生成28104行，不是独立完整性/实时估值或生产证明。
+
+新机器记录/脚本/负控/实际网络集成均见[维护器报告最新增补](performance-evidence/catalog-maintenance-20261015/README.md)。旧29/1057与72d3/native.json保留为10/15窗口，不继承给新源码。Windows只读状态现为时间服务未启动（0x80070426），固定三NTP样本两超时、一+2.4010562s，不继续声称旧3.75s为当前钟差；未再次校时或更改服务。
+
+**版本仍15.0.2，M3 IN PROGRESS；main、M4/M5/M6及正式发布均未推进。** 本实现仍需精确提交CI/CodeQL复扫，不预先关闭/suppress #5。
