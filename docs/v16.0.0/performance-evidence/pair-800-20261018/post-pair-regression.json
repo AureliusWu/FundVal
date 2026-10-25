@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "scope": "Original OXC full regression AFTER the frozen 800-pair measurement; these checks do not alter or rerun that measurement",
+  "businessSourceCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+  "version": "15.0.2",
+  "onlyDocumentationChanged": true,
+  "unit": {
+    "command": "npm test",
+    "exitCode": 0,
+    "tests": 1064,
+    "pass": 1061,
+    "fail": 0,
+    "skip": 3,
+    "durationMs": 7734.1823,
+    "skipReason": "Existing Windows synthetic symlink/link/rename conditionals"
+  },
+  "syntax": {
+    "command": "npm run check",
+    "exitCode": 0,
+    "files": 205
+  },
+  "e2e": {
+    "command": "npm run test:e2e",
+    "exitCode": 0,
+    "pass": 31,
+    "fail": 0,
+    "reportedDuration": "1.0m",
+    "port": 12437,
+    "portUnownedBeforeAndNotListeningAfter": true,
+    "scope": "Installed desktop Chrome, existing synthetic full suite; not physical devices or production"
+  },
+  "build": {
+    "command": "npm run build",
+    "sourceDateEpoch": "1792046773",
+    "runsBeforeE2e": 1,
+    "consecutiveRunsAfterE2e": 2,
+    "bothFinalExitCode": 0,
+    "bothFinalCriticalFingerprint": "4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948",
+    "afterE2eInventories": [
+      {
+        "files": 127,
+        "bytes": 92507677,
+        "samplerSha256": "739c0fdcea30badfa0928a59bfe9ee2020d1687aaf132682c12ab627a7a0ffc4",
+        "jsonInventorySha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+      },
+      {
+        "files": 127,
+        "bytes": 92507677,
+        "samplerSha256": "739c0fdcea30badfa0928a59bfe9ee2020d1687aaf132682c12ab627a7a0ffc4",
+        "jsonInventorySha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+      }
+    ]
+  },
+  "artifactChecks": {
+    "appChunks": 16,
+    "appRawBytes": 235647,
+    "ocrAssets": 23,
+    "ocrBytes": 88196906,
+    "bothExitCode": 0,
+    "ocrEngineExecuted": false
+  },
+  "npmAudit": {
+    "registry": "https://registry.npmjs.org",
+    "exitCode": 0,
+    "vulnerabilities": 0
+  },
+  "allBudget": {
+    "exitCode": 1,
+    "verdict": "FAIL",
+    "allGzip": 80494,
+    "limit": 77227.7,
+    "remainingIntegerBytes": 3267,
+    "cold": 42985,
+    "coldLimit": 52241
+  },
+  "logDirectory": "C:/Users/84046/AppData/Local/Temp/fundval-m3-pair-800-a6f57689b84046e79b734cf390800ad6",
+  "logHashes": [
+    {
+      "path": "post-pair-unit.log",
+      "bytes": 107328,
+      "sha256": "d923f5eea4abf5c39f123f27624ce1355cda65955d10753521bdfdf1d8f56299"
+    },
+    {
+      "path": "post-pair-check.log",
+      "bytes": 117,
+      "sha256": "0cd38fbbc9b848e018ba246bc56bbb02710f636ac90b0843e2373ff482d14d64"
+    },
+    {
+      "path": "post-pair-build.log",
+      "bytes": 1434,
+      "sha256": "321fdf78cf56a6850131458db0d4d9d97a5a4e7c559859820f6cfcaaed7e6749"
+    },
+    {
+      "path": "post-pair-e2e.log",
+      "bytes": 22116,
+      "sha256": "65597ccdd8fb664aa9c347824fa36898b7e913b7259591a8c441ccaddbbf75c8"
+    },
+    {
+      "path": "post-pair-final-build-1.log",
+      "bytes": 1434,
+      "sha256": "321fdf78cf56a6850131458db0d4d9d97a5a4e7c559859820f6cfcaaed7e6749"
+    },
+    {
+      "path": "post-pair-final-build-2.log",
+      "bytes": 1434,
+      "sha256": "321fdf78cf56a6850131458db0d4d9d97a5a4e7c559859820f6cfcaaed7e6749"
+    },
+    {
+      "path": "post-pair-audit.json",
+      "bytes": 385,
+      "sha256": "448f77f3aa7be8381c296b626f835bb64a2c65be32d6a4fb9c2cefba9cf61dba"
+    }
+  ],
+  "logsFullyArchivedInRepository": false,
+  "utilityNote": "An initial inline log-hash command had an unmatched parenthesis and performed no file reads; a standalone ledger then captured these hashes. No sampling or product test was repeated or changed for that utility correction.",
+  "ci": "NOT_TRIGGERED",
+  "production": "NOT_RUN",
+  "m3": "IN_PROGRESS"
+}

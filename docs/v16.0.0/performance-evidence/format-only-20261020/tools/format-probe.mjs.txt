@@ -1,0 +1,66 @@
+import { createHash } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { gzipSync } from 'node:zlib';
+const directory = dirname(fileURLToPath(import.meta.url));
+const root = 'D:/AI项目/FundVal';
+const { minify } = await import(pathToFileURL('C:/Users/84046/AppData/Local/Temp/fundval-m3-minifier-5806c73ce04e4538992a1f6a39f21444/node_modules/terser/main.js'));
+const { parseSync } = await import(pathToFileURL(resolve(root, 'node_modules/rolldown/dist/utils-index.mjs')));
+const { verifyAppModuleGraph } = await import(pathToFileURL(resolve(root, 'scripts/app-module-graph.mjs')));
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const manifestBytes = await readFile(resolve(root, 'site/js/app-chunks.json'));
+const manifest = JSON.parse(manifestBytes.toString('utf8'));
+const modules = [];
+for (const row of manifest.chunks) {
+  const bytes = await readFile(resolve(root, 'site', row.path));
+  if (bytes.length !== row.bytes || hash(bytes) !== row.sha256 || gzipSync(bytes).length !== row.gzipBytes) throw Error('Baseline artifact changed');
+  modules.push({ path: row.path, code: bytes.toString('utf8'), sha256: row.sha256 });
+}
+const original = { all: manifest.chunks.reduce((n, c) => n + c.gzipBytes, 0), cold: manifest.chunks.filter(c => c.role === 'cold').reduce((n, c) => n + c.gzipBytes, 0), raw: manifest.chunks.reduce((n, c) => n + c.bytes, 0) };
+if (original.all !== 80494 || original.cold !== 42985 || original.raw !== 235647) throw Error('Unexpected baseline');
+const protocol = { schema: 1, kind: 'FORMAT_ONLY_PREQUALIFICATION_NOT_A_VITE_BUILD', original, inputManifestSha256: hash(manifestBytes),
+  sourceBusinessCommit: '170fd3eadc6da02750882f8a542904ee2358d0d9', tool: 'Existing isolated Terser 5.51.2; no new installation',
+  minifyOptions: { ecma: 2022, module: true, compress: false, mangle: false, format: { comments: false } },
+  onlyVariable: 'format.ascii_only false versus true', order: [[false, true], [true, false], [false, true]],
+  rounds: 3, adoption: false, graphVerificationToolSha256: hash(await readFile(resolve(root, 'scripts/app-module-graph.mjs'))),
+  filenameScope: 'Original chunk identifiers retained for in-memory linking; not content-hashed Vite output',
+  decision: 'Measure formatting benefit only; no build-recipe adoption or runtime/latency qualification from this probe' };
+await writeFile(resolve(directory, 'format-protocol.json'), JSON.stringify(protocol, null, 2) + '\n', { flag: 'wx' });
+function canonical(value) {
+  if (typeof value === 'bigint') return { bigintValue: String(value) };
+  if (Array.isArray(value)) return value.map(canonical);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !['start', 'end', 'loc', 'range', 'raw', 'comments', 'leadingComments', 'trailingComments', 'parenthesized'].includes(key))
+    .sort(([a], [b]) => a.localeCompare(b)).map(([key, child]) => [key, canonical(child)]));
+}
+const before = modules.map(module => ({ path: module.path, sha256: module.sha256 }));
+const baselineAsts = new Map(modules.map(module => {
+  const parsed = parseSync(module.path, module.code); if (parsed.errors.length) throw Error('Baseline syntax failed');
+  return [module.path, hash(JSON.stringify(canonical(parsed.program)))];
+}));
+const runs = [];
+for (let round = 0; round < protocol.order.length; round++) for (const asciiOnly of protocol.order[round]) {
+  const rows = [], formatted = [], astDifferences = [];
+  for (const module of modules) {
+    const output = await minify({ [module.path]: module.code }, { ...protocol.minifyOptions, format: { ...protocol.minifyOptions.format, ascii_only: asciiOnly } });
+    if (typeof output.code !== 'string' || !output.code) throw Error('No formatted output');
+    const parsed = parseSync(module.path, output.code); if (parsed.errors.length) throw Error('Formatted syntax failed');
+    const astSha256 = hash(JSON.stringify(canonical(parsed.program)));
+    if (astSha256 !== baselineAsts.get(module.path)) astDifferences.push(module.path);
+    formatted.push({ path: module.path, code: output.code });
+    rows.push({ path: module.path, role: manifest.chunks.find(row => row.path === module.path).role,
+      bytes: Buffer.byteLength(output.code), gzip: gzipSync(output.code).length, sha256: hash(output.code), astSha256 });
+  }
+  const linked = await verifyAppModuleGraph(manifest, formatted);
+  const run = { round: round + 1, asciiOnly, all: rows.reduce((n, r) => n + r.gzip, 0), cold: rows.filter(r => r.role === 'cold').reduce((n, r) => n + r.gzip, 0),
+    raw: rows.reduce((n, r) => n + r.bytes, 0), fingerprint: hash(JSON.stringify(rows)), astDifferences, linked, rows };
+  runs.push(run); process.stdout.write(JSON.stringify({ round: run.round, asciiOnly, all: run.all, cold: run.cold, raw: run.raw, astDifferences: run.astDifferences.length }) + '\n');
+}
+for (const asciiOnly of [false, true]) if (new Set(runs.filter(run => run.asciiOnly === asciiOnly).map(run => run.fingerprint)).size !== 1) throw Error('Formatting is not deterministic');
+const after = [];
+for (const module of modules) after.push({ path: module.path, sha256: hash(await readFile(resolve(root, 'site', module.path))) });
+if (JSON.stringify(before) !== JSON.stringify(after) || !(await readFile(resolve(root, 'site/js/app-chunks.json'))).equals(manifestBytes)) throw Error('Product input changed');
+await writeFile(resolve(directory, 'format-report.json'), JSON.stringify({ protocol, runs, before, after, probeInputChunksAndManifestUnchanged: true,
+  qualifier: 'Printing-only comparison. AST hash ignores positions/raw/comments; unequal hashes are not silently declared equivalent. Native links only, no evaluation, Vite build, runtime/E2E or latency qualification.',
+  adoption: false }, null, 2) + '\n', { flag: 'wx' });

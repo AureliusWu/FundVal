@@ -12,7 +12,7 @@ import * as release from '../scripts/release-fingerprint.mjs';
 const cliPath = fileURLToPath(new URL('../scripts/release-fingerprint.mjs', import.meta.url));
 const BASELINE_COMMIT = '40e68edab9cb3fba0b17338dc3672a82d13ad17e';
 
-function measurement(cold = 52_241, all = 77_227) {
+function measurement(cold = 52_241, all = 92_160) {
   return { chunkCount: 2, totalBytes: 100_000, actualColdStartGzipBytes: cold, actualAllNonOcrGzipBytes: all };
 }
 
@@ -43,23 +43,23 @@ async function fixture(root, lazyContent = Buffer.from('export const feature = t
   return { path, manifest, definitions };
 }
 
-test('v16 budget analysis pins v15 baseline and compares exact integer ratios at boundaries', () => {
+test('v16 approved budget pins v15 baseline and compares exact integer boundaries', () => {
   assert.equal(typeof release.analyzeAppChunkBudgets, 'function');
   assert.equal(typeof release.assertAppBundleBudget, 'function');
   const equalCold = release.analyzeAppChunkBudgets(measurement());
   assert.equal(equalCold.baselineCommit, BASELINE_COMMIT);
   assert.equal(equalCold.baselineAllNonOcrGzipBytes, 70_207);
   assert.equal(equalCold.coldBudgetBytes, 52_241);
-  assert.equal(equalCold.allBudgetNumerator, 772_277);
+  assert.equal(equalCold.allBudgetNumerator, 921_600);
   assert.equal(equalCold.allBudgetDenominator, 10);
-  assert.equal(equalCold.allBudgetBytes, 77_227.7);
+  assert.equal(equalCold.allBudgetBytes, 92_160);
   assert.equal(equalCold.pass, true);
   assert.ok(Object.isFrozen(equalCold));
-  assert.equal(release.assertAppBundleBudget(measurement(52_240, 77_226)).pass, true);
+  assert.equal(release.assertAppBundleBudget(measurement(52_240, 92_159)).pass, true);
   assert.equal(release.assertAppBundleBudget(measurement()).pass, true);
-  assert.throws(() => release.assertAppBundleBudget(measurement(52_242, 77_227)), /cold.*budget/i);
-  assert.throws(() => release.assertAppBundleBudget(measurement(52_241, 77_228)), /all.*budget/i);
-  assert.equal(release.analyzeAppChunkBudgets({ ...measurement(52_241, 77_228), allBudgetBytes: 999_999, baselineAllNonOcrGzipBytes: 999_999 }).allPass, false);
+  assert.throws(() => release.assertAppBundleBudget(measurement(52_242, 92_160)), /cold.*budget/i);
+  assert.throws(() => release.assertAppBundleBudget(measurement(52_241, 92_161)), /all.*budget/i);
+  assert.equal(release.analyzeAppChunkBudgets({ ...measurement(52_241, 92_161), allBudgetBytes: 999_999, baselineAllNonOcrGzipBytes: 999_999 }).allPass, false);
   for (const invalid of [undefined, {}, measurement(-1, 1), measurement(10, 9), measurement(1.5, 10), measurement(1, Number.MAX_SAFE_INTEGER)]) {
     assert.throws(() => release.analyzeAppChunkBudgets(invalid), /measurement/i);
   }
@@ -146,9 +146,16 @@ test('budget CLI emits measured JSON before failing and preserves structural ver
     assert.equal(passed.status, 0, passed.stderr);
     assert.equal(JSON.parse(passed.stdout).pass, true);
     await fixture(root, noisyBytes(80_000));
+    const withinApproved = await release.verifyAppChunkReleaseDirectory(root);
+    assert.ok(withinApproved.actualAllNonOcrGzipBytes > 77_227.7);
+    assert.ok(withinApproved.actualAllNonOcrGzipBytes <= 92_160);
+    const admitted = spawnSync(process.execPath, [cliPath, '--assert-app-bundle-budget', root], { encoding: 'utf8' });
+    assert.equal(admitted.status, 0, admitted.stderr);
+    assert.equal(JSON.parse(admitted.stdout).budgetPolicy, 'v16-total-90kib-approved-20261023');
+    await fixture(root, noisyBytes(100_000));
     const result = await release.verifyAppChunkReleaseDirectory(root);
     assert.ok(result.actualColdStartGzipBytes <= 52_241);
-    assert.ok(result.actualAllNonOcrGzipBytes > 77_227.7);
+    assert.ok(result.actualAllNonOcrGzipBytes > 92_160);
     const failed = spawnSync(process.execPath, [cliPath, '--assert-app-bundle-budget', root], { encoding: 'utf8' });
     assert.equal(failed.status, 1);
     const report = JSON.parse(failed.stdout);

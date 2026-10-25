@@ -1,0 +1,24 @@
+{
+  "label": "tar-extract",
+  "command": "tar.exe",
+  "args": [
+    "-xzf",
+    "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\pair-controllers-800-20261025\\original-evidence.tar.gz",
+    "-C",
+    "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-controllers-archive-20261025-child\\extract"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-controllers-archive-20261025-child",
+  "startedAt": "2026-10-25T07:09:08.649Z",
+  "finishedAt": "2026-10-25T07:09:09.046Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

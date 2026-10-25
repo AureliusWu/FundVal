@@ -227,8 +227,9 @@ export function createRuntimeSecurityQuotePlan({ generation, snapshots = [], sel
 }
 
 // Private page planning projection; public contracts remain above unchanged.
-function runtimeCacheDecision(cacheIndex, key, ttlMs, now) {
+function runtimeCacheDecision(cacheIndex, key, ttlMs, now, reasons) {
   const decision = cacheDecisionCore(cacheIndex, key, ttlMs, now);
+  if (reasons) reasons[['cache_miss', 'cache_metadata_invalid', 'cache_quality_unusable', 'cache_expired', 'fresh_cache'][decision[0]]]++;
   return decision[0] === 4 ? { action: 'cache', cacheExpiresAt: decision[1] } : { action: 'fetch' };
 }
 export function createRuntimeRefreshPlan({
@@ -239,22 +240,35 @@ export function createRuntimeRefreshPlan({
   cacheIndex = {},
   forceLive = false,
   forceStable = [],
-} = {}) {
+} = {}, observePlanReasons) {
   requireGeneration(generation);
   if (!isEpoch(now)) throw new TypeError('Refresh plan now must be an explicit safe epoch.');
   const planTrigger = typeof trigger === 'string' ? trigger.trim().slice(0, 40) || 'unknown' : 'unknown';
   const activeCodes = activeHoldingCodes(activeHoldings);
   const forcedStable = new Set(planTrigger === 'diagnostic' && Array.isArray(forceStable) ? forceStable : []);
   const resources = [];
+  // A closed observer receives only fixed aggregate counts. It never sees the
+  // resource identity, cache input, holding or the private execution plan.
+  const reasons = typeof observePlanReasons === 'function' ? {
+    fresh_cache: 0, cache_miss: 0, cache_metadata_invalid: 0, cache_quality_unusable: 0,
+    cache_expired: 0, force_live: 0, force_stable: 0, market_ineligible: 0,
+    phase_pending: 0, no_active_holdings: 0,
+  } : null;
 
   function add(key, isStable, eligible = true) {
     const policy = refreshResourcePolicy(key);
     const resource = { key, kind: policy.kind, codes: policy.codes, ttlMs: policy.ttlMs };
     let decision;
-    if (!eligible) decision = { action: 'skip' };
-    else if (isStable && forcedStable.has(resource.key)) decision = { action: 'fetch' };
-    else if (!isStable && forceLive === true) decision = { action: 'fetch' };
-    else decision = runtimeCacheDecision(cacheIndex, resource.key, resource.ttlMs, now);
+    if (!eligible) {
+      decision = { action: 'skip' };
+      if (reasons) reasons.market_ineligible++;
+    } else if (isStable && forcedStable.has(resource.key)) {
+      decision = { action: 'fetch' };
+      if (reasons) reasons.force_stable++;
+    } else if (!isStable && forceLive === true) {
+      decision = { action: 'fetch' };
+      if (reasons) reasons.force_live++;
+    } else decision = runtimeCacheDecision(cacheIndex, resource.key, resource.ttlMs, now, reasons);
     resources.push({ key: resource.key, kind: resource.kind, codes: resource.codes, cacheExpiresAt: null, ...decision });
   }
 
@@ -281,7 +295,13 @@ export function createRuntimeRefreshPlan({
   // to determine the actual demand union. These are never global cache hits.
   for (const [key, kind] of [['securities:union', 'securities'], ['models:active', 'model-quotes']]) {
     resources.push({ key, kind, action: activeCodes.length ? 'fetch' : 'skip', cacheExpiresAt: null });
+    if (reasons) reasons[activeCodes.length ? 'phase_pending' : 'no_active_holdings']++;
   }
 
-  return freeze({ generation, activeCodes, resources });
+  const plan = freeze({ generation, activeCodes, resources });
+  if (reasons) {
+    try { Promise.resolve(observePlanReasons(Object.freeze(reasons))).catch(() => {}); }
+    catch (_) { /* Observation never owns planning results or input failures. */ }
+  }
+  return plan;
 }

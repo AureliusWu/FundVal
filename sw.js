@@ -14,6 +14,7 @@ const CORE = [
   './js/runtime/market-session.js', './js/runtime/source-registry.js',
   './js/runtime/market-clock.js', './js/runtime/valuation-period.js', './js/runtime/worker-contract.js',
   './js/runtime/cache-envelope.js',
+  './js/runtime/sync-status.js', './js/runtime/pwa-update-controller.js',
   './js/runtime/quote-diagnostics.js',
   './js/runtime/holding-set-contract.js',
   './js/runtime/holding-quote-amounts.js',

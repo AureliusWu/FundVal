@@ -153,7 +153,7 @@ export function latestOfficialNavBase(fund) {
     .sort((left, right) => right.date.localeCompare(left.date))[0];
 }
 
-export function applyHoldingsEstimate(fund, estimate) {
+export function applyHoldingsEstimate(fund, estimate, options = {}) {
   if (!fund || !estimate || !estimate.available || !Number.isFinite(estimate.change)) return fund;
   if (fund.est_realtime === true && fund.est_kind !== 'official_nav') return fund;
 
@@ -180,6 +180,20 @@ export function applyHoldingsEstimate(fund, estimate) {
   fund.est_holdings_report_date = String(estimate.reportDate || '');
   fund.est_note = `按已披露十大重仓${estimate.reportDate ? `（截至${estimate.reportDate}）` : ''}的当日行情估算；覆盖净值${estimate.coverage.toFixed(1)}%，未披露资产、汇率与调仓影响为未知误差，不是基金公司官方估值`;
   fund.source = 'quarterly-holdings-model';
+  // Aggregate-only evidence, not a Worker/resource row. A later market model
+  // may overwrite legacy est_* aliases, but must not rewrite this contribution.
+  const completeEvidence = normalizeQuoteDate(fund.est_holdings_report_date)
+    && Number.isInteger(estimate.quoteCount) && estimate.quoteCount >= 5 && estimate.quoteCount <= 10
+    && Number.isFinite(estimate.coverage) && estimate.coverage >= 50 && estimate.coverage <= 100;
+  if (/^\d{6}$/.test(String(fund.code || '')) && completeEvidence) fund.holdings_model_evidence = Object.freeze({
+    fundCode: fund.code, value: fund.est_nav, changePct: estimate.change,
+    baseNav: official.nav, baseNavDate: official.date, targetDate,
+    observedAt: estimate.sourceTime, coverage: estimate.coverage,
+    fetchedAt: options.fetchedAt ?? estimate.fetchedAt ?? fund.fetched_at ?? fund.fetchedAt ?? null,
+    confidence: null, modelVersion: null, note: fund.est_note,
+    reportDate: fund.est_holdings_report_date, quoteCount: estimate.quoteCount,
+  });
+  else if (Object.hasOwn(fund, 'holdings_model_evidence')) fund.holdings_model_evidence = null;
   return fund;
 }
 
@@ -195,7 +209,7 @@ export function composeFundEnrichment(rawFund, options = {}) {
     fund.latest_nav_move = { ...options.officialNavMove };
   }
   if (options.holdingsEstimate) {
-    applyHoldingsEstimate(fund, options.holdingsEstimate);
+    applyHoldingsEstimate(fund, options.holdingsEstimate, { fetchedAt: options.fetchedAt });
   }
   return fund;
 }

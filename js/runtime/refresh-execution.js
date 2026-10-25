@@ -25,11 +25,17 @@ function limited(maximum) {
 // Provider clients are read-only. The generation scope owns every refresh
 // dispatch and the only final aggregate cache mutation; UI callbacks stay in app.
 export async function executeRefreshPlan({ context, snapshot, options = {}, previous, legacyNavMoves,
-  clients, ui, storage, now = Date.now } = {}) {
+  clients, ui, storage, onDiagnostics, now = Date.now } = {}) {
   const cached = readRefreshResources(previous, { now: now(), activeCodes: snapshot.map(h => h.code), legacyNavMoves });
+  const observing = typeof onDiagnostics === 'function';
+  const executionSkips = { estimate_claim_denied: null, holdings_claim_denied: 0, holdings_probe_used: 0,
+    model_claim_denied: 0, model_probe_used: 0 };
+  let estimateVisited = 0, estimateObserved = 0, estimateDenied = 0;
+  let diagnosticPlanReasons = null;
   const plan = createRefreshPlan({ generation: context.generation, trigger: context.trigger, now: now(),
     activeHoldings: snapshot, cacheIndex: cached.cacheIndex, forceLive: options.force !== false,
-    forceStable: options.forceStable });
+    forceStable: options.forceStable }, typeof onDiagnostics === 'function'
+      ? reasons => { diagnosticPlanReasons = reasons; } : undefined);
   const scope = createGenerationResourceScope({ context, plan, now });
   // Keep portfolio fan-out outside the Bridge's bounded, serial queue. NAV
   // fallback and metadata share this lane, independently of disclosure work.
@@ -43,6 +49,34 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
     if (!context.isCurrent() || context.signal.aborted) throw Object.assign(new Error('刷新已取消'), { name: 'AbortError' });
   };
   const valid = (key, value) => Boolean(validateRefreshResourceEntry(key, value, { now: now() }));
+
+  let diagnosticPlan, diagnosticSkips;
+  function report(phase, status) {
+    if (!observing) return;
+    try {
+      if (!diagnosticPlan) {
+        const kinds = Object.create(null);
+        diagnosticSkips = { market_ineligible: 0, no_active_holdings: 0 };
+        plan.resources.forEach(resource => {
+          const row = kinds[resource.kind] ||= { kind: resource.kind, cache: 0, fetch: 0, skip: 0 };
+          row[resource.action]++;
+          if (resource.action === 'skip') {
+            if (resource.kind === 'holdings') diagnosticSkips.market_ineligible++;
+            else if (!plan.activeCodes.length && ['securities', 'model-quotes'].includes(resource.kind)) diagnosticSkips.no_active_holdings++;
+          }
+        });
+        diagnosticPlan = Object.freeze(Object.values(kinds).map(Object.freeze));
+        Object.freeze(diagnosticSkips);
+      }
+      const result = onDiagnostics(Object.freeze({ generation: context.generation, phase,
+        status: context.isCurrent() && !context.signal.aborted ? status : 'cancelled',
+        counters: scope.snapshot(), plan: diagnosticPlan, skipReasons: diagnosticSkips,
+        planReasons: diagnosticPlanReasons,
+        executionSkips: Object.freeze({ ...executionSkips, estimate_claim_denied:
+          phase !== 'started' && estimateVisited > 0 && estimateObserved === estimateVisited ? estimateDenied : null }) }));
+      Promise.resolve(result).catch(() => {});
+    } catch (_) { /* Observers never own refresh results, UI or persistence. */ }
+  }
 
   function acquireEntry(key, loader) {
     const old = cached.entries[key];
@@ -104,9 +138,21 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
     return task;
   }
 
+  report('started', 'running');
   const estimateBatches = plan.resources.filter(resource => resource.kind === 'estimates').map(estimateResource => acquireEntry(estimateResource.key, async () => {
-    const rows = await clients.estimates(snapshot.filter(holding => estimateResource.codes.includes(holding.code)), options, context,
-      operation => scope.dispatch('sinan-estimate-proxy', operation));
+    // A legacy injected client may not support this private, synchronous
+    // boolean seam. Partial/missing observations must remain null, not zero.
+    let synchronous = true, seen = false, acquisition;
+    if (observing) estimateVisited++;
+    try {
+      acquisition = clients.estimates(snapshot.filter(holding => estimateResource.codes.includes(holding.code)), options, context,
+        operation => scope.dispatch('sinan-estimate-proxy', operation), ...(observing ? [allowed => {
+          if (synchronous && !seen && typeof allowed === 'boolean') {
+            seen = true; estimateObserved++; if (!allowed) estimateDenied++;
+          }
+        }] : []));
+    } finally { synchronous = false; }
+    const rows = await acquisition;
     const usable = [...rows.values()].filter(row => row?.status === 'ok' && row.source_quote
       && !['stale', 'unavailable'].includes(row.source_quote.status));
     if (!usable.length) return null;
@@ -155,7 +201,8 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
           holdingsClaim = context.claimSourceAttempt('quarterly-holdings-model');
           if (holdingsClaim.halfOpen) probeAt = context.sourceHealth('quarterly-holdings-model')?.halfOpenProbeAt;
         }
-        if (!holdingsClaim.allowed || (holdingsClaim.halfOpen && probeUsed)) return null;
+        if (!holdingsClaim.allowed) { if (observing) executionSkips.holdings_claim_denied++; return null; }
+        if (holdingsClaim.halfOpen && probeUsed) { if (observing) executionSkips.holdings_probe_used++; return null; }
         probeUsed = true;
         const startedAt = now();
         holdingsOutcome.requested++;
@@ -215,7 +262,8 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
             modelStartedAt = now();
             if (modelClaim.halfOpen) modelProbeAt = context.sourceHealth('market-model')?.halfOpenProbeAt;
           }
-          if (!modelClaim.allowed || modelClaim.halfOpen && modelProbeUsed) return false;
+          if (!modelClaim.allowed) { if (observing) executionSkips.model_claim_denied++; return false; }
+          if (modelClaim.halfOpen && modelProbeUsed) { if (observing) executionSkips.model_probe_used++; return false; }
           modelProbeUsed = true;
           return true;
         },
@@ -276,13 +324,25 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
   // NAV completion may append metadata acquisitions; close that list before
   // the only cache flush, and keep all cancelled branches observed.
   await Promise.allSettled(metadataTasks);
-  current();
-  const refreshed = results.filter(result => result.status === 'fulfilled').length;
-  if (snapshot.length && !refreshed) throw Object.assign(new Error('全部基金刷新失败'), { code: 'ALL_FUNDS_FAILED' });
-  scope.flushCache({ storage, serialize: staged => serializeRefreshAggregate({ previous, staged,
-    data: ui.cacheData(), holdingsHash: ui.holdingsHash(), now: now(), activeCodes: plan.activeCodes }) });
-  scope.commitUi(() => ui.complete?.());
-  const diagnostics = scope.snapshot();
-  context.recordDiagnostic('refresh_resources', { reason: `requests=${diagnostics.requests};hits=${diagnostics.cacheHits};deduped=${diagnostics.deduped};writes=${diagnostics.cacheWrites}` });
-  return { total: snapshot.length, refreshed, results, diagnostics };
+  // Automatic name writes belong to this generation too. They invalidate the
+  // previous aggregate, so finish them before its only final cache write.
+  await ui.settlePendingEdits?.();
+  // This separate, payload-free observer may describe an aborted generation;
+  // it must not append old coordinator diagnostics or commit UI/cache state.
+  report('resources_settled', 'running');
+  try {
+    current();
+    const refreshed = results.filter(result => result.status === 'fulfilled').length;
+    if (snapshot.length && !refreshed) throw Object.assign(new Error('全部基金刷新失败'), { code: 'ALL_FUNDS_FAILED' });
+    scope.flushCache({ storage, serialize: staged => serializeRefreshAggregate({ previous, staged,
+      data: ui.cacheData(), holdingsHash: ui.holdingsHash(), now: now(), activeCodes: plan.activeCodes }) });
+    scope.commitUi(() => ui.complete?.());
+    const diagnostics = scope.snapshot();
+    context.recordDiagnostic('refresh_resources', { reason: `requests=${diagnostics.requests};hits=${diagnostics.cacheHits};deduped=${diagnostics.deduped};writes=${diagnostics.cacheWrites}` });
+    report('final', 'completed');
+    return { total: snapshot.length, refreshed, results, diagnostics };
+  } catch (error) {
+    report('final', 'failed');
+    throw error;
+  }
 }

@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+  "version": "15.0.2",
+  "current": {
+    "js": {
+      "files": 73,
+      "bytes": 691230,
+      "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+    },
+    "site": {
+      "files": 127,
+      "bytes": 92507677,
+      "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+    },
+    "builderSha256": "51a4d35902ad2e6510dd3e82fea7198a12a9b722ef3098c791aeb4c8327ac9a4",
+    "graphToolSha256": "6647961ec3800df7a8ab3da6f3f0dfe75de3abca768f7af10f26594f9b83b678"
+  },
+  "critical": "4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948",
+  "archiveVerified": {
+    "path": "original-evidence.tar.gz",
+    "bytes": 634329,
+    "sha256": "886be0611607523dca5c0ec1ab853e7c1acf532d43a07ac7f19bb6295eadf2e1"
+  },
+  "archiveFilesVerified": 129,
+  "archiveInventorySha256": "01ee2929ccddfb9dc99ad29a48195a12f50b6769feaca871473b60e3a5314144",
+  "graph": {
+    "chunkCount": 16,
+    "staticEdgeCount": 18,
+    "dynamicEdgeCount": 10,
+    "actualColdChunkCount": 6,
+    "literalImportClosureVerified": true,
+    "staticBindingsVerified": true,
+    "evaluated": false,
+    "startupOrderVerified": false,
+    "dynamicNamespaceMembersVerified": false
+  },
+  "budget": {
+    "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "baselineAllNonOcrGzipBytes": 70207,
+    "actualColdStartGzipBytes": 42985,
+    "actualAllNonOcrGzipBytes": 80494,
+    "coldBudgetBytes": 52241,
+    "allBudgetNumerator": 772277,
+    "allBudgetDenominator": 10,
+    "allBudgetBytes": 77227.7,
+    "coldPass": true,
+    "allPass": false,
+    "pass": false,
+    "verdict": "FAIL",
+    "importClosureVerified": false
+  },
+  "commands": [
+    {
+      "program": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "scripts/release-fingerprint.mjs",
+        "--verify-app-module-graph",
+        "site"
+      ],
+      "exitCode": 0,
+      "stdout": "{\"chunkCount\":16,\"staticEdgeCount\":18,\"dynamicEdgeCount\":10,\"actualColdChunkCount\":6,\"literalImportClosureVerified\":true,\"staticBindingsVerified\":true,\"evaluated\":false,\"startupOrderVerified\":false,\"dynamicNamespaceMembersVerified\":false}\n",
+      "stderr": ""
+    },
+    {
+      "program": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "scripts/release-fingerprint.mjs",
+        "--assert-app-bundle-budget",
+        "site"
+      ],
+      "exitCode": 1,
+      "stdout": "{\"baselineCommit\":\"40e68edab9cb3fba0b17338dc3672a82d13ad17e\",\"baselineAllNonOcrGzipBytes\":70207,\"actualColdStartGzipBytes\":42985,\"actualAllNonOcrGzipBytes\":80494,\"coldBudgetBytes\":52241,\"allBudgetNumerator\":772277,\"allBudgetDenominator\":10,\"allBudgetBytes\":77227.7,\"coldPass\":true,\"allPass\":false,\"pass\":false,\"verdict\":\"FAIL\",\"importClosureVerified\":false}\n",
+      "stderr": "App bundle exceeds all non-OCR gzip budget: 80494 > 77227.7 bytes.\n"
+    },
+    {
+      "program": "git",
+      "args": [
+        "diff",
+        "--name-only",
+        "--",
+        "js",
+        "css",
+        "data",
+        "index.html",
+        "manifest.json",
+        "sw.js",
+        "package.json",
+        "package-lock.json",
+        "scripts/build-site.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "program": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'scripts/release-fingerprint.mjs', LF will be replaced by CRLF the next time Git touches it\n"
+    },
+    {
+      "program": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "stdout": "170fd3eadc6da02750882f8a542904ee2358d0d9\n",
+      "stderr": ""
+    }
+  ],
+  "adopted": false,
+  "productChanged": false,
+  "fullTestsBuildE2eLatencyRerun": false,
+  "limits": "No new build/test/E2E/latency/CI/production. Archive and existing current artifact verification only; budget remains FAIL."
+}

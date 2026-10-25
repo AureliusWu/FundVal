@@ -1,0 +1,8 @@
+{
+  "name": "fundval-m3-swc-isolated-probe",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@swc/core": "1.16.18"
+  }
+}

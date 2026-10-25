@@ -1,0 +1,518 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "at": "2026-10-22T07:03:06.917Z",
+  "checks": [
+    {
+      "label": "before complete272 input identity and exact intended delta",
+      "pass": true
+    },
+    {
+      "label": "before package lock build model config fingerprint guards unchanged",
+      "pass": true
+    },
+    {
+      "label": "before installed explicit68 unchanged",
+      "pass": true
+    },
+    {
+      "label": "before HEAD branch index unchanged",
+      "pass": true
+    },
+    {
+      "label": "before complete127 current site matches final build",
+      "pass": true
+    },
+    {
+      "label": "before actual fixed budget accounting",
+      "pass": true
+    },
+    {
+      "label": "final receipt test-03",
+      "pass": true
+    },
+    {
+      "label": "final receipt check-02",
+      "pass": true
+    },
+    {
+      "label": "final receipt e2e-03",
+      "pass": true
+    },
+    {
+      "label": "final receipt build-04",
+      "pass": true
+    },
+    {
+      "label": "final receipt build-05",
+      "pass": true
+    },
+    {
+      "label": "final receipt build-06",
+      "pass": true
+    },
+    {
+      "label": "final receipt budget-02",
+      "pass": true
+    },
+    {
+      "label": "final receipt graph-02",
+      "pass": true
+    },
+    {
+      "label": "final unit syntax E2E counts and native budget/graph outputs",
+      "pass": true
+    },
+    {
+      "label": "complete actual OLD13 red7 and final identical-input GREEN13",
+      "pass": true
+    },
+    {
+      "label": "original failing gates retained as native1",
+      "pass": true
+    },
+    {
+      "label": "248 actual nonhistorical source files for archive",
+      "pass": true
+    },
+    {
+      "label": "safe relative tar members",
+      "pass": true
+    },
+    {
+      "label": "every freshly extracted member byte SHA path identical",
+      "pass": true
+    },
+    {
+      "label": "archive stage unchanged",
+      "pass": true
+    },
+    {
+      "label": "completed workspace unchanged fundval-model-provenance-fix-20261022-parent",
+      "pass": true
+    },
+    {
+      "label": "completed workspace unchanged FundVal-dual-model-P1-red-20261022-a1",
+      "pass": true
+    },
+    {
+      "label": "after complete272 input identity and exact intended delta",
+      "pass": true
+    },
+    {
+      "label": "after package lock build model config fingerprint guards unchanged",
+      "pass": true
+    },
+    {
+      "label": "after installed explicit68 unchanged",
+      "pass": true
+    },
+    {
+      "label": "after HEAD branch index unchanged",
+      "pass": true
+    },
+    {
+      "label": "after complete127 current site matches final build",
+      "pass": true
+    },
+    {
+      "label": "after actual fixed budget accounting",
+      "pass": true
+    },
+    {
+      "label": "root source site installed Git unchanged during archive",
+      "pass": true
+    }
+  ],
+  "natives": [
+    {
+      "label": "before-head",
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "before-branch",
+      "command": "git",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "before-index",
+      "command": "git",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "snapshot-diff",
+      "command": "git",
+      "args": [
+        "diff",
+        "--binary"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 162772,
+        "sha256": "a0549f618ac2637b627d1d8fd3c5fc98596cb9c3e2a0a46909667eaec4652f62"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    },
+    {
+      "label": "tar-create",
+      "command": "tar",
+      "args": [
+        "-czf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\model-provenance-fix-20261022\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent\\stage",
+        "."
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-list",
+      "command": "tar",
+      "args": [
+        "-tzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\model-provenance-fix-20261022\\original-evidence.tar.gz"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 83008,
+        "sha256": "fb69545799877662a7102f6a638a9b430db15dbd78029e312a94acd5eccd20c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-extract",
+      "command": "tar",
+      "args": [
+        "-xzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\model-provenance-fix-20261022\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent\\extract"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-head",
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-branch",
+      "command": "git",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-index",
+      "command": "git",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "command": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    }
+  ],
+  "gates": [
+    {
+      "label": "test-03",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 127764,
+        "sha256": "8ef24808d93b0996e621d73c24c8b193ba8bc8540636893e25985836849e9352"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "check-02",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 112,
+        "sha256": "472f3d2cd39b3fdb93ea4469b72b36417f53462a76755288a76bd838d9943264"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "e2e-03",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 22176,
+        "sha256": "91065a0f957b83a57c57fc4fb4a2eeabffb9e19922ae0853d7be887e536f6614"
+      },
+      "stderr": {
+        "bytes": 352,
+        "sha256": "ba762a91d02c19d1579215f00bca96185a495a454e1f465101d284e166ae714e"
+      }
+    },
+    {
+      "label": "build-04",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 1414,
+        "sha256": "05056a4e0f50b2cfcf65c2a4cfa5a688ffe56f0a88d94d325904ca76ec5fe51d"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "artifactRowsSha256": "4182f49e01661469cbc13c51d9ff7ddcfb0081a4908d2511736609eb47606da2"
+    },
+    {
+      "label": "build-05",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 1414,
+        "sha256": "05056a4e0f50b2cfcf65c2a4cfa5a688ffe56f0a88d94d325904ca76ec5fe51d"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "artifactRowsSha256": "4182f49e01661469cbc13c51d9ff7ddcfb0081a4908d2511736609eb47606da2"
+    },
+    {
+      "label": "build-06",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 1414,
+        "sha256": "05056a4e0f50b2cfcf65c2a4cfa5a688ffe56f0a88d94d325904ca76ec5fe51d"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "artifactRowsSha256": "4182f49e01661469cbc13c51d9ff7ddcfb0081a4908d2511736609eb47606da2"
+    },
+    {
+      "label": "budget-02",
+      "nativeExit": 1,
+      "stdout": {
+        "bytes": 358,
+        "sha256": "6409b4f3e0e6c066454051ddb5e3315b6fb37e2ddeb1b0010661b087ae068c98"
+      },
+      "stderr": {
+        "bytes": 67,
+        "sha256": "5b3f3ad30079f0a18e5df53ba9116f118b8630e87acc8abd1b87021d98320939"
+      }
+    },
+    {
+      "label": "graph-02",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 239,
+        "sha256": "893c9d6c0e84bdbf197612f558907e7e4f9484b56f8c6fa90b3f392440781cc1"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "source": {
+    "count": 272,
+    "nonhistoricalPayloadCount": 248,
+    "rowsSha256": "c0aa9a6547a912df85e1477fd3a4076305a910b71b03d22cdaaa905a2cf92008",
+    "changed": [
+      "e2e/v16-refresh.spec.js",
+      "js/accuracy.js",
+      "js/app.js",
+      "js/holdings-estimate.js",
+      "js/runtime/fund-model-enrichment.js",
+      "js/runtime/quote-normalizer.js",
+      "test/accuracy.test.js",
+      "test/holdings-integration-regression.test.js"
+    ],
+    "added": [
+      "test/model-consumers-v16.test.js",
+      "test/model-provenance-v16.test.js"
+    ]
+  },
+  "artifact": {
+    "count": 127,
+    "rowsSha256": "4182f49e01661469cbc13c51d9ff7ddcfb0081a4908d2511736609eb47606da2",
+    "allGzip": 85956,
+    "coldGzip": 46129,
+    "rawBytes": 252257
+  },
+  "installed": {
+    "count": 68,
+    "rowsSha256": "2da11b473eaff8bcaa1fef492e4b595629145b97f8c7f2ea18f4e7fb5b074e1c"
+  },
+  "git": {
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "archive": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\model-provenance-fix-20261022\\original-evidence.tar.gz",
+    "bytes": 11490572,
+    "sha256": "0c127a5bb5fec6ab518a4308c9a59d4f6337fd631cf15553f42d4f3cfb75fde1"
+  },
+  "inventory": {
+    "count": 791,
+    "bytes": 33481328,
+    "sha256": "888dbc90cf931ca78eb67c8dacf23cdd267c621eb929ee09c5be0d888cc7898a"
+  },
+  "extract": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent\\extract",
+  "scope": {
+    "M3": "IN_PROGRESS",
+    "release": "NOT_RELEASED",
+    "budget": "FAIL",
+    "latency": "NOT_RUN_ON_FINAL_SOURCE",
+    "CI": "NOT_RUN",
+    "liveFinancialReconciliation": "NOT_RUN",
+    "accuracyFullLifecycle": "NOT_CLOSED",
+    "Gist": "NOT_RUN",
+    "OCR": "NOT_RUN",
+    "device": "NOT_RUN",
+    "production": "NOT_RUN",
+    "newDependencyAudit": "NOT_RUN",
+    "archiveAddendaOutside": true
+  }
+}

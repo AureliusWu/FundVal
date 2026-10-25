@@ -1,0 +1,25 @@
+{
+  "label": "before-index",
+  "command": "git",
+  "args": [
+    "-C",
+    "D:/AI项目/FundVal",
+    "diff",
+    "--cached",
+    "--binary"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-controller-extraction-archive-20261025-review-a3",
+  "startedAt": "2026-10-25T06:24:27.895Z",
+  "finishedAt": "2026-10-25T06:24:27.968Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

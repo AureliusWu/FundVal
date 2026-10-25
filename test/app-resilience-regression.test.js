@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 test('app uses safe persistence, cache-to-holding binding, timeout and merge guards', async () => {
-  const [app, bootstrap, gistRemote, index, diagnostics, cloudArchive, execution, cache, securities, features] = await Promise.all([
+  const [app, bootstrap, gistRemote, index, diagnostics, cloudArchive, execution, cache, securities, features, sync] = await Promise.all([
     readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/bootstrap.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/storage/gist-remote.js', import.meta.url), 'utf8'),
@@ -14,18 +14,22 @@ test('app uses safe persistence, cache-to-holding binding, timeout and merge gua
     readFile(new URL('../js/runtime/refresh-resource-cache.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/runtime/security-quote-batch.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/runtime/business-features.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/runtime/sync-status.js', import.meta.url), 'utf8'),
   ]);
 
   assert.doesNotMatch(app, /localStorage\s*\./);
   assert.match(app, /async function fetchWithTimeout/);
   assert.match(app, /fetchWithTimeout\([\s\S]*push2\.eastmoney\.com/);
-  assert.match(app, /synchronizeHoldingsCloud/);
-  assert.match(app, /pullHoldingsCloud/);
+  assert.match(sync, /synchronizeHoldingsCloud/);
+  assert.match(sync, /pullHoldingsCloud/);
+  assert.match(app, /return syncController\.pushToCloud\(silent, options\)/);
+  assert.match(app, /return syncController\.pullFromCloud\(silent\)/);
   assert.match(cloudArchive, /backupCloudSyncSnapshot/);
   assert.equal((app.match(/method:\s*'PATCH'/g) || []).length, 0);
+  assert.equal((sync.match(/method:\s*'PATCH'/g) || []).length, 0);
   assert.equal((gistRemote.match(/method:\s*'PATCH'/g) || []).length, 1);
   assert.match(app, /cache\.holdingsHash !== holdingsHash\(holdings\)/);
-  assert.match(app, /meta\.pending_hash/);
+  assert.match(sync, /meta\.pending_hash/);
   assert.match(cloudArchive, /const uploadDocument = normalizeHoldingsDocumentV3\(holdingsDocument\)/);
   assert.match(cloudArchive, /finalizeCreatedArchiveState\([\s\S]*uploadDocument,[\s\S]*currentLoaded\.document/);
   assert.match(cloudArchive, /setSyncPending\(finalized\.pending\)/);

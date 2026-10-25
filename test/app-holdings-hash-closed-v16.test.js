@@ -155,8 +155,9 @@ test('load closes failure to null/empty and success to a repository document plu
   assert.deepEqual(statements[1].consequent.body.slice(1).map(compact), ['holdingsDocument=null;', 'holdings=[];', 'returnfalse;']);
   assert.deepEqual(statements.slice(2).map(compact), ["holdingsStorageError='';", 'holdingsDocument=loaded.document;', 'holdings=loaded.legacy;', 'returntrue;']);
   const install = declaration('installHoldingsDocument').body.body;
+  assert.deepEqual(declaration('installHoldingsDocument').params.map(compact), ['value', 'options={}']);
   assert.deepEqual(install.map(compact), ['holdingsDocument=normalizeHoldingsDocumentV3(value);',
-    'holdings=toLegacyHoldings(holdingsDocument);', "holdingsStorageError='';", 'reconcileActiveFundState();']);
+    'holdings=toLegacyHoldings(holdingsDocument);', "holdingsStorageError='';", 'reconcileActiveFundState(options);']);
 });
 
 test('initial and blocked native state fingerprints are exactly [] with no invented document', async () => {

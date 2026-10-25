@@ -1,0 +1,214 @@
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, lstatSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+
+// Archival only. Does not execute any project test/build/performance command.
+// Exclusive writes, fresh stage/extract, verified physical-file copies; originals remain untouched.
+const here = import.meta.dirname;
+const root = 'D:/AI项目/FundVal';
+const temp = 'C:/Users/84046/AppData/Local/Temp';
+const parent = resolve(temp, 'FundVal-m3-responsibility-extraction-20261023-parent');
+const dest = resolve(root, 'docs/v16.0.0/performance-evidence/controller-extraction-20261025');
+const stage = resolve(here, 'stage');
+const extract = resolve(here, 'extract');
+const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const json = path => JSON.parse(readFileSync(path, 'utf8'));
+const save = (path, bytes) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, bytes, { flag: 'wx' }); };
+const saveJSON = (path, value) => save(path, JSON.stringify(value, null, 2) + '\n');
+function inventory(base, excluded = new Set(), part = '') {
+  const rows = [];
+  for (const entry of readdirSync(resolve(base, part), { withFileTypes: true })) {
+    if (!part && excluded.has(entry.name)) continue;
+    const path = part ? part + '/' + entry.name : entry.name;
+    const physical = resolve(base, path);
+    assert.equal(lstatSync(physical).isSymbolicLink(), false, 'No symlink: ' + physical);
+    if (entry.isDirectory()) rows.push(...inventory(base, excluded, path));
+    else {
+      assert.equal(entry.isFile(), true, 'Regular files only: ' + physical);
+      const bytes = readFileSync(physical);
+      rows.push({ path, bytes: bytes.length, sha256: sha(bytes) });
+    }
+  }
+  return rows.sort((a, b) => a.path.localeCompare(b.path));
+}
+function native(label, command, args, timeout = 60000) {
+  const startedAt = new Date().toISOString();
+  const env = { ...process.env };
+  for (const key of ['JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS', 'NODE_OPTIONS']) delete env[key];
+  const result = spawnSync(command, args, { cwd: here, windowsHide: true, encoding: null, maxBuffer: 30_000_000, timeout, env });
+  const stdout = result.stdout ?? Buffer.alloc(0), stderr = result.stderr ?? Buffer.alloc(0);
+  save(resolve(here, label + '.stdout'), stdout);
+  save(resolve(here, label + '.stderr'), stderr);
+  const receipt = { label, command, args, cwd: here, startedAt, finishedAt: new Date().toISOString(), nativeExit: result.status,
+    signal: result.signal, error: result.error?.message ?? null,
+    stdout: { bytes: stdout.length, sha256: sha(stdout) }, stderr: { bytes: stderr.length, sha256: sha(stderr) } };
+  saveJSON(resolve(here, label + '.receipt.json'), receipt);
+  assert.equal(receipt.nativeExit, 0, label + ' native exit');
+  return { receipt, stdout, stderr };
+}
+const frozen = json(resolve(parent, 'QA_SOURCE_V3.json'));
+const siteBefore = json(resolve(parent, 'qa-v3/build-01/site.inventory.json'));
+const siteAfter = json(resolve(parent, 'qa-v3/build-02/site.inventory.json'));
+assert.deepEqual(siteBefore, siteAfter);
+assert.equal(frozen.full.length, 281);
+assert.equal(frozen.noDocs.length, 280);
+assert.equal(frozen.installed.length, 68);
+assert.equal(siteAfter.length, 129);
+assert.equal(frozen.sourceRowsSha256, '8b93b2e2476757a381e3788f3f82428b54cfa26fae7fe6f3339a0896f8a71653');
+assert.equal(sha(JSON.stringify(frozen.full)), frozen.sourceRowsSha256);
+for (const path of [dest, stage, extract]) assert.equal(existsSync(path), false, 'Must be fresh: ' + path);
+const phases = ['test', 'check', 'build-01', 'e2e', 'build-02', 'artifact', 'audit'];
+const gates = phases.map(phase => {
+  const path = resolve(parent, 'qa-v3', phase, 'RESULT.json');
+  const value = json(path);
+  assert.equal(value.status, 'LOCAL_GATE_PASS');
+  assert.equal(value.sourceRowsSha256, frozen.sourceRowsSha256);
+  assert.equal(value.failure, null);
+  assert.equal(value.postflightError, null);
+  return { phase, bytes: readFileSync(path).length, sha256: sha(readFileSync(path)), status: value.status };
+});
+function verifyRows(base, rows) {
+  for (const row of rows) {
+    const bytes = readFileSync(resolve(base, row.path));
+    assert.equal(bytes.length, row.bytes, row.path + ' byte length');
+    assert.equal(sha(bytes), row.sha256, row.path + ' SHA256');
+  }
+}
+function guard(label) {
+  assert.deepEqual(inventory(root, new Set(['.git', 'node_modules', 'site', 'Temp', '.claude', 'docs'])), frozen.noDocs);
+  verifyRows(root, frozen.full.filter(row => row.path.startsWith('docs/')));
+  assert.deepEqual(inventory(resolve(root, 'site')), siteAfter);
+  verifyRows(resolve(root, 'node_modules'), frozen.installed);
+  for (const [tag, args, expected] of [
+    ['head', ['rev-parse', 'HEAD'], frozen.head],
+    ['branch', ['branch', '--show-current'], frozen.branch],
+    ['index', ['diff', '--cached', '--binary'], frozen.indexSha256],
+  ]) {
+    const run = native(label + '-' + tag, 'git', ['-C', root, ...args]);
+    assert.equal(tag === 'index' ? sha(run.stdout) : run.stdout.toString().trim(), expected);
+  }
+}
+guard('before');
+const workspaces = [
+  ['parent', 'FundVal-m3-responsibility-extraction-20261023-parent'],
+  ['sync-worker', 'FundVal-sync-status-extraction-20261023-worker'],
+  ['pwa-worker-initial', 'FundVal-pwa-extraction-20261023-a0d295eb8ec342469ded05d9180ac0d9'],
+  ['pwa-takeover', 'FundVal-pwa-takeover-20261023-contract-a1'],
+  ['controller-lifecycle-review', 'FundVal-controller-lifecycle-20261025-review-a1'],
+  ['scope-name-race-review', 'FundVal-m3-scope-name-race-20261025-review'],
+  ['e2e-settle-repair-review', 'FundVal-e2e-settle-repair-20261025-review-a1'],
+  ['archive-first-attempt', 'FundVal-controller-extraction-archive-20261025-review-a1'],
+  ['archive-second-attempt', 'FundVal-controller-extraction-archive-20261025-review-a2'],
+].map(([prefix, name]) => ({ prefix, originalPath: resolve(temp, name), rows: inventory(resolve(temp, name)) }));
+const browsers = [
+  ['browser-results-failed-v1', 'build-01', 5],
+  ['browser-results-passed-v3', 'build-02', 2],
+].map(([prefix, phase, expectedCount]) => {
+  const saved = json(resolve(parent, 'qa-v3', phase, 'E2E_ARTIFACTS.json'));
+  assert.deepEqual(inventory(saved.target), saved.rows);
+  assert.equal(saved.rows.length, expectedCount);
+  return { prefix, originalPath: saved.target, rows: saved.rows };
+});
+const sourceRows = frozen.full.filter(row => !row.path.startsWith('.codex-tmp/'));
+const selectedSite = siteAfter.filter(row => !row.path.startsWith('assets/ocr/'));
+assert.equal(sourceRows.length, 257);
+assert.equal(selectedSite.length, 105);
+const payloads = [...workspaces, ...browsers,
+  { prefix: 'final-source', originalPath: root, rows: sourceRows },
+  { prefix: 'selected-site', originalPath: resolve(root, 'site'), rows: selectedSite }];
+
+// Scope-driven screening, not a general secret-scanner certification. Browser files are synthetic local QA artifacts.
+const forbidden = /(^|\/)(node_modules|\.git)(\/|$)|(^|\/)\.env(?:\.|$)|\.(?:pem|p12|pfx|key)$/i;
+const highConfidenceSecret = /(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)/;
+const reviewedSyntheticFixture = {
+  path: 'final-source/test/integrity.test.js',
+  fileSha256: 'a609a9fa8f5eb67ecee22701de658b3208c0f32599ec6e0e9836c4c23e9b9dc5',
+  matchHashes: ['25a70677dea9fe85187cdf1e330388c67281f3c075b38c98759366e0919720d6',
+    'ae8754608195aafb81001fbdb911f6019eb8b13fa6e5ef7229ea71b0b9a7f976'],
+  reason: 'Read existing diagnostic-redaction tests at lines 97-126; both are ordered lowercase alphabet followed by digits, deliberately synthetic. No value reproduced in this report.',
+};
+let scannedTextFiles = 0, reviewedSyntheticMatches = 0;
+for (const payload of payloads) for (const row of payload.rows) {
+  assert.equal(forbidden.test(row.path), false, 'Forbidden payload path: ' + payload.prefix + '/' + row.path);
+  assert.ok(row.bytes < 10_000_000, 'Unexpected giant payload: ' + payload.prefix + '/' + row.path);
+  const bytes = readFileSync(resolve(payload.originalPath, row.path));
+  assert.equal(bytes.length, row.bytes);
+  assert.equal(sha(bytes), row.sha256);
+  if (!bytes.includes(0)) {
+    scannedTextFiles++;
+    const matches = [...bytes.toString('utf8').matchAll(new RegExp(highConfidenceSecret.source, 'g'))];
+    if (matches.length) {
+      assert.equal(payload.prefix + '/' + row.path, reviewedSyntheticFixture.path, 'Unexpected secret-shaped payload path');
+      assert.equal(sha(bytes), reviewedSyntheticFixture.fileSha256, 'Reviewed fixture file bytes must be exact');
+      for (const match of matches) {
+        assert.ok(reviewedSyntheticFixture.matchHashes.includes(sha(match[0])), 'Unreviewed secret candidate; do not print value');
+        reviewedSyntheticMatches++;
+      }
+    }
+  }
+}
+assert.equal(reviewedSyntheticMatches, 2, 'Exactly the two independently reviewed synthetic fixtures, no more or less');
+for (const payload of payloads) for (const row of payload.rows) {
+  const bytes = readFileSync(resolve(payload.originalPath, row.path));
+  assert.equal(bytes.length, row.bytes);
+  assert.equal(sha(bytes), row.sha256);
+  save(resolve(stage, payload.prefix, row.path), bytes);
+}
+save(resolve(stage, 'archive-tool.mjs.txt'), readFileSync(import.meta.filename));
+const rows = inventory(stage);
+const plan = {
+  schema: 1,
+  scope: 'Controller extraction, actual RED/failures, automatic-name settlement repair and final QA V3 originals. Archival only; not new performance, immutable-commit CI, M3 EXIT or release evidence.',
+  source: { full: frozen.full, noDocs: frozen.noDocs, rowsSha256: frozen.sourceRowsSha256, payloadCount: sourceRows.length,
+    omittedHistoricalAndroidPayloadCount: frozen.full.length - sourceRows.length, omitted: '.codex-tmp/ retained in inventory only', head: frozen.head, branch: frozen.branch, indexSha256: frozen.indexSha256 },
+  site: { completeInventory: siteAfter, completeCount: siteAfter.length, completeBytes: siteAfter.reduce((n, row) => n + row.bytes, 0),
+    rowsSha256: sha(JSON.stringify(siteAfter)), selectedPayloadCount: selectedSite.length, omittedPayloadCount: siteAfter.length - selectedSite.length,
+    omitted: 'assets/ocr/ generated heavyweight payloads; inventory and original QA verification retained' },
+  installedInventory: frozen.installed, installedPayloadIncluded: false,
+  originalWorkspaces: workspaces, browserOriginals: browsers, finalLocalGates: gates,
+  screening: { forbiddenPathMatches: 0, highConfidenceSecretMatches: reviewedSyntheticMatches, unreviewedSecretMatches: 0, reviewedSyntheticFixture, scannedTextFiles,
+    limitation: 'Known synthetic browser fixtures, source and task-owned evidence only; no browser profile/user screenshot/storage export. Not a comprehensive secret-scanning or binary-content security audit.' },
+  rows, count: rows.length, bytes: rows.reduce((n, row) => n + row.bytes, 0), rowsSha256: sha(JSON.stringify(rows)),
+};
+saveJSON(resolve(here, 'PLAN.json'), plan);
+mkdirSync(dest, { recursive: true });
+saveJSON(resolve(dest, 'archive-plan.json'), plan);
+const packed = native('tar-create', 'tar.exe', ['-czf', resolve(dest, 'original-evidence.tar.gz'), '-C', stage, '.']);
+mkdirSync(extract);
+const unpacked = native('tar-extract', 'tar.exe', ['-xzf', resolve(dest, 'original-evidence.tar.gz'), '-C', extract]);
+assert.deepEqual(inventory(extract), rows);
+for (const workspace of [...workspaces, ...browsers]) assert.deepEqual(inventory(workspace.originalPath), workspace.rows);
+guard('after');
+const archive = readFileSync(resolve(dest, 'original-evidence.tar.gz'));
+const audit = {
+  schema: 1, status: 'ARCHIVE_BYTES_VERIFIED_NOT_RELEASE',
+  archive: { bytes: archive.length, sha256: sha(archive) }, members: plan.count, expandedBytes: plan.bytes, rowsSha256: plan.rowsSha256,
+  nativeCreate: packed.receipt, nativeExtract: unpacked.receipt,
+  checks: { freshStage: true, freshExtractionEveryPathBytesAndSha256: true, allNineOriginalWorkspacesUnchanged: true,
+    bothOriginalBrowserDirectoriesUnchanged: true, finalSource281Unchanged: true, selectedSource257: true,
+    actualSite129Unchanged: true, selectedSite105: true, installed68Unchanged: true, headBranchIndexUnchanged: true,
+    allSevenFinalLocalGatesMatchFrozenSource: true, actualNativeFailuresPreserved: true, sourceAndBrowserPayloadsVerified: true },
+  finalSourceRowsSha256: frozen.sourceRowsSha256, finalSiteRowsSha256: plan.site.rowsSha256,
+  missingOriginals: [
+    'Second archive attempt native1 stopped on two existing synthetic diagnostic-redaction fixtures. Native terminal output was not independently redirected; original failed script, before receipts and explicit review retained. a3 uses exact file and match hash allowlist, never disables screening.',
+    'First archive attempt native1 was observed in the terminal, not redirected into original independent native stdout/stderr/receipt files. Original script, before receipts and explicit failure observation retained; no missing original reconstructed.',
+    'Initial PWA worker has stdout/stderr but no originally saved standalone native-exit receipts; not reconstructed.',
+    'PWA takeover has protocol, receipts, source snapshots and transcripts, but no original REPORT.md; not reconstructed.',
+    'Original patch-order/hunk wrapper failures and scope probe/readonly syntax checks that existed only in thread output have no independent saved native receipt; original scripts/reports retained without fabricated receipts.',
+    'Original five-test RED receipt is retained; sixth wiring regression was added later and has no pre-fix RED claim.',
+    'Successful browser run has last-run and accuracy artifact only; no invented success trace or screenshot.'
+  ],
+  release: false, m3Exit: false, newPerformanceRun: false, immutableCommitCI: false,
+};
+saveJSON(resolve(dest, 'archive-audit.json'), audit);
+save(resolve(dest, 'archive-tool.mjs.txt'), readFileSync(import.meta.filename));
+for (const entry of readdirSync(here, { withFileTypes: true })) {
+  if (entry.isFile() && /^(?:before|after|tar-create|tar-extract)[-.]/.test(entry.name)) save(resolve(dest, 'archive-native', entry.name), readFileSync(resolve(here, entry.name)));
+}
+process.stdout.write(JSON.stringify(audit, null, 2) + '\n');
+
+
+
+

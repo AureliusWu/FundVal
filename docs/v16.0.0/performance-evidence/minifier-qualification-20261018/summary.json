@@ -1,0 +1,4797 @@
+{
+  "schema": 1,
+  "sourceCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+  "originalBudget": {
+    "all": 77227.7,
+    "cold": 52241
+  },
+  "originalRecipe": {
+    "all": 80494,
+    "cold": 42985,
+    "raw": 235647,
+    "chunks": 16
+  },
+  "sourceAndSiteUnchanged": true,
+  "adopted": false,
+  "qualification": {
+    "sourceTests": "NOT_RUN_THIS_EXPERIMENT",
+    "compressedPublicApi": "NOT_RUN",
+    "browserE2e": "NOT_RUN",
+    "relativeLatency": "NOT_RUN",
+    "production": "NOT_RUN"
+  },
+  "failedHarnessAttempt": {
+    "file": "compare-minifiers.mjs",
+    "reason": "Input auditor rejected a zero-expression static TemplateLiteral dynamic import before valid series completed. Original script and attempt preserved; v2 auditor accepts only StringLiteral or exact single-quasi zero-expression TemplateLiteral. Actual computed imports still reject."
+  },
+  "hybridScreen": {
+    "kind": "ARITHMETIC_SCREEN_NOT_BUILD_OR_FORMAL_BOUND",
+    "bestChunkSum": 80288,
+    "deltaFromOriginal": -206,
+    "remainingIntegerBytes": 3061,
+    "chunks": [
+      {
+        "name": "bootstrap",
+        "role": "cold",
+        "gzip": {
+          "oxc-original": 2234,
+          "terser-conservative-p2": 2258,
+          "esbuild-full-conservative": 2242,
+          "swc-conservative-p2": 2242
+        }
+      },
+      {
+        "name": "accuracy",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 92,
+          "terser-conservative-p2": 120,
+          "esbuild-full-conservative": 93,
+          "swc-conservative-p2": 92
+        }
+      },
+      {
+        "name": "app",
+        "role": "cold",
+        "gzip": {
+          "oxc-original": 57,
+          "terser-conservative-p2": 57,
+          "esbuild-full-conservative": 58,
+          "swc-conservative-p2": 57
+        }
+      },
+      {
+        "name": "business-features",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 374,
+          "terser-conservative-p2": 372,
+          "esbuild-full-conservative": 374,
+          "swc-conservative-p2": 371
+        }
+      },
+      {
+        "name": "business-runtime",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 27185,
+          "terser-conservative-p2": 27286,
+          "esbuild-full-conservative": 28336,
+          "swc-conservative-p2": 27055
+        }
+      },
+      {
+        "name": "cloud-archive-ui",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 92,
+          "terser-conservative-p2": 92,
+          "esbuild-full-conservative": 93,
+          "swc-conservative-p2": 92
+        }
+      },
+      {
+        "name": "cloud",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 6382,
+          "terser-conservative-p2": 6456,
+          "esbuild-full-conservative": 6623,
+          "swc-conservative-p2": 6361
+        }
+      },
+      {
+        "name": "cloud-runtime",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 184,
+          "terser-conservative-p2": 184,
+          "esbuild-full-conservative": 183,
+          "swc-conservative-p2": 184
+        }
+      },
+      {
+        "name": "diagnostics",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 2884,
+          "terser-conservative-p2": 2901,
+          "esbuild-full-conservative": 2916,
+          "swc-conservative-p2": 2902
+        }
+      },
+      {
+        "name": "diagnostics-ui",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 90,
+          "terser-conservative-p2": 90,
+          "esbuild-full-conservative": 91,
+          "swc-conservative-p2": 90
+        }
+      },
+      {
+        "name": "gist-runtime",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 137,
+          "terser-conservative-p2": 134,
+          "esbuild-full-conservative": 139,
+          "swc-conservative-p2": 136
+        }
+      },
+      {
+        "name": "post-integrity",
+        "role": "cold",
+        "gzip": {
+          "oxc-original": 32206,
+          "terser-conservative-p2": 32351,
+          "esbuild-full-conservative": 32888,
+          "swc-conservative-p2": 32214
+        }
+      },
+      {
+        "name": "quote-diagnostics",
+        "role": "lazy",
+        "gzip": {
+          "oxc-original": 89,
+          "terser-conservative-p2": 89,
+          "esbuild-full-conservative": 89,
+          "swc-conservative-p2": 89
+        }
+      },
+      {
+        "name": "startup-migrations",
+        "role": "cold",
+        "gzip": {
+          "oxc-original": 94,
+          "terser-conservative-p2": 93,
+          "esbuild-full-conservative": 94,
+          "swc-conservative-p2": 93
+        }
+      },
+      {
+        "name": "startup-pure",
+        "role": "cold",
+        "gzip": {
+          "oxc-original": 8263,
+          "terser-conservative-p2": 8304,
+          "esbuild-full-conservative": 8520,
+          "swc-conservative-p2": 8218
+        }
+      },
+      {
+        "name": "startup-repository",
+        "role": "cold",
+        "gzip": {
+          "oxc-original": 131,
+          "terser-conservative-p2": 129,
+          "esbuild-full-conservative": 132,
+          "swc-conservative-p2": 132
+        }
+      }
+    ]
+  },
+  "tools": [
+    {
+      "path": "compare-minifiers.mjs",
+      "bytes": 10297,
+      "sha256": "a37530c9297ac2a58873d7b504d4b9b733e133da7b5da5da86c8956a52e92364"
+    },
+    {
+      "path": "compare-minifiers-v2.mjs",
+      "bytes": 10699,
+      "sha256": "fdbc59d6d6f8631882d071515394c23af044f19b5137ccfa25fc73ba1b0f641b"
+    },
+    {
+      "path": "compare-esbuild-v1.mjs",
+      "bytes": 10582,
+      "sha256": "ebac52164445f1b2bf105c99c94992598aa9d3435bbaa31050d8d4cc67b445eb"
+    },
+    {
+      "path": "compare-swc-v1.mjs",
+      "bytes": 11124,
+      "sha256": "57058a5db0e536ddba8ca804d0cfa54f8b7e4695c3b917527157d7b551c4e79a"
+    },
+    {
+      "path": "summarize-experiments.mjs",
+      "bytes": 3119,
+      "sha256": "a6e111a0fdc1e0e5b75260ad0e7dc7534d0f6880573ac84f664677bfb27cd610"
+    },
+    {
+      "path": "package.json",
+      "bytes": 132,
+      "sha256": "e0054fb8662651ec4182cb82824de9816b389973564b46de6ae525e7c6bdf86f"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 4784,
+      "sha256": "abe8da5ec432f8a5f05ea207f88e4fc021e5de2d0332257af683fdb1dca20ffa"
+    },
+    {
+      "path": "swc-probe/package.json",
+      "bytes": 140,
+      "sha256": "9080309ff585f6b1b6f7e100e15fe4d72736e4b553ea44ddcb1c9f2d64c2a5ca"
+    },
+    {
+      "path": "swc-probe/package-lock.json",
+      "bytes": 8540,
+      "sha256": "b9b336143881dbf95c4c75d10b567b4d6f6e5652a6f16f802f420c93d89e22f5"
+    }
+  ],
+  "results": [
+    {
+      "folder": "series-v2",
+      "protocol": {
+        "sourceCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+        "variants": [
+          {
+            "id": "oxc-original",
+            "minify": "oxc"
+          },
+          {
+            "id": "terser-conservative-p2",
+            "minify": "terser",
+            "options": {
+              "ecma": 2022,
+              "module": true,
+              "maxWorkers": 1,
+              "compress": {
+                "passes": 2,
+                "pure_getters": false,
+                "unsafe": false,
+                "keep_fargs": true,
+                "builtins_pure": false,
+                "pure_funcs": null,
+                "pure_new": false,
+                "drop_console": false,
+                "drop_debugger": false,
+                "global_defs": false
+              },
+              "mangle": {
+                "properties": false
+              },
+              "format": {
+                "comments": "some"
+              }
+            }
+          }
+        ],
+        "order": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "rounds": 3,
+        "onlyRecipeDifferences": [
+          "build.minify",
+          "build.terserOptions"
+        ],
+        "additionalPlugin": "Transparent input capture around original vite:terser renderChunk; forwards exact code/options/context and returns original result",
+        "write": false,
+        "mustMatchOriginal": {
+          "all": 80494,
+          "cold": 42985,
+          "raw": 235647,
+          "chunks": 16
+        },
+        "adoption": false
+      },
+      "protocolSha256": "c1adc565b0e69cb8c2f61032b13bcafe7e37ac91a165d1ef3ea88dde19c13eaa",
+      "rawReportSha256": "9ffcef00922ad721a06b1a7a362f78a857f5f9b4b82f1fcb23230374b725501d",
+      "before": {
+        "originalJs": {
+          "files": 73,
+          "bytes": 691230,
+          "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+        },
+        "originalSite": {
+          "files": 127,
+          "bytes": 92507677,
+          "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+        },
+        "snapshotJs": {
+          "files": 73,
+          "bytes": 706013,
+          "sha256": "4dae7314056375bf160ae24dd361d4dda8d95fe50b8a82c6621da8732d442ae1"
+        },
+        "git": ""
+      },
+      "after": {
+        "originalJs": {
+          "files": 73,
+          "bytes": 691230,
+          "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+        },
+        "originalSite": {
+          "files": 127,
+          "bytes": 92507677,
+          "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+        },
+        "snapshotJs": {
+          "files": 73,
+          "bytes": 706013,
+          "sha256": "4dae7314056375bf160ae24dd361d4dda8d95fe50b8a82c6621da8732d442ae1"
+        },
+        "git": ""
+      },
+      "unchanged": true,
+      "runs": [
+        {
+          "variant": "oxc-original",
+          "round": 1,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 133.41359999999997,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "terser-conservative-p2",
+          "round": 1,
+          "chunks": 16,
+          "raw": 237249,
+          "all": 80916,
+          "cold": 43192,
+          "buildWallMs": 1580.3763999999999,
+          "chunkFingerprint": "ea13a86c8290556c53adf09ea314425782af9059da51147cfc3fb66cc49a4ca2",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "terser-conservative-p2",
+          "round": 2,
+          "chunks": 16,
+          "raw": 237249,
+          "all": 80916,
+          "cold": 43192,
+          "buildWallMs": 2666.1138999999994,
+          "chunkFingerprint": "ea13a86c8290556c53adf09ea314425782af9059da51147cfc3fb66cc49a4ca2",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "oxc-original",
+          "round": 2,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 118.36369999999988,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "oxc-original",
+          "round": 3,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 127.84519999999975,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "terser-conservative-p2",
+          "round": 3,
+          "chunks": 16,
+          "raw": 237249,
+          "all": 80916,
+          "cold": 43192,
+          "buildWallMs": 2103.0591999999997,
+          "chunkFingerprint": "ea13a86c8290556c53adf09ea314425782af9059da51147cfc3fb66cc49a4ca2",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        }
+      ],
+      "representativeChunks": [
+        {
+          "variant": "oxc-original",
+          "rows": [
+            {
+              "path": "js/app-shell.js",
+              "name": "bootstrap",
+              "role": "cold",
+              "bytes": 5056,
+              "gzip": 2234,
+              "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d",
+              "exports": [],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/startup-repository-B04CzfgI.js",
+                "js/chunks/startup-migrations-CEzhCYv4.js",
+                "js/chunks/app-C1KeC5Vr.js"
+              ]
+            },
+            {
+              "path": "js/chunks/accuracy-AV5UnMZT.js",
+              "name": "accuracy",
+              "role": "lazy",
+              "bytes": 77,
+              "gzip": 92,
+              "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+              "exports": [
+                "loadAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-63t7lKdA.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/app-C1KeC5Vr.js",
+              "name": "app",
+              "role": "cold",
+              "bytes": 37,
+              "gzip": 57,
+              "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+              "exports": [],
+              "imports": [
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-features-BxmeGblZ.js",
+              "name": "business-features",
+              "role": "lazy",
+              "bytes": 665,
+              "gzip": 374,
+              "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+              "exports": [
+                "applyOverseasModelEstimate",
+                "assessDetailSecurityQuote",
+                "calculateHoldingsEstimate",
+                "commitHoldingEdit",
+                "composeFundEnrichment",
+                "createHoldingsTransfer",
+                "createNotificationController",
+                "createQuoteBridgeClient",
+                "executeDetailSecurityQuotes",
+                "executeRefreshPlan",
+                "fetchEstimateRows",
+                "fetchFundHoldings",
+                "getOverseasConfig",
+                "holdingQuoteCode",
+                "loadOverseasModels",
+                "normalizeTencentQuoteTime",
+                "selectOverseasModel",
+                "updateFundAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-63t7lKdA.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-runtime-63t7lKdA.js",
+              "name": "business-runtime",
+              "role": "lazy",
+              "bytes": 80965,
+              "gzip": 27185,
+              "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5",
+              "exports": [
+                "C",
+                "S",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/accuracy-AV5UnMZT.js"
+              ]
+            },
+            {
+              "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+              "name": "cloud-archive-ui",
+              "role": "lazy",
+              "bytes": 79,
+              "gzip": 92,
+              "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+              "exports": [
+                "createCloudArchiveFeature"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-CLK5Spot.js",
+              "name": "cloud",
+              "role": "lazy",
+              "bytes": 18694,
+              "gzip": 6382,
+              "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574",
+              "exports": [
+                "a",
+                "c",
+                "i",
+                "l",
+                "n",
+                "o",
+                "r",
+                "s",
+                "t",
+                "u"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+              "name": "cloud-runtime",
+              "role": "lazy",
+              "bytes": 254,
+              "gzip": 184,
+              "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+              "exports": [
+                "canonicalCloudPayload",
+                "finalizeCloudSyncMetadata",
+                "finalizeCreatedArchiveState",
+                "makeCloudWritePayload",
+                "pullHoldingsCloud",
+                "synchronizeHoldingsCloud"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-DLmiIP_p.js",
+              "name": "diagnostics",
+              "role": "lazy",
+              "bytes": 5628,
+              "gzip": 2884,
+              "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858",
+              "exports": [
+                "n",
+                "t"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+              "name": "diagnostics-ui",
+              "role": "lazy",
+              "bytes": 83,
+              "gzip": 90,
+              "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+              "exports": [
+                "createDiagnosticsCenter"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-DLmiIP_p.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+              "name": "gist-runtime",
+              "role": "lazy",
+              "bytes": 141,
+              "gzip": 137,
+              "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+              "exports": [
+                "createGistRemoteAdapter",
+                "findExistingHoldingsGist",
+                "v3GistFilename"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+              "name": "post-integrity",
+              "role": "cold",
+              "bytes": 96333,
+              "gzip": 32206,
+              "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96",
+              "exports": [
+                "A",
+                "C",
+                "D",
+                "E",
+                "M",
+                "N",
+                "O",
+                "P",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/business-features-BxmeGblZ.js",
+                "js/chunks/cloud-runtime-CB3MWviH.js",
+                "js/chunks/gist-runtime-BB2WMPEu.js",
+                "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+                "js/chunks/quote-diagnostics-DLE2n5e9.js",
+                "js/chunks/diagnostics-ui-BarnPzjK.js"
+              ]
+            },
+            {
+              "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+              "name": "quote-diagnostics",
+              "role": "lazy",
+              "bytes": 82,
+              "gzip": 89,
+              "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+              "exports": [
+                "renderQuoteDiagnostics"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-DLmiIP_p.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+              "name": "startup-migrations",
+              "role": "cold",
+              "bytes": 79,
+              "gzip": 94,
+              "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+              "exports": [
+                "runLocalMigrations"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-pure-v6vu1dD4.js",
+              "name": "startup-pure",
+              "role": "cold",
+              "bytes": 27349,
+              "gzip": 8263,
+              "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4",
+              "exports": [
+                "C",
+                "D",
+                "E",
+                "O",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-repository-B04CzfgI.js",
+              "name": "startup-repository",
+              "role": "cold",
+              "bytes": 125,
+              "gzip": 131,
+              "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+              "exports": [
+                "recoverPendingRepositoryTransaction",
+                "withHoldingsLock"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": []
+            }
+          ]
+        },
+        {
+          "variant": "terser-conservative-p2",
+          "rows": [
+            {
+              "path": "js/app-shell.js",
+              "name": "bootstrap",
+              "role": "cold",
+              "bytes": 5139,
+              "gzip": 2258,
+              "sha256": "adb054e9c2f9d52342a0aef5f147fed65b5d6b08c1ceac2b0461705e01bb2ac8",
+              "exports": [],
+              "imports": [
+                "js/chunks/startup-pure-Cd0xtoXu.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/startup-repository-cTd5A1NH.js",
+                "js/chunks/startup-migrations-DbOkF_b2.js",
+                "js/chunks/app-DNxlWFwy.js"
+              ]
+            },
+            {
+              "path": "js/chunks/accuracy-BkSSkt_8.js",
+              "name": "accuracy",
+              "role": "lazy",
+              "bytes": 119,
+              "gzip": 120,
+              "sha256": "d6482544f95b6bc52d61fedb9808875943113642d0a86d8da12d244494c9ec49",
+              "exports": [
+                "loadAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-BXp01HiO.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/app-DNxlWFwy.js",
+              "name": "app",
+              "role": "cold",
+              "bytes": 37,
+              "gzip": 57,
+              "sha256": "f135e12382a769b60d6f4c9c2f4a707c5d45d89ea3b38b4b4bc101a19e030b86",
+              "exports": [],
+              "imports": [
+                "js/chunks/post-integrity-wih82okz.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-features-bDazudlt.js",
+              "name": "business-features",
+              "role": "lazy",
+              "bytes": 660,
+              "gzip": 372,
+              "sha256": "be5a5d9e088d855f3ca0b859d34866247cdc2452e836906a3fedb582d25513ba",
+              "exports": [
+                "applyOverseasModelEstimate",
+                "assessDetailSecurityQuote",
+                "calculateHoldingsEstimate",
+                "commitHoldingEdit",
+                "composeFundEnrichment",
+                "createHoldingsTransfer",
+                "createNotificationController",
+                "createQuoteBridgeClient",
+                "executeDetailSecurityQuotes",
+                "executeRefreshPlan",
+                "fetchEstimateRows",
+                "fetchFundHoldings",
+                "getOverseasConfig",
+                "holdingQuoteCode",
+                "loadOverseasModels",
+                "normalizeTencentQuoteTime",
+                "selectOverseasModel",
+                "updateFundAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-BXp01HiO.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-runtime-BXp01HiO.js",
+              "name": "business-runtime",
+              "role": "lazy",
+              "bytes": 81863,
+              "gzip": 27286,
+              "sha256": "8b90e9ac86b58c91609712bdabe600de107d1fad1823684e6b6a7809740abfba",
+              "exports": [
+                "C",
+                "S",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-Cd0xtoXu.js",
+                "js/chunks/post-integrity-wih82okz.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/accuracy-BkSSkt_8.js"
+              ]
+            },
+            {
+              "path": "js/chunks/cloud-archive-ui-DQxR8JHG.js",
+              "name": "cloud-archive-ui",
+              "role": "lazy",
+              "bytes": 79,
+              "gzip": 92,
+              "sha256": "e6c3ad0d39490fd8ac21c55da7c34b3b430a323f3448746e6cce79f877e8b12c",
+              "exports": [
+                "createCloudArchiveFeature"
+              ],
+              "imports": [
+                "js/chunks/cloud-CWUy3C96.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-CWUy3C96.js",
+              "name": "cloud",
+              "role": "lazy",
+              "bytes": 18826,
+              "gzip": 6456,
+              "sha256": "9ff0e9ee98864168b9b4dc0be24fe889df1c4a5cb2dd3848319c89968b02d09f",
+              "exports": [
+                "a",
+                "c",
+                "i",
+                "l",
+                "n",
+                "o",
+                "r",
+                "s",
+                "t",
+                "u"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-Cd0xtoXu.js",
+                "js/chunks/post-integrity-wih82okz.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-runtime-iBbDLo8b.js",
+              "name": "cloud-runtime",
+              "role": "lazy",
+              "bytes": 254,
+              "gzip": 184,
+              "sha256": "4ba09089f605c1c8db3e082b6db8f84ab6e13135cb4521323a9f864f0b337296",
+              "exports": [
+                "canonicalCloudPayload",
+                "finalizeCloudSyncMetadata",
+                "finalizeCreatedArchiveState",
+                "makeCloudWritePayload",
+                "pullHoldingsCloud",
+                "synchronizeHoldingsCloud"
+              ],
+              "imports": [
+                "js/chunks/cloud-CWUy3C96.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-D-zxzzwH.js",
+              "name": "diagnostics",
+              "role": "lazy",
+              "bytes": 5592,
+              "gzip": 2901,
+              "sha256": "b2a3d209cb461aec9263e1a9379e7ec8a2e49786d3357d64d520e4bd55b8779e",
+              "exports": [
+                "n",
+                "t"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-Cd0xtoXu.js",
+                "js/chunks/post-integrity-wih82okz.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-ui-_mAnPF-1.js",
+              "name": "diagnostics-ui",
+              "role": "lazy",
+              "bytes": 83,
+              "gzip": 90,
+              "sha256": "1f7d11866c2ff517d13727dc45135f340e988feb8b7f5623640c5cdbe923537b",
+              "exports": [
+                "createDiagnosticsCenter"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-D-zxzzwH.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/gist-runtime-DhKfYhij.js",
+              "name": "gist-runtime",
+              "role": "lazy",
+              "bytes": 136,
+              "gzip": 134,
+              "sha256": "3c9e5d77473a540bdc7bfc983973399175bd306bf3e241ee4a2c80b645236e1e",
+              "exports": [
+                "createGistRemoteAdapter",
+                "findExistingHoldingsGist",
+                "v3GistFilename"
+              ],
+              "imports": [
+                "js/chunks/cloud-CWUy3C96.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/post-integrity-wih82okz.js",
+              "name": "post-integrity",
+              "role": "cold",
+              "bytes": 96600,
+              "gzip": 32351,
+              "sha256": "6ad2921c0365f3fcc538abff030f3b25632a8a17765c69127310815ce427f322",
+              "exports": [
+                "A",
+                "C",
+                "D",
+                "E",
+                "M",
+                "N",
+                "O",
+                "P",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-Cd0xtoXu.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/business-features-bDazudlt.js",
+                "js/chunks/cloud-runtime-iBbDLo8b.js",
+                "js/chunks/gist-runtime-DhKfYhij.js",
+                "js/chunks/cloud-archive-ui-DQxR8JHG.js",
+                "js/chunks/quote-diagnostics-Q50n6p64.js",
+                "js/chunks/diagnostics-ui-_mAnPF-1.js"
+              ]
+            },
+            {
+              "path": "js/chunks/quote-diagnostics-Q50n6p64.js",
+              "name": "quote-diagnostics",
+              "role": "lazy",
+              "bytes": 82,
+              "gzip": 89,
+              "sha256": "18fdbc6c4f55a47345d7aaabf7a378a9fc6815d729620ccbfbe7675e4dc9dc34",
+              "exports": [
+                "renderQuoteDiagnostics"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-D-zxzzwH.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-migrations-DbOkF_b2.js",
+              "name": "startup-migrations",
+              "role": "cold",
+              "bytes": 79,
+              "gzip": 93,
+              "sha256": "4aeac1d78e85d66f30b447874b9446d744899910f7ee351461a525b64530d202",
+              "exports": [
+                "runLocalMigrations"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-Cd0xtoXu.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-pure-Cd0xtoXu.js",
+              "name": "startup-pure",
+              "role": "cold",
+              "bytes": 27575,
+              "gzip": 8304,
+              "sha256": "793a0bd6749205d2b42233dddb4c330174355a8e325ee0b8564987018241ac01",
+              "exports": [
+                "C",
+                "D",
+                "E",
+                "O",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-repository-cTd5A1NH.js",
+              "name": "startup-repository",
+              "role": "cold",
+              "bytes": 125,
+              "gzip": 129,
+              "sha256": "0ffe5ffa56f22431c80dcc7f381cc78ba7a7068653679bdc0a0ae729e9c81386",
+              "exports": [
+                "recoverPendingRepositoryTransaction",
+                "withHoldingsLock"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-Cd0xtoXu.js"
+              ],
+              "dynamicImports": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "folder": "series-esbuild-v1",
+      "protocol": {
+        "sourceCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+        "variants": [
+          {
+            "id": "oxc-original",
+            "minify": "oxc"
+          },
+          {
+            "id": "esbuild-full-conservative",
+            "minify": "esbuild",
+            "options": {
+              "ignoreAnnotations": true
+            }
+          }
+        ],
+        "order": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "rounds": 3,
+        "onlyRecipeDifferences": [
+          "build.minify",
+          "esbuild.ignoreAnnotations"
+        ],
+        "additionalPlugin": "Transparent input capture around original vite:terser or vite:esbuild-transpile renderChunk; forwards exact code/options/context and returns original result",
+        "write": false,
+        "mustMatchOriginal": {
+          "all": 80494,
+          "cold": 42985,
+          "raw": 235647,
+          "chunks": 16
+        },
+        "adoption": false
+      },
+      "protocolSha256": "523c790bebd5443ca81539dd8888f9531aee201fbf64056c9b456905bb3067cc",
+      "rawReportSha256": "698ccc32fbb8fcac272fb257764f13d62f705a9be7f5a39d3ee9b14850492810",
+      "before": {
+        "originalJs": {
+          "files": 73,
+          "bytes": 691230,
+          "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+        },
+        "originalSite": {
+          "files": 127,
+          "bytes": 92507677,
+          "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+        },
+        "snapshotJs": {
+          "files": 73,
+          "bytes": 706013,
+          "sha256": "4dae7314056375bf160ae24dd361d4dda8d95fe50b8a82c6621da8732d442ae1"
+        },
+        "git": ""
+      },
+      "after": {
+        "originalJs": {
+          "files": 73,
+          "bytes": 691230,
+          "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+        },
+        "originalSite": {
+          "files": 127,
+          "bytes": 92507677,
+          "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+        },
+        "snapshotJs": {
+          "files": 73,
+          "bytes": 706013,
+          "sha256": "4dae7314056375bf160ae24dd361d4dda8d95fe50b8a82c6621da8732d442ae1"
+        },
+        "git": ""
+      },
+      "unchanged": true,
+      "runs": [
+        {
+          "variant": "oxc-original",
+          "round": 1,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 140.92650000000003,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "esbuild-full-conservative",
+          "round": 1,
+          "chunks": 16,
+          "raw": 238490,
+          "all": 82871,
+          "cold": 43934,
+          "buildWallMs": 250.3506000000001,
+          "chunkFingerprint": "979fe6b76d54e1a415e7891336dbdf9b4835cd68eb9f38a4bb5fd673dfe4f03c",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "esbuild-full-conservative",
+          "round": 2,
+          "chunks": 16,
+          "raw": 238490,
+          "all": 82871,
+          "cold": 43934,
+          "buildWallMs": 125.72199999999998,
+          "chunkFingerprint": "979fe6b76d54e1a415e7891336dbdf9b4835cd68eb9f38a4bb5fd673dfe4f03c",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "oxc-original",
+          "round": 2,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 89.29410000000007,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "oxc-original",
+          "round": 3,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 88.45530000000008,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "esbuild-full-conservative",
+          "round": 3,
+          "chunks": 16,
+          "raw": 238490,
+          "all": 82871,
+          "cold": 43934,
+          "buildWallMs": 122.86819999999989,
+          "chunkFingerprint": "979fe6b76d54e1a415e7891336dbdf9b4835cd68eb9f38a4bb5fd673dfe4f03c",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        }
+      ],
+      "representativeChunks": [
+        {
+          "variant": "oxc-original",
+          "rows": [
+            {
+              "path": "js/app-shell.js",
+              "name": "bootstrap",
+              "role": "cold",
+              "bytes": 5056,
+              "gzip": 2234,
+              "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d",
+              "exports": [],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/startup-repository-B04CzfgI.js",
+                "js/chunks/startup-migrations-CEzhCYv4.js",
+                "js/chunks/app-C1KeC5Vr.js"
+              ]
+            },
+            {
+              "path": "js/chunks/accuracy-AV5UnMZT.js",
+              "name": "accuracy",
+              "role": "lazy",
+              "bytes": 77,
+              "gzip": 92,
+              "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+              "exports": [
+                "loadAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-63t7lKdA.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/app-C1KeC5Vr.js",
+              "name": "app",
+              "role": "cold",
+              "bytes": 37,
+              "gzip": 57,
+              "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+              "exports": [],
+              "imports": [
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-features-BxmeGblZ.js",
+              "name": "business-features",
+              "role": "lazy",
+              "bytes": 665,
+              "gzip": 374,
+              "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+              "exports": [
+                "applyOverseasModelEstimate",
+                "assessDetailSecurityQuote",
+                "calculateHoldingsEstimate",
+                "commitHoldingEdit",
+                "composeFundEnrichment",
+                "createHoldingsTransfer",
+                "createNotificationController",
+                "createQuoteBridgeClient",
+                "executeDetailSecurityQuotes",
+                "executeRefreshPlan",
+                "fetchEstimateRows",
+                "fetchFundHoldings",
+                "getOverseasConfig",
+                "holdingQuoteCode",
+                "loadOverseasModels",
+                "normalizeTencentQuoteTime",
+                "selectOverseasModel",
+                "updateFundAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-63t7lKdA.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-runtime-63t7lKdA.js",
+              "name": "business-runtime",
+              "role": "lazy",
+              "bytes": 80965,
+              "gzip": 27185,
+              "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5",
+              "exports": [
+                "C",
+                "S",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/accuracy-AV5UnMZT.js"
+              ]
+            },
+            {
+              "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+              "name": "cloud-archive-ui",
+              "role": "lazy",
+              "bytes": 79,
+              "gzip": 92,
+              "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+              "exports": [
+                "createCloudArchiveFeature"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-CLK5Spot.js",
+              "name": "cloud",
+              "role": "lazy",
+              "bytes": 18694,
+              "gzip": 6382,
+              "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574",
+              "exports": [
+                "a",
+                "c",
+                "i",
+                "l",
+                "n",
+                "o",
+                "r",
+                "s",
+                "t",
+                "u"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+              "name": "cloud-runtime",
+              "role": "lazy",
+              "bytes": 254,
+              "gzip": 184,
+              "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+              "exports": [
+                "canonicalCloudPayload",
+                "finalizeCloudSyncMetadata",
+                "finalizeCreatedArchiveState",
+                "makeCloudWritePayload",
+                "pullHoldingsCloud",
+                "synchronizeHoldingsCloud"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-DLmiIP_p.js",
+              "name": "diagnostics",
+              "role": "lazy",
+              "bytes": 5628,
+              "gzip": 2884,
+              "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858",
+              "exports": [
+                "n",
+                "t"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+              "name": "diagnostics-ui",
+              "role": "lazy",
+              "bytes": 83,
+              "gzip": 90,
+              "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+              "exports": [
+                "createDiagnosticsCenter"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-DLmiIP_p.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+              "name": "gist-runtime",
+              "role": "lazy",
+              "bytes": 141,
+              "gzip": 137,
+              "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+              "exports": [
+                "createGistRemoteAdapter",
+                "findExistingHoldingsGist",
+                "v3GistFilename"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+              "name": "post-integrity",
+              "role": "cold",
+              "bytes": 96333,
+              "gzip": 32206,
+              "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96",
+              "exports": [
+                "A",
+                "C",
+                "D",
+                "E",
+                "M",
+                "N",
+                "O",
+                "P",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/business-features-BxmeGblZ.js",
+                "js/chunks/cloud-runtime-CB3MWviH.js",
+                "js/chunks/gist-runtime-BB2WMPEu.js",
+                "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+                "js/chunks/quote-diagnostics-DLE2n5e9.js",
+                "js/chunks/diagnostics-ui-BarnPzjK.js"
+              ]
+            },
+            {
+              "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+              "name": "quote-diagnostics",
+              "role": "lazy",
+              "bytes": 82,
+              "gzip": 89,
+              "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+              "exports": [
+                "renderQuoteDiagnostics"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-DLmiIP_p.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+              "name": "startup-migrations",
+              "role": "cold",
+              "bytes": 79,
+              "gzip": 94,
+              "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+              "exports": [
+                "runLocalMigrations"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-pure-v6vu1dD4.js",
+              "name": "startup-pure",
+              "role": "cold",
+              "bytes": 27349,
+              "gzip": 8263,
+              "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4",
+              "exports": [
+                "C",
+                "D",
+                "E",
+                "O",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-repository-B04CzfgI.js",
+              "name": "startup-repository",
+              "role": "cold",
+              "bytes": 125,
+              "gzip": 131,
+              "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+              "exports": [
+                "recoverPendingRepositoryTransaction",
+                "withHoldingsLock"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": []
+            }
+          ]
+        },
+        {
+          "variant": "esbuild-full-conservative",
+          "rows": [
+            {
+              "path": "js/app-shell.js",
+              "name": "bootstrap",
+              "role": "cold",
+              "bytes": 5099,
+              "gzip": 2242,
+              "sha256": "e6023585a4387480427e348771c8a8cac36db09db4fedba8d896d9c6413f9fd4",
+              "exports": [],
+              "imports": [
+                "js/chunks/startup-pure-CmGaa5Xu.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/startup-repository-BLzXmEE_.js",
+                "js/chunks/startup-migrations-BqVUpGZI.js",
+                "js/chunks/app-Aqx_qfvU.js"
+              ]
+            },
+            {
+              "path": "js/chunks/accuracy-77ViAIeG.js",
+              "name": "accuracy",
+              "role": "lazy",
+              "bytes": 78,
+              "gzip": 93,
+              "sha256": "cb5ea0f0204d191ccb3b78a635d1e58e1721be86ae2cd9065bf10cb2001e41fa",
+              "exports": [
+                "loadAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-Dsl17RFt.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/app-Aqx_qfvU.js",
+              "name": "app",
+              "role": "cold",
+              "bytes": 38,
+              "gzip": 58,
+              "sha256": "ec64459c0279145778b31e9c93fdbe800e777a0943466d2509ffd6a855801d6f",
+              "exports": [],
+              "imports": [
+                "js/chunks/post-integrity-hoKYdX28.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-features-XRQN9UUK.js",
+              "name": "business-features",
+              "role": "lazy",
+              "bytes": 661,
+              "gzip": 374,
+              "sha256": "85bf15892e92ee1203378e06fb7b2db7a4842a664872f63bed0741a7800ee65d",
+              "exports": [
+                "applyOverseasModelEstimate",
+                "assessDetailSecurityQuote",
+                "calculateHoldingsEstimate",
+                "commitHoldingEdit",
+                "composeFundEnrichment",
+                "createHoldingsTransfer",
+                "createNotificationController",
+                "createQuoteBridgeClient",
+                "executeDetailSecurityQuotes",
+                "executeRefreshPlan",
+                "fetchEstimateRows",
+                "fetchFundHoldings",
+                "getOverseasConfig",
+                "holdingQuoteCode",
+                "loadOverseasModels",
+                "normalizeTencentQuoteTime",
+                "selectOverseasModel",
+                "updateFundAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-Dsl17RFt.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-runtime-Dsl17RFt.js",
+              "name": "business-runtime",
+              "role": "lazy",
+              "bytes": 82119,
+              "gzip": 28336,
+              "sha256": "8e58bcb4a9e2648962dff8bd4c68a17c0970fc8aebfc143bb00c03fa10c1a73c",
+              "exports": [
+                "C",
+                "S",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CmGaa5Xu.js",
+                "js/chunks/post-integrity-hoKYdX28.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/accuracy-77ViAIeG.js"
+              ]
+            },
+            {
+              "path": "js/chunks/cloud-archive-ui-ak_dwHxl.js",
+              "name": "cloud-archive-ui",
+              "role": "lazy",
+              "bytes": 80,
+              "gzip": 93,
+              "sha256": "9fee4008dd36b9cc639b9da2f03ecbd900773cabd43cdee1edfd1c454c2b4f3b",
+              "exports": [
+                "createCloudArchiveFeature"
+              ],
+              "imports": [
+                "js/chunks/cloud-Cf4HSMX-.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-Cf4HSMX-.js",
+              "name": "cloud",
+              "role": "lazy",
+              "bytes": 19038,
+              "gzip": 6623,
+              "sha256": "aed72db0ba156b4fde995679fbeadb7d8e49c2848737a3401454596b5e4302b5",
+              "exports": [
+                "a",
+                "c",
+                "i",
+                "l",
+                "n",
+                "o",
+                "r",
+                "s",
+                "t",
+                "u"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CmGaa5Xu.js",
+                "js/chunks/post-integrity-hoKYdX28.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-runtime-CFbOkWIw.js",
+              "name": "cloud-runtime",
+              "role": "lazy",
+              "bytes": 245,
+              "gzip": 183,
+              "sha256": "0f4f8e2e848adcaee642ebb4f8f0e0bbb53e80e1f11dfcea0c4624b89e134d77",
+              "exports": [
+                "canonicalCloudPayload",
+                "finalizeCloudSyncMetadata",
+                "finalizeCreatedArchiveState",
+                "makeCloudWritePayload",
+                "pullHoldingsCloud",
+                "synchronizeHoldingsCloud"
+              ],
+              "imports": [
+                "js/chunks/cloud-Cf4HSMX-.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-Bv0bJ6T0.js",
+              "name": "diagnostics",
+              "role": "lazy",
+              "bytes": 5645,
+              "gzip": 2916,
+              "sha256": "8c20b05437f5f8837f6d583919c9a36e283d649f986ffb82bd28b2466a963d5d",
+              "exports": [
+                "n",
+                "t"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CmGaa5Xu.js",
+                "js/chunks/post-integrity-hoKYdX28.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-ui-qEgZdcgZ.js",
+              "name": "diagnostics-ui",
+              "role": "lazy",
+              "bytes": 84,
+              "gzip": 91,
+              "sha256": "2c874097b2cb8492e42dabbd6c853ec284fdfa8ec74dc55098613683006180a5",
+              "exports": [
+                "createDiagnosticsCenter"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-Bv0bJ6T0.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/gist-runtime-1L0tfOaU.js",
+              "name": "gist-runtime",
+              "role": "lazy",
+              "bytes": 142,
+              "gzip": 139,
+              "sha256": "4c9e838ae95c1a8e3f9f9d7bfd442e26f39616cf4cb19d8d09c974b03b53fe8a",
+              "exports": [
+                "createGistRemoteAdapter",
+                "findExistingHoldingsGist",
+                "v3GistFilename"
+              ],
+              "imports": [
+                "js/chunks/cloud-Cf4HSMX-.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/post-integrity-hoKYdX28.js",
+              "name": "post-integrity",
+              "role": "cold",
+              "bytes": 97263,
+              "gzip": 32888,
+              "sha256": "1177c4edb862a2a3720eb3730a32a461fbd768064a6ac8981b60e1f02bf43598",
+              "exports": [
+                "A",
+                "C",
+                "D",
+                "E",
+                "M",
+                "N",
+                "O",
+                "P",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CmGaa5Xu.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/business-features-XRQN9UUK.js",
+                "js/chunks/cloud-runtime-CFbOkWIw.js",
+                "js/chunks/gist-runtime-1L0tfOaU.js",
+                "js/chunks/cloud-archive-ui-ak_dwHxl.js",
+                "js/chunks/quote-diagnostics-HnWEkfJh.js",
+                "js/chunks/diagnostics-ui-qEgZdcgZ.js"
+              ]
+            },
+            {
+              "path": "js/chunks/quote-diagnostics-HnWEkfJh.js",
+              "name": "quote-diagnostics",
+              "role": "lazy",
+              "bytes": 83,
+              "gzip": 89,
+              "sha256": "2e23d793e09ab0421acc5dce3f22bed99d96abad05b542af39fa6881408f7147",
+              "exports": [
+                "renderQuoteDiagnostics"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-Bv0bJ6T0.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-migrations-BqVUpGZI.js",
+              "name": "startup-migrations",
+              "role": "cold",
+              "bytes": 80,
+              "gzip": 94,
+              "sha256": "7f7ec2256415075edd99094043b80ffe29d7a993abfce674fac0b027d98a0e65",
+              "exports": [
+                "runLocalMigrations"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CmGaa5Xu.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-pure-CmGaa5Xu.js",
+              "name": "startup-pure",
+              "role": "cold",
+              "bytes": 27709,
+              "gzip": 8520,
+              "sha256": "3975ddeef417f11c872e61fb9a4cd54074bfa3af27b130fb65ff676209bca057",
+              "exports": [
+                "C",
+                "D",
+                "E",
+                "O",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-repository-BLzXmEE_.js",
+              "name": "startup-repository",
+              "role": "cold",
+              "bytes": 126,
+              "gzip": 132,
+              "sha256": "ca6fd0d5339d08e6da597517b252ca8e3b61e7fd4b553a9dcda75523eca0eae1",
+              "exports": [
+                "recoverPendingRepositoryTransaction",
+                "withHoldingsLock"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CmGaa5Xu.js"
+              ],
+              "dynamicImports": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "folder": "series-swc-v1",
+      "protocol": {
+        "sourceCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+        "variants": [
+          {
+            "id": "oxc-original",
+            "minify": "oxc"
+          },
+          {
+            "id": "swc-conservative-p2",
+            "minify": "terser",
+            "engine": "swc",
+            "options": {
+              "ecma": 2022,
+              "module": true,
+              "toplevel": true,
+              "safari10": true,
+              "sourceMap": false,
+              "compress": {
+                "passes": 2,
+                "pure_getters": false,
+                "unsafe": false,
+                "keep_fargs": true,
+                "pure_funcs": [],
+                "drop_console": false,
+                "drop_debugger": false,
+                "global_defs": {}
+              },
+              "mangle": {
+                "topLevel": true
+              },
+              "format": {
+                "comments": "some"
+              }
+            }
+          }
+        ],
+        "order": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "rounds": 3,
+        "onlyRecipeDifferences": [
+          "build.minify",
+          "vite:terser renderChunk replacement uses pinned SWC with explicit conservative options"
+        ],
+        "additionalPlugin": "Oxc unchanged. SWC variant disables native Rolldown minification through the standard Vite terser mode; captures the same renderChunk input then invokes SWC instead of Terser. Outputs return through Rolldown final hash/link generation.",
+        "write": false,
+        "mustMatchOriginal": {
+          "all": 80494,
+          "cold": 42985,
+          "raw": 235647,
+          "chunks": 16
+        },
+        "adoption": false
+      },
+      "protocolSha256": "88f574d12de7a2196bd9d279d712efd4915f9f1a96550361d9f58076771b8141",
+      "rawReportSha256": "0518fd0bffd7f947bbe01ef32a9663a84e306d6e2a717d6a97c8af5fc8d1dfef",
+      "before": {
+        "originalJs": {
+          "files": 73,
+          "bytes": 691230,
+          "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+        },
+        "originalSite": {
+          "files": 127,
+          "bytes": 92507677,
+          "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+        },
+        "snapshotJs": {
+          "files": 73,
+          "bytes": 706013,
+          "sha256": "4dae7314056375bf160ae24dd361d4dda8d95fe50b8a82c6621da8732d442ae1"
+        },
+        "git": ""
+      },
+      "after": {
+        "originalJs": {
+          "files": 73,
+          "bytes": 691230,
+          "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+        },
+        "originalSite": {
+          "files": 127,
+          "bytes": 92507677,
+          "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+        },
+        "snapshotJs": {
+          "files": 73,
+          "bytes": 706013,
+          "sha256": "4dae7314056375bf160ae24dd361d4dda8d95fe50b8a82c6621da8732d442ae1"
+        },
+        "git": ""
+      },
+      "unchanged": true,
+      "runs": [
+        {
+          "variant": "oxc-original",
+          "round": 1,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 128.0694000000001,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "swc-conservative-p2",
+          "round": 1,
+          "chunks": 16,
+          "raw": 233930,
+          "all": 80328,
+          "cold": 42956,
+          "buildWallMs": 115.62159999999994,
+          "chunkFingerprint": "d5ba9def2474974e3176f68f7e6df70787a8d9b0027e8be40f77851db68b3eee",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "swc-conservative-p2",
+          "round": 2,
+          "chunks": 16,
+          "raw": 233930,
+          "all": 80328,
+          "cold": 42956,
+          "buildWallMs": 112.1884,
+          "chunkFingerprint": "d5ba9def2474974e3176f68f7e6df70787a8d9b0027e8be40f77851db68b3eee",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "oxc-original",
+          "round": 2,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 91.2460000000001,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "oxc-original",
+          "round": 3,
+          "chunks": 16,
+          "raw": 235647,
+          "all": 80494,
+          "cold": 42985,
+          "buildWallMs": 179.06960000000004,
+          "chunkFingerprint": "4abb499d0574c29f0b0d6b80f7225e7af6be86066f907b7bd29f342c13c5248e",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        },
+        {
+          "variant": "swc-conservative-p2",
+          "round": 3,
+          "chunks": 16,
+          "raw": 233930,
+          "all": 80328,
+          "cold": 42956,
+          "buildWallMs": 115.47320000000013,
+          "chunkFingerprint": "d5ba9def2474974e3176f68f7e6df70787a8d9b0027e8be40f77851db68b3eee",
+          "moduleRoleHash": "edf5d8384ccea08f72b2eb25274ab218f0be449d804f74e339a7bdf2a1adab91",
+          "isolationVerified": true,
+          "finalImportLinkVerified": true,
+          "capturedInputs": [
+            {
+              "name": "accuracy",
+              "bytes": 232,
+              "sha256": "a75e1a0a284a9c09cdcfd279bb323ee41cbc2e1ae7be64233ffda79901bda259",
+              "pureMarkers": 0
+            },
+            {
+              "name": "app",
+              "bytes": 39,
+              "sha256": "4c6dd337a313a7c77c57aaf3a62c1f70634a82947387f302c35dc17f7a05ba50",
+              "pureMarkers": 0
+            },
+            {
+              "name": "bootstrap",
+              "bytes": 8314,
+              "sha256": "c29f065fe98bd720c73b8d1c0bfae0cbba504be0fb4b7b442bdf869fbdd5fc92",
+              "pureMarkers": 1
+            },
+            {
+              "name": "business-features",
+              "bytes": 980,
+              "sha256": "0c8a43d00dbb6c79d29ffaa08a32e76a1ef6ff7134be3bb5f7c0a5c822663821",
+              "pureMarkers": 0
+            },
+            {
+              "name": "business-runtime",
+              "bytes": 145641,
+              "sha256": "8576e877b1429a808d897a39fea3298d5d0f2ee29bf8ec9aa9fbf43cce64f352",
+              "pureMarkers": 44
+            },
+            {
+              "name": "cloud",
+              "bytes": 36172,
+              "sha256": "a52ddcdafa1518a7197aa963ead2abec53af5f4d11e841cc320ac1132efb8f27",
+              "pureMarkers": 2
+            },
+            {
+              "name": "cloud-archive-ui",
+              "bytes": 108,
+              "sha256": "a3f7d1ec610c3be75b5d874bdd57b6bd95320c01474e2fa844453592178e960f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "cloud-runtime",
+              "bytes": 373,
+              "sha256": "37604d8639635bf0e6c56b30a8972cc10fa284f9126bb062b30d37c95bd5da8f",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics",
+              "bytes": 9362,
+              "sha256": "b5c3fecb0db14acfa9d8cfb5147104267e1e72b15cd73aacd86ba25a8071f84a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "diagnostics-ui",
+              "bytes": 110,
+              "sha256": "0d1bcc70e00106f03573772d0439e4f51fcaaa9de12b5eb5c105a8cf438c5f36",
+              "pureMarkers": 0
+            },
+            {
+              "name": "gist-runtime",
+              "bytes": 198,
+              "sha256": "4461703bfd5e58df5f041eda016a4d3988c5bf0ca2da83b21b014b73b5312bf5",
+              "pureMarkers": 0
+            },
+            {
+              "name": "post-integrity",
+              "bytes": 167994,
+              "sha256": "9b0d89182c25ec0339058ceb30c60690b255be16a49b9aa75a2ba099148b5749",
+              "pureMarkers": 22
+            },
+            {
+              "name": "quote-diagnostics",
+              "bytes": 108,
+              "sha256": "f617d8edb9b524e4a0280a9c520163ca1ae310f890e3979b75d5ba369f44249c",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-migrations",
+              "bytes": 101,
+              "sha256": "11a4babf3a5ae30e0e0966cda7fda58bbc42f88fc64630b3c92933ed178de01a",
+              "pureMarkers": 0
+            },
+            {
+              "name": "startup-pure",
+              "bytes": 51956,
+              "sha256": "c418ad5d6e09400e1a9239aa6936e8e49675502ac1d5677f3c03a41b3357b806",
+              "pureMarkers": 15
+            },
+            {
+              "name": "startup-repository",
+              "bytes": 176,
+              "sha256": "93b0eed9731063e7196ef3612a5e0476d113d2ac7451f3a9e10a0cfdf0e5162e",
+              "pureMarkers": 0
+            }
+          ]
+        }
+      ],
+      "representativeChunks": [
+        {
+          "variant": "oxc-original",
+          "rows": [
+            {
+              "path": "js/app-shell.js",
+              "name": "bootstrap",
+              "role": "cold",
+              "bytes": 5056,
+              "gzip": 2234,
+              "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d",
+              "exports": [],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/startup-repository-B04CzfgI.js",
+                "js/chunks/startup-migrations-CEzhCYv4.js",
+                "js/chunks/app-C1KeC5Vr.js"
+              ]
+            },
+            {
+              "path": "js/chunks/accuracy-AV5UnMZT.js",
+              "name": "accuracy",
+              "role": "lazy",
+              "bytes": 77,
+              "gzip": 92,
+              "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+              "exports": [
+                "loadAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-63t7lKdA.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/app-C1KeC5Vr.js",
+              "name": "app",
+              "role": "cold",
+              "bytes": 37,
+              "gzip": 57,
+              "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+              "exports": [],
+              "imports": [
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-features-BxmeGblZ.js",
+              "name": "business-features",
+              "role": "lazy",
+              "bytes": 665,
+              "gzip": 374,
+              "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+              "exports": [
+                "applyOverseasModelEstimate",
+                "assessDetailSecurityQuote",
+                "calculateHoldingsEstimate",
+                "commitHoldingEdit",
+                "composeFundEnrichment",
+                "createHoldingsTransfer",
+                "createNotificationController",
+                "createQuoteBridgeClient",
+                "executeDetailSecurityQuotes",
+                "executeRefreshPlan",
+                "fetchEstimateRows",
+                "fetchFundHoldings",
+                "getOverseasConfig",
+                "holdingQuoteCode",
+                "loadOverseasModels",
+                "normalizeTencentQuoteTime",
+                "selectOverseasModel",
+                "updateFundAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-63t7lKdA.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-runtime-63t7lKdA.js",
+              "name": "business-runtime",
+              "role": "lazy",
+              "bytes": 80965,
+              "gzip": 27185,
+              "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5",
+              "exports": [
+                "C",
+                "S",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/accuracy-AV5UnMZT.js"
+              ]
+            },
+            {
+              "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+              "name": "cloud-archive-ui",
+              "role": "lazy",
+              "bytes": 79,
+              "gzip": 92,
+              "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+              "exports": [
+                "createCloudArchiveFeature"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-CLK5Spot.js",
+              "name": "cloud",
+              "role": "lazy",
+              "bytes": 18694,
+              "gzip": 6382,
+              "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574",
+              "exports": [
+                "a",
+                "c",
+                "i",
+                "l",
+                "n",
+                "o",
+                "r",
+                "s",
+                "t",
+                "u"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+              "name": "cloud-runtime",
+              "role": "lazy",
+              "bytes": 254,
+              "gzip": 184,
+              "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+              "exports": [
+                "canonicalCloudPayload",
+                "finalizeCloudSyncMetadata",
+                "finalizeCreatedArchiveState",
+                "makeCloudWritePayload",
+                "pullHoldingsCloud",
+                "synchronizeHoldingsCloud"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-DLmiIP_p.js",
+              "name": "diagnostics",
+              "role": "lazy",
+              "bytes": 5628,
+              "gzip": 2884,
+              "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858",
+              "exports": [
+                "n",
+                "t"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js",
+                "js/chunks/post-integrity-LZsxxjFJ.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+              "name": "diagnostics-ui",
+              "role": "lazy",
+              "bytes": 83,
+              "gzip": 90,
+              "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+              "exports": [
+                "createDiagnosticsCenter"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-DLmiIP_p.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+              "name": "gist-runtime",
+              "role": "lazy",
+              "bytes": 141,
+              "gzip": 137,
+              "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+              "exports": [
+                "createGistRemoteAdapter",
+                "findExistingHoldingsGist",
+                "v3GistFilename"
+              ],
+              "imports": [
+                "js/chunks/cloud-CLK5Spot.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+              "name": "post-integrity",
+              "role": "cold",
+              "bytes": 96333,
+              "gzip": 32206,
+              "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96",
+              "exports": [
+                "A",
+                "C",
+                "D",
+                "E",
+                "M",
+                "N",
+                "O",
+                "P",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/business-features-BxmeGblZ.js",
+                "js/chunks/cloud-runtime-CB3MWviH.js",
+                "js/chunks/gist-runtime-BB2WMPEu.js",
+                "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+                "js/chunks/quote-diagnostics-DLE2n5e9.js",
+                "js/chunks/diagnostics-ui-BarnPzjK.js"
+              ]
+            },
+            {
+              "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+              "name": "quote-diagnostics",
+              "role": "lazy",
+              "bytes": 82,
+              "gzip": 89,
+              "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+              "exports": [
+                "renderQuoteDiagnostics"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-DLmiIP_p.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+              "name": "startup-migrations",
+              "role": "cold",
+              "bytes": 79,
+              "gzip": 94,
+              "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+              "exports": [
+                "runLocalMigrations"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-pure-v6vu1dD4.js",
+              "name": "startup-pure",
+              "role": "cold",
+              "bytes": 27349,
+              "gzip": 8263,
+              "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4",
+              "exports": [
+                "C",
+                "D",
+                "E",
+                "O",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-repository-B04CzfgI.js",
+              "name": "startup-repository",
+              "role": "cold",
+              "bytes": 125,
+              "gzip": 131,
+              "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+              "exports": [
+                "recoverPendingRepositoryTransaction",
+                "withHoldingsLock"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-v6vu1dD4.js"
+              ],
+              "dynamicImports": []
+            }
+          ]
+        },
+        {
+          "variant": "swc-conservative-p2",
+          "rows": [
+            {
+              "path": "js/app-shell.js",
+              "name": "bootstrap",
+              "role": "cold",
+              "bytes": 5048,
+              "gzip": 2242,
+              "sha256": "e7c5bddcf32ebaa59ac13c0277a506a366ef1a5f1dd19bf565ebc6da079af4ab",
+              "exports": [],
+              "imports": [
+                "js/chunks/startup-pure-CW7c3wvF.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/startup-repository-ucSME9dN.js",
+                "js/chunks/startup-migrations-Zx9TYMXQ.js",
+                "js/chunks/app-CbiZ4m55.js"
+              ]
+            },
+            {
+              "path": "js/chunks/accuracy-DmWUWCvM.js",
+              "name": "accuracy",
+              "role": "lazy",
+              "bytes": 77,
+              "gzip": 92,
+              "sha256": "560b4da9cfd72dd64abb30328ab6508ffa49bac5a6aca57416d6f191e89e53ed",
+              "exports": [
+                "loadAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-B7cvgbFR.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/app-CbiZ4m55.js",
+              "name": "app",
+              "role": "cold",
+              "bytes": 37,
+              "gzip": 57,
+              "sha256": "7afceb18e8a33aadaf06605ac210c8b57943c27fed6dd984389aad790ab7af16",
+              "exports": [],
+              "imports": [
+                "js/chunks/post-integrity-Buf8-doV.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-features-DjV6lo4p.js",
+              "name": "business-features",
+              "role": "lazy",
+              "bytes": 665,
+              "gzip": 371,
+              "sha256": "2c6039d8b91a7c764479b6b104f51a2374f2e78b07e21af5bc4d1ae0eec41cd0",
+              "exports": [
+                "applyOverseasModelEstimate",
+                "assessDetailSecurityQuote",
+                "calculateHoldingsEstimate",
+                "commitHoldingEdit",
+                "composeFundEnrichment",
+                "createHoldingsTransfer",
+                "createNotificationController",
+                "createQuoteBridgeClient",
+                "executeDetailSecurityQuotes",
+                "executeRefreshPlan",
+                "fetchEstimateRows",
+                "fetchFundHoldings",
+                "getOverseasConfig",
+                "holdingQuoteCode",
+                "loadOverseasModels",
+                "normalizeTencentQuoteTime",
+                "selectOverseasModel",
+                "updateFundAccuracy"
+              ],
+              "imports": [
+                "js/chunks/business-runtime-B7cvgbFR.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/business-runtime-B7cvgbFR.js",
+              "name": "business-runtime",
+              "role": "lazy",
+              "bytes": 80503,
+              "gzip": 27055,
+              "sha256": "2f8da3750fc1473dcbacc168bdf70a4ead69a346b92895b5cf073acb7efe6ac9",
+              "exports": [
+                "C",
+                "S",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CW7c3wvF.js",
+                "js/chunks/post-integrity-Buf8-doV.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/accuracy-DmWUWCvM.js"
+              ]
+            },
+            {
+              "path": "js/chunks/cloud-archive-ui-VB7PMBtO.js",
+              "name": "cloud-archive-ui",
+              "role": "lazy",
+              "bytes": 79,
+              "gzip": 92,
+              "sha256": "47ddd44a9e9ce0a919c6cb1378e4d84584c7c063e693d4919375e45e6d834c3d",
+              "exports": [
+                "createCloudArchiveFeature"
+              ],
+              "imports": [
+                "js/chunks/cloud-BhckWuux.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-BhckWuux.js",
+              "name": "cloud",
+              "role": "lazy",
+              "bytes": 18614,
+              "gzip": 6361,
+              "sha256": "6643b81cf7afebf735c1e208939d320e0d297acaa0d0f72579669a4e9d24b18d",
+              "exports": [
+                "a",
+                "c",
+                "i",
+                "l",
+                "n",
+                "o",
+                "r",
+                "s",
+                "t",
+                "u"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CW7c3wvF.js",
+                "js/chunks/post-integrity-Buf8-doV.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/cloud-runtime-BhFAftYq.js",
+              "name": "cloud-runtime",
+              "role": "lazy",
+              "bytes": 254,
+              "gzip": 184,
+              "sha256": "71a76591e95247cf5ef2f27f5e55dbc58e1f2cf17934a47d23bf9177cddb15d0",
+              "exports": [
+                "canonicalCloudPayload",
+                "finalizeCloudSyncMetadata",
+                "finalizeCreatedArchiveState",
+                "makeCloudWritePayload",
+                "pullHoldingsCloud",
+                "synchronizeHoldingsCloud"
+              ],
+              "imports": [
+                "js/chunks/cloud-BhckWuux.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-Benf5-jK.js",
+              "name": "diagnostics",
+              "role": "lazy",
+              "bytes": 5558,
+              "gzip": 2902,
+              "sha256": "86ba80de7e20334c9e5ee5894a62bcdd97fd247c3fc2c3010059b4be797cb852",
+              "exports": [
+                "n",
+                "t"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CW7c3wvF.js",
+                "js/chunks/post-integrity-Buf8-doV.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/diagnostics-ui-Dmxb5vuo.js",
+              "name": "diagnostics-ui",
+              "role": "lazy",
+              "bytes": 83,
+              "gzip": 90,
+              "sha256": "ca0112cc154fb5242f37878afb173e7c276e5b03bde428e42b65805b563c5d67",
+              "exports": [
+                "createDiagnosticsCenter"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-Benf5-jK.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/gist-runtime-DRgxnjcF.js",
+              "name": "gist-runtime",
+              "role": "lazy",
+              "bytes": 141,
+              "gzip": 136,
+              "sha256": "a5e14420d9dc4afe3f937af3c773154efe566195033dbed5cc66fe16ee32d013",
+              "exports": [
+                "createGistRemoteAdapter",
+                "findExistingHoldingsGist",
+                "v3GistFilename"
+              ],
+              "imports": [
+                "js/chunks/cloud-BhckWuux.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/post-integrity-Buf8-doV.js",
+              "name": "post-integrity",
+              "role": "cold",
+              "bytes": 95404,
+              "gzip": 32214,
+              "sha256": "ad5620b61d17ea95ebafba0e981c1d59ad79f0682d87da7e47c236805963529b",
+              "exports": [
+                "A",
+                "C",
+                "D",
+                "E",
+                "M",
+                "N",
+                "O",
+                "P",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CW7c3wvF.js"
+              ],
+              "dynamicImports": [
+                "js/chunks/business-features-DjV6lo4p.js",
+                "js/chunks/cloud-runtime-BhFAftYq.js",
+                "js/chunks/gist-runtime-DRgxnjcF.js",
+                "js/chunks/cloud-archive-ui-VB7PMBtO.js",
+                "js/chunks/quote-diagnostics-EWG_zk9T.js",
+                "js/chunks/diagnostics-ui-Dmxb5vuo.js"
+              ]
+            },
+            {
+              "path": "js/chunks/quote-diagnostics-EWG_zk9T.js",
+              "name": "quote-diagnostics",
+              "role": "lazy",
+              "bytes": 82,
+              "gzip": 89,
+              "sha256": "9ea0d9de2626935a90e3dc46ea45436663c484ad5c379b05f5d169575f8b2a7d",
+              "exports": [
+                "renderQuoteDiagnostics"
+              ],
+              "imports": [
+                "js/chunks/diagnostics-Benf5-jK.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-migrations-Zx9TYMXQ.js",
+              "name": "startup-migrations",
+              "role": "cold",
+              "bytes": 79,
+              "gzip": 93,
+              "sha256": "2ddff66f507a0a31e6c3882958c8f166f485d99228f8f0658f8fef0bc9a2c97a",
+              "exports": [
+                "runLocalMigrations"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CW7c3wvF.js"
+              ],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-pure-CW7c3wvF.js",
+              "name": "startup-pure",
+              "role": "cold",
+              "bytes": 27181,
+              "gzip": 8218,
+              "sha256": "a7ab5eaa67c912c729fd3106a95a27885565bd53db88f2fb183e3d8b443f5624",
+              "exports": [
+                "C",
+                "D",
+                "E",
+                "O",
+                "S",
+                "T",
+                "_",
+                "a",
+                "b",
+                "c",
+                "d",
+                "f",
+                "g",
+                "h",
+                "i",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p",
+                "r",
+                "s",
+                "t",
+                "u",
+                "v",
+                "w",
+                "x",
+                "y"
+              ],
+              "imports": [],
+              "dynamicImports": []
+            },
+            {
+              "path": "js/chunks/startup-repository-ucSME9dN.js",
+              "name": "startup-repository",
+              "role": "cold",
+              "bytes": 125,
+              "gzip": 132,
+              "sha256": "7d1df1389e95710d01ce7d6d934a9c0d8de011c27cd7eef6791a1ddc4cf281a4",
+              "exports": [
+                "recoverPendingRepositoryTransaction",
+                "withHoldingsLock"
+              ],
+              "imports": [
+                "js/chunks/startup-pure-CW7c3wvF.js"
+              ],
+              "dynamicImports": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

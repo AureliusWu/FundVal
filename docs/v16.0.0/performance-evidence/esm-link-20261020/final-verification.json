@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "sourceIdentityRowsVerified": 213,
+  "sourceLfSha256": "0f45a4fff641976b19ef1d27559d17cccc395dbe7cc29200a8e3bbde3f12b343",
+  "archives": [
+    {
+      "folder": "esm-link-20261020",
+      "files": 16,
+      "pass": true
+    },
+    {
+      "folder": "format-only-20261020",
+      "files": 7,
+      "pass": true
+    }
+  ],
+  "raw800Unchanged": true,
+  "formatReportSha256": "48613f6314eaff8c72754b708d890afe20db92f3d4e95de92f2ba7d9924ecf2c",
+  "businessAndBuildRecipeDiffEmpty": true,
+  "productFingerprint": "4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948",
+  "e2ePortAfter": {
+    "port": 12437,
+    "host": "127.0.0.1",
+    "observed": "ECONNREFUSED"
+  },
+  "whitespaceCheck": "PASS",
+  "ci": "NOT_TRIGGERED",
+  "production": "NOT_RUN",
+  "version": "15.0.2",
+  "m3": "IN_PROGRESS"
+}

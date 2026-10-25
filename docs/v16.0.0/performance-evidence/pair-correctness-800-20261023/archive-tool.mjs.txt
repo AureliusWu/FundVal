@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { sha, inv, json, save, native } from 'file:///C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-20261023-parent/common.mjs';
+const here=import.meta.dirname,root='D:/AI项目/FundVal',parent='C:/Users/84046/AppData/Local/Temp/FundVal-pair-correctness-800-20261023-parent';
+const dest=resolve(root,'docs/v16.0.0/performance-evidence/pair-correctness-800-20261023'),stage=resolve(here,'stage'),extract=resolve(here,'extract');
+const frozen=json(resolve(parent,'FROZEN.json')),source=json('C:/Users/84046/AppData/Local/Temp/FundVal-budget-policy-20261023-parent/FINAL_SOURCE_V2.json');
+const rawPath=resolve(root,'docs/v16.0.0/performance-evidence/m3-pair-correctness-800-20261023.json'),raw=readFileSync(rawPath),outcome=json(resolve(parent,'OUTCOME.json')),audit=json(resolve(parent,'INDEPENDENT_AUDIT.json'));
+const protocol=resolve(dest,'PROTOCOL.md');assert.equal(sha(readFileSync(protocol)),frozen.protocolSha256);
+assert.equal(existsSync(stage),false);assert.equal(existsSync(extract),false);assert.equal(existsSync(resolve(dest,'original-evidence.tar.gz')),false);
+assert.equal(existsSync(resolve(parent,'FINAL_REVIEW.md')),true);assert.equal(audit.status,'INDEPENDENT_AUDIT_PASS');assert.equal(audit.failed.length,0);assert.equal(audit.checkCount,12883);
+assert.equal(audit.raw.status,'PASS');assert.equal(audit.raw.nativeExit,0);assert.equal(raw.length,88033360);assert.equal(sha(raw),'7a72633783011c112ee8661ab079a93f1c61c9db8a5e9554c7b5bd65f9c7dd42');assert.equal(outcome.postflightError,null);
+function guard(label){
+  assert.deepEqual(inv(root,new Set(['.git','node_modules','site','Temp','.claude','docs'])),source.noDocs);
+  assert.deepEqual(inv(resolve(root,'site')),frozen.artifact.files.map(r=>({...r})).sort((a,b)=>a.path.localeCompare(b.path)));
+  for(const r of frozen.installed){const b=readFileSync(resolve(root,'node_modules',r.path));assert.equal(b.length,r.bytes);assert.equal(sha(b),r.sha256);}
+  const fixed=source.full.find(r=>r.path==='docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md');assert.equal(sha(readFileSync(resolve(root,fixed.path))),fixed.sha256);
+  for(const[tag,args,expected]of[['head',['rev-parse','HEAD'],frozen.head],['branch',['branch','--show-current'],frozen.branch],['index',['diff','--cached','--binary'],frozen.index],['tracked-diff',['diff','--binary','HEAD','--'],frozen.trackedDiffSha256]]){
+    const r=native(here,label+'-'+tag,'git',['-C',root,...args]);assert.equal(r.receipt.nativeExit,0);assert.equal(tag==='index'||tag==='tracked-diff'?sha(r.stdout):r.stdout.toString().trim(),expected);
+  }
+}
+guard('before');
+function copyRows(base,rows,prefix){for(const r of rows){const b=readFileSync(resolve(base,r.path));assert.equal(b.length,r.bytes);assert.equal(sha(b),r.sha256);save(resolve(stage,prefix,r.path),b);}}
+const parentRows=inv(parent),sourceRows=source.full.filter(r=>!r.path.startsWith('.codex-tmp/')),selectedSite=frozen.artifact.files.filter(r=>!r.path.startsWith('assets/ocr/'));
+assert.equal(sourceRows.length,250);copyRows(parent,parentRows,'parent');copyRows(root,sourceRows,'final-source');copyRows(resolve(root,'site'),selectedSite,'selected-current-site');
+save(resolve(stage,'raw/PAIR.json'),raw);save(resolve(stage,'protocol/PROTOCOL.md'),readFileSync(protocol));save(resolve(stage,'archive-tool.mjs.txt'),readFileSync(import.meta.filename));
+const rows=inv(stage),plan={schema:1,scope:'Actual unique800+4 timings and complete current-source evidence, not CI/device/production/release',
+  raw:{path:'raw/PAIR.json',bytes:raw.length,sha256:sha(raw)},parentWorkspace:parent,
+  source:{completeInventory:source.full,payloadCount:sourceRows.length,omittedHistoricalAndroid:24,rowsSha256:source.sourceRowsSha256},
+  currentSite:{completeInventory:frozen.artifact.files,selectedPayloadCount:selectedSite.length,omitted:'generated OCR payloads; inventory only'},
+  referenceSite:{completeInventory:audit.artifacts.reference.files,actualPayloadIncluded:false,note:'Managed snapshot was cleaned; no claim to reread/preserve its removed payload or internal build logs'},
+  installedInventory:frozen.installed,installedPayloadIncluded:false,
+  independentAudit:{firstInvocationNativeObservation:'Codex exec session64594 completion chunk0832f8 native0; original stdout was a tool output, not a saved stdout file',machineJson:'parent/INDEPENDENT_AUDIT.json'},
+  rows,count:rows.length,bytes:rows.reduce((n,r)=>n+r.bytes,0),rowsSha256:sha(JSON.stringify(rows))};
+save(resolve(here,'PLAN.json'),JSON.stringify(plan,null,2)+'\n');save(resolve(dest,'archive-plan.json'),JSON.stringify(plan,null,2)+'\n');
+const packed=native(here,'tar-create','tar.exe',['-czf',resolve(dest,'original-evidence.tar.gz'),'-C',stage,'.'],180000);assert.equal(packed.receipt.nativeExit,0);
+mkdirSync(extract);const unpacked=native(here,'tar-extract','tar.exe',['-xzf',resolve(dest,'original-evidence.tar.gz'),'-C',extract],180000);assert.equal(unpacked.receipt.nativeExit,0);
+assert.deepEqual(inv(extract),rows);assert.deepEqual(inv(parent),parentRows);guard('after');
+const archivedRaw=readFileSync(resolve(extract,'raw/PAIR.json'));assert.equal(archivedRaw.length,raw.length);assert.equal(sha(archivedRaw),sha(raw));
+const compressed=readFileSync(resolve(dest,'original-evidence.tar.gz'));
+const archiveAudit={schema:1,status:'ARCHIVE_VERIFIED_NOT_M3_EXIT_OR_RELEASE',archive:{bytes:compressed.length,sha256:sha(compressed)},members:rows.length,expandedBytes:plan.bytes,rowsSha256:plan.rowsSha256,
+  raw:plan.raw,nativeCreate:packed.receipt,nativeExtract:unpacked.receipt,checks:{allFreshExtractionRows:true,actualRaw88MbRoundTrip:true,parentWorkspaceUnchanged:true,finalSource274:true,physicalCurrent127:true,installed68:true,headBranchIndexAndSamePhaseTrackedDiff:true,selectedSource250:true,actualFinalReviewIncluded:true},
+  timingVerdict:'PASS',independentAudit:'12883 checks / 0 failures',release:false,m3Exit:false};
+save(resolve(dest,'archive-audit.json'),JSON.stringify(archiveAudit,null,2)+'\n');save(resolve(dest,'archive-tool.mjs.txt'),readFileSync(import.meta.filename));
+process.stdout.write(JSON.stringify(archiveAudit)+'\n');

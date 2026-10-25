@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "algorithm": "Sorted JS file inventory, UTF8 with CRLF normalized to LF",
+  "equal": true,
+  "results": [
+    {
+      "base": "D:/AI项目/FundVal/js",
+      "files": 73,
+      "bytes": 690165,
+      "lfSha256": "1e977700b15bfad1e182e9c91038f28474ad2aa6cc74bb2ebda667aed2328d9c"
+    },
+    {
+      "base": "C:/Users/84046/AppData/Local/Temp/fundval-m3-minifier-5806c73ce04e4538992a1f6a39f21444/source/js",
+      "files": 73,
+      "bytes": 690165,
+      "lfSha256": "1e977700b15bfad1e182e9c91038f28474ad2aa6cc74bb2ebda667aed2328d9c"
+    }
+  ]
+}

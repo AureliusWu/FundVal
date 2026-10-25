@@ -1,0 +1,84 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { readFile, readdir, lstat, writeFile, mkdir, mkdtemp, cp } from 'node:fs/promises';
+import { dirname, resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const directory = dirname(fileURLToPath(import.meta.url)), root = 'D:/AI项目/FundVal';
+const output = resolve(root, 'docs/v16.0.0/performance-evidence/plan-reasons-20261020');
+const sha = b => createHash('sha256').update(b).digest('hex');
+await mkdir(output, { recursive: true });
+const build = JSON.parse(await readFile(resolve(directory, 'build-verification.json'), 'utf8'));
+const unit = JSON.parse(await readFile(resolve(directory, 'unit-complete.json'), 'utf8'));
+const syntax = JSON.parse(await readFile(resolve(directory, 'syntax-complete.json'), 'utf8'));
+const e2e = JSON.parse(await readFile(resolve(directory, 'e2e-final.json'), 'utf8'));
+const budget = JSON.parse(await readFile(resolve(directory, 'budget-final.json'), 'utf8'));
+for (const record of [unit, syntax, e2e]) assert.equal(record.status, 0);
+assert.match(unit.stdout, /tests 1159/); assert.match(unit.stdout, /pass 1156/);
+assert.match(unit.stdout, /fail 0/); assert.match(unit.stdout, /skipped 3/);
+assert.match(syntax.stdout, /Syntax checked 211/); assert.match(e2e.stdout, /32 passed/);
+assert.equal(budget.status, 1); assert.equal(build.runs[0].budget.verdict, 'FAIL');
+const selected = ['js/runtime/refresh-plan.js', 'js/runtime/refresh-execution.js', 'js/runtime/refresh-generation.js',
+  'js/runtime/diagnostics-ui.js', 'test/refresh-plan-reasons-v16.test.js', 'test/refresh-diagnostics-store-v16.test.js',
+  'test/refresh-diagnostics-view-v16.test.js', 'test/refresh-observation-v16.test.js', 'test/refresh-execution-v16.test.js',
+  'test/runtime-plan-characterization-v16.test.js', 'e2e/v16-refresh.spec.js'];
+for (const path of selected) {
+  const target = resolve(directory, 'sources', path); await mkdir(dirname(target), { recursive: true });
+  await cp(resolve(root, path), target, { errorOnExist: true, force: false });
+}
+function git(args, encoding = 'utf8') {
+  const result = spawnSync('git', args, { cwd: root, encoding, maxBuffer: 16 * 1024 * 1024, windowsHide: true });
+  assert.equal(result.status, 0, String(result.stderr)); return result.stdout;
+}
+await writeFile(resolve(directory, 'tracked-diff.patch'), git(['diff', '--binary', 'HEAD']), { flag: 'wx' });
+const untouched = ['scripts/build-site.mjs', 'package.json', 'package-lock.json', 'js/version.js',
+  'js/runtime/refresh-coordinator.js', 'js/runtime/refresh-runtime.js', 'js/runtime/refresh-resource-cache.js',
+  'js/runtime/generation-resource-scope.js', 'js/runtime/source-registry.js'];
+assert.equal(git(['diff', '--name-only', 'HEAD', '--', ...untouched]), '');
+const state = { branch: git(['branch', '--show-current']).trim(), head: git(['rev-parse', 'HEAD']).trim(),
+  status: git(['status', '--short']), protectedFilesUnchangedFromHead: untouched,
+  actualBusinessChangesThisWindow: selected.filter(path => path.startsWith('js/')) };
+await writeFile(resolve(directory, 'git-state.json'), JSON.stringify(state, null, 2) + '\n', { flag: 'wx' });
+const qa = { schema: 1, version: '15.0.2', stage: 'M3_IN_PROGRESS', build,
+  unit: { tests: 1159, pass: 1156, fail: 0, skipped: 3, durationMs: 8044.4173, nativeExit: unit.status },
+  syntax: { files: 211, nativeExit: syntax.status }, e2e: { tests: 32, pass: 32, summary: '32 passed (1.1m)', nativeExit: e2e.status },
+  budget: { nativeExit: budget.status, ...build.runs[0].budget, requiredIntegerReduction: 6420 },
+  deltaFromPreviousWindow: { allGzipBytes: 563, coldGzipBytes: 128, rawBytes: 1438, wholeBytes: 3923 },
+  state, relativeLatencyQualified: false, newCi: false, pushed: false, deployed: false,
+  classification: 'CONDITIONALLY_TRUSTED: fixed-count synthetic plan-observation contract only; not live financial or release acceptance.' };
+await writeFile(resolve(directory, 'qa-summary.json'), JSON.stringify(qa, null, 2) + '\n', { flag: 'wx' });
+await cp(resolve(directory, 'qa-summary.json'), resolve(output, 'qa-summary.json'), { errorOnExist: true, force: false });
+const cohorts = [
+  ['main', directory],
+  ['planner', 'C:/Users/84046/AppData/Local/Temp/fundval-plan-reasons-081f9ca47a714482885a7335fac36350'],
+  ['e2e-red', 'C:/Users/84046/AppData/Local/Temp/fundval-plan-reasons-e2e-red-20261020-165539-ec0d8956'],
+  ['e2e-invocation-error', 'C:/Users/84046/AppData/Local/Temp/fundval-plan-reasons-e2e-red-20261020-165516-4f15bc7e'],
+  ['readonly-review', 'C:/Users/84046/AppData/Local/Temp/fundval-plan-reasons-readonly-review-ba23d562f4874058a60518280f74d2b0'],
+];
+async function inventory(base) {
+  const rows = [];
+  async function visit(path) {
+    const full = resolve(base, path), info = await lstat(full); assert.equal(info.isSymbolicLink(), false);
+    if (info.isDirectory()) for (const name of await readdir(full)) await visit(path === '.' ? name : path + '/' + name);
+    else { assert.ok(info.isFile()); const b = await readFile(full); rows.push({ path, bytes: b.length, sha256: sha(b) }); }
+  }
+  await visit('.'); rows.sort((a, b) => a.path.localeCompare(b.path)); return rows;
+}
+const staging = await mkdtemp(join(tmpdir(), 'fundval-plan-reasons-archive-'));
+for (const [prefix, from] of cohorts) await cp(from, resolve(staging, prefix), { recursive: true, errorOnExist: true, force: false });
+const rows = await inventory(staging);
+const archive = resolve(output, 'original-evidence.tar.gz');
+const result = spawnSync('tar.exe', ['-czf', archive, '-C', staging, '.'], { encoding: 'utf8', windowsHide: true });
+assert.equal(result.status, 0, result.stdout + result.stderr);
+const extraction = await mkdtemp(join(tmpdir(), 'fundval-plan-reasons-extract-'));
+const extract = spawnSync('tar.exe', ['-xzf', archive, '-C', extraction], { encoding: 'utf8', windowsHide: true });
+assert.equal(extract.status, 0, extract.stdout + extract.stderr);
+assert.deepEqual(await inventory(extraction), rows);
+const bytes = await readFile(archive);
+const audit = { schema: 1, archive: 'original-evidence.tar.gz', bytes: bytes.length, sha256: sha(bytes),
+  files: rows.length, uncompressedBytes: rows.reduce((sum, row) => sum + row.bytes, 0), inventorySha256: sha(JSON.stringify(rows)),
+  extractionVerified: true, cohorts, rows };
+await writeFile(resolve(output, 'archive-audit.json'), JSON.stringify(audit, null, 2) + '\n', { flag: 'wx' });
+await cp(fileURLToPath(import.meta.url), resolve(output, 'archive-tool.mjs.txt'), { errorOnExist: true, force: false });
+console.log(JSON.stringify({ ...audit, rows: undefined }, null, 2));

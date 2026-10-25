@@ -1,0 +1,115 @@
+import {readFileSync,writeFileSync,readdirSync,lstatSync,mkdirSync,cpSync,existsSync} from 'node:fs';
+import {resolve,dirname} from 'node:path';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {gzipSync} from 'node:zlib';
+import assert from 'node:assert/strict';
+const root='D:/AI项目/FundVal',dir=import.meta.dirname;
+const out=resolve(root,'docs/v16.0.0/performance-evidence/model-provenance-fix-20261022');
+const main='C:/Users/84046/AppData/Local/Temp/fundval-model-provenance-fix-20261022-parent';
+const old='C:/Users/84046/AppData/Local/Temp/FundVal-dual-model-P1-red-20261022-a1';
+const control='C:/Users/84046/AppData/Local/Temp/fundval-pair824-extract-07zGKl/postflight/postflight.json';
+const stage=resolve(dir,'stage'),extract=resolve(dir,'extract'),archive=resolve(out,'original-evidence.tar.gz');
+const sha=b=>createHash('sha256').update(b).digest('hex'),json=p=>JSON.parse(readFileSync(p,'utf8'));
+const save=(p,b)=>writeFileSync(p,b,{flag:'wx'}),checks=[],natives=[];
+function check(label,fn){fn();checks.push({label,pass:true});}
+function inv(base,exclude=new Set(),part=''){
+ const rows=[];for(const e of readdirSync(resolve(base,part),{withFileTypes:true})){
+  if(!part&&exclude.has(e.name))continue;const path=part?part+'/'+e.name:e.name,p=resolve(base,path);
+  assert.equal(lstatSync(p).isSymbolicLink(),false,'No linked input: '+p);
+  if(e.isDirectory())rows.push(...inv(base,exclude,path));else{assert.ok(e.isFile());const b=readFileSync(p);rows.push({path,bytes:b.length,sha256:sha(b)});}
+ }return rows.sort((a,b)=>a.path.localeCompare(b.path));
+}
+function execute(label,command,args,cwd){
+ const r=spawnSync(command,args,{cwd,windowsHide:true,encoding:null,maxBuffer:20_000_000});
+ const stdout=r.stdout||Buffer.alloc(0),stderr=r.stderr||Buffer.alloc(0);
+ for(const[k,b]of[['stdout',stdout],['stderr',stderr]])save(resolve(dir,label+'.'+k),b);
+ const receipt={label,command,args,cwd,exitCode:r.status,signal:r.signal,error:r.error?.message??null,stdout:{bytes:stdout.length,sha256:sha(stdout)},stderr:{bytes:stderr.length,sha256:sha(stderr)}};
+ natives.push(receipt);assert.equal(r.error,undefined);assert.equal(r.signal,null);assert.equal(r.status,0,label);return stdout;
+}
+function copy(from,to){mkdirSync(dirname(to),{recursive:true});cpSync(from,to,{force:false,errorOnExist:true});}
+const baseline=json(control),prepared=json(resolve(main,'before.json'));
+const changed=['js/holdings-estimate.js','js/runtime/fund-model-enrichment.js','js/runtime/quote-normalizer.js','js/accuracy.js','js/app.js','test/accuracy.test.js','test/holdings-integration-regression.test.js','e2e/v16-refresh.spec.js'].sort();
+const added=['test/model-consumers-v16.test.js','test/model-provenance-v16.test.js'].sort();
+const omittedDoc='docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md';
+function currentState(label){
+ const noDocs=inv(root,new Set(['.git','node_modules','site','Temp','.claude','docs']));
+ const doc=readFileSync(resolve(root,omittedDoc));const rows=[...noDocs,{path:omittedDoc,bytes:doc.length,sha256:sha(doc)}].sort((a,b)=>a.path.localeCompare(b.path));
+ const previous=new Map(baseline.source.rows.map(r=>[r.path,r])),present=new Map(rows.map(r=>[r.path,r]));
+ check(label+' complete272 input identity and exact intended delta',()=>{
+  assert.equal(rows.length,272);assert.deepEqual(rows.filter(r=>!previous.has(r.path)).map(r=>r.path).sort(),added);
+  assert.deepEqual(baseline.source.rows.filter(r=>!present.has(r.path)),[]);
+  assert.deepEqual(rows.filter(r=>previous.has(r.path)&&JSON.stringify(r)!==JSON.stringify(previous.get(r.path))).map(r=>r.path).sort(),changed);
+ });
+ check(label+' package lock build model config fingerprint guards unchanged',()=>{
+  for(const r of prepared.files.filter(r=>!changed.includes(r.path)))assert.deepEqual(present.get(r.path),r);
+  assert.equal(json(resolve(root,'package.json')).version,'15.0.2');
+ });
+ const installed=baseline.installed.rows.map(r=>{const b=readFileSync(resolve(root,'node_modules',r.path));return{path:r.path,bytes:b.length,sha256:sha(b)};});
+ check(label+' installed explicit68 unchanged',()=>assert.deepEqual(installed,baseline.installed.rows));
+ const head=execute(label+'-head','git',['rev-parse','HEAD'],root).toString().trim();
+ const branch=execute(label+'-branch','git',['branch','--show-current'],root).toString().trim();
+ const index=execute(label+'-index','git',['diff','--cached','--binary'],root);
+ check(label+' HEAD branch index unchanged',()=>{assert.equal(head,baseline.sourceIdentity.head);assert.equal(branch,baseline.sourceIdentity.branch);assert.equal(sha(index),baseline.sourceIdentity.stagedDiffSha256);});
+ const site=inv(resolve(root,'site')),build=json(resolve(main,'gates/build-06/receipt.json'));
+ check(label+' complete127 current site matches final build',()=>assert.deepEqual(site,build.artifact.files));
+ const manifest=json(resolve(root,'site/js/app-chunks.json'));
+ const chunks=manifest.chunks.map(r=>{const b=readFileSync(resolve(root,'site',r.path));return{path:r.path,rawBytes:b.length,gzipBytes:gzipSync(b).length,sha256:sha(b),cold:manifest.coldStart.includes(r.path)};});
+ const all=chunks.reduce((s,r)=>s+r.gzipBytes,0),cold=chunks.filter(r=>r.cold).reduce((s,r)=>s+r.gzipBytes,0),raw=chunks.reduce((s,r)=>s+r.rawBytes,0);
+ check(label+' actual fixed budget accounting',()=>{assert.equal(all,85956);assert.equal(cold,46129);assert.equal(raw,252257);assert.ok(all>77227.7);assert.ok(cold<=52241);});
+ return{rows,noDocs,site,installed,head,branch,indexSha256:sha(index),all,cold,raw,chunks};
+}
+save(resolve(out,'archive-plan.json'),JSON.stringify({schema:1,at:new Date().toISOString(),scope:'Freeze completed local P1 results and exact final product inputs, then fresh extract every archived member; no product/test/build/network execution',sources:[main,old],control,changed,added,exclusions:'24 historical Android output payloads and nonselected site/installed payloads inventory only; archive self and later native/audit addenda outside archive'},null,2)+'\n');
+const before=currentState('before');
+const finalLabels=['test-03','check-02','e2e-03','build-04','build-05','build-06','budget-02','graph-02'];
+const gates=finalLabels.map(label=>{const path=resolve(main,'gates',label,'receipt.json'),r=json(path);check('final receipt '+label,()=>{
+ assert.equal(r.nativeExit,label==='budget-02'?1:0);assert.equal(r.signal,null);assert.equal(r.error,null);assert.equal(r.sourceUnchanged,true);
+ assert.deepEqual(r.before,before.noDocs);assert.deepEqual(r.after,before.noDocs);
+ for(const kind of['stdout','stderr']){const b=readFileSync(resolve(dirname(path),'native.'+kind));assert.equal(b.length,r[kind].bytes);assert.equal(sha(b),r[kind].sha256);}
+ if(label.startsWith('build-')){assert.deepEqual(r.artifact.files,before.site);assert.equal(r.artifact.allGzip,85956);assert.equal(r.artifact.coldGzip,46129);}
+ });return{label,nativeExit:r.nativeExit,stdout:r.stdout,stderr:r.stderr,...(r.artifact?{artifactRowsSha256:r.artifact.rowsSha256}:{} )};});
+check('final unit syntax E2E counts and native budget/graph outputs',()=>{
+ const text=label=>readFileSync(resolve(main,'gates',label,'native.stdout'),'utf8');
+ assert.match(text('test-03'),/tests 1304/);assert.match(text('test-03'),/pass 1301/);assert.match(text('test-03'),/fail 0/);assert.match(text('test-03'),/skipped 3/);
+ assert.match(text('check-02'),/Syntax checked 214/);assert.match(text('e2e-03'),/34 passed/);
+ const budget=JSON.parse(text('budget-02'));assert.equal(budget.pass,false);assert.equal(budget.allPass,false);assert.equal(budget.coldPass,true);assert.equal(budget.allBudgetBytes,77227.7);
+ const graph=JSON.parse(text('graph-02'));assert.equal(graph.staticBindingsVerified,true);assert.equal(graph.literalImportClosureVerified,true);assert.equal(graph.evaluated,false);
+});
+const oldRaw=resolve(old,'runs/old-red-01/actual-results.json'),greenRaw=resolve(main,'runs/green-02/actual-results.json');
+const oldRun=json(oldRaw),greenRun=json(greenRaw);
+check('complete actual OLD13 red7 and final identical-input GREEN13',()=>{
+ for(const r of[oldRun,greenRun]){assert.equal(r.completed,13);assert.equal(r.records.length,13);assert.equal(r.postflightError,null);assert.equal(r.sourceChecks.length,70);assert.ok(r.sourceChecks.every(c=>c.same));for(const row of r.records){assert.equal(row.error,null);for(const k of['fetch','localStorage','sessionStorage'])assert.equal(row.guard[k],0);}}
+ assert.equal(oldRun.records.filter(r=>r.failureKind==='FINANCIAL_SOURCE_RED').length,7);assert.equal(oldRun.records.filter(r=>r.failureKind==='PASS').length,6);assert.ok(greenRun.records.every(r=>r.failureKind==='PASS'));
+ assert.equal(readFileSync(oldRaw).length,3190818);assert.equal(sha(readFileSync(oldRaw)),'cea2d8c1a19797d49e6dec6032ed94ba08c22b6ef1e281b5aa582ce2850b1d0c');
+ for(const name of['cases.mjs','dual-model-p1.test.mjs'])assert.deepEqual(readFileSync(resolve(old,'runs/old-red-01',name)),readFileSync(resolve(main,'runs/green-02',name)));
+});
+const historicalFailures=['test-01','e2e-01','e2e-02','budget-01'];
+check('original failing gates retained as native1',()=>{for(const label of historicalFailures)assert.equal(json(resolve(main,'gates',label,'receipt.json')).nativeExit,1);assert.equal(json(resolve(old,'POSTFLIGHT.json')).pass,false);});
+const sourceInventories=[main,old].map(path=>({path,files:inv(path)}));
+for(const p of[stage,extract,archive])assert.equal(existsSync(p),false,p+' already exists');
+mkdirSync(stage);for(const item of sourceInventories)cpSync(item.path,resolve(stage,'evidence',item.path.split('/').at(-1)),{recursive:true,errorOnExist:true,force:false});
+const actualSource=before.rows.filter(r=>!r.path.startsWith('.codex-tmp/'));
+check('248 actual nonhistorical source files for archive',()=>assert.equal(actualSource.length,248));
+for(const r of actualSource)copy(resolve(root,r.path),resolve(stage,'final-source',r.path));
+for(const path of[...before.chunks.map(r=>r.path),'js/app-chunks.json','index.html','sw.js'])copy(resolve(root,'site',path),resolve(stage,'final-selected-site',path));
+for(const name of['README.md','PROTOCOL.md','archive-plan.json'])copy(resolve(out,name),resolve(stage,'parent',name));
+copy(control,resolve(stage,'parent/previous-control.json'));copy(import.meta.filename,resolve(stage,'parent/archive.mjs'));
+save(resolve(stage,'parent/final-state.json'),JSON.stringify(before,null,2)+'\n');
+save(resolve(stage,'parent/source-inventories.json'),JSON.stringify(sourceInventories,null,2)+'\n');
+save(resolve(stage,'parent/gates-summary.json'),JSON.stringify(gates,null,2)+'\n');
+execute('snapshot-diff','git',['diff','--binary'],root);copy(resolve(dir,'snapshot-diff.stdout'),resolve(stage,'parent/current-tracked.patch'));copy(resolve(dir,'snapshot-diff.stderr'),resolve(stage,'parent/current-tracked-patch.stderr'));
+const staged=inv(stage),inventory={schema:1,count:staged.length,bytes:staged.reduce((n,r)=>n+r.bytes,0),inventorySha256:sha(JSON.stringify(staged)),files:staged};
+save(resolve(out,'inventory.json'),JSON.stringify(inventory,null,2)+'\n');
+execute('tar-create','tar',['-czf',archive,'-C',stage,'.'],dir);
+const members=execute('tar-list','tar',['-tzf',archive],dir).toString('utf8').split(/\r?\n/).filter(Boolean);
+check('safe relative tar members',()=>{for(const p of members){assert.ok(!/^(?:\/|[A-Za-z]:)/.test(p));assert.ok(!p.split(/[\\/]/).includes('..'));}});
+mkdirSync(extract);execute('tar-extract','tar',['-xzf',archive,'-C',extract],dir);
+check('every freshly extracted member byte SHA path identical',()=>assert.deepEqual(inv(extract),staged));
+check('archive stage unchanged',()=>assert.deepEqual(inv(stage),staged));
+for(const item of sourceInventories)check('completed workspace unchanged '+item.path.split('/').at(-1),()=>assert.deepEqual(inv(item.path),item.files));
+const after=currentState('after');check('root source site installed Git unchanged during archive',()=>assert.deepEqual(after,before));
+execute('diff-check','git',['diff','--check'],root);
+const b=readFileSync(archive),result={schema:1,status:'PASS',at:new Date().toISOString(),checks,natives,gates,source:{count:before.rows.length,nonhistoricalPayloadCount:actualSource.length,rowsSha256:sha(JSON.stringify(before.rows)),changed,added},artifact:{count:before.site.length,rowsSha256:sha(JSON.stringify(before.site)),allGzip:before.all,coldGzip:before.cold,rawBytes:before.raw},installed:{count:before.installed.length,rowsSha256:sha(JSON.stringify(before.installed))},git:{head:before.head,branch:before.branch,indexSha256:before.indexSha256},archive:{path:archive,bytes:b.length,sha256:sha(b)},inventory:{count:inventory.count,bytes:inventory.bytes,sha256:inventory.inventorySha256},extract,scope:{M3:'IN_PROGRESS',release:'NOT_RELEASED',budget:'FAIL',latency:'NOT_RUN_ON_FINAL_SOURCE',CI:'NOT_RUN',liveFinancialReconciliation:'NOT_RUN',accuracyFullLifecycle:'NOT_CLOSED',Gist:'NOT_RUN',OCR:'NOT_RUN',device:'NOT_RUN',production:'NOT_RUN',newDependencyAudit:'NOT_RUN',archiveAddendaOutside:true}};
+save(resolve(out,'archive-audit.json'),JSON.stringify(result,null,2)+'\n');
+copy(import.meta.filename,resolve(out,'archive-tool.mjs.txt'));for(const n of natives)for(const k of['stdout','stderr'])copy(resolve(dir,n.label+'.'+k),resolve(out,n.label+'.'+k));
+console.log(JSON.stringify({status:result.status,checks:checks.length,source:result.source,artifact:result.artifact,installed:result.installed,archive:result.archive,inventory:result.inventory}));

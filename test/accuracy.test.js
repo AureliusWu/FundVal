@@ -24,6 +24,7 @@ test('the accuracy ledger binds the selected model period and never records a st
   const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; } };
   const fund = { code: '012920', est_model: true, est_model_stale: false, est_change: 99,
     nav_date: '2026-09-01', est_model_version: 'test', quote: {
+      fundCode: '012920', sourceId: 'market-model', sourceTier: 'model',
       valueKind: 'model_estimate', status: 'model', changePct: 1.5,
       baseNavDate: '2026-09-21', targetDate: '2026-09-22',
     } };

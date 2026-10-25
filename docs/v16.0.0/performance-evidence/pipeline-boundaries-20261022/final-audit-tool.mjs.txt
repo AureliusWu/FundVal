@@ -1,0 +1,43 @@
+import {readFileSync,writeFileSync,readdirSync,lstatSync,cpSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+const root='D:/AI项目/FundVal',dir=import.meta.dirname,out=resolve(root,'docs/v16.0.0/performance-evidence/pipeline-boundaries-20261022');
+const sha=b=>createHash('sha256').update(b).digest('hex'),json=p=>JSON.parse(readFileSync(p,'utf8'));
+const checks=[],check=(name,fn)=>{fn();checks.push({name,pass:true});};
+function inv(base,exclude=new Set(),part=''){
+ const rows=[];for(const e of readdirSync(resolve(base,part),{withFileTypes:true})){
+  if(!part&&exclude.has(e.name))continue;
+  const path=part?part+'/'+e.name:e.name,p=resolve(base,path);assert.equal(lstatSync(p).isSymbolicLink(),false);
+  if(e.isDirectory())rows.push(...inv(base,exclude,path));else{assert.ok(e.isFile());const b=readFileSync(p);rows.push({path,bytes:b.length,sha256:sha(b)});}
+ }return rows.sort((a,b)=>a.path.localeCompare(b.path));
+}
+const audit=json(resolve(out,'archive-audit.json')),control=json(resolve(dir,'stage/parent/root-control.json'));
+const source=inv(root,new Set(['.git','node_modules','site','Temp','.claude','docs']));
+for(const r of control.source.rows.filter(r=>r.path==='docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md')){const b=readFileSync(resolve(root,r.path));source.push({path:r.path,bytes:b.length,sha256:sha(b)});}
+source.sort((a,b)=>a.path.localeCompare(b.path));
+check('root270 complete set unchanged after docs',()=>assert.deepEqual(source,control.source.rows));
+check('root127 whole site unchanged after docs',()=>assert.deepEqual(inv(resolve(root,'site')).sort((a,b)=>a.path.localeCompare(b.path,'en')),control.currentArtifact.files));
+const installed=control.installed.rows.map(r=>{const b=readFileSync(resolve(root,'node_modules',r.path));return{path:r.path,bytes:b.length,sha256:sha(b)};});
+check('installed68 explicit unchanged',()=>assert.deepEqual(installed,control.installed.rows));
+const b=readFileSync(resolve(out,'original-evidence.tar.gz'));
+check('archive exact identity unchanged',()=>{assert.equal(b.length,audit.archive.bytes);assert.equal(sha(b),audit.archive.sha256);});
+const inventory=json(resolve(out,'inventory.json'));
+check('full916 extracted members unchanged',()=>{const actual=inv(audit.extract);assert.equal(actual.length,916);assert.deepEqual(actual,inventory.files);assert.equal(sha(JSON.stringify(actual)),inventory.inventorySha256);});
+check('archive parent readme exact prefix before documented addendum',()=>{
+ const archived=readFileSync(resolve(audit.extract,'parent/README.md'),'utf8'),current=readFileSync(resolve(out,'README.md'),'utf8');
+ assert.equal(current.split('\n### 归档执行结果（包外追加）')[0],archived.trimEnd()+'\n');
+});
+const natives=[];
+for(const[label,args]of[['head',['rev-parse','HEAD']],['branch',['branch','--show-current']],['index',['diff','--cached','--binary']],['diff-check',['diff','--check']]]){
+ const r=spawnSync('git',args,{cwd:root,windowsHide:true,encoding:null,maxBuffer:2_000_000});
+ const stdout=r.stdout||Buffer.alloc(0),stderr=r.stderr||Buffer.alloc(0);
+ for(const[k,v]of[['stdout',stdout],['stderr',stderr]])writeFileSync(resolve(out,'final-'+label+'.'+k),v,{flag:'wx'});
+ check('native git '+label,()=>{assert.equal(r.status,0);assert.equal(r.signal,null);assert.equal(r.error,undefined);if(label==='head')assert.equal(stdout.toString().trim(),audit.after.head);if(label==='branch')assert.equal(stdout.toString().trim(),audit.after.branch);if(label==='index')assert.equal(sha(stdout),audit.after.indexSha256);});
+ natives.push({label,args,exitCode:r.status,stdout:{bytes:stdout.length,sha256:sha(stdout)},stderr:{bytes:stderr.length,sha256:sha(stderr)}});
+}
+const result={schema:1,status:'PASS',at:new Date().toISOString(),checks,natives,rootProductUnchanged:true,docsIntentionallyAdded:true,scope:'Read-only artifact/identity audit, not new product QA/build/performance',appVersion:'15.0.2',M3:'IN_PROGRESS',adopted:false,released:false};
+writeFileSync(resolve(out,'final-status.json'),JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+cpSync(import.meta.filename,resolve(out,'final-audit-tool.mjs.txt'),{errorOnExist:true,force:false});
+console.log(JSON.stringify({status:result.status,checks:checks.length,rootProductUnchanged:true,archiveSha256:sha(b),extractedMembers:916,natives}));

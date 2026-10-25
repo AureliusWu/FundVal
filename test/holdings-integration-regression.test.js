@@ -11,12 +11,13 @@ test('refresh renders the primary quote before asynchronously enriching it with 
 
   assert.match(source, /holdings: \(code, signal\) => holdingModule\.fetchFundHoldings\(code, \{ signal \}\)/);
   assert.match(execution, /scope\.dispatch\('sinan-holdings-proxy', signal => clients\.holdings\(holding\.code, signal\)\)/);
-  assert.match(source, /publish: \(holding, raw\) => commitRefreshedFund\(context, holding, buildFundData\(raw, holding, \{\}\)\)/);
+  assert.match(source, /publish: \(holding, raw\) => commitRefreshedFund\(context, holding, buildFundData\(raw, holding, \{\}\),\s*pending => pendingNameEdits\.push\(pending\)\)/);
+  assert.match(source, /settlePendingEdits: \(\) => Promise\.allSettled\(pendingNameEdits\)/);
   const publication = execution.indexOf('scope.commitUi(() => ui.publish(holding, primary))');
   const enrichment = execution.indexOf('const enrichment = Promise.all([getNav(holding), securityTask])');
   assert.ok(publication >= 0 && enrichment > publication, 'primary must be published before waiting for NAV/security enrichment');
   assert.match(execution, /const estimate = row \? await clients\.calculateHoldings\(items, row\.payload\.reportDate\) : null/);
-  assert.match(source, /composeFundEnrichment\(raw, \{ officialNavMove, holdingsEstimate \}\)/);
+  assert.match(source, /composeFundEnrichment\(raw, \{ officialNavMove, holdingsEstimate,\s+fetchedAt: new Date\(\)\.toISOString\(\) \}\)/);
   assert.match(source, /buildFundData\(enriched, holding, modelQuotes\)/);
   assert.match(execution, /await Promise\.allSettled\(\[\.\.\.enrichments, marketTask, securityTask, \.\.\.navTasks\.values\(\)\]\)/);
   assert.match(execution, /await Promise\.allSettled\(metadataTasks\)/);

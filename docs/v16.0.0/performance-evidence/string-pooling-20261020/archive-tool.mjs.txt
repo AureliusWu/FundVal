@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const source = 'C:/Users/84046/AppData/Local/Temp/fundval-m3-string-pool-577fc2a4783c4a26baab563752e9d3d3';
+const target = 'D:/AI项目/FundVal/docs/v16.0.0/performance-evidence/string-pooling-20261020';
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const allowedDirs = new Set(['artifacts', 'qualification-candidates']);
+async function inventory(base) {
+  const rows = [];
+  async function visit(path) {
+    assert.ok(!path.includes('\\') && path.split('/').every(part => part && part !== '..' && part !== '.'));
+    const absolute = resolve(base, path), info = await lstat(absolute);
+    assert.equal(info.isSymbolicLink(), false);
+    if (info.isDirectory()) {
+      if (!path.includes('/')) assert.ok(allowedDirs.has(path), 'unexpected source folder');
+      for (const name of (await readdir(absolute)).sort()) await visit(path + '/' + name);
+    } else {
+      assert.ok(info.isFile(), 'regular files only');
+      if (!path.includes('/')) assert.match(path, /^[A-Za-z0-9._-]+\.(?:json|mjs|txt|md)$/);
+      const bytes = await readFile(absolute);
+      rows.push({ path, bytes: bytes.length, sha256: hash(bytes) });
+    }
+  }
+  for (const name of (await readdir(base)).sort()) await visit(name);
+  return rows.sort((a, b) => a.path.localeCompare(b.path));
+}
+const files = await inventory(source);
+for (const required of ['README.md', 'summary.json', 'protocol.json', 'protocol-v1.json', 'probe.mjs', 'probe-v1.mjs.txt', 'failure-v1.json', 'input-app-chunks.json'])
+  assert.ok(files.some(file => file.path === required), 'required original missing: ' + required);
+const summary = JSON.parse(await readFile(resolve(source, 'summary.json')));
+assert.equal(hash(await readFile(resolve(source, 'input-app-chunks.json'))), summary.manifestSha256);
+assert.equal(summary.adoption, false);
+await mkdir(target);
+const archive = resolve(target, 'original-evidence.tar.gz');
+execFileSync('tar', ['-czf', archive, '-C', source, ...await readdir(source)], { stdio: 'pipe' });
+const entries = execFileSync('tar', ['-tf', archive], { encoding: 'utf8' }).trim().split(/\r?\n/);
+for (const entry of entries) assert.ok(!/^(?:\/|[A-Za-z]:)/.test(entry) && !entry.includes('\\') && !entry.split('/').includes('..'));
+const actualFiles = entries.filter(entry => !entry.endsWith('/'));
+assert.equal(actualFiles.length, files.length);
+assert.equal(new Set(actualFiles).size, files.length);
+assert.deepEqual([...actualFiles].sort(), files.map(file => file.path).sort());
+const extractionDirectory = await mkdtemp(resolve(tmpdir(), 'fundval-string-pool-archive-'));
+execFileSync('tar', ['-xzf', archive, '-C', extractionDirectory], { stdio: 'pipe' });
+assert.deepEqual(await inventory(extractionDirectory), files);
+assert.deepEqual(await inventory(source), files, 'source changed during archive');
+const bytes = await readFile(archive);
+const audit = {
+  schema: 1, sourceDirectory: source, fileCount: files.length, uncompressedBytes: files.reduce((n, file) => n + file.bytes, 0),
+  archive: { path: 'original-evidence.tar.gz', bytes: bytes.length, sha256: hash(bytes) },
+  files, extractionVerified: true, extractionDirectory,
+  measurementScope: 'Six offline gzip passes over one baseline and one fixed pooled text set, not six actual Vite builds.',
+  limits: 'v1 failed candidate text and complete original terminal stdout were not saved. Native/AST passes do not prove full runtime, reflection, stack or latency equivalence.',
+  protocolTiming: 'Original v1 design was predeclared. v2 inherited stateAtCreation but was approved only after the initial parse failure, before any valid gzip/link measurement.',
+  adopted: false, productChanged: false
+};
+await writeFile(resolve(target, 'archive-audit.json'), JSON.stringify(audit, null, 2) + '\n', { flag: 'wx' });
+await cp(fileURLToPath(import.meta.url), resolve(target, 'archive-tool.mjs.txt'), { force: false, errorOnExist: true });
+process.stdout.write(JSON.stringify({ target, files: files.length, uncompressedBytes: audit.uncompressedBytes, archiveBytes: bytes.length, archiveSha256: hash(bytes), extractionVerified: true }) + '\n');
+

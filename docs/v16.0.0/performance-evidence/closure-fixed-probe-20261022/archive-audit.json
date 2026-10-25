@@ -1,0 +1,307 @@
+{
+  "status": "ARCHIVE_AUDIT_PASS_NOT_STRATEGY_PASS",
+  "at": "2026-10-22T08:24:05.494Z",
+  "checks": [
+    {
+      "label": "before current complete source/site/installed unchanged",
+      "pass": true
+    },
+    {
+      "label": "before actual Git unchanged",
+      "pass": true
+    },
+    {
+      "label": "actual finite stopped result and immutable manifest",
+      "pass": true
+    },
+    {
+      "label": "every actual native byte SHA C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-fixed-probe-20261022-parent\\run-01\\native",
+      "pass": true
+    },
+    {
+      "label": "every actual native byte SHA C:/Users/84046/AppData/Local/Temp/FundVal-closure-probe-execution-20261022-parent",
+      "pass": true
+    },
+    {
+      "label": "no transformed fixture or product output",
+      "pass": true
+    },
+    {
+      "label": "tools successful only after preserved original timeout",
+      "pass": true
+    },
+    {
+      "label": "safe tar paths",
+      "pass": true
+    },
+    {
+      "label": "every fresh extracted member exact byte SHA path",
+      "pass": true
+    },
+    {
+      "label": "stage unchanged",
+      "pass": true
+    },
+    {
+      "label": "probe original workspace unchanged",
+      "pass": true
+    },
+    {
+      "label": "execution original workspace unchanged",
+      "pass": true
+    },
+    {
+      "label": "after current complete source/site/installed unchanged",
+      "pass": true
+    },
+    {
+      "label": "after actual Git unchanged",
+      "pass": true
+    }
+  ],
+  "natives": [
+    {
+      "label": "before-head",
+      "exe": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "before-branch",
+      "exe": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "branch",
+        "--show-current"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "before-index",
+      "exe": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-create",
+      "exe": "tar",
+      "args": [
+        "-czf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\closure-fixed-probe-20261022\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-probe-archive-v2-20261022-parent\\stage",
+        "."
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-list",
+      "exe": "tar",
+      "args": [
+        "-tzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\closure-fixed-probe-20261022\\original-evidence.tar.gz"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 4379,
+        "sha256": "9cd66e6eb507355eb46295c7ffc37373a4565a93fc4f830db28a0b87010dfc83"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-extract",
+      "exe": "tar",
+      "args": [
+        "-xzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\closure-fixed-probe-20261022\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-probe-archive-v2-20261022-parent\\extract"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-head",
+      "exe": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-branch",
+      "exe": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "branch",
+        "--show-current"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-index",
+      "exe": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "exe": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "error": null,
+      "signal": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    }
+  ],
+  "experiment": {
+    "status": "SETUP_OR_DRIVER_FAILURE",
+    "controllerNativeExit": 2,
+    "F01Original": "PASS",
+    "F01Transformed": "NOT_RUN",
+    "F02ThroughF08": "NOT_RUN",
+    "productCompression": "NOT_RUN",
+    "adoption": false,
+    "allGzip": 85969,
+    "coldGzip": 46149,
+    "budget": "FAIL",
+    "release": "NOT_RELEASED"
+  },
+  "archive": {
+    "bytes": 86645,
+    "sha256": "4d70f02b306e45914976fd526b5e25105edf07d030081adbd37f5319cbf650f5"
+  },
+  "inventory": {
+    "count": 106,
+    "bytes": 301040,
+    "sha256": "5caa5554bd0c9240146cbe3e57bc854edb8223178a07e4bdfbcb40f15acebd69"
+  },
+  "source": {
+    "count": 273,
+    "rowsSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e"
+  },
+  "artifact": {
+    "count": 127,
+    "rowsSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31"
+  },
+  "extract": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-probe-archive-v2-20261022-parent\\extract",
+  "addendaOutside": true
+}

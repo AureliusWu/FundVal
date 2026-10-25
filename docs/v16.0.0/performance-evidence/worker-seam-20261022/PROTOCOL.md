@@ -1,0 +1,7 @@
+# Finite evidence archival protocol
+
+2026-10-22. Archive only after the six-build window ends, or after its preserved stop/failure. No SUT, test, build, minification, performance, network, install or retry is run by this archival step. No product source/config/dependency/site is modified.
+
+Preserve the completed read-only boundary reviews, diagnostics rejection, old baseline, source-preparation files (excluding the duplicate full candidate directory), behavior qualification, parent verification and build recorder/native receipts. Include the exact full 246-member baseline source once; the candidate is reproducible by its three exact overlay source files and complete after inventory. Copy build metadata/native logs and each run's exact emitted chunks/manifest/generated index/SW; complete127-member per-run inventories remain in receipts, and full per-run payloads remain in original Temp. OCR payloads, dependencies and duplicate copied public source/assets are not claimed archived.
+
+Stage regular files only, refuse all links or path escapes. Create an immutable bytes/SHA inventory, tar/gzip once, extract into one new Temp directory, then enumerate the entire extracted set and verify every file and no extras/missing entries. Keep all failed commands and no overwrite of existing archives/reports. Native stdout/stderr/exit must be retained separately. Root reports may be updated only after the build window is finished; this archive is not adoption or M3 completion.

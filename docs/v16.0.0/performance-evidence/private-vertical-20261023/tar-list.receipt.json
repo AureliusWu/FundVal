@@ -1,0 +1,22 @@
+{
+  "label": "tar-list",
+  "command": "tar",
+  "args": [
+    "-tzf",
+    "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\private-vertical-20261023\\original-evidence.tar.gz"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+  "startedAt": "2026-10-23T02:45:30.025Z",
+  "finishedAt": "2026-10-23T02:45:30.127Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 30118,
+    "sha256": "34e196a4da61f0b7aafe4f8b702cbe70f7653846d606da69e6819f61907e6ff1"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

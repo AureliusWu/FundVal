@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "algorithm": "UTF8 source preserved with CRLF normalized to LF, single original final newline retained",
+  "files": [
+    {
+      "sourcePath": "compare-minifiers.mjs",
+      "archivedPath": "tools/compare-minifiers.mjs.txt",
+      "sourceSha256": "a37530c9297ac2a58873d7b504d4b9b733e133da7b5da5da86c8956a52e92364",
+      "lfSha256": "a37530c9297ac2a58873d7b504d4b9b733e133da7b5da5da86c8956a52e92364"
+    },
+    {
+      "sourcePath": "compare-minifiers-v2.mjs",
+      "archivedPath": "tools/compare-minifiers-v2.mjs.txt",
+      "sourceSha256": "fdbc59d6d6f8631882d071515394c23af044f19b5137ccfa25fc73ba1b0f641b",
+      "lfSha256": "fdbc59d6d6f8631882d071515394c23af044f19b5137ccfa25fc73ba1b0f641b"
+    },
+    {
+      "sourcePath": "compare-esbuild-v1.mjs",
+      "archivedPath": "tools/compare-esbuild-v1.mjs.txt",
+      "sourceSha256": "ebac52164445f1b2bf105c99c94992598aa9d3435bbaa31050d8d4cc67b445eb",
+      "lfSha256": "ebac52164445f1b2bf105c99c94992598aa9d3435bbaa31050d8d4cc67b445eb"
+    },
+    {
+      "sourcePath": "compare-swc-v1.mjs",
+      "archivedPath": "tools/compare-swc-v1.mjs.txt",
+      "sourceSha256": "57058a5db0e536ddba8ca804d0cfa54f8b7e4695c3b917527157d7b551c4e79a",
+      "lfSha256": "57058a5db0e536ddba8ca804d0cfa54f8b7e4695c3b917527157d7b551c4e79a"
+    },
+    {
+      "sourcePath": "summarize-experiments.mjs",
+      "archivedPath": "tools/summarize-experiments.mjs.txt",
+      "sourceSha256": "a6e111a0fdc1e0e5b75260ad0e7dc7534d0f6880573ac84f664677bfb27cd610",
+      "lfSha256": "a6e111a0fdc1e0e5b75260ad0e7dc7534d0f6880573ac84f664677bfb27cd610"
+    },
+    {
+      "sourcePath": "package.json",
+      "archivedPath": "tools/package.json.txt",
+      "sourceSha256": "e0054fb8662651ec4182cb82824de9816b389973564b46de6ae525e7c6bdf86f",
+      "lfSha256": "e0054fb8662651ec4182cb82824de9816b389973564b46de6ae525e7c6bdf86f"
+    },
+    {
+      "sourcePath": "package-lock.json",
+      "archivedPath": "tools/package-lock.json.txt",
+      "sourceSha256": "abe8da5ec432f8a5f05ea207f88e4fc021e5de2d0332257af683fdb1dca20ffa",
+      "lfSha256": "abe8da5ec432f8a5f05ea207f88e4fc021e5de2d0332257af683fdb1dca20ffa"
+    },
+    {
+      "sourcePath": "swc-probe/package.json",
+      "archivedPath": "tools/swc-probe-package.json.txt",
+      "sourceSha256": "9080309ff585f6b1b6f7e100e15fe4d72736e4b553ea44ddcb1c9f2d64c2a5ca",
+      "lfSha256": "9080309ff585f6b1b6f7e100e15fe4d72736e4b553ea44ddcb1c9f2d64c2a5ca"
+    },
+    {
+      "sourcePath": "swc-probe/package-lock.json",
+      "archivedPath": "tools/swc-probe-package-lock.json.txt",
+      "sourceSha256": "b9b336143881dbf95c4c75d10b567b4d6f6e5652a6f16f802f420c93d89e22f5",
+      "lfSha256": "b9b336143881dbf95c4c75d10b567b4d6f6e5652a6f16f802f420c93d89e22f5"
+    }
+  ]
+}

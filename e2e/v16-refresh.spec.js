@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { writeFileSync } from 'node:fs';
 
 // Real app/bootstrap/Bridge, synthetic inputs only. This suite is discovered by
 // the existing Playwright configuration; it is not an opt-in Node test or a
@@ -32,18 +33,19 @@ function estimateRow(code, value = 1.21) {
   };
 }
 
-function tencentScript(url, omitCodes = []) {
+function tencentScript(url, omitCodes = [], modelChange = 1) {
   const codes = decodeURIComponent(url.pathname.match(/\/q=([^&]+)/)?.[1] || '').split(',')
     .filter(code => code && !omitCodes.includes(code));
   return codes.map(code => {
     const fields = Array(34).fill('');
     fields[1] = 'Synthetic security';
     fields[3] = '10.1'; fields[4] = '10';
+    if (code === 'sh000300' && Number.isFinite(modelChange)) fields[3] = String(10 * (1 + modelChange / 100));
     // Tencent timestamps are exchange-local, not the request's China clock.
     // At CN 2026-09-29 14:30, the latest US close was Sep 28 16:00 EDT
     // (Sep 29 04:00 in China). Keep that actual source date/time visible.
     fields[30] = code.startsWith('us') ? '20260928160000' : '20260929143000';
-    fields[32] = '1';
+    fields[32] = code === 'sh000300' ? Number.isFinite(modelChange) ? String(modelChange) : '' : '1';
     const variable = /^(?:kr|jp)/.test(code) ? `v_${code.slice(0, 2)}_${code.slice(2)}` : `v_${code}`;
     return `var ${variable}=${JSON.stringify(fields.join('~'))};`;
   }).join('\n');
@@ -53,6 +55,7 @@ async function installHarness(context, options = {}) {
   const state = {
     phase: 'cold', requests: [], gistWrites: [], failEstimates: Boolean(options.failEstimates),
     failAll: false, estimateValue: 1.21, estimateRequests: 0, heldEstimate: null, heldRequest: null,
+    navPoints: options.navPoints,
   };
   const pending = new Set();
   const requestFacts = new WeakMap();
@@ -112,7 +115,8 @@ async function installHarness(context, options = {}) {
     if (category === 'estimates') {
       state.estimateRequests += 1;
       const codes = (url.searchParams.get('codes') || '').split(',').filter(code => /^\d{6}$/.test(code));
-      if (options.holdFirstEstimate && state.estimateRequests === 1) {
+      if (options.holdFirstEstimate && state.estimateRequests === 1 || state.holdNextEstimate) {
+        state.holdNextEstimate = false;
         state.heldRequest = route.request();
         await new Promise(resolve => {
           state.heldEstimate = async () => {
@@ -134,7 +138,7 @@ async function installHarness(context, options = {}) {
     if (category === 'nav') {
       if (state.failAll) return route.abort('failed');
       const code = url.pathname.match(/(\d{6})\.js$/)[1];
-      const points = [
+      const points = state.navPoints || [
         { x: Date.parse('2026-09-25T00:00:00+08:00'), y: 1.19 },
         { x: Date.parse('2026-09-28T00:00:00+08:00'), y: 1.2 },
       ];
@@ -144,9 +148,13 @@ async function installHarness(context, options = {}) {
     if (category === 'eastmoneySecurities') {
       if (state.failAll) return route.abort('failed');
       const identities = (url.searchParams.get('secids') || '').split(',').map(secid => secid.split('.'));
-      return json({ data: { diff: identities.map(([market, code]) => ({ f12: code, f13: Number(market),
-        f2: 10.1, f3: Object.hasOwn(options, 'securityChange') ? options.securityChange : 1,
-        f124: Date.parse(FIXED_TIME) / 1000 })) } });
+      return json({ data: { diff: identities.map(([market, code]) => {
+        // Explicit null/undefined are missing quotes, not the default +1%.
+        const change = market === '1' && code === '000300' && Object.hasOwn(options, 'modelChange')
+          ? options.modelChange : Object.hasOwn(options, 'securityChange') ? options.securityChange : 1;
+        return { f12: code, f13: Number(market), f2: Number.isFinite(change) ? 10 * (1 + change / 100) : 10.1,
+          f3: change, f124: Date.parse(FIXED_TIME) / 1000 };
+      }) } });
     }
     if (category === 'gold') {
       if (state.failAll) return route.abort('failed');
@@ -154,7 +162,8 @@ async function installHarness(context, options = {}) {
     }
     if (category === 'tencent') {
       if (state.failAll) return route.abort('failed');
-      return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: tencentScript(url, options.omitTencentCodes) });
+      return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: tencentScript(url, options.omitTencentCodes,
+        Object.hasOwn(options, 'modelChange') ? options.modelChange : 1) });
     }
     if (category === 'static') return route.continue();
     // Never send any request to a live provider or a user's Gist.
@@ -220,6 +229,105 @@ function navValue(page, code = HOLDINGS[0].code) {
   return page.locator(`#fund-toggle-${code} .nav-cur`);
 }
 
+test('overseas accuracy automatically records enrichment, deduplicates warm refresh and settles published NAV', async ({ context, page, browser }, testInfo) => {
+  const code = '110022';
+  const harness = await installHarness(context, { failEstimates: true,
+    rows: [{ ...HOLDINGS[0], code, name: '合成纳斯达克QDII基金A' }],
+    navPoints: [{ x: Date.parse('2026-09-24T00:00:00+08:00'), y: 1.19 },
+      { x: Date.parse('2026-09-25T00:00:00+08:00'), y: 1.2 }] });
+  const read = () => page.evaluate(({ code, key }) => {
+    const aggregate = JSON.parse(localStorage.getItem(key) || 'null');
+    return { fund: aggregate?.data?.find(row => row.code === code),
+      ledger: JSON.parse(localStorage.getItem('fuyu_overseas_accuracy_v1') || '[]').filter(row => row.code === code) };
+  }, { code, key: FUND_CACHE });
+  await page.goto('/'); await harness.settle(page);
+  await expect.poll(async () => (await read()).fund?.quote?.sourceId).toBe('market-model');
+  await expect(navValue(page, code)).toHaveText('1.2120');
+  const cold = await read();
+  expect(cold.fund.quote).toMatchObject({ valueKind: 'model_estimate', status: 'model', changePct: 1,
+    baseNavDate: '2026-09-25', targetDate: '2026-09-28', modelVersion: 'rule-v1', confidence: 0.35 });
+  await expect.poll(async () => (await read()).ledger.length).toBe(1);
+  const predicted = (await read()).ledger;
+  expect(predicted[0]).toMatchObject({ code, prediction_date: '2026-09-29', base_nav_date: '2026-09-25',
+    target_nav_date: '2026-09-28', predicted_change: 1, model_version: 'rule-v1', confidence: 0.35,
+    model_label: '纳指100代理', actual_change: null, error: null, direction_correct: null });
+
+  await harness.refresh(page, 'accuracyWarm');
+  expect((await read()).ledger, 'same date/version prediction cannot be duplicated or timestamp-renewed').toEqual(predicted);
+  expect(harness.requests('accuracyWarm', 'nav'), 'warm prediction does not force the stable NAV resource').toHaveLength(0);
+
+  // The next China day publishes the underlying Sep28 NAV. The unchanged US
+  // fixture is then insufficient for a new Sep29 target and must not fabricate one.
+  harness.state.navPoints = [{ x: Date.parse('2026-09-25T00:00:00+08:00'), y: 1.2 },
+    { x: Date.parse('2026-09-28T00:00:00+08:00'), y: 1.224 }];
+  await page.evaluate(() => { globalThis.__refreshTestClockAdvance = 24 * 60 * 60_000; });
+  await harness.refresh(page, 'accuracySettlement');
+  await expect.poll(async () => (await read()).ledger[0]?.actual_change).not.toBeNull();
+  const settled = await read();
+  expect(settled.ledger).toHaveLength(1);
+  expect(settled.ledger[0].actual_change).toBeCloseTo(2, 10);
+  expect(settled.ledger[0].error).toBeCloseTo(-1, 10);
+  expect(settled.ledger[0].direction_correct).toBe(true);
+  expect(settled.ledger[0].settled_at).toMatch(/^2026-09-30T/);
+  expect(settled.fund.quote).toMatchObject({ valueKind: 'official_nav', value: 1.224, targetDate: '2026-09-28' });
+  expect(harness.state.gistWrites).toEqual([]);
+  expect(harness.state.requests.filter(row => row.category === 'gist')).toEqual([]);
+  writeFileSync(testInfo.outputPath('actual-accuracy-lifecycle.json'), JSON.stringify({
+    scope: 'synthetic real App/Bridge automatic prediction, warm dedup and next publication settlement; not real providers/devices',
+    browser: browser.version(), cold, predicted, settled, noCloudWrites: true,
+  }, null, 2) + '\n', { flag: 'wx' });
+});
+
+test('independent holdings and market models survive the real refresh, renderer and cache reload', async ({ context, page, browser }, testInfo) => {
+  const row = { ...HOLDINGS[0], name: '合成沪深300指数基金' };
+  const harness = await installHarness(context, { rows: [row], failEstimates: true, securityChange: 2, modelChange: 3 });
+  await page.goto('/');
+  await harness.settle(page);
+  const cached = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)).data[0], FUND_CACHE);
+  await expect.poll(async () => (await cached())?.market_model_evidence?.changePct).toBe(3);
+  const fund = await cached();
+  expect(fund.holdings_model_evidence.fundCode).toBe(row.code);
+  expect(fund.holdings_model_evidence.changePct).toBeCloseTo(1.6, 10);
+  expect(fund.holdings_model_evidence.value).toBeCloseTo(1.2192, 10);
+  expect(fund.holdings_model_evidence.coverage).toBe(80);
+  expect(fund.market_model_evidence.value).toBeCloseTo(1.236, 10);
+  expect(fund.market_model_evidence.coverage).toBe(100);
+  expect(fund.quote.sourceId).toBe('market-model');
+  expect(fund.quote.valueKind).toBe('model_estimate');
+  expect(fund.quote.changePct).toBe(3);
+  expect(fund.curr_value).toBeCloseTo(123.6, 8);
+  expect(fund.today_profit).toBeCloseTo(3.6, 8);
+  await expect(navValue(page)).toHaveText('1.2360');
+  await page.locator(`#fund-toggle-${row.code}`).click();
+  await expect(page.locator(`#fund-detail-${row.code}`)).toContainText('可用权重100.00%');
+  await expect(page.locator(`#fund-detail-${row.code}`)).not.toContainText('覆盖净值80.0%');
+  const identities = { quote: fund.quote, holdings: fund.holdings_model_evidence, market: fund.market_model_evidence };
+  harness.state.failAll = true;
+  harness.state.holdNextEstimate = true;
+  await page.reload();
+  await harness.ready(page);
+  await expect.poll(() => Boolean(harness.state.heldEstimate)).toBe(true);
+  try {
+    // Hold the new primary acquisition so this observes the real cache restore,
+    // not a later, legitimately different official/failed-refresh projection.
+    await expect(navValue(page)).toHaveText('1.2360');
+    const restored = await cached();
+    expect(restored.holdings_model_evidence).toEqual(identities.holdings);
+    expect(restored.market_model_evidence).toEqual(identities.market);
+    expect(restored.quote.value).toBe(identities.quote.value);
+    expect(restored.quote.fetchedAt).toBe(identities.quote.fetchedAt);
+  } finally {
+    await harness.state.heldEstimate();
+    await harness.settle(page);
+  }
+  expect(harness.state.gistWrites).toEqual([]);
+  await testInfo.attach('model-provenance-synthetic-refresh', { contentType: 'application/json', body: JSON.stringify({
+    scope: 'local Chrome real app/Bridge/refresh/render/reload; synthetic providers only; not production/device proof',
+    browser: browser.version(), holdings: identities.holdings, market: identities.market,
+    selected: identities.quote, noCloudWrites: true,
+  }) });
+});
+
 test('one generation shares official NAV between fallback and enrichment', async ({ context, page }) => {
   // Keep this case on official NAV: a successful holdings enrichment would
   // legitimately select today's model and make its visible quote time 14:30.
@@ -257,11 +365,16 @@ test('large official-only portfolio drains without overflowing the real Bridge q
   await harness.settle(page);
   const navs = page.locator('#fund-list .nav-cur');
   await expect(navs).toHaveCount(rows.length);
-  expect(await navs.allTextContents(), 'All official fallbacks must survive parent-queue admission').toEqual(rows.map(() => '1.2000'));
+  // A quiet network window can precede Bridge dispatch; await all exact NAVs.
+  await expect(navs, 'All official fallbacks must survive parent-queue admission').toHaveText(rows.map(() => '1.2000'));
   const dates = page.locator('#fund-list .quote-time');
   expect(await dates.allTextContents(), 'Request completion must not turn the official NAV date into today').toEqual(rows.map(() => '2026-09-28'));
   expect(harness.requests('cold', 'nav')).toHaveLength(rows.length);
   expect(new Set(harness.requests('cold', 'nav').map(row => new URL(row.url).pathname)).size).toBe(rows.length);
+  // Publishing every NAV precedes the generation's final metadata/cache flush.
+  await expect.poll(async () => (await harness.writes(page, 'cold')).length, {
+    message: 'All official fallbacks must reach the single final aggregate cache flush',
+  }).toBe(1);
   const writes = await harness.writes(page, 'cold');
   expect(writes).toHaveLength(1);
   expect(JSON.parse(writes[0].value).data).toHaveLength(rows.length);
@@ -427,4 +540,251 @@ test('a non-cooperative late response cannot overwrite the current generation UI
   } finally {
     if (harness.state.heldEstimate) await harness.state.heldEstimate();
   }
+});
+
+test('refresh diagnostics reconcile real cold and warm requests without renewing data or loading private features', async ({ context, page }, testInfo) => {
+  const harness = await installHarness(context);
+  const dataCategories = ['estimates', 'holdings', 'nav', 'eastmoneySecurities', 'gold', 'tencent'];
+  const requestCounts = phase => Object.fromEntries(dataCategories.map(category =>
+    [category, harness.requests(phase, category).length]));
+  const requestTotal = phase => Object.values(requestCounts(phase)).reduce((sum, value) => sum + value, 0);
+  const diagnosticValue = label => page.locator('#diagnostics-content .diagnostics-row')
+    .filter({ has: page.getByText(label, { exact: true }) }).locator('strong');
+  const counter = async label => {
+    const text = await diagnosticValue('刷新请求').innerText();
+    const match = new RegExp(`${label}\\s*[:：=]?\\s*(\\d+)`).exec(text);
+    expect(match, `structured refresh request summary must expose ${label}`).not.toBeNull();
+    return Number(match[1]);
+  };
+  const planReasonLabels = ['缓存新鲜', '缓存缺失', '元数据无效', '缓存质量不可用', '缓存过期',
+    '强制实时', '强制稳定', '市场不适用', '阶段待定', '无活动持仓'];
+  const assertPlanReasons = async counts => {
+    const row = diagnosticValue('计划原因');
+    await expect(row, 'planning reasons must be visible in the real diagnostics center').toHaveCount(1);
+    await expect(row).toBeVisible();
+    await expect(row).toHaveText(planReasonLabels.map((label, index) => `${label} ${counts[index]}`)
+      .concat('仅表示计划时决策；实际执行 gate 细因未记录').join('；'));
+    return row.innerText();
+  };
+  const executionSkipLabels = ['估值源拒绝', '重仓源拒绝', '重仓半开额度已用', '模型源拒绝', '模型半开额度已用'];
+  const assertExecutionSkips = async counts => {
+    const row = diagnosticValue('执行跳过');
+    await expect(row, 'execution gate observations must be visible in the real diagnostics center').toHaveCount(1);
+    await expect(row).toBeVisible();
+    await expect(row).toHaveText(executionSkipLabels.map((label, index) => `${label} ${counts[index]}`)
+      .concat('按门控检查次数统计，非请求或唯一资源数；拒绝细因未记录').join('；'));
+    return row.innerText();
+  };
+  const readCache = () => page.evaluate(key => {
+    const raw = localStorage.getItem(key);
+    const cache = raw && JSON.parse(raw);
+    return { raw, holdingsHash: cache?.holdingsHash,
+      stable: Object.fromEntries(Object.entries(cache?.refreshResources || {})
+        .filter(([resource]) => /^(?:nav|holdings|meta):/.test(resource))) };
+  }, FUND_CACHE);
+  const openDiagnostics = async phase => {
+    await harness.phase(page, phase);
+    await page.locator('#nav-edit').click();
+    await page.locator('#diagnostics-center > summary').click();
+    await expect(page.locator('#diagnostics-center')).toHaveAttribute('open', '');
+    await expect(diagnosticValue('刷新诊断'), 'completed refresh must be observable through the real diagnostics center').toHaveCount(1);
+    await expect(diagnosticValue('刷新诊断')).toContainText(/completed|已完成/);
+    await expect(diagnosticValue('刷新诊断')).toContainText(/observed\s*[:：=]?\s*true/i);
+    await harness.settle(page);
+  };
+  const assertPrivateFeaturesAbsent = () => {
+    expect(harness.state.requests.filter(row => row.category === 'gist'), 'diagnostics must not initiate even read-only Gist requests').toEqual([]);
+    expect(harness.state.requests.filter(row => /(?:\/assets\/ocr\/|ocr-import\.html|paddle|tesseract|\.wasm(?:$|\?))/i.test(row.url)),
+      'opening or refreshing diagnostics must not load OCR assets or an OCR document').toEqual([]);
+    expect(harness.state.gistWrites).toEqual([]);
+  };
+
+  await page.goto('/');
+  await harness.settle(page);
+  await expect(navValue(page)).not.toHaveText('--');
+  const cold = await readCache();
+  expect(cold.raw).not.toBeNull();
+  expect(typeof cold.holdingsHash).toBe('string');
+  expect(Object.keys(cold.stable)).toHaveLength(3);
+  expect(harness.requests('cold', 'holdings')).toHaveLength(1);
+  expect(harness.requests('cold', 'nav')).toHaveLength(1);
+  const coldRequests = requestCounts('cold');
+  await testInfo.attach('cold-refresh-network-categories', {
+    contentType: 'application/json', body: JSON.stringify({ scope: 'real app and opaque Bridge; synthetic network only', counts: coldRequests }),
+  });
+  await openDiagnostics('coldDiagnostics');
+  expect(await counter('实际请求')).toBe(requestTotal('cold'));
+  expect(await counter('已进入请求中止')).toBe(0);
+  expect(await counter('资源取消拒绝')).toBe(0);
+  expect(await counter('写尝试')).toBe(1);
+  expect(await counter('缓存写入')).toBe(1);
+  await expect(diagnosticValue('刷新计划')).toContainText(/estimates/);
+  await expect(diagnosticValue('刷新计划')).toContainText(/fetch/);
+  // Startup forces the three volatile resources. The three stable resources
+  // miss their cache; the two phase-B resources remain pending at plan time.
+  const coldPlanReasons = await assertPlanReasons([0, 3, 0, 0, 0, 3, 0, 0, 2, 0]);
+  const coldExecutionSkips = await assertExecutionSkips([0, 0, 0, 0, 0]);
+  await expect(diagnosticValue('请求来源')).toContainText('sinan-estimate-proxy');
+  await expect(diagnosticValue('最终报价')).toContainText(/基金详情.*数据说明/);
+  expect(await readCache(), 'reading diagnostics must preserve all cache acquisition bytes and holdings identity').toEqual(cold);
+  expect(requestTotal('coldDiagnostics')).toBe(0);
+  expect(await harness.writes(page, 'coldDiagnostics')).toEqual([]);
+  assertPrivateFeaturesAbsent();
+
+  await page.locator('#diagnostics-center > summary').click();
+  await page.locator('#nav-market').click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await harness.refresh(page);
+  expect(harness.requests('warm', 'holdings')).toHaveLength(0);
+  expect(harness.requests('warm', 'nav')).toHaveLength(0);
+  const warm = await readCache();
+  expect(warm.holdingsHash).toBe(cold.holdingsHash);
+  expect(warm.stable, 'warm refresh cannot renew NAV, disclosure or metadata acquisition envelopes').toEqual(cold.stable);
+  await openDiagnostics('warmDiagnostics');
+  expect(await counter('实际请求')).toBe(requestTotal('warm'));
+  expect(await counter('缓存命中')).toBeGreaterThan(0);
+  expect(await counter('已进入请求中止')).toBe(0);
+  expect(await counter('资源取消拒绝')).toBe(0);
+  expect(await counter('写尝试')).toBe(1);
+  expect(await counter('缓存写入')).toBe(1);
+  await expect(diagnosticValue('刷新计划')).toContainText(/cache/);
+  await expect(diagnosticValue('跳过原因')).not.toBeEmpty();
+  // A warm manual refresh still forces live data; only NAV, disclosure and
+  // metadata become fresh-cache decisions, without renewing their envelopes.
+  const warmPlanReasons = await assertPlanReasons([3, 0, 0, 0, 0, 3, 0, 0, 2, 0]);
+  const warmExecutionSkips = await assertExecutionSkips([0, 0, 0, 0, 0]);
+  const summary = (await Promise.all(['刷新诊断', '刷新计划', '计划原因', '执行跳过', '刷新请求', '跳过原因', '请求来源', '最终报价']
+    .map(label => diagnosticValue(label).innerText()))).join('\n');
+  expect(summary).not.toMatch(/005844|合成境内混合基金A|ghp_|Authorization|https?:|source_quote|baseNav|shares|cost/);
+  expect(await readCache(), 'opening warm diagnostics must not change aggregate dates, hash or stored data').toEqual(warm);
+  expect(requestTotal('warmDiagnostics')).toBe(0);
+  expect(await harness.writes(page, 'warmDiagnostics')).toEqual([]);
+  assertPrivateFeaturesAbsent();
+  await testInfo.attach('refresh-diagnostics-cold-warm', {
+    contentType: 'application/json', body: JSON.stringify({ scope: 'synthetic completed generations only; no cancellation or production acceptance',
+      cold: coldRequests, warm: requestCounts('warm'), coldPlanReasons, warmPlanReasons,
+      coldExecutionSkips, warmExecutionSkips, summary }),
+  });
+});
+
+test('refresh diagnostics observe a real estimate source gate rejection without requesting or renewing official NAV', async ({ context, page }, testInfo) => {
+  // Keep disclosure acquisition healthy, but leave its securities unpriced so
+  // neither holdings enrichment nor the model's index leg replaces official NAV.
+  const harness = await installHarness(context, { failEstimates: true, securityChange: null,
+    omitTencentCodes: ['sh000300', ...Array.from({ length: 10 }, (_, i) => `sz${String(i + 1).padStart(6, '0')}`)] });
+  await context.addInitScript(origin => {
+    if (window !== window.top || location.origin !== origin) return;
+    globalThis.__diagnosticsStorageMutations = [];
+    for (const method of ['setItem', 'removeItem', 'clear']) {
+      const native = Storage.prototype[method];
+      Storage.prototype[method] = function(...args) {
+        const result = native.apply(this, args);
+        if (this === localStorage) globalThis.__diagnosticsStorageMutations.push({ method, phase: globalThis.__refreshTestPhase });
+        return result;
+      };
+    }
+  }, ORIGIN);
+  const diagnosticValue = label => page.locator('#diagnostics-content .diagnostics-row')
+    .filter({ has: page.getByText(label, { exact: true }) }).locator('strong');
+  const refreshDiagnostics = () => page.getByRole('button', { name: '刷新诊断', exact: true }).click();
+  const dataCategories = ['estimates', 'holdings', 'nav', 'eastmoneySecurities', 'gold', 'tencent'];
+  const requestCounts = phase => Object.fromEntries(dataCategories.map(category =>
+    [category, harness.requests(phase, category).length]));
+  const readCache = () => page.evaluate(({ key, code }) => {
+    const raw = localStorage.getItem(key);
+    const cache = raw && JSON.parse(raw);
+    const quote = cache?.data?.find(row => row.code === code)?.quote;
+    return { raw, holdingsHash: cache?.holdingsHash,
+      stable: Object.fromEntries(Object.entries(cache?.refreshResources || {})
+        .filter(([resource]) => /^(?:nav|holdings|meta):/.test(resource))),
+      official: quote && { value: quote.value, valueKind: quote.valueKind, baseNav: quote.baseNav,
+        baseNavDate: quote.baseNavDate, targetDate: quote.targetDate, officialNavDate: quote.officialNavDate } };
+  }, { key: FUND_CACHE, code: HOLDINGS[0].code });
+  const assertOfficialNav = async () => {
+    const row = page.locator(`#fund-toggle-${HOLDINGS[0].code}`);
+    await expect(row.locator('.nav-cur')).toHaveText('1.2000');
+    await expect(row.locator('.nav-prev')).toHaveText('1.1900');
+    await expect(row.locator('.fund-pct')).toHaveText('+0.84%');
+    await expect(row.locator('.quote-kind')).toHaveText('最新净值涨跌');
+    await expect(row.locator('.quote-time')).toHaveText('2026-09-28');
+    expect((await readCache()).official).toEqual({ value: 1.2, valueKind: 'official_nav', baseNav: 1.19,
+      baseNavDate: '2026-09-25', targetDate: '2026-09-28', officialNavDate: '2026-09-28' });
+  };
+
+  await page.goto('/');
+  await harness.settle(page);
+  await assertOfficialNav();
+  const cold = await readCache();
+  expect(harness.requests('cold', 'estimates')).toHaveLength(1);
+  expect(harness.requests('cold', 'nav')).toHaveLength(1);
+  for (const phase of ['secondFailure', 'thirdFailure']) {
+    await harness.refresh(page, phase);
+    expect(harness.requests(phase, 'estimates')).toHaveLength(1);
+    expect(harness.requests(phase, 'nav')).toHaveLength(0);
+    expect(harness.requests(phase, 'holdings')).toHaveLength(0);
+    await assertOfficialNav();
+  }
+  expect(harness.state.estimateRequests, 'three real failures must reach the unchanged default circuit threshold').toBe(3);
+  const beforeDenied = await readCache();
+  expect(beforeDenied.stable, 'failed estimates cannot renew official NAV, metadata or disclosure acquisition dates').toEqual(cold.stable);
+  expect(beforeDenied.holdingsHash).toBe(cold.holdingsHash);
+
+  // Public diagnostics expose the real third-generation cooldown; do not read
+  // or mutate the private coordinator, registry, observer or source policy.
+  await harness.phase(page, 'thresholdDiagnostics');
+  await page.locator('#nav-edit').click();
+  await page.locator('#diagnostics-center > summary').click();
+  await expect(diagnosticValue('刷新诊断')).toHaveText('第3代 / 已完成 / observed=true');
+  await expect(diagnosticValue('数据源健康')).toContainText('sinan-estimate-proxy cooldown / 连续失败 3');
+  await harness.settle(page);
+
+  // The existing online handler starts generation four. Unlike manual helper
+  // refresh(), this path must not wait for an estimate request that is denied.
+  await harness.phase(page, 'sourceDenied');
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await expect.poll(async () => {
+    await refreshDiagnostics();
+    return diagnosticValue('刷新诊断').innerText();
+  }, { message: 'the real online generation must complete through public diagnostics' })
+    .toBe('第4代 / 已完成 / observed=true');
+  await harness.settle(page);
+  expect(harness.state.estimateRequests).toBe(3);
+  expect(harness.requests('sourceDenied', 'estimates'), 'a denied estimate claim is not a dispatched network request').toHaveLength(0);
+  expect(harness.requests('sourceDenied', 'nav')).toHaveLength(0);
+  expect(harness.requests('sourceDenied', 'holdings')).toHaveLength(0);
+  const executionSkips = { estimate_claim_denied: 1, holdings_claim_denied: 0, holdings_probe_used: 0,
+    model_claim_denied: 0, model_probe_used: 0 };
+  await expect(diagnosticValue('执行跳过')).toHaveText('估值源拒绝 1；重仓源拒绝 0；重仓半开额度已用 0；模型源拒绝 0；模型半开额度已用 0；按门控检查次数统计，非请求或唯一资源数；拒绝细因未记录');
+  await expect(diagnosticValue('请求来源')).not.toContainText(/sinan-estimate-proxy=[1-9]\d*/);
+  await assertOfficialNav();
+  const denied = await readCache();
+  expect(denied.stable).toEqual(beforeDenied.stable);
+  expect(denied.official).toEqual(beforeDenied.official);
+  expect(denied.holdingsHash).toBe(beforeDenied.holdingsHash);
+
+  // Once completed, re-reading diagnostics must be entirely read-only across
+  // every request category and every localStorage mutation API, not only Gist.
+  await harness.phase(page, 'deniedDiagnostics');
+  const requestsBeforeRead = harness.state.requests.length;
+  const storageBeforeRead = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+  await refreshDiagnostics();
+  await expect(diagnosticValue('刷新诊断')).toHaveText('第4代 / 已完成 / observed=true');
+  await harness.settle(page);
+  expect(harness.state.requests.length).toBe(requestsBeforeRead);
+  expect(await harness.writes(page, 'deniedDiagnostics')).toEqual([]);
+  expect(await page.evaluate(() => globalThis.__diagnosticsStorageMutations
+    .filter(row => row.phase === 'deniedDiagnostics'))).toEqual([]);
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(storageBeforeRead);
+  expect(await readCache()).toEqual(denied);
+  expect(harness.state.requests.filter(row => row.category === 'gist')).toEqual([]);
+  expect(harness.state.requests.filter(row => /(?:\/assets\/ocr\/|ocr-import\.html|paddle|tesseract|\.wasm(?:$|\?))/i.test(row.url))).toEqual([]);
+  expect(harness.state.gistWrites).toEqual([]);
+  const summary = (await Promise.all(['刷新诊断', '执行跳过', '刷新请求', '请求来源', '最终报价']
+    .map(label => diagnosticValue(label).innerText()))).join('\n');
+  expect(summary).not.toMatch(/005844|合成境内混合基金A|ghp_|Authorization|https?:|source_quote|baseNav|shares|cost/);
+  await testInfo.attach('refresh-diagnostics-real-source-gate-denied', {
+    contentType: 'application/json', body: JSON.stringify({ scope: 'real default source-health cooldown and public online handler; synthetic network only; no half-open or production acceptance',
+      completedGeneration: 4, executionSkips, cold: requestCounts('cold'), secondFailure: requestCounts('secondFailure'),
+      thirdFailure: requestCounts('thirdFailure'), sourceDenied: requestCounts('sourceDenied'), summary }),
+  });
 });

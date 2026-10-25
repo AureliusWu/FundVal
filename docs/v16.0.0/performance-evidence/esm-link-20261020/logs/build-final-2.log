@@ -1,0 +1,21 @@
+
+> fuyu-fund@15.0.2 build
+> node scripts/build-site.mjs
+
+Built js/app-shell.js: 5056 bytes raw, 2234 bytes gzip (cold).
+Built js/chunks/accuracy-AV5UnMZT.js: 77 bytes raw, 92 bytes gzip (lazy).
+Built js/chunks/app-C1KeC5Vr.js: 37 bytes raw, 57 bytes gzip (cold).
+Built js/chunks/business-features-BxmeGblZ.js: 665 bytes raw, 374 bytes gzip (lazy).
+Built js/chunks/business-runtime-63t7lKdA.js: 80965 bytes raw, 27185 bytes gzip (lazy).
+Built js/chunks/cloud-archive-ui-Bkt1Q4Kd.js: 79 bytes raw, 92 bytes gzip (lazy).
+Built js/chunks/cloud-CLK5Spot.js: 18694 bytes raw, 6382 bytes gzip (lazy).
+Built js/chunks/cloud-runtime-CB3MWviH.js: 254 bytes raw, 184 bytes gzip (lazy).
+Built js/chunks/diagnostics-DLmiIP_p.js: 5628 bytes raw, 2884 bytes gzip (lazy).
+Built js/chunks/diagnostics-ui-BarnPzjK.js: 83 bytes raw, 90 bytes gzip (lazy).
+Built js/chunks/gist-runtime-BB2WMPEu.js: 141 bytes raw, 137 bytes gzip (lazy).
+Built js/chunks/post-integrity-LZsxxjFJ.js: 96333 bytes raw, 32206 bytes gzip (cold).
+Built js/chunks/quote-diagnostics-DLE2n5e9.js: 82 bytes raw, 89 bytes gzip (lazy).
+Built js/chunks/startup-migrations-CEzhCYv4.js: 79 bytes raw, 94 bytes gzip (cold).
+Built js/chunks/startup-pure-v6vu1dD4.js: 27349 bytes raw, 8263 bytes gzip (cold).
+Built js/chunks/startup-repository-B04CzfgI.js: 125 bytes raw, 131 bytes gzip (cold).
+Homepage cold-start gzip: 42985/52241 bytes; all chunks: 80494 bytes gzip.

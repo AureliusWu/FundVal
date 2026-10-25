@@ -1,0 +1,58 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { readFile,readdir,lstat,writeFile,mkdir,mkdtemp,copyFile,cp } from 'node:fs/promises';
+import { dirname,resolve,join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+const here=dirname(fileURLToPath(import.meta.url)),root='D:/AI项目/FundVal',out=resolve(root,'docs/v16.0.0/performance-evidence/vite824-security-20261022');
+const sha=b=>createHash('sha256').update(b).digest('hex'),json=async p=>JSON.parse(await readFile(resolve(here,p),'utf8'));
+const staging=await mkdtemp(join(tmpdir(),'fundval-vite824-archive-')),redactions=[];
+async function copy(from,to){await mkdir(dirname(to),{recursive:true});await cp(from,to,{recursive:true,force:false,errorOnExist:true});}
+for(const name of await readdir(here)){
+  if(['A','B'].includes(name))continue;
+  const s=await lstat(resolve(here,name));assert.ok(!s.isSymbolicLink());
+  const from=resolve(here,name),to=resolve(staging,'qualification',name);
+  if(name==='ROOT-audit-full.json'){
+    const original=await readFile(from),record=JSON.parse(original),response=JSON.parse(record.stdout);
+    if(response.headers?.['set-cookie']){
+      response.headers['set-cookie']=['[REDACTED_EPHEMERAL_CLOUDFLARE_BOT_COOKIE]'];
+      record.stdout=JSON.stringify(response,null,2)+'\n';await mkdir(dirname(to),{recursive:true});
+      const b=Buffer.from(JSON.stringify(record,null,2)+'\n');await writeFile(to,b,{flag:'wx'});
+      redactions.push({path:'qualification/'+name,originalSha256:sha(original),archivedSha256:sha(b),redacted:'stdout JSON headers.set-cookie only; native503 status/error/command/timing preserved',originalRetainedInLocalTemp:true});
+    }else await copy(from,to);
+  }else await copy(from,to);
+}
+await writeFile(resolve(staging,'redactions.json'),JSON.stringify(redactions,null,2)+'\n',{flag:'wx'});
+const snap=await json('snapshot.json'),omitted=[];
+for(const row of snap.rows){
+  if(row.path.startsWith('.codex-tmp/')){omitted.push(row);continue;}
+  const from=resolve(here,'A',row.path),b=await readFile(from);assert.equal(sha(b),row.sha256);
+  await copy(from,resolve(staging,'source-A',row.path));
+}
+for(const name of ['package.json','package-lock.json'])await copy(resolve(here,'B',name),resolve(staging,'candidate-B',name));
+await writeFile(resolve(staging,'scope.json'),JSON.stringify({fullSnapshotFiles:snap.files,fullSnapshotBytes:snap.bytes,
+ archivedSourceFiles:snap.files-omitted.length,archivedSourceBytes:snap.bytes-omitted.reduce((n,r)=>n+r.bytes,0),
+ omittedHistoricalNonBuildInputs:omitted,wholeOutputBytesArchived:false,wholeOutputInventoriesAndSixAppPayloadsArchived:true,
+ scope:'A source includes vendor models/static inputs. Historical .codex-tmp outputs were copied into both qualification inputs and hashed, but were not build inputs and are omitted here; their full path/bytes/hash inventory is retained. No node_modules or full127-file OCR outputs are archived.'},null,2)+'\n',{flag:'wx'});
+const cohorts=[
+ ['input-review','C:/Users/84046/AppData/Local/Temp/fundval-vite824-independent-review-20261022-0842e02c'],
+ ['installed-review','C:/Users/84046/AppData/Local/Temp/fundval-vite824-installed-review-20261022-110036-816']
+];
+const extra=process.argv.slice(2);for(let i=0;i<extra.length;i+=2)cohorts.push([extra[i],extra[i+1]]);
+for(const [prefix,from] of cohorts)await copy(from,resolve(staging,prefix));
+async function inventory(base){const rows=[];async function visit(path){const full=resolve(base,path),s=await lstat(full);assert.ok(!s.isSymbolicLink());
+ if(s.isDirectory())for(const n of await readdir(full))await visit(path==='.'?n:path+'/'+n);else{assert.ok(s.isFile());const b=await readFile(full);rows.push({path,bytes:b.length,sha256:sha(b)});}}
+ await visit('.');rows.sort((a,b)=>a.path.localeCompare(b.path));return rows;}
+await mkdir(out,{recursive:true});const rows=await inventory(staging),file=resolve(out,'original-evidence.tar.gz');
+assert.equal(await lstat(file).then(()=>true,()=>false),false,'Do not overwrite existing evidence');
+const r=spawnSync('tar.exe',['-czf',file,'-C',staging,'.'],{encoding:'utf8',windowsHide:true});assert.equal(r.status,0,r.stderr);
+const extraction=await mkdtemp(join(tmpdir(),'fundval-vite824-extract-'));
+const ex=spawnSync('tar.exe',['-xzf',file,'-C',extraction],{encoding:'utf8',windowsHide:true});assert.equal(ex.status,0,ex.stderr);
+assert.deepEqual(await inventory(extraction),rows);
+const b=await readFile(file),record={schema:1,archive:'original-evidence.tar.gz',bytes:b.length,sha256:sha(b),files:rows.length,
+ uncompressedBytes:rows.reduce((s,r)=>s+r.bytes,0),inventorySha256:sha(JSON.stringify(rows)),extractionVerified:true,cohorts,rows};
+await writeFile(resolve(out,'archive-audit.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+await copyFile(resolve(here,'qa-summary.json'),resolve(out,'qa-summary.json'));
+await copyFile(fileURLToPath(import.meta.url),resolve(out,'archive-tool.mjs.txt'));
+console.log(JSON.stringify({...record,rows:undefined}));

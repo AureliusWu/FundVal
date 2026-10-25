@@ -1,0 +1,15 @@
+{
+  "scope": "pre-policy exact current metadata capture + bounded read-only reports, not candidate qualification",
+  "included": [
+    "capture actual files and all16 actual appchunks",
+    "three report snapshots",
+    "actual source modules+builder",
+    "complete current inventories"
+  ],
+  "excludes": [
+    "installed payload",
+    "full site OCR assets payload",
+    "unreferenced source payload already§52/55"
+  ],
+  "noAppOrNewBuild": true
+}

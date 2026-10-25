@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { cp, lstat, readFile, readdir, writeFile } from 'node:fs/promises';
+import { resolve, relative } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+const root='D:/AI项目/FundVal';
+const target=resolve(root,'docs/v16.0.0/performance-evidence/string-pooling-20261020');
+const sha=b=>createHash('sha256').update(b).digest('hex');
+const audit=JSON.parse(await readFile(resolve(target,'archive-audit.json')));
+const archive=await readFile(resolve(target,audit.archive.path));
+assert.equal(archive.length,audit.archive.bytes);
+assert.equal(sha(archive),audit.archive.sha256);
+for(const row of audit.files){
+ const path=resolve(audit.extractionDirectory,row.path), stat=await lstat(path);
+ assert.ok(stat.isFile()&&!stat.isSymbolicLink());
+ const b=await readFile(path); assert.equal(b.length,row.bytes); assert.equal(sha(b),row.sha256);
+}
+assert.equal(audit.fileCount,129); assert.equal(audit.uncompressedBytes,2978941);
+assert.equal(sha(JSON.stringify(audit.files)),'01ee2929ccddfb9dc99ad29a48195a12f50b6769feaca871473b60e3a5314144');
+const summary=JSON.parse(await readFile(resolve(audit.extractionDirectory,'summary.json')));
+async function inventory(base){
+ const files=[];
+ async function visit(dir){
+  for(const item of await readdir(dir,{withFileTypes:true})){
+   const path=resolve(dir,item.name);
+   if(item.isDirectory())await visit(path);
+   else{ assert.ok(item.isFile()); const b=await readFile(path);
+    files.push({path:relative(base,path).replaceAll('\\','/'),bytes:b.length,sha256:sha(b)}); }
+  }
+ }
+ await visit(base);files.sort((a,b)=>a.path.localeCompare(b.path));
+ return {files:files.length,bytes:files.reduce((n,f)=>n+f.bytes,0),sha256:sha(JSON.stringify(files))};
+}
+const current={js:await inventory(resolve(root,'js')),site:await inventory(resolve(root,'site')),
+ builderSha256:sha(await readFile(resolve(root,'scripts/build-site.mjs'))),
+ graphToolSha256:sha(await readFile(resolve(root,'scripts/app-module-graph.mjs')))};
+assert.deepEqual(current,summary.before); assert.deepEqual(current,summary.after);
+const commands=[];
+function run(program,args,expected){
+ const r=spawnSync(program,args,{cwd:root,encoding:'utf8',windowsHide:true});
+ assert.equal(r.error,undefined);
+ const row={program,args,exitCode:r.status,stdout:r.stdout,stderr:r.stderr};
+ commands.push(row);assert.equal(r.status,expected);return row;
+}
+const graph=JSON.parse(run(process.execPath,['scripts/release-fingerprint.mjs','--verify-app-module-graph','site'],0).stdout);
+assert.equal(graph.staticBindingsVerified,true);assert.equal(graph.literalImportClosureVerified,true);
+const budget=JSON.parse(run(process.execPath,['scripts/release-fingerprint.mjs','--assert-app-bundle-budget','site'],1).stdout);
+assert.equal(budget.actualAllNonOcrGzipBytes,80494);assert.equal(budget.actualColdStartGzipBytes,42985);
+assert.equal(budget.allBudgetBytes,77227.7);assert.equal(budget.allPass,false);assert.equal(budget.coldPass,true);
+const businessDiff=run('git',['diff','--name-only','--','js','css','data','index.html','manifest.json','sw.js','package.json','package-lock.json','scripts/build-site.mjs'],0).stdout;
+assert.equal(businessDiff,'');
+run('git',['diff','--check'],0);
+const head=run('git',['rev-parse','HEAD'],0).stdout.trim();
+assert.equal(head,'170fd3eadc6da02750882f8a542904ee2358d0d9');
+const version=JSON.parse(await readFile(resolve(root,'package.json'))).version;assert.equal(version,'15.0.2');
+const {fingerprintReleaseDirectory}=await import(pathToFileURL(resolve(root,'scripts/release-fingerprint.mjs')));
+const critical=await fingerprintReleaseDirectory(resolve(root,'site'));
+assert.equal(critical,'4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948');
+const report={schema:1,head,version,current,critical,archiveVerified:audit.archive,archiveFilesVerified:audit.files.length,
+ archiveInventorySha256:sha(JSON.stringify(audit.files)),graph,budget,commands,
+ adopted:false,productChanged:false,fullTestsBuildE2eLatencyRerun:false,
+ limits:'No new build/test/E2E/latency/CI/production. Archive and existing current artifact verification only; budget remains FAIL.'};
+await writeFile(resolve(target,'final-verification.json'),JSON.stringify(report,null,2)+'\n',{flag:'wx'});
+await cp(fileURLToPath(import.meta.url),resolve(target,'verification-tool.mjs.txt'),{force:false,errorOnExist:true});
+process.stdout.write(JSON.stringify({archiveFiles:129,currentSite:current.site,critical,budget:budget.verdict,graphPass:true,productChanged:false})+'\n');
+

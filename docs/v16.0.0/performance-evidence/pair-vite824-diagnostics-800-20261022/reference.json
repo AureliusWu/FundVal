@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "purpose": "Local-only same-dependency security-aligned v15 business reference, not product commit/release",
+  "ref": "refs/fundval-performance/v15.0.2-source-map-js-1.2.2-vite-8.2.4-20261022",
+  "commit": "057042963a33579c624a41404a6d533dfda29768",
+  "parent": "c2980265d3c89f960517ced1527ba9cb85bf7c2b",
+  "tree": "40098290fb64d31e0c8fcc12e552b3a913b5c715",
+  "blobs": {
+    "package.json": "16e83e5f4841885773d2f067fba9628b808531dc",
+    "package-lock.json": "3d4f26457b15422ef53b63954efcae9d67f71238"
+  },
+  "epoch": 1791676800,
+  "dateMeaning": "Preserved original reference epoch for reproducible build; synthetic reference metadata, not publication date",
+  "changes": [
+    {
+      "file": "package.json",
+      "path": [
+        "devDependencies",
+        "vite"
+      ],
+      "a": "8.2.2",
+      "b": "8.2.4"
+    },
+    {
+      "file": "package-lock.json",
+      "path": [
+        "packages",
+        "",
+        "devDependencies",
+        "vite"
+      ],
+      "a": "8.2.2",
+      "b": "8.2.4"
+    },
+    {
+      "file": "package-lock.json",
+      "path": [
+        "packages",
+        "node_modules/vite",
+        "version"
+      ],
+      "a": "8.2.2",
+      "b": "8.2.4"
+    },
+    {
+      "file": "package-lock.json",
+      "path": [
+        "packages",
+        "node_modules/vite",
+        "resolved"
+      ],
+      "a": "https://registry.npmjs.org/vite/-/vite-8.2.2.tgz",
+      "b": "https://registry.npmjs.org/vite/-/vite-8.2.4.tgz"
+    },
+    {
+      "file": "package-lock.json",
+      "path": [
+        "packages",
+        "node_modules/vite",
+        "integrity"
+      ],
+      "a": "sha512-cFKLV/PRgAUlIRm5WjMjJ86jrftzpqcgH+Us+DS8mI3CDNiH30Whrz8uHL3+MOLPAgqbMBAqWdAHAphOAM+z/Q==",
+      "b": "sha512-lfauXnrf2x0p+UoA+wXh0dgFWnUjCyG6Js95KBkgaCwUU9k0DAHI4W6Q0WCx+h+5g+Alce1y4Zi2QjjK0UvGBw=="
+    }
+  ],
+  "normalizedLockSha256": "db9079726ec21ffe25c4882b47c5c8d5b03a4b5ef3036a587cee9c2e2b6336dc",
+  "currentLockRawSha256": "afe6a0d4aefe8668fc6c0d761bdfa8c59823225faa9923d60307a14a2cb7ee78",
+  "referenceLockRawSha256": "2b6bf2ac517ef0bcf7295a303b9dd75d1828743b052b3b773f9c6ef327453596",
+  "before": {
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "diff": "b8b50557a6d86adbf4f8ea1a64572f439e5c218f9faef90cb059b4b5d609acf6",
+    "index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "after": {
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "diff": "b8b50557a6d86adbf4f8ea1a64572f439e5c218f9faef90cb059b4b5d609acf6",
+    "index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "pushed": false
+}

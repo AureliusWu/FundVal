@@ -1,0 +1,22 @@
+{
+  "label": "tar-list",
+  "command": "tar",
+  "args": [
+    "-tzf",
+    "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\module-attribution-20261023\\original-evidence.tar.gz"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+  "startedAt": "2026-10-23T06:11:18.954Z",
+  "finishedAt": "2026-10-23T06:11:18.998Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 4929,
+    "sha256": "2d122870e3ac1ca2deb06441cd1cade71abc51b28ac94bb2ca10403eefcc2b64"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

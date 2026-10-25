@@ -87,6 +87,7 @@ jobs:
           test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm
           test -f site/THIRD_PARTY_NOTICES.md
           node scripts/release-fingerprint.mjs --verify-app-chunks-directory site
+          node scripts/release-fingerprint.mjs --verify-app-module-graph site
           node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr
       - name: Install Chrome for E2E
         run: npx --no-install playwright install --with-deps chrome

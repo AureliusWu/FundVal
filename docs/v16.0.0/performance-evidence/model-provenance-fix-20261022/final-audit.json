@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "at": "2026-10-22T07:05:54.148Z",
+  "checks": [
+    {
+      "label": "current complete272 source matches sealed final input",
+      "pass": true
+    },
+    {
+      "label": "current complete127 site matches sealed final build",
+      "pass": true
+    },
+    {
+      "label": "installed explicit68 still same",
+      "pass": true
+    },
+    {
+      "label": "HEAD branch staged-index unchanged",
+      "pass": true
+    },
+    {
+      "label": "archive hash size still same",
+      "pass": true
+    },
+    {
+      "label": "all791 extracted member bytes and paths still same",
+      "pass": true
+    },
+    {
+      "label": "inventory identity still same",
+      "pass": true
+    },
+    {
+      "label": "original completed workspace still same fundval-model-provenance-fix-20261022-parent",
+      "pass": true
+    },
+    {
+      "label": "original completed workspace still same FundVal-dual-model-P1-red-20261022-a1",
+      "pass": true
+    },
+    {
+      "label": "sealed README retained verbatim prefix with explicit outside addendum",
+      "pass": true
+    },
+    {
+      "label": "latest M3 report records actual failure and full remaining scope",
+      "pass": true
+    }
+  ],
+  "natives": [
+    {
+      "label": "head",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "branch",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "index",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    },
+    {
+      "label": "status",
+      "args": [
+        "status",
+        "--porcelain=v1"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 2240,
+        "sha256": "0b6a07b7657b62e4770cebf7a33e561aa8e496a8a63395f0b6ba1e46e333ffb9"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "docs": [
+    {
+      "path": "docs/v16.0.0/M3_STATUS.md",
+      "bytes": 185458,
+      "sha256": "fcb84209ae106ba2401448dbbef7a4116b0ba9ea8c7e5906b27d01214d78db78"
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/README.md",
+      "bytes": 24595,
+      "sha256": "99275ea4ce562f257a266acbdc8c4daa95412732025896098d8f7fcd3b284679"
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/model-provenance-fix-20261022/README.md",
+      "bytes": 9212,
+      "sha256": "041ace8ffb407c128a485c8c34881c02c24291f7fd00532507a81d8abc2b0ecd"
+    }
+  ],
+  "sourceRowsSha256": "c0aa9a6547a912df85e1477fd3a4076305a910b71b03d22cdaaa905a2cf92008",
+  "siteRowsSha256": "4182f49e01661469cbc13c51d9ff7ddcfb0081a4908d2511736609eb47606da2",
+  "installedRowsSha256": "2da11b473eaff8bcaa1fef492e4b595629145b97f8c7f2ea18f4e7fb5b074e1c",
+  "scope": "Post-documentation read-only product/archive verification, not a new build/test/performance/CI/deployment/financial reconciliation",
+  "budget": "FAIL",
+  "M3": "IN_PROGRESS",
+  "release": "NOT_RELEASED"
+}

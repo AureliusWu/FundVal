@@ -10,7 +10,11 @@ import { validateOcrAssetManifest } from '../js/ocr/asset-manifest.js';
 const APP_BUNDLE_BASELINE_COMMIT = '40e68edab9cb3fba0b17338dc3672a82d13ad17e';
 const APP_BUNDLE_BASELINE_ALL_GZIP_BYTES = 70_207;
 const APP_BUNDLE_COLD_GZIP_BUDGET = 52_241;
-const APP_BUNDLE_ALL_BUDGET_NUMERATOR = APP_BUNDLE_BASELINE_ALL_GZIP_BYTES * 11;
+// Explicit user-approved policy, 2026-10-23: only the total ceiling changes.
+// Keep the original v15 anchor and former ceiling visible, not rebased history.
+const APP_BUNDLE_BUDGET_POLICY = 'v16-total-90kib-approved-20261023';
+const APP_BUNDLE_PREVIOUS_ALL_GZIP_BUDGET = APP_BUNDLE_BASELINE_ALL_GZIP_BYTES * 11 / 10;
+const APP_BUNDLE_ALL_BUDGET_NUMERATOR = 92_160 * 10;
 const APP_BUNDLE_ALL_BUDGET_DENOMINATOR = 10;
 
 export const RELEASE_CRITICAL_PATHS = Object.freeze([
@@ -190,7 +194,7 @@ export async function listAppChunkPaths(manifestPath) {
   return (await readValidatedAppChunkManifest(manifestPath)).chunks.map(chunk => chunk.path);
 }
 
-export async function verifyAppChunkReleaseDirectory(directory) {
+async function readVerifiedAppChunks(directory, includeModules = false) {
   const root = resolve(String(directory || ''));
   const rootRealPath = await realpath(root);
   const manifestBytes = await readRegularFileInsideRoot(root, rootRealPath, 'js/app-chunks.json');
@@ -217,6 +221,7 @@ export async function verifyAppChunkReleaseDirectory(directory) {
   let totalBytes = 0;
   let actualColdStartGzipBytes = 0;
   let actualAllNonOcrGzipBytes = 0;
+  const modules = [];
   for (const chunk of manifest.chunks) {
     const content = await readRegularFileInsideRoot(root, rootRealPath, chunk.path);
     if (content.length !== chunk.bytes || hashBytes(content) !== chunk.sha256) {
@@ -229,10 +234,38 @@ export async function verifyAppChunkReleaseDirectory(directory) {
     totalBytes += content.length;
     actualAllNonOcrGzipBytes += gzipBytes;
     if (chunk.role === 'cold') actualColdStartGzipBytes += gzipBytes;
+    if (includeModules) modules.push({ path: chunk.path, code: new TextDecoder('utf-8', { fatal: true }).decode(content) });
   }
   // This verifies byte accounting and the complete declared partition. The real
   // import/static closure and startup isolation still require build-site's graph verifier.
-  return { chunkCount: manifest.chunks.length, totalBytes, actualColdStartGzipBytes, actualAllNonOcrGzipBytes };
+  return { manifest, modules, measurements: {
+    chunkCount: manifest.chunks.length, totalBytes, actualColdStartGzipBytes, actualAllNonOcrGzipBytes,
+  } };
+}
+
+export async function verifyAppChunkReleaseDirectory(directory) {
+  return (await readVerifiedAppChunks(directory)).measurements;
+}
+
+export async function verifyAppModuleGraphReleaseDirectory(directory) {
+  // Link exactly the buffers just checked against the manifest. Do not re-open
+  // paths after validation or let the native linker read dependency files.
+  const { manifest, modules } = await readVerifiedAppChunks(directory, true);
+  const { verifyAppModuleGraph } = await import('./app-module-graph.mjs');
+  return verifyAppModuleGraph(manifest, modules);
+}
+
+export async function verifyAppStaticBindingsReleaseDirectory(directory) {
+  const { modules } = await readVerifiedAppChunks(directory, true);
+  const { verifyNativeModuleBindings } = await import('./app-module-graph.mjs');
+  return Object.freeze({
+    ...await verifyNativeModuleBindings(modules),
+    // Deploy jobs intentionally install no dependencies and never rebuild.
+    // Their native-only pass does not independently parse dynamic imports.
+    literalImportClosureVerified: false,
+    startupOrderVerified: false,
+    dynamicNamespaceMembersVerified: false,
+  });
 }
 
 export function analyzeAppChunkBudgets(result) {
@@ -247,6 +280,8 @@ export function analyzeAppChunkBudgets(result) {
   return Object.freeze({
     baselineCommit: APP_BUNDLE_BASELINE_COMMIT,
     baselineAllNonOcrGzipBytes: APP_BUNDLE_BASELINE_ALL_GZIP_BYTES,
+    budgetPolicy: APP_BUNDLE_BUDGET_POLICY,
+    previousAllBudgetBytes: APP_BUNDLE_PREVIOUS_ALL_GZIP_BUDGET,
     actualColdStartGzipBytes: cold,
     actualAllNonOcrGzipBytes: all,
     coldBudgetBytes: APP_BUNDLE_COLD_GZIP_BUDGET,
@@ -294,6 +329,20 @@ export async function verifyOcrReleaseDirectory(directory) {
 async function main(args) {
   if (args.includes('--list')) {
     process.stdout.write(`${RELEASE_CRITICAL_PATHS.join('\n')}\n`);
+    return;
+  }
+  const verifyModuleGraphIndex = args.indexOf('--verify-app-module-graph');
+  if (verifyModuleGraphIndex >= 0) {
+    const directory = args[verifyModuleGraphIndex + 1];
+    if (!directory) throw new Error('Usage: release-fingerprint.mjs --verify-app-module-graph <path>');
+    process.stdout.write(`${JSON.stringify(await verifyAppModuleGraphReleaseDirectory(directory))}\n`);
+    return;
+  }
+  const verifyStaticBindingsIndex = args.indexOf('--verify-app-static-bindings');
+  if (verifyStaticBindingsIndex >= 0) {
+    const directory = args[verifyStaticBindingsIndex + 1];
+    if (!directory) throw new Error('Usage: release-fingerprint.mjs --verify-app-static-bindings <path>');
+    process.stdout.write(`${JSON.stringify(await verifyAppStaticBindingsReleaseDirectory(directory))}\n`);
     return;
   }
   const assertAppBudgetIndex = args.indexOf('--assert-app-bundle-budget');

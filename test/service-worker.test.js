@@ -101,9 +101,10 @@ function createServiceWorkerHarness(source, {
 }
 
 test('service worker isolates version caches, preserves old tabs during upgrades, and returns errors offline', async () => {
-  const [source, app] = await Promise.all([
+  const [source, app, pwa] = await Promise.all([
     readFile(new URL('../sw.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/runtime/pwa-update-controller.js', import.meta.url), 'utf8'),
   ]);
 
   assert.match(source, /const CACHE_PREFIX = 'fuyu-v';/);
@@ -150,18 +151,25 @@ test('service worker isolates version caches, preserves old tabs during upgrades
   ]) {
     assert.match(source, new RegExp(`js/runtime/${runtimeModule.replace('.', '\\.')}`));
   }
-  assert.match(app, /hasServiceWorkerUpdateBlocker\(\)[\s\S]*refreshCoordinator\.stopAndDrain\('service-worker-update'\)[\s\S]*hasServiceWorkerUpdateBlocker\(\)[\s\S]*SKIP_WAITING/);
-  assert.match(app, /reg\.waiting[\s\S]*showServiceWorkerUpdate\(reg\.waiting\)/);
-  assert.match(app, /BroadcastChannel\('fuyu_sw_update_v1'\)/);
-  assert.match(app, /function handleActivatedServiceWorker[\s\S]*hasServiceWorkerUpdateBlocker\(\)[\s\S]*serviceWorkerReloadPending = true/);
-  assert.match(app, /controllerchange[\s\S]*handleActivatedServiceWorker/);
-  assert.match(app, /addEventListener\('message'[\s\S]*UPDATE_ACTIVATED[\s\S]*handleActivatedServiceWorker/);
+  assert.match(pwa, /hasServiceWorkerUpdateBlocker\(\)[\s\S]*stopAndDrain\('service-worker-update'\)[\s\S]*hasServiceWorkerUpdateBlocker\(\)[\s\S]*SKIP_WAITING/);
+  assert.match(pwa, /reg\.waiting[\s\S]*showServiceWorkerUpdate\(reg\.waiting\)/);
+  assert.match(pwa, /BroadcastChannel\('fuyu_sw_update_v1'\)/);
+  assert.match(pwa, /function handleActivatedServiceWorker[\s\S]*hasServiceWorkerUpdateBlocker\(\)[\s\S]*serviceWorkerReloadPending = true/);
+  assert.match(pwa, /controllerchange[\s\S]*handleActivatedServiceWorker/);
+  assert.match(pwa, /addEventListener\('message'[\s\S]*UPDATE_ACTIVATED[\s\S]*event\.origin === location\.origin[\s\S]*event\.source === requestedServiceWorker[\s\S]*handleActivatedServiceWorker/);
+  assert.match(app, /import \{ createPwaUpdateController \} from '\.\/runtime\/pwa-update-controller\.js'/);
+  assert.match(app, /const pwaUpdateController = createPwaUpdateController\(/);
+  assert.match(app, /stopAndDrain: [^\n]*refreshCoordinator\.stopAndDrain\(/);
+  assert.match(app, /clearAutoRefresh\([^)]*\)\s*\{[\s\S]*clearTimeout\(autoRefreshTimer\)[\s\S]*autoRefreshTimer = null/);
+  assert.match(app, /function hasServiceWorkerUpdateBlocker\(\)\s*\{\s*return pwaUpdateController\.hasServiceWorkerUpdateBlocker\(\);?\s*\}/);
+  assert.match(app, /function applyPendingServiceWorkerUpdate\(\)\s*\{\s*return pwaUpdateController\.applyPendingServiceWorkerUpdate\(\);?\s*\}/);
+  assert.match(app, /pwaUpdateController\.start\(\)/);
   assert.match(app, /beforeunload[\s\S]*hasServiceWorkerUpdateBlocker/);
   const beforeUnloadBody = app.slice(app.indexOf("window.addEventListener('beforeunload'"), app.indexOf("window.addEventListener('online'"));
   assert.doesNotMatch(beforeUnloadBody, /serviceWorkerUpdateApplying/);
-  assert.match(app, /serviceWorkerUpdateApplying[\s\S]*status: 'skipped', reason: 'service_worker_update_pending'/);
-  assert.match(app, /serviceWorkerUpdateApplying = true;[\s\S]*clearTimeout\(autoRefreshTimer\)[\s\S]*stopAndDrain/);
-  assert.match(app, /hasServiceWorkerUpdateBlocker\(\)[\s\S]*isSyncing/);
+  assert.match(app, /pwaUpdateController\.isUpdateApplying\(\)[\s\S]*status: 'skipped', reason: 'service_worker_update_pending'/);
+  assert.match(pwa, /serviceWorkerUpdateApplying = true;[\s\S]*clearAutoRefresh\(\)[\s\S]*stopAndDrain/);
+  assert.match(pwa, /hasServiceWorkerUpdateBlocker\(\)[\s\S]*isSyncing\(\)/);
 });
 
 test('install reloads every versioned core asset instead of seeding from an older HTTP cache', async () => {

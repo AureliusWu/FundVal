@@ -1,0 +1,51 @@
+import { readFileSync, cpSync } from 'node:fs';
+import { resolve } from 'node:path';
+import assert from 'node:assert/strict';
+import { root, sha, save, state, native, inv, json } from 'file:///C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-20261023-parent/common.mjs';
+const here = import.meta.dirname, out = resolve(root, 'docs/v16.0.0/performance-evidence/private-vertical-20261023');
+const workspace = 'C:/Users/84046/AppData/Local/Temp/FundVal-private-vertical-20261023-a1';
+const audit = json(resolve(out, 'archive-audit.json')), inventory = json(resolve(out, 'inventory.json'));
+const checks = [];
+function check(label, operation) { operation(); checks.push({label, pass: true}); }
+const before = state(here, 'post-docs-before');
+check('actual archive audit not candidate pass', () => {
+  assert.equal(audit.status, 'ARCHIVE_AUDIT_PASS_NOT_CANDIDATE_PASS'); assert.equal(audit.checks.length, 13);
+  assert.ok(audit.checks.every(row => row.pass)); assert.equal(audit.actual.adopt, false); assert.equal(audit.actual.completeQa, false);
+});
+check('actual archive bytes hash', () => {
+  const bytes = readFileSync(audit.archive.path); assert.equal(bytes.length, 15194623);
+  assert.equal(sha(bytes), '93dde2ffa959fbeb9ec00b0ff584d0c347b444109ca2191ed8c522f1e82b5d0d');
+});
+check('inventory and fresh extraction all members', () => {
+  assert.equal(inventory.count, 669); assert.equal(inventory.bytes, 25920452);
+  assert.equal(sha(JSON.stringify(inventory.files)), 'c2ca2b247124edce69c06462f2338bd5c2e8672df0d56b3cba5edb7ee243f02b');
+  assert.deepEqual(inv(resolve(here, 'extract')), inventory.files);
+});
+for (const side of ['A', 'B']) check(side + ' frozen source and built complete artifact unchanged', () => {
+  const freeze = json(resolve(workspace, 'FINAL_FREEZE.json')), result = json(resolve(workspace, 'materiality-' + side + '-01/RESULT.json'));
+  assert.deepEqual(inv(resolve(workspace, side), new Set(['site', 'node_modules'])), freeze[side].rows);
+  assert.deepEqual(inv(resolve(workspace, side, 'site')), result.artifact.rows);
+});
+check('every selected original workspace source receipt report unchanged', () => {
+  const inputs = json(resolve(here, 'extract/parent/input-inventories.json'));
+  for (const input of inputs) for (const row of input.rows) {
+    const bytes = readFileSync(resolve(input.base, row.path)); assert.equal(bytes.length, row.bytes); assert.equal(sha(bytes), row.sha256);
+  }
+});
+check('post-archive docs addendum accurately scoped', () => {
+  const readme = readFileSync(resolve(out, 'README.md'), 'utf8'), status = readFileSync(resolve(root, 'docs/v16.0.0/M3_STATUS.md'), 'utf8');
+  assert.ok(readme.includes(audit.archive.sha256)); assert.ok(status.includes(audit.archive.sha256));
+  assert.ok(readme.includes('不是原型通过或完整 QA')); assert.ok(status.includes('## 55.'));
+});
+const after = state(here, 'post-docs-after');
+check('root273 site127 installed68 Git unchanged after docs', () => assert.deepEqual(after, before));
+const diff = native(here, 'post-docs-diff-check', 'git', ['-C', root, 'diff', '--check']);
+check('diff check native0 warnings preserved', () => assert.equal(diff.receipt.nativeExit, 0));
+save(resolve(out, 'post-docs-audit.json'), JSON.stringify({status: 'POST_DOCS_AUDIT_PASS_NOT_CANDIDATE_PASS', checks, before, after,
+  diffCheck: diff.receipt, candidate: 'NOT_QUALIFIED', adopt: false, release: 'NOT_RELEASED'}, null, 2) + '\n');
+cpSync(import.meta.filename, resolve(out, 'post-docs-tool.mjs.txt'), {force: false, errorOnExist: true});
+for (const label of ['post-docs-before-head', 'post-docs-before-branch', 'post-docs-before-index', 'post-docs-after-head', 'post-docs-after-branch', 'post-docs-after-index', 'post-docs-diff-check']) {
+  for (const suffix of ['stdout', 'stderr', 'receipt.json']) cpSync(resolve(here, label + '.' + suffix), resolve(out, label + '.' + suffix), {force: false, errorOnExist: true});
+}
+process.stdout.write(JSON.stringify({status: 'POST_DOCS_AUDIT_PASS_NOT_CANDIDATE_PASS', checks: checks.length, diffNative: diff.receipt.nativeExit,
+  diffStderr: diff.receipt.stderr, rootInput: after.source, site: after.site, installed: after.installed}) + '\n');

@@ -1,0 +1,55 @@
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const uglify = dirname(fileURLToPath(import.meta.url));
+const scalars = 'C:/Users/84046/AppData/Local/Temp/fundval-m3-scalars-4c17c1f336244662a0389ae360cb7f1b';
+const target = 'D:/AI项目/FundVal/docs/v16.0.0/performance-evidence/bounded-minifier-scalars-20261020';
+await mkdir(target);
+const selections = [
+  [uglify, ['package.json', 'package-lock.json', 'compare-uglify-v1.mjs', 'series-uglify-v1']],
+  [scalars, ['README.md', 'summary.json', 'recipe.txt', 'probe.mjs', 'trace-summary.json', 'trace-comparisons.json', 'results-in-progress.json', 'transformed', 'artifacts']],
+];
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const inventory = [], seen = new Set();
+async function visit(base, path, group) {
+  if (path.includes('\\') || path.split('/').some(part => !part || part === '..' || part === '.')) throw Error('Unsafe archive path');
+  const file = resolve(base, path), metadata = await lstat(file);
+  if (metadata.isSymbolicLink()) throw Error('Refusing archive symlink');
+  if (metadata.isDirectory()) {
+    for (const name of (await readdir(file)).sort()) await visit(base, path + '/' + name, group);
+  } else if (metadata.isFile()) {
+    if (seen.has(path)) throw Error('Archive input path collision'); seen.add(path);
+    const bytes = await readFile(file); inventory.push({ path, group, bytes: bytes.length, sha256: hash(bytes) });
+  } else throw Error('Unexpected archive input');
+}
+for (let index = 0; index < selections.length; index++) {
+  const [base, paths] = selections[index]; for (const path of paths) await visit(base, path, index === 0 ? 'uglify' : 'scalars');
+}
+inventory.sort((a, b) => a.path.localeCompare(b.path));
+const archive = resolve(target, 'original-evidence.tar.gz');
+const args = ['-czf', archive]; for (const [base, paths] of selections) args.push('-C', base, ...paths);
+execFileSync('tar', args, { stdio: 'pipe' });
+const entries = execFileSync('tar', ['-tf', archive], { encoding: 'utf8' }).trim().split(/\r?\n/);
+for (const entry of entries) if (/^(?:\/|[A-Za-z]:)/.test(entry) || entry.includes('\\') || entry.split('/').some(part => part === '..')) throw Error('Unsafe archive member');
+const fileEntries = entries.filter(entry => !entry.endsWith('/'));
+if (fileEntries.length !== inventory.length || fileEntries.some(path => !seen.has(path))) throw Error('Archive file inventory differs');
+const extraction = await mkdtemp(resolve(tmpdir(), 'fundval-bounded-archive-'));
+execFileSync('tar', ['-xzf', archive, '-C', extraction], { stdio: 'pipe' });
+for (const row of inventory) {
+  const path = resolve(extraction, row.path), metadata = await lstat(path);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) throw Error('Invalid extracted file');
+  const bytes = await readFile(path); if (bytes.length !== row.bytes || hash(bytes) !== row.sha256) throw Error('Extracted bytes differ');
+}
+const archiveBytes = await readFile(archive);
+const audit = { schema: 1, archive: { path: 'original-evidence.tar.gz', bytes: archiveBytes.length, sha256: hash(archiveBytes) },
+  fileCount: inventory.length, uncompressedBytes: inventory.reduce((n, row) => n + row.bytes, 0), files: inventory,
+  extractionVerified: true, extractionDirectory: extraction, sourceDirectories: { uglify, scalars },
+  excludes: ['node_modules', 'full snapshot source tree', 'root site', 'original console stdout not separately captured'],
+  scalarsToolTiming: 'probe.mjs has trace archival instrumentation added after 12 builds; subsequent trace-only run wrote all pairs and performed zero new builds',
+  adopted: false, actualProductChanged: false };
+await writeFile(resolve(target, 'archive-audit.json'), JSON.stringify(audit, null, 2) + '\n');
+await cp(fileURLToPath(import.meta.url), resolve(target, 'archive-tool.mjs.txt'));
+process.stdout.write(JSON.stringify({ target, files: inventory.length, archiveBytes: archiveBytes.length, archiveSha256: audit.archive.sha256, extractionVerified: true }) + '\n');

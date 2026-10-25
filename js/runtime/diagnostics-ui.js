@@ -5,7 +5,7 @@ import { HOLDINGS_BACKUP_LATEST_KEY } from '../storage/holdings-repository.js';
 import { classifyMarketKind } from './market-session.js';
 import { marketClock } from './market-clock.js';
 
-export function createDiagnosticsCenter({ getHoldings, getHoldingsDocument, refreshCoordinator, showToast, esc, now = Date.now }) {
+export function createDiagnosticsCenter({ getHoldings, getHoldingsDocument, refreshCoordinator, getRefreshDiagnostics, showToast, esc, now = Date.now }) {
 let diagnosticsLastSummary = '';
 
 function diagnosticJson(key, fallback) {
@@ -91,6 +91,63 @@ function requestServiceWorkerVersion() {
   });
 }
 
+function refreshDiagnosticRows() {
+  if (typeof getRefreshDiagnostics !== 'function') return [];
+  try {
+    var snapshot = getRefreshDiagnostics();
+    var record = snapshot && snapshot.current;
+    if (!record) return [['刷新诊断', '暂无记录 / observed=false']];
+    var labels = { running: '执行中', completed: '已完成', failed: '失败', cancelled: '已取消' };
+    var count = value => Number.isSafeInteger(value) && value >= 0 ? String(value) : '未观测';
+    var identity = row => '第' + count(row.generation) + '代 / ' + (labels[row.status] || '未知')
+      + ' / observed=' + (row.observed === true ? 'true' : 'false');
+    var requests = row => {
+      var c = row.observed === true && row.counters;
+      if (!c) return '未观测';
+      return [['实际请求', c.requests], ['缓存命中', c.cacheHits], ['去重', c.deduped],
+        ['已进入请求中止', c.abortedRequests], ['资源取消拒绝', c.cancelledResources],
+        ['失败请求', c.failedRequests], ['写尝试', c.writeAttempts], ['缓存写入', c.cacheWrites]]
+        .map(item => item[0] + ' ' + count(item[1])).join('；');
+    };
+    var kinds = ['estimates', 'nav', 'holdings', 'meta', 'indices', 'gold', 'securities', 'model-quotes'];
+    var plan = Array.isArray(record.plan) ? record.plan.filter(row => kinds.includes(row.kind)).slice(0, 8)
+      .map(row => row.kind + ' cache=' + count(row.cache) + ' fetch=' + count(row.fetch) + ' skip=' + count(row.skip)).join('；') : '';
+    var reasons = record.skipReasons;
+    var planReasons = record.planReasons;
+    var reasonSummary = planReasons && [
+      ['fresh_cache', '缓存新鲜'], ['cache_miss', '缓存缺失'], ['cache_metadata_invalid', '元数据无效'],
+      ['cache_quality_unusable', '缓存质量不可用'], ['cache_expired', '缓存过期'], ['force_live', '强制实时'],
+      ['force_stable', '强制稳定'], ['market_ineligible', '市场不适用'], ['phase_pending', '阶段待定'],
+      ['no_active_holdings', '无活动持仓'],
+    ].map(item => item[1] + ' ' + count(planReasons[item[0]])).join('；');
+    var executionSkips = record.observed === true && record.executionSkips;
+    var executionSummary = executionSkips && [
+      ['estimate_claim_denied', '估值源拒绝'], ['holdings_claim_denied', '重仓源拒绝'],
+      ['holdings_probe_used', '重仓半开额度已用'], ['model_claim_denied', '模型源拒绝'],
+      ['model_probe_used', '模型半开额度已用'],
+    ].map(item => item[1] + ' ' + count(executionSkips[item[0]])).join('；');
+    var providers = record.counters && record.counters.providers;
+    var providerNames = ['sinan-estimate-proxy', 'sinan-holdings-proxy', 'eastmoney-official-nav',
+      'eastmoney-security-quote', 'tencent-market-quote', 'gold', 'model-config'];
+    var providerSummary = providers && providerNames.filter(name => Object.prototype.hasOwnProperty.call(providers, name))
+      .map(name => name + '=' + count(providers[name])).join('；');
+    var rows = [
+      ['刷新诊断', identity(record)],
+      ['刷新计划', plan || '未观测'],
+      ['计划原因', reasonSummary ? reasonSummary + '；仅表示计划时决策；实际执行 gate 细因未记录' : '未观测'],
+      ['执行跳过', executionSummary ? executionSummary + '；按门控检查次数统计，非请求或唯一资源数；拒绝细因未记录' : '未观测'],
+      ['刷新请求', requests(record)],
+      ['跳过原因', reasons ? '不适用市场 ' + count(reasons.market_ineligible) + '；无活动持仓 ' + count(reasons.no_active_holdings) : '未观测'],
+      ['请求来源', providerSummary || (providers ? '无已派发请求' : '未观测')],
+      ['最终报价', '请查看各基金详情 → 数据说明；本摘要不复制报价或金额'],
+    ];
+    if (snapshot.lastCancelled && snapshot.lastCancelled.generation !== record.generation) {
+      rows.push(['最近取消代', identity(snapshot.lastCancelled) + '；' + requests(snapshot.lastCancelled)]);
+    }
+    return rows;
+  } catch (_) { return [['刷新诊断', '读取失败 / observed=false']]; }
+}
+
 function diagnosticRows(swVersion) {
   var holdingsDocument = getHoldingsDocument();
   var snapshot = refreshCoordinator.snapshot();
@@ -118,7 +175,7 @@ function diagnosticRows(swVersion) {
     ['OCR 能力', ocrDiagnosticSummary()],
     ['OCR 账本条目', String(Array.isArray(ledger) ? ledger.length : 0)],
     ['运行错误条目', String(recentSafeDiagnostics().length)],
-  ];
+  ].concat(refreshDiagnosticRows());
 }
 
 async function refreshDiagnosticsCenter() {

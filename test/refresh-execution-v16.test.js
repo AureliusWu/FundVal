@@ -4,7 +4,7 @@ import { TTL } from '../js/config.js';
 import { executeRefreshPlan } from '../js/runtime/refresh-execution.js';
 import { RefreshCoordinator } from '../js/runtime/refresh-coordinator.js';
 import { makeRefreshResourceEntry } from '../js/runtime/refresh-resource-cache.js';
-import { getSourceHealth, listDataSources, recordSourceFailure } from '../js/runtime/source-registry.js';
+import { claimSourceAttempt, getSourceHealth, listDataSources, recordSourceFailure } from '../js/runtime/source-registry.js';
 import { calculateOverseasEstimate } from '../js/overseas-model.js';
 import { QuoteBridgeClient } from '../js/runtime/quote-bridge-client.js';
 
@@ -110,7 +110,8 @@ function cacheFixture(at = NOW - 1000, { holdingAt = at } = {}) {
     source: 'fund-estimate', holdingsHash: 'synthetic' };
 }
 
-function harness({ snapshot = [HOLDING], previous = null, options = {}, clients: overrides = {}, halfOpen = false } = {}) {
+function harness({ snapshot = [HOLDING], previous = null, options = {}, clients: overrides = {}, halfOpen = false,
+  onDiagnostics } = {}) {
   let clock = NOW;
   const calls = { estimates: 0, nav: 0, holdings: 0, indices: 0, gold: 0, eastmoney: 0, bridge: 0 };
   const events = [];
@@ -160,7 +161,7 @@ function harness({ snapshot = [HOLDING], previous = null, options = {}, clients:
         claims.push(source);
         return realContext.claimSourceAttempt(source);
       } });
-      return executeRefreshPlan({ context, snapshot, options, previous, clients, ui,
+      return executeRefreshPlan({ context, snapshot, options, previous, clients, ui, onDiagnostics,
         storage: { setItem(key, bytes) { writes.push({ key, value: JSON.parse(bytes) }); return true; } }, now: () => clock });
     },
   });
@@ -174,6 +175,44 @@ function harness({ snapshot = [HOLDING], previous = null, options = {}, clients:
       coordinator.registry = recordSourceFailure(coordinator.registry, source, { reason: 'synthetic initial failure' }, at);
     },
   };
+}
+
+for (const market of ['domestic', 'QDII']) {
+  test(`plan-reason observation preserves real active ${market} provider/cache/UI/finance results cold and warm`, async () => {
+    const snapshot = [{ ...HOLDING, name: market === 'QDII' ? 'Synthetic QDII' : HOLDING.name, shares: 100, cost: 1 }];
+    const reports = [];
+    const observed = harness({ snapshot, onDiagnostics: row => reports.push(row) });
+    const silent = harness({ snapshot });
+    assert.deepEqual(await observed.run(), await silent.run());
+    assert.equal(observed.events.filter(event => event[0] === 'publish').length, 1);
+    assert.equal(observed.events.filter(event => event[0] === 'enriched').length, 1);
+    assert.equal(observed.calls.nav, 1);
+    assert.equal(observed.calls.holdings, market === 'domestic' ? 1 : 0);
+    assert.deepEqual(observed.calls, silent.calls);
+    assert.deepEqual(observed.events, silent.events);
+    assert.deepEqual(observed.claims, silent.claims);
+    assert.deepEqual(observed.diagnostics, silent.diagnostics);
+    assert.deepEqual(observed.health(), silent.health());
+    assert.equal(JSON.stringify(observed.writes), JSON.stringify(silent.writes));
+    assert.deepEqual(reports.map(row => row.phase), ['started', 'resources_settled', 'final']);
+    assert.equal(reports[0].planReasons.market_ineligible, market === 'QDII' ? 1 : 0);
+    assert.equal(reports[0].planReasons.force_live, 3);
+    const previous = observed.writes[0].value, bytes = JSON.stringify(previous);
+    const warmReports = [];
+    const warmObserved = harness({ snapshot, previous, options: { force: false }, onDiagnostics: row => warmReports.push(row) });
+    const warmSilent = harness({ snapshot, previous, options: { force: false } });
+    assert.deepEqual(await warmObserved.run(), await warmSilent.run());
+    assert.deepEqual(warmObserved.calls, warmSilent.calls);
+    assert.equal(warmObserved.calls.nav, 0);
+    assert.equal(warmObserved.calls.holdings, 0);
+    assert.deepEqual(warmObserved.events, warmSilent.events);
+    assert.deepEqual(warmObserved.claims, warmSilent.claims);
+    assert.deepEqual(warmObserved.diagnostics, warmSilent.diagnostics);
+    assert.equal(JSON.stringify(warmObserved.writes), JSON.stringify(warmSilent.writes));
+    assert.equal(JSON.stringify(previous), bytes);
+    assert.equal(warmReports[0].planReasons.fresh_cache, market === 'domestic' ? 6 : 5);
+    assert.equal(warmReports[0].planReasons.market_ineligible, market === 'QDII' ? 1 : 0);
+  });
 }
 
 test('all primary and NAV failures cannot persist or renew the fund aggregate when indices succeed', async () => {
@@ -362,6 +401,76 @@ test('cancelling a pending late-added metadata task produces no unhandled reject
     assert.deepEqual(previous, before);
   } finally {
     process.off('unhandledRejection', onUnhandled);
+  }
+});
+
+test('cancelled resource diagnostics wait for late metadata to drain without adding old UI, cache or coordinator logs', async () => {
+  const previous = cacheFixture();
+  delete previous.refreshResources[`meta:${CODE}`];
+  const before = clone(previous);
+  const entered = deferred();
+  const pending = deferred();
+  const reports = [];
+  const requested = [];
+  const next = { ...nav(), date: '2026-09-30', prevDate: '2026-09-29',
+    meta: { manager: 'Synthetic late cancelled manager', currentRate: '0.25' } };
+  const h = harness({ previous, options: { force: false }, onDiagnostics: report => reports.push(report), clients: {
+    nav: async code => {
+      requested.push(code);
+      entered.resolve();
+      // Ignore abort deliberately: only a settled provider proves that the
+      // late-added metadata branch has drained, rather than just being stopped.
+      return pending.promise;
+    },
+  } });
+  let finished = false;
+  const task = h.run('timer').then(result => { finished = true; return result; });
+  await entered.promise;
+  try {
+    for (let turn = 0; turn < 3; turn++) await tick();
+    assert.deepEqual(requested, [CODE], 'Warm NAV needs no official request; missing metadata owns this one');
+    assert.equal(h.events.filter(event => event[0] === 'publish').length, 1);
+    assert.equal(h.events.filter(event => event[0] === 'enriched').length, 1,
+      'The main NAV and other enrichment finish independently of the pending metadata provider');
+    assert.deepEqual(reports.map(report => report.phase), ['started']);
+    h.coordinator.stop('synthetic late metadata observation stop');
+    const committedAtStop = h.events.length;
+    const diagnosticCountAtStop = h.coordinator.snapshot().diagnosticCount;
+    const coordinatorLogsAtStop = h.diagnostics.length;
+    for (let turn = 0; turn < 3; turn++) await tick();
+    assert.equal(finished, false, 'Cancellation must still await the unresolved metadata provider');
+    assert.deepEqual(reports.map(report => report.phase), ['started'],
+      'Neither resources_settled nor final may describe an undrained metadata branch');
+    assert.equal(h.events.length, committedAtStop);
+    assert.equal(h.writes.length, 0);
+    pending.resolve(next);
+    const result = await task;
+    await tick();
+    assert.ok(['aborted', 'superseded'].includes(result.status));
+    assert.deepEqual(reports.map(report => report.phase), ['started', 'resources_settled', 'final']);
+    for (const report of reports.slice(1)) {
+      assert.equal(report.generation, result.generation);
+      assert.equal(report.status, 'cancelled');
+      assert.equal(report.counters.requests, 2);
+      assert.equal(report.counters.abortedRequests, 1);
+      assert.equal(report.counters.failedRequests, 0);
+      assert.equal(report.counters.cancelledResources, 1);
+      assert.equal(report.counters.writeAttempts, 0);
+      assert.equal(report.counters.cacheWrites, 0);
+      assert.deepEqual(report.counters.providers, { 'eastmoney-official-nav': 1, 'eastmoney-security-quote': 1 });
+      assert.deepEqual(report.plan.find(row => row.kind === 'nav'), { kind: 'nav', cache: 1, fetch: 0, skip: 0 });
+      assert.deepEqual(report.plan.find(row => row.kind === 'meta'), { kind: 'meta', cache: 0, fetch: 1, skip: 0 });
+    }
+    assert.equal(h.coordinator.snapshot().diagnosticCount, diagnosticCountAtStop,
+      'The late cancelled observation must not append the old generation coordinator log');
+    assert.equal(h.diagnostics.length, coordinatorLogsAtStop);
+    assert.equal(h.events.length, committedAtStop);
+    assert.equal(h.events.some(event => event[0] === 'metadata' || event[0] === 'complete'), false);
+    assert.equal(h.writes.length, 0);
+    assert.deepEqual(previous, before);
+  } finally {
+    pending.resolve(next);
+    await task;
   }
 });
 
@@ -1088,4 +1197,82 @@ test('cancelled background branches are observed and cannot write or commit late
   } finally {
     process.off('unhandledRejection', onUnhandled);
   }
+});
+
+for (const mode of ['cooldown', 'unavailable', 'occupied_probe']) {
+  test(`execution skip facts record a real ${mode} claim rejection without relabelling it or retrying`, async () => {
+    const reports = [];
+    const h = harness({ onDiagnostics: row => reports.push(row) });
+    h.coordinator.registry = recordSourceFailure(h.coordinator.registry, SOURCE,
+      { reason: 'synthetic gate test', unavailable: mode === 'unavailable' }, mode === 'occupied_probe' ? NOW - 10 : NOW - 1);
+    if (mode === 'occupied_probe') {
+      const probe = claimSourceAttempt(h.coordinator.registry, SOURCE, NOW);
+      assert.equal(probe.allowed, true);
+      h.coordinator.registry = probe.registry;
+    }
+    const before = h.health();
+    const result = await h.run();
+    assert.equal(result.status, 'completed');
+    assert.equal(h.calls.holdings, 0);
+    assert.equal(h.claims.filter(source => source === SOURCE).length, 1);
+    assert.deepEqual(h.health(), before);
+    assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
+      holdings_claim_denied: 1, holdings_probe_used: 0, model_claim_denied: 0, model_probe_used: 0 });
+    assert.equal(reports[0].executionSkips.holdings_claim_denied, 0, 'Started is an immutable earlier sample.');
+    assert.ok(reports.every(row => Object.isFrozen(row.executionSkips)));
+    assert.doesNotMatch(JSON.stringify(reports.at(-1).executionSkips), /cooldown|unavailable|occupied_probe|005844/);
+  });
+}
+
+test('execution skip facts count the real holdings half-open generation budget, not a second source claim', async () => {
+  const reports = [];
+  const h = harness({ snapshot: [HOLDING, { ...HOLDING, code: '005845' }], halfOpen: true,
+    onDiagnostics: row => reports.push(row) });
+  assert.equal((await h.run()).status, 'completed');
+  assert.equal(h.calls.holdings, 1);
+  assert.equal(h.claims.filter(source => source === SOURCE).length, 1);
+  assert.equal(h.health().halfOpenProbeActive, false);
+  assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
+    holdings_claim_denied: 0, holdings_probe_used: 1, model_claim_denied: 0, model_probe_used: 0 });
+});
+
+test('model claim rejection is observed while a shared domestic security still dispatches and stays usable', async () => {
+  const reports = [];
+  const h = harness({ onDiagnostics: row => reports.push(row), clients: {
+    models: async () => [{ min_weight: 50, legs: [{ code: 'sh600001', weight: 50 }, { code: 'jp7203', weight: 50 }] }],
+  } });
+  h.failSource(MODEL_SOURCE, NOW - 1);
+  const health = h.health(MODEL_SOURCE);
+  assert.equal((await h.run()).status, 'completed');
+  assert.equal(h.calls.eastmoney, 1);
+  assert.equal(h.calls.bridge, 0);
+  assert.equal(h.claims.filter(source => source === MODEL_SOURCE).length, 1);
+  assert.deepEqual(h.health(MODEL_SOURCE), health);
+  const enriched = h.events.find(event => event[0] === 'enriched')[2];
+  assert.equal(enriched.estimate.items[0].change, 0);
+  assert.equal(enriched.models.sh600001.changePct, 0);
+  assert.equal(enriched.models.jp7203, undefined);
+  assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
+    holdings_claim_denied: 0, holdings_probe_used: 0, model_claim_denied: 1, model_probe_used: 0 });
+});
+
+test('model half-open budget rejects a later real provider batch without counting it as a request', async () => {
+  const reports = [], batches = [];
+  const legs = Array.from({ length: 65 }, (_, index) => ({ code: `jp${1000 + index}`, weight: 100 / 65 }));
+  const h = harness({ onDiagnostics: row => reports.push(row), clients: {
+    models: async () => [{ min_weight: 1, legs }],
+    bridge: async (operation, codes) => {
+      batches.push({ operation, codes });
+      return { quotes: codes.map(code => ({ code, price: 100, changePct: 0, sourceTimeRaw: '2026-09-30 14:00:00' })) };
+    },
+  } });
+  h.failSource(MODEL_SOURCE);
+  assert.equal((await h.run()).status, 'completed');
+  assert.equal(batches.length, 1);
+  assert.equal(batches[0].codes.length, 64);
+  assert.equal(h.claims.filter(source => source === MODEL_SOURCE).length, 1);
+  assert.equal(h.health(MODEL_SOURCE).halfOpenProbeActive, false);
+  assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
+    holdings_claim_denied: 0, holdings_probe_used: 0, model_claim_denied: 0, model_probe_used: 1 });
+  assert.equal(reports.at(-1).counters.providers['tencent-market-quote'], 2, 'One indices dispatch and one admitted model batch.');
 });

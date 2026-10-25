@@ -1,4 +1,5 @@
 import { safeGetItem, safeSetItem } from './storage.js';
+import { modelNoteForQuote, normalizeFundQuoteFreshness } from './runtime/quote-normalizer.js';
 
 const KEY = 'fuyu_overseas_accuracy_v1';
 
@@ -63,14 +64,18 @@ export function updateFundAccuracy(fund, { now = Date.now(), storage = defaultSt
   }
   const china = new Date(now + 8 * 3600_000);
   const minute = china.getUTCHours() * 60 + china.getUTCMinutes();
-  const quote = fund.quote;
-  if (quote?.valueKind === 'model_estimate' && quote.status === 'model' && fund.est_model && !fund.est_model_stale
+  const independent = Object.hasOwn(fund, 'market_model_evidence');
+  const quote = independent ? normalizeFundQuoteFreshness(fund, { now }) : fund.quote;
+  const source = quote?.sourceTier === 'cache' ? quote.originalSource : quote?.sourceId;
+  if (quote?.fundCode === fund.code && source === 'market-model'
+      && quote?.valueKind === 'model_estimate' && quote.status === 'model' && fund.est_model && !fund.est_model_stale
       && quote.baseNavDate && quote.targetDate && Number.isFinite(quote.changePct) && minute >= 870) {
     rows = recordPrediction(rows, {
       code: fund.code, prediction_date: china.toISOString().slice(0, 10),
       target_nav_date: quote.targetDate, base_nav_date: quote.baseNavDate,
-      model_version: fund.est_model_version || 'unknown', model_label: fund.est_model_label || '',
-      predicted_change: quote.changePct, confidence: fund.est_confidence || 'unknown', recorded_at: recordedAt,
+      model_version: quote.modelVersion ?? (independent ? 'unknown' : fund.est_model_version ?? 'unknown'),
+      model_label: modelNoteForQuote(fund, quote, 'label'),
+      predicted_change: quote.changePct, confidence: quote.confidence ?? (independent ? 'unknown' : fund.est_confidence ?? 'unknown'), recorded_at: recordedAt,
     });
   }
   saveAccuracy(rows, storage);

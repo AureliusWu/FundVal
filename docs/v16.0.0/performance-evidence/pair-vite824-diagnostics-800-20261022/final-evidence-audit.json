@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-10-22T04:35:38.231Z",
+  "verdict": "FINAL_EVIDENCE_AUDIT_FAILURE",
+  "checks": [
+    {
+      "name": "final native git diff check and unchanged product branch/head/staged contents",
+      "status": "PASS"
+    },
+    {
+      "name": "complete final source walk unchanged after documentation and archive writes",
+      "status": "FAIL",
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(s.isFile())\n"
+    },
+    {
+      "name": "full final site and original raw still unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "archived exact bytes and every new extraction member match inventory",
+      "status": "PASS"
+    },
+    {
+      "name": "machine summary preserves original PASS and independent FAIL gates",
+      "status": "PASS"
+    },
+    {
+      "name": "report critical facts and evidence links exist",
+      "status": "PASS"
+    }
+  ],
+  "failures": [
+    "complete final source walk unchanged after documentation and archive writes"
+  ],
+  "diffCheck": {
+    "command": "git",
+    "args": [
+      "diff",
+      "--check"
+    ],
+    "status": 0,
+    "signal": null,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'e2e/v16-refresh.spec.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'js/app.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'js/runtime/diagnostics-ui.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'js/runtime/refresh-execution.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'js/runtime/refresh-generation.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'js/runtime/refresh-plan.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'scripts/release-fingerprint.mjs', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'test/refresh-execution-v16.test.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'test/runtime-plan-characterization-v16.test.js', LF will be replaced by CRLF the next time Git touches it\n"
+  },
+  "raw": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\m3-pair-vite824-diagnostics-800-20261022.json",
+    "bytes": 88032041,
+    "sha256": "46aeb7a3ad8908bf256ffe4b17e706e59fddd282e5bdcbed994780222a9bf49f",
+    "collectedAt": "2026-10-22T03:41:39.305Z",
+    "finishedAt": "2026-10-22T04:16:50.991Z",
+    "status": "PASS"
+  },
+  "archive": {
+    "files": 488,
+    "bytes": 10239633,
+    "sha256": "133d4326343fc277d8d0a89663b47e77725b40594ebffddd152cd7848c8e2e64",
+    "inventorySha256": "8fb8da82baa63ed5c490259ad0a20e7a8f83baee6e7be93cfa82d114cf469693"
+  },
+  "sourceUnchanged": true,
+  "version": "15.0.2",
+  "m3Status": "IN_PROGRESS",
+  "budget": {
+    "nativeExit": 1,
+    "verdict": "FAIL",
+    "allGzipBytes": 84187,
+    "limit": 77227.7,
+    "minimumIntegerReduction": 6960,
+    "coldGzipBytes": 44699,
+    "coldLimit": 52241
+  },
+  "codeChangedThisPostflight": false,
+  "testsRerun": false,
+  "buildRerunInRoot": false,
+  "release": false
+}

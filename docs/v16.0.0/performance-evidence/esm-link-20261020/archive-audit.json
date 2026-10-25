@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "path": "logs/app-bytes.log",
+      "bytes": 39,
+      "sha256": "137a24aac23b5fcc27c9953baad19ca2b45ba309774084add173525a4a40843d"
+    },
+    {
+      "path": "logs/audit.log",
+      "bytes": 363,
+      "sha256": "a02d1a83c017efcb76c51ebc2a7248d76bf4525c9152950556157474cc4c6e93"
+    },
+    {
+      "path": "logs/budget.log",
+      "bytes": 425,
+      "sha256": "aff0f05876c940888f9129dc29004141a0b5767d57402dd97efa5494da35f0f3"
+    },
+    {
+      "path": "logs/build-before-e2e.log",
+      "bytes": 1413,
+      "sha256": "609feb407c34c52fb71a34ba99ee448352364965156462adec0349962ecb4e89"
+    },
+    {
+      "path": "logs/build-final-1.log",
+      "bytes": 1413,
+      "sha256": "609feb407c34c52fb71a34ba99ee448352364965156462adec0349962ecb4e89"
+    },
+    {
+      "path": "logs/build-final-2.log",
+      "bytes": 1413,
+      "sha256": "609feb407c34c52fb71a34ba99ee448352364965156462adec0349962ecb4e89"
+    },
+    {
+      "path": "logs/e2e.log",
+      "bytes": 22028,
+      "sha256": "1fea46249125d9067d63d3fa27e9327df0bc36b6b618c73c9cdce3b9d43e2167"
+    },
+    {
+      "path": "logs/fingerprint-final-1.log",
+      "bytes": 65,
+      "sha256": "4d680861fb2c32594f3533c9de9920d4c74132506e8c044a513a33a382243d64"
+    },
+    {
+      "path": "logs/fingerprint-final-2.log",
+      "bytes": 65,
+      "sha256": "4d680861fb2c32594f3533c9de9920d4c74132506e8c044a513a33a382243d64"
+    },
+    {
+      "path": "logs/module-graph.log",
+      "bytes": 239,
+      "sha256": "893c9d6c0e84bdbf197612f558907e7e4f9484b56f8c6fa90b3f392440781cc1"
+    },
+    {
+      "path": "logs/ocr-bytes.log",
+      "bytes": 41,
+      "sha256": "c5c2414cb1441ea45bba0a78aac837d1ffa7fc48fa4d1f217dc7d921f6fb6439"
+    },
+    {
+      "path": "logs/static-bindings.log",
+      "bytes": 172,
+      "sha256": "455b98bc292f50b85d6ab724539de4c823aa6001eab0a56d60ea66a7904712d5"
+    },
+    {
+      "path": "logs/syntax.log",
+      "bytes": 112,
+      "sha256": "c1830f2ac0f41245888bf4db3392e563a2c5b95c7674640a00a4378f129eb72a"
+    },
+    {
+      "path": "logs/unit.log",
+      "bytes": 108947,
+      "sha256": "7360ba8807f3d3f9bf05a61fb7a1db95a957a2ad07ea1bd38b612213f704ad09"
+    },
+    {
+      "path": "qa-receipt.json",
+      "bytes": 78340,
+      "sha256": "8cca71050a24bb46433dee4a4d6d0db634f0eed12aafece791b72945397ebfb1"
+    },
+    {
+      "path": "tools/run-qa.mjs.txt",
+      "bytes": 5857,
+      "sha256": "93d6c1ce369f22b8355fe4afbbe2d702390016e45f5257b33459fd17e4e3d4a1"
+    }
+  ],
+  "rawLogsFullyArchived": true,
+  "redStdoutFullyArchived": false,
+  "sourceIdentityCount": 213,
+  "sourceLfSha256": "0f45a4fff641976b19ef1d27559d17cccc395dbe7cc29200a8e3bbde3f12b343"
+}

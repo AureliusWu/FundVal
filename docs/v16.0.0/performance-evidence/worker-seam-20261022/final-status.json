@@ -1,0 +1,229 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "at": "2026-10-22T05:35:51.375Z",
+  "checks": [
+    {
+      "name": "full270 original root source set and SHA",
+      "pass": true
+    },
+    {
+      "name": "whole127 root artifact unchanged",
+      "pass": true
+    },
+    {
+      "name": "installed68 explicit inventory unchanged",
+      "pass": true
+    },
+    {
+      "name": "primary archive exact identity",
+      "pass": true
+    },
+    {
+      "name": "fresh reenumeration entire extracted684 set",
+      "pass": true
+    },
+    {
+      "name": "next-boundary exact documented derivation REPORT.md",
+      "pass": true
+    },
+    {
+      "name": "next-boundary exact documented derivation FIELD_LEDGER.json",
+      "pass": true
+    },
+    {
+      "name": "next-boundary JSON values unchanged",
+      "pass": true
+    },
+    {
+      "name": "next-boundary selected source table9",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/runtime/worker-contract.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/eastmoney-estimate.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/runtime/refresh-resource-cache.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/runtime/refresh-execution.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/runtime/quote-normalizer.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/app.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/holdings-estimate.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/runtime/fund-model-enrichment.js",
+      "pass": true
+    },
+    {
+      "name": "next-boundary actual current source js/accuracy.js",
+      "pass": true
+    },
+    {
+      "name": "application still15.0.2",
+      "pass": true
+    },
+    {
+      "name": "native git head",
+      "pass": true
+    },
+    {
+      "name": "native git branch",
+      "pass": true
+    },
+    {
+      "name": "native git index",
+      "pass": true
+    },
+    {
+      "name": "native git diff-check",
+      "pass": true
+    }
+  ],
+  "failures": [],
+  "scope": {
+    "rootSources": 270,
+    "rootSite": 127,
+    "installedExplicitRows": 68,
+    "extractedArchiveMembers": 684,
+    "sourceAndProductUnchanged": true,
+    "docsChangedIntentionally": true,
+    "headBranchIndexUnchanged": true
+  },
+  "archive": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\worker-seam-20261022\\original-evidence.tar.gz",
+    "bytes": 12304770,
+    "sha256": "2c58de679641036b7d3a7b9d9335feaee9546070dcac7e25e82ce683a9e56c77"
+  },
+  "nextBoundaryDerivations": [
+    {
+      "name": "REPORT.md",
+      "originalPath": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-http-vertical-ledger-20261022-a1\\REPORT.md",
+      "original": {
+        "bytes": 40673,
+        "sha256": "1ba9445a945fb10ea5a7bd3adc8ac3b870cc54fbbfe566f46943664e16ba894a"
+      },
+      "derived": {
+        "bytes": 40598,
+        "sha256": "86d8447d5c01f5a570f3faced296ea05bd43997f66a85b2b71b306a8af6c037a"
+      }
+    },
+    {
+      "name": "FIELD_LEDGER.json",
+      "originalPath": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-http-vertical-ledger-20261022-a1\\FIELD_LEDGER.json",
+      "original": {
+        "bytes": 20173,
+        "sha256": "70d5df26b3c9c37c8069ec69df1a9249726d77c448f09cb1dd027619885c6136"
+      },
+      "derived": {
+        "bytes": 20173,
+        "sha256": "70d5df26b3c9c37c8069ec69df1a9249726d77c448f09cb1dd027619885c6136"
+      }
+    }
+  ],
+  "natives": [
+    {
+      "label": "head",
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "branch",
+      "command": "git",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "index",
+      "command": "git",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "command": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1097,
+        "sha256": "b2ef30ab02827f407e8f8e249ee588c756b8a69177252c7471d02a08eb1a3fb9"
+      }
+    }
+  ],
+  "appVersion": "15.0.2",
+  "M3": "IN_PROGRESS",
+  "productAdopted": false,
+  "fullQA": "NOT_RUN",
+  "performance": "NOT_RUN",
+  "release": "NOT_RUN"
+}

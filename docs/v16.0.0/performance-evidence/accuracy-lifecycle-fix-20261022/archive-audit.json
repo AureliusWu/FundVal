@@ -1,0 +1,495 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "at": "2026-10-22T08:00:04.493Z",
+  "checks": [
+    {
+      "label": "before complete273 exact two changed one added",
+      "pass": true
+    },
+    {
+      "label": "before explicit68 installed unchanged",
+      "pass": true
+    },
+    {
+      "label": "before Git HEAD branch index unchanged",
+      "pass": true
+    },
+    {
+      "label": "before actual127 final artifact and actual accounting",
+      "pass": true
+    },
+    {
+      "label": "receipt exact test-01",
+      "pass": true
+    },
+    {
+      "label": "receipt exact check-01",
+      "pass": true
+    },
+    {
+      "label": "receipt exact e2e-01",
+      "pass": true
+    },
+    {
+      "label": "receipt exact build-02",
+      "pass": true
+    },
+    {
+      "label": "receipt exact build-03",
+      "pass": true
+    },
+    {
+      "label": "receipt exact build-04",
+      "pass": true
+    },
+    {
+      "label": "receipt exact budget-01",
+      "pass": true
+    },
+    {
+      "label": "receipt exact graph-01",
+      "pass": true
+    },
+    {
+      "label": "actual unit syntax E2E budget graph counts",
+      "pass": true
+    },
+    {
+      "label": "real OLD RED and same-case GREEN native evidence",
+      "pass": true
+    },
+    {
+      "label": "actual full E2E automatic prediction and settlement",
+      "pass": true
+    },
+    {
+      "label": "249 actual current source payloads",
+      "pass": true
+    },
+    {
+      "label": "safe relative tar members",
+      "pass": true
+    },
+    {
+      "label": "every fresh extracted member path size SHA identical",
+      "pass": true
+    },
+    {
+      "label": "staged archive inputs unchanged",
+      "pass": true
+    },
+    {
+      "label": "completed evidence unchanged FundVal-accuracy-lifecycle-20261022-parent",
+      "pass": true
+    },
+    {
+      "label": "completed evidence unchanged FundVal-private-pipeline-rebase-20261022-b84a1",
+      "pass": true
+    },
+    {
+      "label": "completed evidence unchanged FundVal-closure-hybrid-prereq-20261022-a1",
+      "pass": true
+    },
+    {
+      "label": "completed evidence unchanged FundVal-java-prereq-20261022-44ffac94a4",
+      "pass": true
+    },
+    {
+      "label": "after complete273 exact two changed one added",
+      "pass": true
+    },
+    {
+      "label": "after explicit68 installed unchanged",
+      "pass": true
+    },
+    {
+      "label": "after Git HEAD branch index unchanged",
+      "pass": true
+    },
+    {
+      "label": "after actual127 final artifact and actual accounting",
+      "pass": true
+    },
+    {
+      "label": "root source site installed Git unchanged",
+      "pass": true
+    }
+  ],
+  "natives": [
+    {
+      "label": "before-head",
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "before-branch",
+      "command": "git",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "before-index",
+      "command": "git",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "snapshot-diff",
+      "command": "git",
+      "args": [
+        "diff",
+        "--binary"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 179966,
+        "sha256": "1edf2bdc6972d39829748231812b52e218371564cb80c9da98cf2b295fd77285"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    },
+    {
+      "label": "tar-create",
+      "command": "tar",
+      "args": [
+        "-czf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\accuracy-lifecycle-fix-20261022\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-accuracy-archive-20261022-parent\\stage",
+        "."
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-accuracy-archive-20261022-parent",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-list",
+      "command": "tar",
+      "args": [
+        "-tzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\accuracy-lifecycle-fix-20261022\\original-evidence.tar.gz"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-accuracy-archive-20261022-parent",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 108755,
+        "sha256": "4ae3bada05402bbb2dc5bf6cf59396957e7a7ae8dbac3ec8f5c7ab1ce3c32996"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-extract",
+      "command": "tar",
+      "args": [
+        "-xzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\accuracy-lifecycle-fix-20261022\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-accuracy-archive-20261022-parent\\extract"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-accuracy-archive-20261022-parent",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-head",
+      "command": "git",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-branch",
+      "command": "git",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "after-index",
+      "command": "git",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "command": "git",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "cwd": "D:/AI项目/FundVal",
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    }
+  ],
+  "gates": [
+    {
+      "label": "test-01",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 128937,
+        "sha256": "b9c610cd0a500aff69a5b4a91a430b767e271e3ebad660911027c56a3cceb576"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "check-01",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 112,
+        "sha256": "eed6dd300ca6b8e03719c4a8ced02cef7751343a0095eab11859438ecd3e017f"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "e2e-01",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 22315,
+        "sha256": "b583869d12151a353332ae96c96a780290ca401b4bc5fbfa0e099decb3fceba5"
+      },
+      "stderr": {
+        "bytes": 352,
+        "sha256": "a71743b97b419683436823e8ec3b47d2282e16224b15ad084beed3e14e45d246"
+      }
+    },
+    {
+      "label": "build-02",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 1414,
+        "sha256": "83e6c0d591eedba6f297b29b438bb1e0529207f6b93f8486e29b4c549dce7282"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "build-03",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 1414,
+        "sha256": "83e6c0d591eedba6f297b29b438bb1e0529207f6b93f8486e29b4c549dce7282"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "build-04",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 1414,
+        "sha256": "83e6c0d591eedba6f297b29b438bb1e0529207f6b93f8486e29b4c549dce7282"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "budget-01",
+      "nativeExit": 1,
+      "stdout": {
+        "bytes": 358,
+        "sha256": "e4f3b36f30fe449a85d8876669b5da2515b40fa3e37be9309bcefe25a0892c61"
+      },
+      "stderr": {
+        "bytes": 67,
+        "sha256": "49a2de1f2771262e2e6425ee6bf66a07eaaf573457f59df8c937ad3135cba8e8"
+      }
+    },
+    {
+      "label": "graph-01",
+      "nativeExit": 0,
+      "stdout": {
+        "bytes": 239,
+        "sha256": "893c9d6c0e84bdbf197612f558907e7e4f9484b56f8c6fa90b3f392440781cc1"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "source": {
+    "count": 273,
+    "noDocs": 272,
+    "nonhistoricalPayloadCount": 249,
+    "rowsSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e"
+  },
+  "artifact": {
+    "count": 127,
+    "rowsSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "allGzip": 85969,
+    "coldGzip": 46149,
+    "rawBytes": 252331
+  },
+  "installed": {
+    "count": 68,
+    "rowsSha256": "2da11b473eaff8bcaa1fef492e4b595629145b97f8c7f2ea18f4e7fb5b074e1c"
+  },
+  "git": {
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "archive": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\accuracy-lifecycle-fix-20261022\\original-evidence.tar.gz",
+    "bytes": 25355843,
+    "sha256": "893e5a0128bdd4af995744c0ef658c1d228d9632a47060a1e2270093b011fbc3"
+  },
+  "inventory": {
+    "count": 1196,
+    "bytes": 62962286,
+    "sha256": "a9ec96f2299b91919705512bb2aa2791fd15cc412267cb42f508828f4d19663b"
+  },
+  "extract": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-accuracy-archive-20261022-parent\\extract",
+  "scope": {
+    "M3": "IN_PROGRESS",
+    "release": "NOT_RELEASED",
+    "budget": "FAIL",
+    "accuracy": "FINITE_SYNTHETIC_LIFECYCLE_PASS",
+    "newCompression": "NOT_RUN",
+    "latency": "NOT_RUN_ON_CURRENT_SOURCE",
+    "CI": "NOT_RUN",
+    "liveFinancialReconciliation": "NOT_RUN",
+    "Gist": "NOT_RUN",
+    "OCR": "NOT_RUN",
+    "device": "NOT_RUN",
+    "production": "NOT_RUN",
+    "newDependencyAudit": "NOT_RUN",
+    "archiveAddendaOutside": true
+  }
+}

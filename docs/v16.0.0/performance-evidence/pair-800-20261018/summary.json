@@ -1,0 +1,703 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "raw": {
+    "bytes": 88029371,
+    "sha256": "65bfd348cb04b46826b811a521e5acea03086fa2c43b924efdced83459b00d8c"
+  },
+  "requested": {
+    "retainedPairs": 800,
+    "warmupPairs": 4,
+    "bootstrap": 5000,
+    "seed": 160003
+  },
+  "observed": {
+    "retainedCompletePairs": 800,
+    "warmupCompletePairs": 4,
+    "failedPairs": 0
+  },
+  "referenceSha": "c2980265d3c89f960517ced1527ba9cb85bf7c2b",
+  "currentSourceBefore": {
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "trackedDiffSha256": "bd23762e7ded67453853e34acd7eec5845c156521036d2653c63be07998c1adf",
+    "buildRelevantUntrackedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dirty": true,
+    "label": "Current working-tree candidate; HEAD is not an immutable identity for uncommitted changes."
+  },
+  "currentSourceAfter": {
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "trackedDiffSha256": "bd23762e7ded67453853e34acd7eec5845c156521036d2653c63be07998c1adf",
+    "buildRelevantUntrackedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dirty": true,
+    "label": "Current working-tree candidate; HEAD is not an immutable identity for uncommitted changes."
+  },
+  "sourceDiffMatchesAtReadoutBeforeDocumentation": true,
+  "collectedAt": "2026-10-18T06:23:05.871Z",
+  "finishedAt": "2026-10-18T06:57:58.157Z",
+  "environment": {
+    "node": "v24.14.0",
+    "platform": "win32",
+    "osRelease": "10.0.26200",
+    "architecture": "x64",
+    "cpuModel": "AMD Ryzen 5 3600 6-Core Processor              ",
+    "logicalCpus": 12,
+    "totalMemoryBytes": 17119784960,
+    "freeMemoryStartBytes": 5508427776,
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "browser": "Installed desktop Chrome, one browser process for both sides",
+    "serviceWorkers": "Guarded registration denial + SW script route blocking + zero worker/controller/registration assertions; Playwright allow avoids its opaque-frame probe bug.",
+    "httpCache": "CDP disabled and context routing/no-store; CDP service-worker bypass also enabled",
+    "chromeVersion": "155.0.8059.80",
+    "freeMemoryEndBytes": 4438437888
+  },
+  "integrity": {
+    "status": "PASS",
+    "note": "Source identity and both artifact trees fingerprinted before/after; changes make the paired inference inconclusive."
+  },
+  "health": {
+    "status": "PASS",
+    "pageErrors": 0
+  },
+  "instrumentation": {
+    "status": "PASS"
+  },
+  "cleanup": [
+    {
+      "resource": "ownedBrowser",
+      "status": "PASS"
+    },
+    {
+      "resource": "ownedServer",
+      "origin": "http://127.0.0.1:2114",
+      "status": "PASS"
+    },
+    {
+      "resource": "ownedServer",
+      "origin": "http://127.0.0.1:2121",
+      "status": "PASS"
+    },
+    {
+      "resource": "validatedTemporarySnapshot",
+      "status": "PASS"
+    }
+  ],
+  "summary": {
+    "verdict": "PASS",
+    "retainedPairs": 800,
+    "balanced": true,
+    "orderCounts": {
+      "AB": 400,
+      "BA": 400
+    },
+    "metrics": {
+      "coldReadyMs": {
+        "reference": {
+          "samples": 800,
+          "median": 126.34999999403954,
+          "p95": 154.5,
+          "maximum": 211
+        },
+        "current": {
+          "samples": 800,
+          "median": 117.10000002384186,
+          "p95": 143.5,
+          "maximum": 229.79999995231628
+        },
+        "medianRatio": 0.9267906610951006,
+        "p95Ratio": 0.9288025889967637,
+        "medianDeltaPercent": -7.320933890489945,
+        "p95DeltaPercent": -7.119741100323629,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.9167652861175606,
+            0.9363564043678889
+          ],
+          "p95Ratio": [
+            0.8971061093247589,
+            0.9568679495652676
+          ],
+          "referenceP95Ms": [
+            150.70000004768372,
+            158.30000001192093
+          ],
+          "currentP95Ms": [
+            139.5,
+            145.80000001192093
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.04919093827985251,
+          "current": 0.04390243910746292
+        },
+        "p95Stable": true,
+        "passConfidence": 1,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 400,
+            "referenceMedian": 126.7999999821186,
+            "currentMedian": 116.9500000178814
+          },
+          "BA": {
+            "pairs": 400,
+            "referenceMedian": 125.69999998807907,
+            "currentMedian": 117.25
+          }
+        }
+      },
+      "warmReadyMs": {
+        "reference": {
+          "samples": 800,
+          "median": 65.7000000178814,
+          "p95": 90.90000003576279,
+          "maximum": 177.5
+        },
+        "current": {
+          "samples": 800,
+          "median": 57.349999994039536,
+          "p95": 77.69999998807907,
+          "maximum": 140.60000002384186
+        },
+        "medianRatio": 0.8729071534007723,
+        "p95Ratio": 0.8547854780804132,
+        "medianDeltaPercent": -12.709284659922771,
+        "p95DeltaPercent": -14.521452191958684,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.8597285074056569,
+            0.8814078041207825
+          ],
+          "p95Ratio": [
+            0.8078141500488901,
+            0.9313953491144402
+          ],
+          "referenceP95Ms": [
+            85.69999998807907,
+            95.09999996423721
+          ],
+          "currentP95Ms": [
+            75.19999998807907,
+            81.19999998807907
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.10341034073113202,
+          "current": 0.07722007723192452
+        },
+        "p95Stable": true,
+        "passConfidence": 1,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 400,
+            "referenceMedian": 65.75,
+            "currentMedian": 57.349999994039536
+          },
+          "BA": {
+            "pairs": 400,
+            "referenceMedian": 65.69999998807907,
+            "currentMedian": 57.349999994039536
+          }
+        }
+      },
+      "saveUiMs": {
+        "reference": {
+          "samples": 800,
+          "median": 75.3595000000496,
+          "p95": 85.81200000003446,
+          "maximum": 103.03500000014901
+        },
+        "current": {
+          "samples": 800,
+          "median": 62.86589999997523,
+          "p95": 71.92189999995753,
+          "maximum": 85.74809999996796
+        },
+        "medianRatio": 0.8342133374018386,
+        "p95Ratio": 0.8381333613006182,
+        "medianDeltaPercent": -16.578666259816146,
+        "p95DeltaPercent": -16.18666386993818,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.8159894628856529,
+            0.8512142906809448
+          ],
+          "p95Ratio": [
+            0.8299075097118902,
+            0.8505940993451896
+          ],
+          "referenceP95Ms": [
+            84.60039999999572,
+            86.47560000000522
+          ],
+          "currentP95Ms": [
+            71.56700000003912,
+            72.34480000007898
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.021852421572842336,
+          "current": 0.010814508516047544
+        },
+        "p95Stable": true,
+        "passConfidence": 1,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 400,
+            "referenceMedian": 75.88160000001517,
+            "currentMedian": 63.38340000002063
+          },
+          "BA": {
+            "pairs": 400,
+            "referenceMedian": 74.7844000000041,
+            "currentMedian": 62.4740499999607
+          }
+        }
+      }
+    },
+    "method": {
+      "p95": "nearest rank: sorted[ceil(0.95 * n) - 1]",
+      "median": "arithmetic mean of the middle two values for even n",
+      "uncertainty": "95% percentile bootstrap, resampling whole pairs within AB/BA strata; deterministic PRNG seed; all retained samples included",
+      "bootstrap": 5000,
+      "seed": 160003,
+      "minimumPairs": 60,
+      "medianLimit": 1.15,
+      "p95Limit": 1.2,
+      "absoluteBudgetMs": 3000,
+      "stabilityLimit": 0.2,
+      "confidenceCaveat": "Bootstrap pass confidence is the fraction of resamples meeting the gate, not a probability that the population passes. Small tail counts and desktop scheduling limit inference."
+    }
+  },
+  "origins": {
+    "reference": "http://127.0.0.1:2114",
+    "current": "http://127.0.0.1:2121"
+  },
+  "lifecycle": {
+    "mode": "owned isolated snapshot and servers",
+    "referenceTransportEdits": [
+      "scripts/serve-site.mjs",
+      "playwright.config.mjs",
+      "e2e/v15.spec.js"
+    ],
+    "cleanup": "Only owned browser, child servers and validated temporary reference snapshot."
+  },
+  "dependencies": {
+    "referenceRawLockSha256": "725b7ac8e8f74bba30739b1b39815165995a9621990430b526841f07af92153e",
+    "currentRawLockSha256": "4a9441b3e294166d25ea1c304574afe2afa169b75087a6d31ae15a52dcbd7b85",
+    "resolvedLockSha256": "0b9db07c13394523bbee5d7b21d51cadb00f39b160794ebbda53ea8766b4aebf",
+    "normalization": "Only packages[''].engines is omitted; resolved packages and all other lock fields must be equal.",
+    "installed": {
+      "@paddleocr/paddleocr-js": "0.4.2",
+      "@tesseract.js-data/chi_sim": "1.0.0",
+      "onnxruntime-web": "1.27.0",
+      "tesseract.js": "7.0.0",
+      "tesseract.js-core": "7.0.0",
+      "@playwright/test": "1.62.1",
+      "esbuild": "0.28.2",
+      "vite": "8.2.2"
+    },
+    "node": "v24.14.0"
+  },
+  "artifactInventory": {
+    "referenceBefore": {
+      "sha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+      "files": 110,
+      "bytes": 92344588
+    },
+    "currentBefore": {
+      "sha256": "739c0fdcea30badfa0928a59bfe9ee2020d1687aaf132682c12ab627a7a0ffc4",
+      "files": 127,
+      "bytes": 92507677
+    },
+    "referenceAfter": {
+      "sha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+      "files": 110,
+      "bytes": 92344588
+    },
+    "currentAfter": {
+      "sha256": "739c0fdcea30badfa0928a59bfe9ee2020d1687aaf132682c12ab627a7a0ffc4",
+      "files": 127,
+      "bytes": 92507677
+    }
+  },
+  "verification": {
+    "root": {
+      "schema": 1,
+      "rawReport": {
+        "bytes": 88029371,
+        "sha256": "65bfd348cb04b46826b811a521e5acea03086fa2c43b924efdced83459b00d8c"
+      },
+      "summaryDeepEqual": true,
+      "all804Complete": true,
+      "orderMatchesPlan": true,
+      "rendererObjects": 4824,
+      "deltaChecks": 19296,
+      "quality": {
+        "reference": {
+          "contexts": 804,
+          "pageErrors": 0,
+          "consoleErrors": 7236,
+          "instrumentationFailures": 0,
+          "serviceWorkerEvents": 0,
+          "drainStates": {
+            "SETTLED": 2412
+          },
+          "rendererStates": {
+            "PARTIAL": 1608,
+            "MEASURED": 804
+          },
+          "requestInstrumentation": {
+            "MEASURED": 35376,
+            "HERMETIC_POLICY_BLOCK": 7236
+          },
+          "requestCategories": {
+            "localStatic": 33768,
+            "externalOrProxyBlocked": 7236,
+            "estimateFixture": 804,
+            "holdingsFixture": 804
+          },
+          "totalRequests": 42612,
+          "activeServiceWorkers": 0,
+          "registeredServiceWorkers": 0,
+          "longTasks": {
+            "cold": 0,
+            "warm": 0
+          },
+          "retainedMedians": {
+            "cold": {
+              "navigationTtfbMs": 1.600000023841858,
+              "responseDownloadMs": 0.3999999761581421,
+              "postHttpBootstrapAndDomMs": 119.94999998807907,
+              "rendererTaskMs": 77.77250000000001,
+              "rendererScriptMs": 7.346,
+              "rendererLayoutMs": 32.172,
+              "rendererRecalcStyleMs": 1.9045
+            },
+            "warm": {
+              "navigationTtfbMs": 1.399999976158142,
+              "responseDownloadMs": 0.30000001192092896,
+              "postHttpBootstrapAndDomMs": 60.900000005960464,
+              "rendererTaskMs": 27.409999999999997,
+              "rendererScriptMs": 1.8315000000000001,
+              "rendererLayoutMs": 0.7115,
+              "rendererRecalcStyleMs": 1.4115000000000002
+            }
+          }
+        },
+        "current": {
+          "contexts": 804,
+          "pageErrors": 0,
+          "consoleErrors": 10452,
+          "instrumentationFailures": 0,
+          "serviceWorkerEvents": 0,
+          "drainStates": {
+            "SETTLED": 2412
+          },
+          "rendererStates": {
+            "PARTIAL": 1608,
+            "MEASURED": 804
+          },
+          "requestInstrumentation": {
+            "MEASURED": 27336,
+            "HERMETIC_POLICY_BLOCK": 10452
+          },
+          "requestCategories": {
+            "localStatic": 25728,
+            "externalOrProxyBlocked": 10452,
+            "holdingsFixture": 804,
+            "estimateFixture": 804
+          },
+          "totalRequests": 37788,
+          "activeServiceWorkers": 0,
+          "registeredServiceWorkers": 0,
+          "longTasks": {
+            "cold": 0,
+            "warm": 0
+          },
+          "retainedMedians": {
+            "cold": {
+              "navigationTtfbMs": 1.5999999642372131,
+              "responseDownloadMs": 0.3999999761581421,
+              "postHttpBootstrapAndDomMs": 111.09999999403954,
+              "rendererTaskMs": 75.31550000000001,
+              "rendererScriptMs": 7.6339999999999995,
+              "rendererLayoutMs": 32.0505,
+              "rendererRecalcStyleMs": 1.8465000000000003
+            },
+            "warm": {
+              "navigationTtfbMs": 1.300000011920929,
+              "responseDownloadMs": 0.30000001192092896,
+              "postHttpBootstrapAndDomMs": 52.19999998807907,
+              "rendererTaskMs": 26.6145,
+              "rendererScriptMs": 2.023,
+              "rendererLayoutMs": 0.7315,
+              "rendererRecalcStyleMs": 1.3315
+            }
+          }
+        }
+      },
+      "currentActualSamplerInventory": {
+        "files": 127,
+        "bytes": 92507677,
+        "sha256": "739c0fdcea30badfa0928a59bfe9ee2020d1687aaf132682c12ab627a7a0ffc4"
+      },
+      "milestonesVerified": 81,
+      "oldReportUnchanged": true,
+      "samplerUnchanged": true,
+      "referenceActualFilesReopened": false,
+      "summary": {
+        "verdict": "PASS",
+        "retainedPairs": 800,
+        "balanced": true,
+        "orderCounts": {
+          "AB": 400,
+          "BA": 400
+        },
+        "metrics": {
+          "coldReadyMs": {
+            "reference": {
+              "samples": 800,
+              "median": 126.34999999403954,
+              "p95": 154.5,
+              "maximum": 211
+            },
+            "current": {
+              "samples": 800,
+              "median": 117.10000002384186,
+              "p95": 143.5,
+              "maximum": 229.79999995231628
+            },
+            "medianRatio": 0.9267906610951006,
+            "p95Ratio": 0.9288025889967637,
+            "medianDeltaPercent": -7.320933890489945,
+            "p95DeltaPercent": -7.119741100323629,
+            "confidenceIntervals95": {
+              "medianRatio": [
+                0.9167652861175606,
+                0.9363564043678889
+              ],
+              "p95Ratio": [
+                0.8971061093247589,
+                0.9568679495652676
+              ],
+              "referenceP95Ms": [
+                150.70000004768372,
+                158.30000001192093
+              ],
+              "currentP95Ms": [
+                139.5,
+                145.80000001192093
+              ]
+            },
+            "p95RelativeIntervalWidth": {
+              "reference": 0.04919093827985251,
+              "current": 0.04390243910746292
+            },
+            "p95Stable": true,
+            "passConfidence": 1,
+            "verdict": "PASS",
+            "reasons": [
+              "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+            ],
+            "orderEffect": {
+              "AB": {
+                "pairs": 400,
+                "referenceMedian": 126.7999999821186,
+                "currentMedian": 116.9500000178814
+              },
+              "BA": {
+                "pairs": 400,
+                "referenceMedian": 125.69999998807907,
+                "currentMedian": 117.25
+              }
+            }
+          },
+          "warmReadyMs": {
+            "reference": {
+              "samples": 800,
+              "median": 65.7000000178814,
+              "p95": 90.90000003576279,
+              "maximum": 177.5
+            },
+            "current": {
+              "samples": 800,
+              "median": 57.349999994039536,
+              "p95": 77.69999998807907,
+              "maximum": 140.60000002384186
+            },
+            "medianRatio": 0.8729071534007723,
+            "p95Ratio": 0.8547854780804132,
+            "medianDeltaPercent": -12.709284659922771,
+            "p95DeltaPercent": -14.521452191958684,
+            "confidenceIntervals95": {
+              "medianRatio": [
+                0.8597285074056569,
+                0.8814078041207825
+              ],
+              "p95Ratio": [
+                0.8078141500488901,
+                0.9313953491144402
+              ],
+              "referenceP95Ms": [
+                85.69999998807907,
+                95.09999996423721
+              ],
+              "currentP95Ms": [
+                75.19999998807907,
+                81.19999998807907
+              ]
+            },
+            "p95RelativeIntervalWidth": {
+              "reference": 0.10341034073113202,
+              "current": 0.07722007723192452
+            },
+            "p95Stable": true,
+            "passConfidence": 1,
+            "verdict": "PASS",
+            "reasons": [
+              "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+            ],
+            "orderEffect": {
+              "AB": {
+                "pairs": 400,
+                "referenceMedian": 65.75,
+                "currentMedian": 57.349999994039536
+              },
+              "BA": {
+                "pairs": 400,
+                "referenceMedian": 65.69999998807907,
+                "currentMedian": 57.349999994039536
+              }
+            }
+          },
+          "saveUiMs": {
+            "reference": {
+              "samples": 800,
+              "median": 75.3595000000496,
+              "p95": 85.81200000003446,
+              "maximum": 103.03500000014901
+            },
+            "current": {
+              "samples": 800,
+              "median": 62.86589999997523,
+              "p95": 71.92189999995753,
+              "maximum": 85.74809999996796
+            },
+            "medianRatio": 0.8342133374018386,
+            "p95Ratio": 0.8381333613006182,
+            "medianDeltaPercent": -16.578666259816146,
+            "p95DeltaPercent": -16.18666386993818,
+            "confidenceIntervals95": {
+              "medianRatio": [
+                0.8159894628856529,
+                0.8512142906809448
+              ],
+              "p95Ratio": [
+                0.8299075097118902,
+                0.8505940993451896
+              ],
+              "referenceP95Ms": [
+                84.60039999999572,
+                86.47560000000522
+              ],
+              "currentP95Ms": [
+                71.56700000003912,
+                72.34480000007898
+              ]
+            },
+            "p95RelativeIntervalWidth": {
+              "reference": 0.021852421572842336,
+              "current": 0.010814508516047544
+            },
+            "p95Stable": true,
+            "passConfidence": 1,
+            "verdict": "PASS",
+            "reasons": [
+              "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+            ],
+            "orderEffect": {
+              "AB": {
+                "pairs": 400,
+                "referenceMedian": 75.88160000001517,
+                "currentMedian": 63.38340000002063
+              },
+              "BA": {
+                "pairs": 400,
+                "referenceMedian": 74.7844000000041,
+                "currentMedian": 62.4740499999607
+              }
+            }
+          }
+        },
+        "method": {
+          "p95": "nearest rank: sorted[ceil(0.95 * n) - 1]",
+          "median": "arithmetic mean of the middle two values for even n",
+          "uncertainty": "95% percentile bootstrap, resampling whole pairs within AB/BA strata; deterministic PRNG seed; all retained samples included",
+          "bootstrap": 5000,
+          "seed": 160003,
+          "minimumPairs": 60,
+          "medianLimit": 1.15,
+          "p95Limit": 1.2,
+          "absoluteBudgetMs": 3000,
+          "stabilityLimit": 0.2,
+          "confidenceCaveat": "Bootstrap pass confidence is the fraction of resamples meeting the gate, not a probability that the population passes. Small tail counts and desktop scheduling limit inference."
+        }
+      }
+    },
+    "twoReadOnlyReviews": {
+      "statistics": {
+        "summaryStrictDeepEqual": true,
+        "orderAndCompleteness": true,
+        "unchangedSampler": true
+      },
+      "provenance": {
+        "inventoryInternallyConsistent": true,
+        "currentActualFilesReopened": 127,
+        "referenceActualFilesReopened": false,
+        "allInstalledPinnedVersionsMatch": true,
+        "sourceIdentityMatchesBeforeDocumentation": true,
+        "cleanupObserved": true
+      }
+    }
+  },
+  "nativeExitCode": 0,
+  "allGzipBudget": {
+    "verdict": "FAIL",
+    "all": 80494,
+    "limit": 77227.7,
+    "remainingIntegerBytes": 3267,
+    "cold": 42985,
+    "coldLimit": 52241
+  },
+  "m3": "IN_PROGRESS",
+  "production": "NOT_RUN",
+  "version": "15.0.2",
+  "businessCodeChanged": false,
+  "documentationChangeAfterSampling": true,
+  "verifierInvocationNote": {
+    "firstInvocation": {
+      "script": "verify-report.mjs",
+      "exitCode": 1,
+      "result": "ERR_UNSUPPORTED_ESM_URL_SCHEME at module loading before raw report validation; absolute Windows ESM path was not a file URL."
+    },
+    "secondInvocation": {
+      "script": "verify-report-v2.mjs",
+      "exitCode": 0,
+      "result": "Uses file:/// URL; full validation passed. This is a temporary verifier invocation fix, not a rerun or alteration of sampling."
+    }
+  }
+}

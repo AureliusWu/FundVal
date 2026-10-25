@@ -35,7 +35,7 @@ const POST_INTEGRITY_MODULES = new Set([
   'js/runtime/market-clock.js', 'js/runtime/quote-normalizer.js', 'js/runtime/valuation-period.js',
   'js/runtime/holding-quote-amounts.js', 'js/runtime/index-quote.js', 'js/runtime/quote-presentation.js',
   'js/runtime/refresh-generation.js', 'js/runtime/refresh-coordinator.js', 'js/runtime/request-signal.js',
-  'js/runtime/active-holdings.js',
+  'js/runtime/active-holdings.js', 'js/runtime/sync-status.js', 'js/runtime/pwa-update-controller.js',
 ]);
 const BUSINESS_MODULES = new Set([
   'js/accuracy.js', 'js/eastmoney-estimate.js', 'js/fund-holdings.js', 'js/holdings-estimate.js', 'js/overseas-model.js',

@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "kind": "FORMAT_ONLY_PREQUALIFICATION_NOT_A_VITE_BUILD",
+  "original": {
+    "all": 80494,
+    "cold": 42985,
+    "raw": 235647
+  },
+  "inputManifestSha256": "f0f72a2d088bb1a015cc658a317953fcf45637aa0e99cfa58ae4cffa2faf958e",
+  "sourceBusinessCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+  "tool": "Existing isolated Terser 5.51.2; no new installation",
+  "minifyOptions": {
+    "ecma": 2022,
+    "module": true,
+    "compress": false,
+    "mangle": false,
+    "format": {
+      "comments": false
+    }
+  },
+  "onlyVariable": "format.ascii_only false versus true",
+  "order": [
+    [
+      false,
+      true
+    ],
+    [
+      true,
+      false
+    ],
+    [
+      false,
+      true
+    ]
+  ],
+  "rounds": 3,
+  "adoption": false,
+  "graphVerificationToolSha256": "6647961ec3800df7a8ab3da6f3f0dfe75de3abca768f7af10f26594f9b83b678",
+  "filenameScope": "Original chunk identifiers retained for in-memory linking; not content-hashed Vite output",
+  "decision": "Measure formatting benefit only; no build-recipe adoption or runtime/latency qualification from this probe"
+}

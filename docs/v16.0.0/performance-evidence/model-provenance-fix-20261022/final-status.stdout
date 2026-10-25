@@ -1,0 +1,49 @@
+ M .github/workflows/ci.yml
+ M .github/workflows/deploy.yml
+ M docs/v16.0.0/M3_STATUS.md
+ M docs/v16.0.0/performance-evidence/README.md
+ M e2e/v16-refresh.spec.js
+ M js/accuracy.js
+ M js/app.js
+ M js/holdings-estimate.js
+ M js/runtime/diagnostics-ui.js
+ M js/runtime/fund-model-enrichment.js
+ M js/runtime/quote-normalizer.js
+ M js/runtime/refresh-execution.js
+ M js/runtime/refresh-generation.js
+ M js/runtime/refresh-plan.js
+ M package-lock.json
+ M package.json
+ M scripts/release-fingerprint.mjs
+ M test/accuracy.test.js
+ M test/holdings-integration-regression.test.js
+ M test/refresh-execution-v16.test.js
+ M test/runtime-plan-characterization-v16.test.js
+?? Temp/
+?? docs/v16.0.0/performance-evidence/audit-closure-20261022/
+?? docs/v16.0.0/performance-evidence/bounded-minifier-scalars-20261020/
+?? docs/v16.0.0/performance-evidence/esm-link-20261020/
+?? docs/v16.0.0/performance-evidence/execution-skips-20261022/
+?? docs/v16.0.0/performance-evidence/format-only-20261020/
+?? docs/v16.0.0/performance-evidence/m3-pair-security-v15-800-20261018-protocol.md
+?? docs/v16.0.0/performance-evidence/m3-pair-security-v15-800-20261018.json
+?? docs/v16.0.0/performance-evidence/m3-pair-vite824-diagnostics-800-20261022.json
+?? docs/v16.0.0/performance-evidence/minifier-qualification-20261018/
+?? docs/v16.0.0/performance-evidence/model-provenance-fix-20261022/
+?? docs/v16.0.0/performance-evidence/pair-800-20261018/
+?? docs/v16.0.0/performance-evidence/pair-vite824-diagnostics-800-20261022/
+?? docs/v16.0.0/performance-evidence/pipeline-boundaries-20261022/
+?? docs/v16.0.0/performance-evidence/plan-reasons-20261020/
+?? docs/v16.0.0/performance-evidence/refresh-observability-20261020/
+?? docs/v16.0.0/performance-evidence/string-pooling-20261020/
+?? docs/v16.0.0/performance-evidence/vite824-security-20261022/
+?? docs/v16.0.0/performance-evidence/worker-seam-20261022/
+?? scripts/app-module-graph.mjs
+?? test/app-module-graph-v16.test.js
+?? test/model-consumers-v16.test.js
+?? test/model-provenance-v16.test.js
+?? test/refresh-diagnostics-store-v16.test.js
+?? test/refresh-diagnostics-view-v16.test.js
+?? test/refresh-execution-skips-contract-v16.test.js
+?? test/refresh-observation-v16.test.js
+?? test/refresh-plan-reasons-v16.test.js

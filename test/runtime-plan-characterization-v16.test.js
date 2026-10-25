@@ -223,6 +223,7 @@ function assertClosedPlanUses(call, parents, kind, localName) {
   const declaration = parents.at(-1);
   assert.equal(declaration.type, 'VariableDeclarator', 'Private plan results must stay in a named local binding.');
   assert.equal(declaration.init, call);
+  assert.equal(declaration.id?.type, 'Identifier', 'Private plan results cannot be destructured before use scanning.');
   const binding = declaration.id.name;
   const enclosing = [...parents].reverse().find(node => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type));
   assert.ok(enclosing, localName);
@@ -270,7 +271,10 @@ function assertResourceBindingUses(scope, binding, declaration) {
 }
 
 function assertClosedResourceReads(call, parents) {
-  const binding = parents.at(-1).id.name;
+  const declaration = parents.at(-1);
+  assert.equal(declaration?.type, 'VariableDeclarator');
+  assert.equal(declaration.id?.type, 'Identifier', 'Private resource roots cannot be destructured before use scanning.');
+  const binding = declaration.id.name;
   const scope = [...parents].reverse().find(node => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type));
   const fromResources = node => node?.type === 'MemberExpression' && !node.computed
     && node.object?.type === 'Identifier' && node.object.name === binding && node.property.name === 'resources'
@@ -282,7 +286,7 @@ function assertClosedResourceReads(call, parents) {
       assert.equal(parent?.type, 'MemberExpression', 'Private resource arrays must not escape.');
       assert.equal(parent.object, node);
       assert.equal(parent.computed, false);
-      assert.ok(['filter', 'map', 'find'].includes(parent.property.name));
+      assert.ok(['filter', 'map', 'find', 'forEach'].includes(parent.property.name));
       assert.equal(invocation?.type, 'CallExpression');
       assert.equal(invocation.callee, parent);
       const callback = invocation.arguments[0];
@@ -294,6 +298,7 @@ function assertClosedResourceReads(call, parents) {
       || node.callee.computed || node.callee.property.name !== 'find' || !fromResources(node.callee.object)) return;
     const parent = ancestors.at(-1);
     if (parent?.type === 'VariableDeclarator' && parent.init === node) {
+      assert.equal(parent.id?.type, 'Identifier', 'A found resource must stay in a checked named local, not a destructured alias.');
       const localScope = [...ancestors].reverse().find(item => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(item.type));
       assertResourceBindingUses(localScope, parent.id.name, parent);
     } else {
@@ -303,6 +308,54 @@ function assertClosedResourceReads(call, parents) {
       assert.ok(['key', 'kind', 'codes', 'action', 'cacheExpiresAt'].includes(parent.property.name));
     }
   });
+}
+
+function assertClosedReasonCollector(call, parents, kind, file) {
+  if (call.arguments.length === 1) return;
+  assert.equal(kind, 'refresh', 'Only the private refresh planner has an optional reason observer.');
+  assert.equal(file, 'runtime/refresh-execution.js');
+  assert.equal(call.arguments.length, 2);
+  const enclosing = [...parents].reverse().find(node => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type));
+  assert.equal(enclosing?.type, 'FunctionDeclaration');
+  assert.equal(enclosing.id?.name, 'executeRefreshPlan');
+  assert.equal(parents.at(-3), enclosing.body, 'Observed plan creation must remain a direct executor local.');
+  const locals = enclosing.body.body.filter(node => node.type === 'VariableDeclaration')
+    .flatMap(declaration => declaration.declarations.map(binding => ({ declaration, binding })))
+    .filter(({ binding }) => binding.id?.name === 'diagnosticPlanReasons');
+  assert.equal(locals.length, 1);
+  const [{ declaration, binding }] = locals;
+  assert.equal(declaration.kind, 'let');
+  assert.equal(binding.init?.type, 'Literal');
+  assert.equal(binding.init.value, null);
+  assert.ok(binding.start < call.start, 'The collector local must be initialized before planning.');
+  const observer = call.arguments[1];
+  assert.equal(observer.type, 'ConditionalExpression');
+  assert.equal(observer.test.type, 'BinaryExpression');
+  assert.equal(observer.test.operator, '===');
+  assert.equal(observer.test.left.type, 'UnaryExpression');
+  assert.equal(observer.test.left.operator, 'typeof');
+  assert.equal(observer.test.left.argument?.type, 'Identifier');
+  assert.equal(observer.test.left.argument.name, 'onDiagnostics');
+  assert.equal(observer.test.right.type, 'Literal');
+  assert.equal(observer.test.right.value, 'function');
+  assert.equal(observer.alternate.type, 'Identifier');
+  assert.equal(observer.alternate.name, 'undefined');
+  const collector = observer.consequent;
+  assert.equal(collector.type, 'ArrowFunctionExpression');
+  assert.equal(collector.async, false);
+  assert.equal(collector.params.length, 1);
+  assert.equal(collector.params[0].type, 'Identifier');
+  assert.equal(collector.params[0].name, 'reasons');
+  assert.equal(collector.body.type, 'BlockStatement');
+  assert.equal(collector.body.body.length, 1);
+  assert.equal(collector.body.body[0].type, 'ExpressionStatement');
+  const assignment = collector.body.body[0].expression;
+  assert.equal(assignment.type, 'AssignmentExpression');
+  assert.equal(assignment.operator, '=');
+  assert.equal(assignment.left.type, 'Identifier');
+  assert.equal(assignment.left.name, 'diagnosticPlanReasons');
+  assert.equal(assignment.right.type, 'Identifier');
+  assert.equal(assignment.right.name, 'reasons');
 }
 
 function auditPrivatePlanModule(program, file, imported) {
@@ -327,7 +380,7 @@ function auditPrivatePlanModule(program, file, imported) {
     if (node.type !== 'CallExpression' || !privateBindings.has(node.callee?.name)) return;
     const name = privateBindings.get(node.callee.name), kind = name === 'createRuntimeSecurityQuotePlan' ? 'security' : 'refresh';
     imported.get(name).calls++;
-    assert.equal(node.arguments.length, 1);
+    assertClosedReasonCollector(node, parents, kind, file);
     const options = node.arguments[0];
     assert.equal(options.type, 'ObjectExpression', 'Private factory options must be a local literal.');
     const allowed = new Set(kind === 'security' ? ['generation', 'snapshots', 'selectedModels']
@@ -408,7 +461,94 @@ test('closed-consumer guards reject factory aliases, namespace/reexport/dynamic 
   assert.throws(() => checkRefresh(refresh.replace('row.key ===', 'row.reason ===')), { name: 'AssertionError' });
   assert.throws(() => checkRefresh(refresh.replace('const resource =', 'const resources = plan.resources; const resource =')),
     { name: 'AssertionError' });
+  checkRefresh(refresh.replace('const resource =',
+    'plan.resources.forEach(row => report({ kind: row.kind, action: row.action })); const resource ='));
+  for (const body of ['report(row)', 'report(row.reason)', 'report({ ...row })']) {
+    assert.throws(() => checkRefresh(refresh.replace('const resource =',
+      `plan.resources.forEach(row => { ${body}; }); const resource =`)), { name: 'AssertionError' });
+  }
 });
+
+test('optional plan-reason collector is accepted only as the exact closed executor callback', () => {
+  const source = `import { createRuntimeRefreshPlan as makePlan } from './refresh-plan.js';
+    function executeRefreshPlan({ context, onDiagnostics }) {
+      let diagnosticPlanReasons = null;
+      const plan = makePlan({ generation: context.generation, now: 1 },
+        typeof onDiagnostics === 'function' ? reasons => { diagnosticPlanReasons = reasons; } : undefined);
+      return createGenerationResourceScope({ context, plan, now: Date.now });
+    }`;
+  const check = (value, file = 'runtime/refresh-execution.js') => {
+    const parsed = parseSync(file, value);
+    assert.equal(parsed.errors.length, 0);
+    auditPrivatePlanModule(parsed.program, file, privateImportContracts());
+  };
+  check(source);
+  const invalid = [
+    source.replace('executeRefreshPlan', 'otherExecute'),
+    source.replace('let diagnosticPlanReasons = null;', 'const diagnosticPlanReasons = null;'),
+    source.replace('let diagnosticPlanReasons = null;', 'let diagnosticPlanReasons = {};'),
+    source.replace('let diagnosticPlanReasons = null;', ''),
+    source.replace('let diagnosticPlanReasons = null;', '')
+      .replace('return createGenerationResourceScope', 'let diagnosticPlanReasons = null; return createGenerationResourceScope'),
+    source.replace("typeof onDiagnostics === 'function'", 'onDiagnostics'),
+    source.replace("typeof onDiagnostics === 'function'", "typeof arbitrary === 'function'"),
+    source.replace('reasons =>', 'async reasons =>'),
+    source.replace('reasons =>', '(reasons, raw) =>'),
+    source.replace('reasons => { diagnosticPlanReasons = reasons; }', 'onDiagnostics'),
+    source.replace('reasons => { diagnosticPlanReasons = reasons; }', 'reasons => diagnosticPlanReasons = reasons'),
+    source.replace('diagnosticPlanReasons = reasons;', 'diagnosticPlanReasons = { ...reasons };'),
+    source.replace('diagnosticPlanReasons = reasons;', 'diagnosticPlanReasons = reasons; report(reasons);'),
+    source.replace('diagnosticPlanReasons = reasons;', 'target.reasons = reasons;'),
+    source.replace(': undefined', ': null'),
+    source.replace(': undefined)', ': undefined, onDiagnostics)'),
+    source.replace('createRuntimeRefreshPlan', 'createRuntimeSecurityQuotePlan'),
+  ];
+  for (const value of invalid) assert.throws(() => check(value), { name: 'AssertionError' });
+  assert.throws(() => check(source, 'runtime/security-quote-batch.js'), { name: 'AssertionError' });
+});
+
+for (const pattern of ['{ resources }', '[resources]']) {
+  const source = `import { createRuntimeRefreshPlan as makePlan } from './refresh-plan.js';
+    function executeRefreshPlan({ context, onDiagnostics }) {
+      let diagnosticPlanReasons = null;
+      const ${pattern} = makePlan({ generation: context.generation, now: 1 },
+        typeof onDiagnostics === 'function' ? reasons => { diagnosticPlanReasons = reasons; } : undefined);
+      report(resources);
+      return null;
+    }`;
+  test(`closed plan root rejects destructured ${pattern} binding before use scanning`, () => {
+    const parsed = parseSync('runtime/refresh-execution.js', source);
+    assert.equal(parsed.errors.length, 0);
+    assert.throws(() => auditPrivatePlanModule(parsed.program, 'runtime/refresh-execution.js', privateImportContracts()),
+      { name: 'AssertionError' });
+  });
+  test(`closed resource root independently rejects destructured ${pattern} binding`, () => {
+    const parsed = parseSync('runtime/refresh-execution.js', source);
+    assert.equal(parsed.errors.length, 0);
+    let target = null;
+    walk(parsed.program, (node, parents) => {
+      if (node.type === 'CallExpression' && node.callee?.name === 'makePlan') target = { node, parents };
+    });
+    assert.ok(target);
+    assert.throws(() => assertClosedResourceReads(target.node, target.parents), { name: 'AssertionError' });
+  });
+}
+
+for (const pattern of ['{ reason }', '[reason]']) {
+  test(`closed find-resource reader rejects destructured ${pattern} aliases`, () => {
+    const source = `import { createRuntimeRefreshPlan as makePlan } from './refresh-plan.js';
+      function execute(context) {
+        const plan = makePlan({ generation: context.generation, now: 1 });
+        const ${pattern} = plan.resources.find(row => row.key === 'nav:005844');
+        report(reason);
+        return createGenerationResourceScope({ context, plan, now: Date.now });
+      }`;
+    const parsed = parseSync('runtime/refresh-execution.js', source);
+    assert.equal(parsed.errors.length, 0);
+    assert.throws(() => auditPrivatePlanModule(parsed.program, 'runtime/refresh-execution.js', privateImportContracts()),
+      { name: 'AssertionError' });
+  });
+}
 
 test('real generation scope exposes only counters, not the private execution plan or public metadata', () => {
   const controller = new AbortController();

@@ -1,0 +1,29 @@
+diff --git a/docs/v16.0.0/M3_STATUS.md b/docs/v16.0.0/M3_STATUS.md
+index 2d49b6c..b6e115d 100644
+--- a/docs/v16.0.0/M3_STATUS.md
++++ b/docs/v16.0.0/M3_STATUS.md
+@@ -2,7 +2,7 @@
+ > 更新：2026-10-15（Asia/Shanghai）；第30节为本轮实施与独立检查，第28/29节保留此前排除证据。状态：`IN PROGRESS / NOT RELEASED`。
+ > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
+ > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
+-> 最新：第30节实施通知/刷新计划闭合运行投影及独立SW消息加固。新全量1012 tests（1009 PASS/3 skip）、syntax202、audit0、E2E28/28通过；精确1a02 CI另证Linux1012/1012、E2E28和CodeQL #7 fixed，既存#5仍在。三次实际构建all **80,394 B（−764）/cold42,907 B**，仍 **80,394 > 77,227.7 B FAIL**，至少差 **3,167 B**。真实主源五次0接受；后续单独3次捕获到fetched_at比本机未来约3.3～3.5s并被拒绝，未放宽校验或宣称行情恢复。旧200组pair仍 **INCONCLUSIVE**，不重跑挑PASS；CI不继承到后续文档SHA。M3不能EXIT或进入M4/发布。
++> 最新：第35节修复105基金官方NAV无界排队，业务检查点170fd3e，原配方all **80,494 B** /cold **42,985 B**。第36节按新增授权独立验证Terser/esbuild/SWC，各3对固定测量，分别+422/+2377/−166 B，均未采用；仍至少差 **3,267 B**。本轮只归档证据，未改业务、构建配置、依赖、预算或版本。旧200组pair总体 **INCONCLUSIVE** 不继承、不重跑挑PASS。M3仍IN PROGRESS，不能进入M4或发布。
+ 
+ ## 1. 已实现的刷新边界
+ 
+@@ -921,3 +921,15 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout
+ 两侧各3次原配方真实build：raw235665→235647（−18 B）、all80477→80494（**+17 B**）、cold42992→42985（−7 B），最终critical均4bda36bc、whole均7d4d8c1e/127files/92507677B。这是可靠性修复，不是减包优化；原budget CLI仍exit1/all FAIL，至少还差**3267 B**。无新pair，旧200组INCONCLUSIVE保留；没有真实金融源/真机/云写入/生产验收。
+ 
+ 较大重复职责与固定全图函数扫描没有发现新材料性删码机会；不证明未来优化不存在，不修改编译器/组/原预算。详见[调度证据与明确局限](performance-evidence/nav-scheduler-20261018/README.md)及机器summary。**M3仍IN PROGRESS /15.0.2，未进入M4/M5/M6，未merge/deploy/bump。** 本次工作树需要新的精确CI，不继承5186结果。
++
++## 36. 新授权下的压缩器独立比较：未采用（2026-10-18）
++
++用户明确允许在Temp独立验证新的JS压缩策略，合格后才采用；与第35节固定压缩器的范围区分，不再把换压缩器称作未授权。冻结170fd源码，取真实build-site AST配方，原5groups/es2022/write:false不变；每系列固定三轮OXC→候选/候选→OXC/OXC→候选，共18次构建。所有16chunks，模块到组/阶段归属hash相同、原阶段隔离与最终AST import路径/metadata一致性通过（未验证named-export绑定或执行ESM），各配方三次chunk指纹重复。
++
++OXC仍all80494/cold42985/raw235647；Terser5.51.2保守p2为80916/43192/237249（all+422），完整esbuild0.28.2为82871/43934/238490（+2377），SWC1.16.18保守p2为80328/42956/233930（−166，仅0.21%）。均未采用：前两者更大，SWC微小收益仍不能填平缺口，不足以启动新工具链采用。Terser/SWC仅装Temp且ignore-scripts，项目package/lock/白名单未动。四配方逐chunk最小值简单相加80288仅是算术筛选、不是hybrid真实构建或形式下界，仍至少差3061整数B；没有继续试混合或扫参数。
++
++原site整个测量期间whole hash7d4d8c1e/127files/92507677B不变；原工作树与Git archive JS原始EOL不同，73文件LF规范化inventory一致，不把raw hash不同隐去。初版审计工具因静态TemplateLiteral误判而未完成有效系列，工具与失败保留，v2只纠正该字面量分类。全部测量完成后仅新增[独立试验报告及原始选项/工具](performance-evidence/minifier-qualification-20261018/README.md)，未采纳源码/构建修改。
++
++当前预算CLI仍exit1：cold42985/52241 PASS、all80494/77227.7 FAIL，至少差3267B。没有候选压缩公开API镜像测试、E2E、新相对时延、OCR真机或生产验收；不可把三次确定性当完整兼容/性能通过。较大Worker投影/cache读写/展示选择与private property审查没有新的合格材料性候选，不代表所有未来优化不存在。**M3 IN PROGRESS /15.0.2，未进入M4/M5/M6，未merge/deploy/bump。** 本轮不因文档归档触发远端CI或继承旧CI。
++
++另对未换压缩器的原配方做完整新回归：1064/1061PASS/3Windows条件skip、syntax205、Chrome31/31（1.1m）、官方audit0，两个真实build同epoch且日志逐字相同；最终whole仍7d4d8c1e/127files/92507677B、critical4bda36bc，app16/OCR23实核通过但未运行OCR。错误传OCR核验根目录的一次调用保留并正确重验。这里只证明现有原产物，不把原配方结果授予候选压缩器；机器收据见报告的baseline-regression.json。

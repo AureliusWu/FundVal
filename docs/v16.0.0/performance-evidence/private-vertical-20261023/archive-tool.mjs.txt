@@ -1,0 +1,105 @@
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import assert from 'node:assert/strict';
+import { root, sha, save, state, native, inv, json, expected } from 'file:///C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-20261023-parent/common.mjs';
+
+const here = import.meta.dirname;
+const workspace = 'C:/Users/84046/AppData/Local/Temp/FundVal-private-vertical-20261023-a1';
+const out = resolve(root, 'docs/v16.0.0/performance-evidence/private-vertical-20261023');
+const stage = resolve(here, 'stage'), extract = resolve(here, 'extract'), archive = resolve(out, 'original-evidence.tar.gz');
+const checks = [], receipts = [];
+function check(label, operation) { operation(); checks.push({label, pass: true}); }
+function copy(from, to) { mkdirSync(dirname(to), {recursive: true}); cpSync(from, to, {force: false, errorOnExist: true}); }
+function run(label, command, args) {
+  const result = native(here, label, command, args, 90000);
+  receipts.push(result.receipt);
+  assert.equal(result.receipt.nativeExit, 0); assert.equal(result.receipt.signal, null); assert.equal(result.receipt.error, null);
+  return result.stdout;
+}
+
+for (const file of ['IMPLEMENTATION.md', 'MATERIALITY_REVIEW.md', 'INDEPENDENT_REVIEW.md', 'FINAL_FREEZE.json', 'HARNESS_FREEZE.json']) assert.equal(existsSync(resolve(workspace, file)), true, file);
+save(resolve(out, 'archive-plan.json'), JSON.stringify({at: new Date().toISOString(), scope: 'Completed unique A/B materiality failure, no qualification/adoption',
+  included: ['both complete 249/257 source payloads', 'all completed workspace protocols, ledgers, inventories and native receipts', 'actual A/B app chunks plus selected HTML/SW/manifest and complete site inventories'],
+  excluded: ['node_modules junctions and installed payload', 'generated OCR binary payload; complete inventories retained', 'later archive audit and post-doc receipts are addenda'], noNewBuildOrTest: true}, null, 2) + '\n');
+const before = state(here, 'before');
+const freeze = json(resolve(workspace, 'FINAL_FREEZE.json')), harness = json(resolve(workspace, 'HARNESS_FREEZE.json'));
+const A = json(resolve(workspace, 'materiality-A-01/RESULT.json')), B = json(resolve(workspace, 'materiality-B-01/RESULT.json'));
+check('frozen source and tool bytes unchanged', () => {
+  assert.equal(sha(readFileSync(resolve(workspace, 'qualification.mjs'))), harness.sha256);
+  assert.equal(sha(readFileSync(resolve(workspace, 'FINAL_FREEZE.json'))), harness.finalFreezeSha256);
+  assert.equal(sha(readFileSync(resolve(workspace, 'IMPLEMENTATION.md'))), freeze.ledger.sha256);
+  assert.equal(sha(readFileSync(resolve(workspace, 'QUALIFICATION_PROTOCOL.md'))), freeze.protocolSha256);
+  for (const side of ['A', 'B']) assert.deepEqual(inv(resolve(workspace, side), new Set(['site', 'node_modules'])), freeze[side].rows);
+  assert.equal(freeze.A.rows.length, 249); assert.equal(freeze.B.rows.length, 257);
+  assert.equal(sha(JSON.stringify(freeze.B.rows)), '558cc1a46b1f3b47efdaefed122eb31b18e5a34dda358c77bd7d334bc362072b');
+});
+check('A complete actual artifact exactly current', () => {
+  assert.equal(A.status, 'EXACT_CURRENT_A_BUILD_MATCH'); assert.equal(A.failure, null); assert.equal(A.postflightError, null);
+  assert.deepEqual(A.before, A.after); assert.deepEqual(A.artifact.rows, expected.site);
+  assert.deepEqual(inv(resolve(workspace, 'A/site')), A.artifact.rows);
+  assert.equal(A.artifact.all, 85969); assert.equal(A.artifact.cold, 46149);
+});
+check('B actual one-build materiality failure not adopted', () => {
+  assert.equal(B.status, 'MATERIALITY_NOT_QUALIFIED'); assert.equal(B.failure, null); assert.equal(B.postflightError, null);
+  assert.deepEqual(B.before, B.after); assert.deepEqual(inv(resolve(workspace, 'B/site')), B.artifact.rows);
+  assert.equal(B.artifact.rows.length, 136); assert.equal(B.artifact.chunks, 17); assert.equal(B.artifact.raw, 256307);
+  assert.equal(B.artifact.all, 87338); assert.equal(B.artifact.cold, 46005);
+  for (const key of ['completeQa', 'behaviorEquivalence', 'performance', 'adopt']) assert.equal(B[key], false);
+  assert.equal(B.receipts.find(row => row.label === 'budget').nativeExit, 1);
+});
+check('all native receipt stdout stderr actual byte SHA preserved', () => {
+  for (const row of inv(workspace, new Set(['A', 'B'])).filter(row => row.path.endsWith('.receipt.json'))) {
+    const path = resolve(workspace, row.path), receipt = json(path);
+    for (const kind of ['stdout', 'stderr']) {
+      const bytes = readFileSync(resolve(dirname(path), receipt.label + '.' + kind));
+      assert.equal(bytes.length, receipt[kind].bytes); assert.equal(sha(bytes), receipt[kind].sha256);
+    }
+  }
+});
+const parents = inv(workspace, new Set(['A', 'B']));
+const inputs = [{name: 'workspace', base: workspace, rows: parents}];
+for (const side of ['A', 'B']) {
+  inputs.push({name: side + '-source', base: resolve(workspace, side), rows: freeze[side].rows});
+  const manifest = json(resolve(workspace, side, 'site/js/app-chunks.json'));
+  const paths = new Set(['index.html', 'manifest.json', 'sw.js', 'js/version.js', 'js/update-compat.js', 'js/app-chunks.json', ...manifest.chunks.map(row => row.path)]);
+  const rows = inv(resolve(workspace, side, 'site')).filter(row => paths.has(row.path));
+  assert.equal(rows.length, paths.size);
+  inputs.push({name: side + '-selected-site', base: resolve(workspace, side, 'site'), rows});
+}
+for (const path of [stage, extract, archive]) assert.equal(existsSync(path), false, path);
+mkdirSync(stage);
+for (const input of inputs) for (const row of input.rows) copy(resolve(input.base, row.path), resolve(stage, input.name, row.path));
+copy(import.meta.filename, resolve(stage, 'parent/archive.mjs'));
+copy('C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-20261023-parent/common.mjs', resolve(stage, 'parent/common.mjs.txt'));
+copy(resolve(out, 'README.md'), resolve(stage, 'parent/README.md'));
+copy(resolve(out, 'archive-plan.json'), resolve(stage, 'parent/archive-plan.json'));
+save(resolve(stage, 'parent/current-product-state.inventory.json'), JSON.stringify(expected, null, 2) + '\n');
+save(resolve(stage, 'parent/input-inventories.json'), JSON.stringify(inputs, null, 2) + '\n');
+const rows = inv(stage);
+const inventory = {count: rows.length, bytes: rows.reduce((sum, row) => sum + row.bytes, 0), inventorySha256: sha(JSON.stringify(rows)), files: rows};
+save(resolve(out, 'inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
+run('tar-create', 'tar', ['-czf', archive, '-C', stage, '.']);
+const members = run('tar-list', 'tar', ['-tzf', archive]).toString().split(/\r?\n/).filter(Boolean);
+check('all tar paths normalized relative safe', () => {
+  for (const path of members) { assert.ok(!/^(?:\/|[A-Za-z]:)/.test(path)); assert.ok(!path.split(/[\\/]/).includes('..')); }
+});
+mkdirSync(extract); run('tar-extract', 'tar', ['-xzf', archive, '-C', extract]);
+check('new extraction all members match byte SHA path', () => assert.deepEqual(inv(extract), rows));
+check('stage all members unchanged', () => assert.deepEqual(inv(stage), rows));
+for (const input of inputs) check(input.name + ' selected originals unchanged', () => {
+  for (const row of input.rows) {
+    const bytes = readFileSync(resolve(input.base, row.path)); assert.equal(bytes.length, row.bytes); assert.equal(sha(bytes), row.sha256);
+  }
+});
+const after = state(here, 'after');
+check('root current273 site127 installed68 and Git same', () => assert.deepEqual(after, before));
+run('diff-check', 'git', ['-C', root, 'diff', '--check']);
+const bytes = readFileSync(archive);
+const result = {status: 'ARCHIVE_AUDIT_PASS_NOT_CANDIDATE_PASS', checks, receipts, before, after,
+  actual: {A: {status: A.status, chunks: 16, raw: 252331, all: 85969, cold: 46149}, B: {status: B.status, chunks: 17, raw: 256307, all: 87338, cold: 46005}, allDelta: 1369, coldDelta: -144,
+    completeQa: false, equivalence: false, deterministicThreeBuilds: false, performance: false, adopt: false, release: 'NOT_RELEASED'},
+  archive: {path: archive, bytes: bytes.length, sha256: sha(bytes)}, inventory: {count: inventory.count, bytes: inventory.bytes, sha256: inventory.inventorySha256}, extract, addendaOutside: true};
+save(resolve(out, 'archive-audit.json'), JSON.stringify(result, null, 2) + '\n');
+copy(import.meta.filename, resolve(out, 'archive-tool.mjs.txt'));
+for (const name of readdirSync(here).filter(name => /\.(?:stdout|stderr)$/.test(name) || name.endsWith('.receipt.json'))) copy(resolve(here, name), resolve(out, name));
+process.stdout.write(JSON.stringify({status: result.status, checks: checks.length, archive: result.archive, inventory: result.inventory, actual: result.actual}) + '\n');

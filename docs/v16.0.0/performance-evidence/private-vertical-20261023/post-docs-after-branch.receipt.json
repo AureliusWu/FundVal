@@ -1,0 +1,24 @@
+{
+  "label": "post-docs-after-branch",
+  "command": "git",
+  "args": [
+    "-C",
+    "D:/AI项目/FundVal",
+    "branch",
+    "--show-current"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+  "startedAt": "2026-10-23T02:46:57.757Z",
+  "finishedAt": "2026-10-23T02:46:57.832Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 30,
+    "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

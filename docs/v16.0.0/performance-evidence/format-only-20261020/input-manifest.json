@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "entry": "js/app-shell.js",
+  "coldStart": [
+    "js/app-shell.js",
+    "js/chunks/app-C1KeC5Vr.js",
+    "js/chunks/post-integrity-LZsxxjFJ.js",
+    "js/chunks/startup-migrations-CEzhCYv4.js",
+    "js/chunks/startup-pure-v6vu1dD4.js",
+    "js/chunks/startup-repository-B04CzfgI.js"
+  ],
+  "lazy": [
+    "js/chunks/accuracy-AV5UnMZT.js",
+    "js/chunks/business-features-BxmeGblZ.js",
+    "js/chunks/business-runtime-63t7lKdA.js",
+    "js/chunks/cloud-CLK5Spot.js",
+    "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+    "js/chunks/cloud-runtime-CB3MWviH.js",
+    "js/chunks/diagnostics-DLmiIP_p.js",
+    "js/chunks/diagnostics-ui-BarnPzjK.js",
+    "js/chunks/gist-runtime-BB2WMPEu.js",
+    "js/chunks/quote-diagnostics-DLE2n5e9.js"
+  ],
+  "chunks": [
+    {
+      "path": "js/app-shell.js",
+      "role": "cold",
+      "bytes": 5056,
+      "gzipBytes": 2234,
+      "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d"
+    },
+    {
+      "path": "js/chunks/accuracy-AV5UnMZT.js",
+      "role": "lazy",
+      "bytes": 77,
+      "gzipBytes": 92,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "js/chunks/app-C1KeC5Vr.js",
+      "role": "cold",
+      "bytes": 37,
+      "gzipBytes": 57,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "js/chunks/business-features-BxmeGblZ.js",
+      "role": "lazy",
+      "bytes": 665,
+      "gzipBytes": 374,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "js/chunks/business-runtime-63t7lKdA.js",
+      "role": "lazy",
+      "bytes": 80965,
+      "gzipBytes": 27185,
+      "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5"
+    },
+    {
+      "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "role": "lazy",
+      "bytes": 79,
+      "gzipBytes": 92,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "js/chunks/cloud-CLK5Spot.js",
+      "role": "lazy",
+      "bytes": 18694,
+      "gzipBytes": 6382,
+      "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574"
+    },
+    {
+      "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+      "role": "lazy",
+      "bytes": 254,
+      "gzipBytes": 184,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "js/chunks/diagnostics-DLmiIP_p.js",
+      "role": "lazy",
+      "bytes": 5628,
+      "gzipBytes": 2884,
+      "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858"
+    },
+    {
+      "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+      "role": "lazy",
+      "bytes": 83,
+      "gzipBytes": 90,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+      "role": "lazy",
+      "bytes": 141,
+      "gzipBytes": 137,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+      "role": "cold",
+      "bytes": 96333,
+      "gzipBytes": 32206,
+      "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96"
+    },
+    {
+      "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "role": "lazy",
+      "bytes": 82,
+      "gzipBytes": 89,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+      "role": "cold",
+      "bytes": 79,
+      "gzipBytes": 94,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "js/chunks/startup-pure-v6vu1dD4.js",
+      "role": "cold",
+      "bytes": 27349,
+      "gzipBytes": 8263,
+      "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4"
+    },
+    {
+      "path": "js/chunks/startup-repository-B04CzfgI.js",
+      "role": "cold",
+      "bytes": 125,
+      "gzipBytes": 131,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    }
+  ]
+}

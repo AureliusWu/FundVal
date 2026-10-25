@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "scope": "Original OXC recipe regression AFTER minifier experiments; NOT candidate minifier qualification",
+  "sourceCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+  "version": "15.0.2",
+  "businessAndBuildConfigurationChanged": false,
+  "docsUncommitted": true,
+  "sourceDateEpoch": "1792046773",
+  "unit": {
+    "command": "npm test",
+    "exitCode": 0,
+    "tests": 1064,
+    "pass": 1061,
+    "fail": 0,
+    "skip": 3,
+    "durationMs": 6009.1525,
+    "skipReason": "Windows account denied synthetic symlink/link/rename operations in three platform-conditional tests"
+  },
+  "syntax": {
+    "command": "npm run check",
+    "exitCode": 0,
+    "files": 205
+  },
+  "builds": {
+    "command": "npm run build",
+    "freshRuns": 2,
+    "bothExitCode": 0,
+    "buildLogsIdentical": true,
+    "allGzip": 80494,
+    "coldGzip": 42985,
+    "appRaw": 235647,
+    "chunks": 16,
+    "criticalFingerprint": "4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948",
+    "finalSite": {
+      "files": 127,
+      "bytes": 92507677,
+      "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+    }
+  },
+  "e2e": {
+    "command": "npm run test:e2e",
+    "environment": {
+      "FUNDVAL_E2E_PORT": "12437",
+      "SOURCE_DATE_EPOCH": "1792046773"
+    },
+    "browser": "Local installed Chrome via Playwright",
+    "exitCode": 0,
+    "tests": 31,
+    "pass": 31,
+    "durationReported": "1.1m",
+    "serverPortUnownedBefore": true,
+    "serverPortNotListeningAfter": true,
+    "syntheticDataAndLocalOnly": true,
+    "relativePerformance": "NOT_RUN",
+    "warnings": [
+      "NO_COLOR ignored because FORCE_COLOR is set; recorded in raw log"
+    ]
+  },
+  "officialNpmAudit": {
+    "registry": "https://registry.npmjs.org",
+    "exitCode": 0,
+    "vulnerabilities": 0,
+    "scope": "Current original root project dependency tree; no production runtime trust guarantee"
+  },
+  "artifactChecks": {
+    "app": {
+      "command": "node scripts/release-fingerprint.mjs --verify-app-chunks-directory site",
+      "exitCode": 0,
+      "chunks": 16,
+      "bytes": 235647
+    },
+    "ocr": {
+      "command": "node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr",
+      "exitCode": 0,
+      "assets": 23,
+      "bytes": 88196906,
+      "engineExecuted": false
+    },
+    "previousWrongOcrRoot": {
+      "command": "node scripts/release-fingerprint.mjs --verify-ocr-directory site",
+      "observedError": "ENOENT lstat site/asset-manifest.json",
+      "intermediateExitCodeNotCaptured": true,
+      "classification": "Operator used the app-site root instead of the CLI-required OCR asset root; preserved as an invocation error, not a product defect or successful check"
+    }
+  },
+  "budget": {
+    "command": "node scripts/release-fingerprint.mjs --assert-app-bundle-budget site",
+    "exitCode": 1,
+    "verdict": "FAIL",
+    "cold": 42985,
+    "coldBudget": 52241,
+    "all": 80494,
+    "allBudget": 77227.7,
+    "remainingIntegerBytes": 3267,
+    "importClosureVerified": false
+  },
+  "rawLogDirectory": "C:/Users/84046/AppData/Local/Temp/fundval-m3-minifier-5806c73ce04e4538992a1f6a39f21444",
+  "rawLogs": [
+    {
+      "name": "current-source-unit.log",
+      "bytes": 107253,
+      "sha256": "0c788a1be528ec106fda525d90eb1fa60e719f828e07c8658c0a5b9cdba1dcf6"
+    },
+    {
+      "name": "current-source-check.log",
+      "bytes": 117,
+      "sha256": "0cd38fbbc9b848e018ba246bc56bbb02710f636ac90b0843e2373ff482d14d64"
+    },
+    {
+      "name": "current-source-build.log",
+      "bytes": 1434,
+      "sha256": "321fdf78cf56a6850131458db0d4d9d97a5a4e7c559859820f6cfcaaed7e6749"
+    },
+    {
+      "name": "current-source-e2e.log",
+      "bytes": 22105,
+      "sha256": "c6ce3dc7731490be829ff882e74e9475d11cba5444a808dbb6b6b5c972ce31d8"
+    },
+    {
+      "name": "current-source-final-build.log",
+      "bytes": 1434,
+      "sha256": "321fdf78cf56a6850131458db0d4d9d97a5a4e7c559859820f6cfcaaed7e6749"
+    }
+  ],
+  "rawLogsArchivedInRepo": false,
+  "adoption": false,
+  "remoteCi": "NOT_TRIGGERED",
+  "production": "NOT_RUN",
+  "m3": "IN_PROGRESS"
+}

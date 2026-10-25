@@ -1,0 +1,458 @@
+{
+  "schema": 1,
+  "raw": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\m3-pair-vite824-diagnostics-800-20261022.json",
+    "bytes": 88032041,
+    "sha256": "46aeb7a3ad8908bf256ffe4b17e706e59fddd282e5bdcbed994780222a9bf49f",
+    "inArchive": false
+  },
+  "status": "PASS",
+  "nativeSamplerExit": 0,
+  "reference": "057042963a33579c624a41404a6d533dfda29768",
+  "currentSourceAtMeasurement": {
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "trackedDiffSha256": "c90f6da518b7c5e26dc9dbe725510a6bb58372445c82d1232a62a55e0721fa82",
+    "buildRelevantUntrackedSha256": "f3a07215ad454621efd1be647bc1954dca2dc8cb5eb165311bfe815199f81da3",
+    "dirty": true,
+    "label": "Current working-tree candidate; HEAD is not an immutable identity for uncommitted changes."
+  },
+  "summary": {
+    "verdict": "PASS",
+    "retainedPairs": 800,
+    "balanced": true,
+    "orderCounts": {
+      "AB": 400,
+      "BA": 400
+    },
+    "metrics": {
+      "coldReadyMs": {
+        "reference": {
+          "samples": 800,
+          "median": 129.3500000834465,
+          "p95": 167.80000007152557,
+          "maximum": 262.5
+        },
+        "current": {
+          "samples": 800,
+          "median": 119.85000002384186,
+          "p95": 156.79999995231628,
+          "maximum": 420.60000002384186
+        },
+        "medianRatio": 0.9265558557906766,
+        "p95Ratio": 0.934445768089866,
+        "medianDeltaPercent": -7.344414420932344,
+        "p95DeltaPercent": -6.555423191013398,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.9138719515360012,
+            0.9372822302304876
+          ],
+          "p95Ratio": [
+            0.8964922369035778,
+            0.9687312090801837
+          ],
+          "referenceP95Ms": [
+            162.89999997615814,
+            173.89999997615814
+          ],
+          "currentP95Ms": [
+            150.70000004768372,
+            161.30000007152557
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.06555423119970916,
+          "current": 0.06760204098893734
+        },
+        "p95Stable": true,
+        "passConfidence": 1,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 400,
+            "referenceMedian": 129.10000002384186,
+            "currentMedian": 119.44999998807907
+          },
+          "BA": {
+            "pairs": 400,
+            "referenceMedian": 129.5,
+            "currentMedian": 119.90000003576279
+          }
+        }
+      },
+      "warmReadyMs": {
+        "reference": {
+          "samples": 800,
+          "median": 67.15000003576279,
+          "p95": 96.5,
+          "maximum": 146.29999995231628
+        },
+        "current": {
+          "samples": 800,
+          "median": 60,
+          "p95": 86.10000002384186,
+          "maximum": 196.90000009536743
+        },
+        "medianRatio": 0.8935219652724522,
+        "p95Ratio": 0.8922279795216773,
+        "medianDeltaPercent": -10.64780347275478,
+        "p95DeltaPercent": -10.777202047832269,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.8811292736038795,
+            0.9029850746268657
+          ],
+          "p95Ratio": [
+            0.8613360320064201,
+            0.9539267005720687
+          ],
+          "referenceP95Ms": [
+            93.20000004768372,
+            99.40000009536743
+          ],
+          "currentP95Ms": [
+            83.90000009536743,
+            91.09999990463257
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.06424870515734421,
+          "current": 0.08362369114136345
+        },
+        "p95Stable": true,
+        "passConfidence": 1,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 400,
+            "referenceMedian": 67.25,
+            "currentMedian": 60.299999952316284
+          },
+          "BA": {
+            "pairs": 400,
+            "referenceMedian": 67.10000002384186,
+            "currentMedian": 59.700000047683716
+          }
+        }
+      },
+      "saveUiMs": {
+        "reference": {
+          "samples": 800,
+          "median": 75.30154999997467,
+          "p95": 86.98139999993145,
+          "maximum": 132.60490000015125
+        },
+        "current": {
+          "samples": 800,
+          "median": 64.54230000008829,
+          "p95": 72.94400000013411,
+          "maximum": 91.03659999999218
+        },
+        "medianRatio": 0.857117814973397,
+        "p95Ratio": 0.8386160719440201,
+        "medianDeltaPercent": -14.2882185026603,
+        "p95DeltaPercent": -16.138392805597988,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.8443229552173427,
+            0.8676198065406768
+          ],
+          "p95Ratio": [
+            0.8261565464113599,
+            0.8459104561089298
+          ],
+          "referenceP95Ms": [
+            86.29359999997541,
+            88.12939999997616
+          ],
+          "currentP95Ms": [
+            72.50950000004377,
+            73.26840000017546
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.021105661670221355,
+          "current": 0.010403871464826357
+        },
+        "p95Stable": true,
+        "passConfidence": 1,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 400,
+            "referenceMedian": 75.45210000002407,
+            "currentMedian": 64.03459999989718
+          },
+          "BA": {
+            "pairs": 400,
+            "referenceMedian": 75.14450000005309,
+            "currentMedian": 65.2099000000162
+          }
+        }
+      }
+    },
+    "method": {
+      "p95": "nearest rank: sorted[ceil(0.95 * n) - 1]",
+      "median": "arithmetic mean of the middle two values for even n",
+      "uncertainty": "95% percentile bootstrap, resampling whole pairs within AB/BA strata; deterministic PRNG seed; all retained samples included",
+      "bootstrap": 5000,
+      "seed": 160003,
+      "minimumPairs": 60,
+      "medianLimit": 1.15,
+      "p95Limit": 1.2,
+      "absoluteBudgetMs": 3000,
+      "stabilityLimit": 0.2,
+      "confidenceCaveat": "Bootstrap pass confidence is the fraction of resamples meeting the gate, not a probability that the population passes. Small tail counts and desktop scheduling limit inference."
+    }
+  },
+  "independent": {
+    "checks": 9663,
+    "failures": [],
+    "verdict": "EXACT_COMPLETE_RAW_VERIFIED",
+    "v1NativeExit": 3,
+    "v2NativeExit": 0
+  },
+  "postflight": {
+    "checks": [
+      {
+        "name": "freeze exact measurement-window tracked diff before post-run documentation",
+        "status": "PASS"
+      },
+      {
+        "name": "complete source walk detects no extra missing or changed members in frozen scope",
+        "status": "PASS"
+      },
+      {
+        "name": "installed full declared inventory remains unchanged",
+        "status": "PASS"
+      },
+      {
+        "name": "actual full current site equals raw before after and preflight",
+        "status": "PASS"
+      },
+      {
+        "name": "full pair observations and independent bootstrap verification",
+        "status": "PASS"
+      },
+      {
+        "name": "original independent all-budget CLI still exits native1",
+        "status": "PASS"
+      },
+      {
+        "name": "raw bytes unchanged through independent postflight",
+        "status": "PASS"
+      }
+    ],
+    "verdict": "SOURCE_WINDOW_AND_FULL_INVENTORIES_VERIFIED",
+    "trackedPatch": {
+      "bytes": 118929,
+      "sha256": "c90f6da518b7c5e26dc9dbe725510a6bb58372445c82d1232a62a55e0721fa82"
+    }
+  },
+  "referenceReconstruction": {
+    "status": "PASS_REFERENCE_RECONSTRUCTION_THREE_BUILDS",
+    "rounds": [
+      {
+        "round": 1,
+        "nativeExit": 0,
+        "signal": null,
+        "fileCount": 110,
+        "totalBytes": 92344588,
+        "sha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+        "matchesRawBefore": true,
+        "matchesRawAfter": true
+      },
+      {
+        "round": 2,
+        "nativeExit": 0,
+        "signal": null,
+        "fileCount": 110,
+        "totalBytes": 92344588,
+        "sha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+        "matchesRawBefore": true,
+        "matchesRawAfter": true
+      },
+      {
+        "round": 3,
+        "nativeExit": 0,
+        "signal": null,
+        "fileCount": 110,
+        "totalBytes": 92344588,
+        "sha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+        "matchesRawBefore": true,
+        "matchesRawAfter": true
+      }
+    ],
+    "independent": {
+      "schema": 1,
+      "checkedAt": "2026-10-22T04:29:33.917Z",
+      "verdict": "REFERENCE_RECONSTRUCTION_INDEPENDENTLY_VERIFIED",
+      "threeNativeBuildExits": [
+        0,
+        0,
+        0
+      ],
+      "referenceFiles": 110,
+      "referenceBytes": 92344588,
+      "referenceArtifactSha256": "a18ee3fc44654061712e4714f257efbb8767571d07b868d579a56b5d5660f812",
+      "sourceDir": "C:/Users/84046/AppData/Local/Temp/fundval-reference-rebuild-20261022-0570429",
+      "snapshot": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-baseline-4ehUoD",
+      "currentFiles": 127,
+      "rawSha256": "46aeb7a3ad8908bf256ffe4b17e706e59fddd282e5bdcbed994780222a9bf49f",
+      "originalRemovedSnapshotReread": false,
+      "newMeasurement": false,
+      "sourceBeforeAfterIdentical": true,
+      "stdoutStderrReceiptsVerified": true
+    }
+  },
+  "observational": {
+    "sides": {
+      "reference": 804,
+      "current": 804
+    },
+    "requestCategories": {
+      "reference:cold:localStatic": 15276,
+      "reference:cold:externalOrProxyBlocked": 3215,
+      "reference:warm:localStatic": 15276,
+      "reference:warm:externalOrProxyBlocked": 3216,
+      "reference:save:localStatic": 3216,
+      "reference:save:estimateFixture": 804,
+      "reference:save:holdingsFixture": 804,
+      "reference:save:externalOrProxyBlocked": 804,
+      "current:cold:localStatic": 11256,
+      "current:cold:externalOrProxyBlocked": 3216,
+      "current:warm:localStatic": 11256,
+      "current:warm:externalOrProxyBlocked": 3216,
+      "current:save:externalOrProxyBlocked": 4020,
+      "current:save:holdingsFixture": 804,
+      "current:save:localStatic": 3216,
+      "current:save:estimateFixture": 804
+    },
+    "requestInstrumentation": {
+      "reference:MEASURED": 35376,
+      "reference:HERMETIC_POLICY_BLOCK": 7235,
+      "current:MEASURED": 27336,
+      "current:HERMETIC_POLICY_BLOCK": 10452
+    },
+    "requestFailures": {
+      "reference:request_failed:HERMETIC_POLICY_BLOCK": 7235,
+      "current:request_failed:HERMETIC_POLICY_BLOCK": 10452
+    },
+    "pageErrors": 0,
+    "pageErrorCategories": {},
+    "consoleErrors": 17687,
+    "serviceWorkerEvents": 0,
+    "serviceWorkerScriptRequests": 0,
+    "registrationAttempts": 4824,
+    "controllers": 0,
+    "registrations": 0,
+    "rendererStatus": {
+      "reference:cold:PARTIAL": 804,
+      "reference:warm:PARTIAL": 804,
+      "reference:save:MEASURED": 804,
+      "current:cold:PARTIAL": 804,
+      "current:warm:PARTIAL": 804,
+      "current:save:MEASURED": 804
+    },
+    "rendererInvalidReasons": {},
+    "drains": {
+      "reference:SETTLED": 2412,
+      "current:SETTLED": 2412
+    },
+    "gistWriteAttempts": 0,
+    "networkInstrumentationFailures": 0
+  },
+  "budget": {
+    "nativeExit": 1,
+    "verdict": "FAIL",
+    "allGzipBytes": 84187,
+    "limit": 77227.7,
+    "minimumIntegerReduction": 6960,
+    "coldGzipBytes": 44699,
+    "coldLimit": 52241
+  },
+  "archive": {
+    "schema": 1,
+    "createdAt": "2026-10-22T04:33:29.005Z",
+    "archive": "original-evidence.tar.gz",
+    "files": 488,
+    "uncompressedBytes": 23974262,
+    "bytes": 10239633,
+    "sha256": "133d4326343fc277d8d0a89663b47e77725b40594ebffddd152cd7848c8e2e64",
+    "inventorySha256": "8fb8da82baa63ed5c490259ad0a20e7a8f83baee6e7be93cfa82d114cf469693",
+    "extractionVerified": true,
+    "staging": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-pair824-archive-lSiOuQ",
+    "extraction": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-pair824-extract-07zGKl",
+    "sourceFiles": 246,
+    "sourceBytes": 12107657,
+    "outputCohorts": [
+      {
+        "name": "current-non-ocr-artifacts",
+        "allFiles": 127,
+        "allBytes": 92537133,
+        "copiedFiles": 103,
+        "copiedBytes": 4335407,
+        "omittedOcrFiles": 24,
+        "omittedOcrBytes": 88201726
+      },
+      {
+        "name": "reconstructed-reference-non-ocr-artifacts",
+        "allFiles": 110,
+        "allBytes": 92344588,
+        "copiedFiles": 86,
+        "copiedBytes": 4142862,
+        "omittedOcrFiles": 24,
+        "omittedOcrBytes": 88201726
+      }
+    ],
+    "receipts": [
+      {
+        "command": "tar.exe",
+        "args": [
+          "-czf",
+          "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\pair-vite824-diagnostics-800-20261022\\original-evidence.tar.gz",
+          "-C",
+          "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-pair824-archive-lSiOuQ",
+          "."
+        ],
+        "startedAt": "2026-10-22T04:33:23.678Z",
+        "endedAt": "2026-10-22T04:33:25.310Z",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": "tar.exe",
+        "args": [
+          "-xzf",
+          "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\pair-vite824-diagnostics-800-20261022\\original-evidence.tar.gz",
+          "-C",
+          "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-pair824-extract-07zGKl"
+        ],
+        "startedAt": "2026-10-22T04:33:25.310Z",
+        "endedAt": "2026-10-22T04:33:25.651Z",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "",
+        "stderr": ""
+      }
+    ]
+  },
+  "m3Status": "IN_PROGRESS_NOT_RELEASED",
+  "appVersion": "15.0.2",
+  "productCommit": false,
+  "pushed": false,
+  "deployed": false
+}

@@ -9,7 +9,7 @@ function chooseOverseasModel(fund) {
   return selectOverseasModel(String(fund && fund.code || ''), String(fund && fund.name || ''));
 }
 
-export function applyOverseasModelEstimate(fund, quotes) {
+export function applyOverseasModelEstimate(fund, quotes, options = {}) {
   if (!fund || fund.est_realtime !== false) return;
   var model = chooseOverseasModel(fund);
   if (!model) return;
@@ -49,4 +49,14 @@ export function applyOverseasModelEstimate(fund, quotes) {
   fund.est_model_quarter = model.quarter || '';
   fund.est_confidence = result.confidence;
   fund.est_note = fund.est_model_label + ' · ' + fund.est_model_version + ' · 可用权重' + fmt(result.usableWeight) + '% · 行情时间' + (result.sourceTime || '未知') + ' · 下一净值自建模型估算，不是基金公司官方净值';
+  if (/^\d{6}$/.test(String(fund.code || ''))) fund.market_model_evidence = Object.freeze({
+    fundCode: fund.code, value: fund.est_nav, changePct,
+    baseNav: modelBaseNav, baseNavDate: modelBaseDate, targetDate: period.targetDate,
+    observedAt: result.sourceTime, coverage: result.usableWeight,
+    fetchedAt: options.fetchedAt ?? fund.fetched_at ?? fund.fetchedAt ?? null,
+    confidence: result.confidence, modelVersion: fund.est_model_version,
+    note: fund.est_note, label: fund.est_model_label,
+    quarter: model.quarter || '', validUntil: model.valid_until || '',
+    minimumWeight: model.min_weight,
+  });
 }

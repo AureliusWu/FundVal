@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {summarizePairs,balancedOrder,median,artifactFingerprint} from 'file:///D:/AI项目/FundVal/scripts/measure-performance-pair.mjs';
+const root='D:/AI项目/FundVal', file=root+'/docs/v16.0.0/performance-evidence/m3-pair-security-v15-800-20261018.json';
+const bytes=await readFile(file),report=JSON.parse(bytes),hash=b=>createHash('sha256').update(b).digest('hex');
+assert.deepEqual(report.requested,{retainedPairs:800,warmupPairs:4,bootstrap:5000,seed:160003});
+assert.equal(report.rawPairs.length,804);
+const plan=[...balancedOrder(4),...balancedOrder(800)];
+for(const [i,p]of report.rawPairs.entries()){assert.equal(p.index,i);assert.equal(p.retained,i>=4);assert.deepEqual(p.order,plan[i]);assert(!p.failure&&p.reference&&p.current);}
+const retained=report.rawPairs.filter(p=>p.retained),summary=summarizePairs(retained,{bootstrap:5000,seed:160003});
+assert.deepEqual(summary,report.summary);assert.equal(report.status,'PASS');
+assert.deepEqual(report.currentSourceBefore,report.currentSourceAfter);
+for(const side of ['reference','current'])assert.equal(report.artifactsBefore[side].sha256,report.artifactsAfter[side].sha256);
+const actual=await artifactFingerprint(root+'/site');assert.equal(actual.sha256,report.artifactsAfter.current.sha256);
+const metrics={TaskMs:'TaskDuration',ScriptMs:'ScriptDuration',LayoutMs:'LayoutDuration',RecalcStyleMs:'RecalcStyleDuration'};
+let rendererObjects=0,deltaChecks=0;
+const quality={};
+for(const side of ['reference','current']){
+  const q=quality[side]={contexts:804,pageErrors:0,consoleErrors:0,instrumentationFailures:0,serviceWorkerEvents:0,drainStates:{},rendererStates:{},requestInstrumentation:{},requestCategories:{},totalRequests:0,activeServiceWorkers:0,registeredServiceWorkers:0,longTasks:{cold:0,warm:0},retainedMedians:{}};
+  for(const pair of report.rawPairs){const s=pair[side];q.pageErrors+=s.pageErrors;q.consoleErrors+=s.consoleErrors;q.instrumentationFailures+=s.networkInstrumentation.failures;q.serviceWorkerEvents+=s.serviceWorkerEvents;
+    for(const d of s.drains)q.drainStates[d.status]=(q.drainStates[d.status]||0)+1;
+    for(const req of s.requests){q.totalRequests++;q.requestInstrumentation[req.instrumentation]=(q.requestInstrumentation[req.instrumentation]||0)+1;q.requestCategories[req.category]=(q.requestCategories[req.category]||0)+1;}
+    for(const phase of ['cold','warm','save']){const b=s.breakdown[phase],r=b.renderer;q.rendererStates[r.status]=(q.rendererStates[r.status]||0)+1;assert.equal(r.status,phase==='save'?'MEASURED':'PARTIAL');assert.equal(Object.keys(r.invalidReasons).length,0);rendererObjects++;
+      const before=r.snapshots.before,after=r.snapshots.after;assert.deepEqual(before.documentEpoch,after.documentEpoch);
+      for(const [field,key]of Object.entries(metrics)){const delta=(after.values[key]-before.values[key])*1000;assert(Number.isFinite(delta)&&delta>=0);assert(Math.abs(delta-r[field])<=1e-8);deltaChecks++;}
+      q.activeServiceWorkers+=Number(b.serviceWorkers.controlled);q.registeredServiceWorkers+=b.serviceWorkers.registrations;
+      if(phase!=='save')q.longTasks[phase]+=b.longTasks.length;
+    }
+  }
+  for(const phase of ['cold','warm']){
+    const b=retained.map(p=>p[side].breakdown[phase]);
+    q.retainedMedians[phase]={navigationTtfbMs:median(b.map(r=>r.http.navigationTtfbMs)),responseDownloadMs:median(b.map(r=>r.http.responseDownloadMs)),postHttpBootstrapAndDomMs:median(b.map(r=>r.postHttpBootstrapAndDomMs)),rendererTaskMs:median(b.map(r=>r.renderer.TaskMs)),rendererScriptMs:median(b.map(r=>r.renderer.ScriptMs)),rendererLayoutMs:median(b.map(r=>r.renderer.LayoutMs)),rendererRecalcStyleMs:median(b.map(r=>r.renderer.RecalcStyleMs))};
+  }
+  assert.equal(q.pageErrors,0);assert.equal(q.instrumentationFailures,0);assert.equal(q.serviceWorkerEvents,0);assert.equal(q.activeServiceWorkers,0);assert.equal(q.registeredServiceWorkers,0);assert.deepEqual(q.drainStates,{SETTLED:2412});
+}
+const log=await readFile('C:/Users/84046/AppData/Local/Temp/fundval-m3-pair-800-a6f57689b84046e79b734cf390800ad6/run.log','utf8');
+const milestones=[...log.matchAll(/PAIR: (\d+)\/800 retained complete pairs/g)].map(m=>Number(m[1]));
+assert.deepEqual(milestones,[...Array.from({length:80},(_,i)=>6+i*10),800]);
+assert.equal((log.match(/PAIR: building only/g)||[]).length,1);assert.equal((log.match(/PAIR PASS:/g)||[]).length,1);
+const old=await readFile(root+'/docs/v16.0.0/performance-evidence/m3-pair-security-v15-200-20261011.json');
+assert.equal(hash(old),'5e4199a9268ecb8761dc3f91725daba3f1b63adedd7b86ef2a9b820f940b3ddd');
+const sampler=await readFile(root+'/scripts/measure-performance-pair.mjs');assert.equal(hash(sampler),'2ca754524871b72c3c41f17ec2b6052ac74e3334ad034bf522a933cd9df295d7');
+console.log(JSON.stringify({schema:1,rawReport:{bytes:bytes.length,sha256:hash(bytes)},summaryDeepEqual:true,all804Complete:true,orderMatchesPlan:true,rendererObjects,deltaChecks,quality,currentActualSamplerInventory:{files:actual.fileCount,bytes:actual.totalBytes,sha256:actual.sha256},milestonesVerified:milestones.length,oldReportUnchanged:true,samplerUnchanged:true,referenceActualFilesReopened:false,summary},null,2));

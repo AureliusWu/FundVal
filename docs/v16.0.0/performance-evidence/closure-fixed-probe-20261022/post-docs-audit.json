@@ -1,0 +1,110 @@
+{
+  "status": "PASS",
+  "at": "2026-10-22T08:26:44.201Z",
+  "checks": [
+    {
+      "label": "all noDocs272 root inputs unchanged",
+      "pass": true
+    },
+    {
+      "label": "fixed history doc unchanged",
+      "pass": true
+    },
+    {
+      "label": "complete127 final site unchanged",
+      "pass": true
+    },
+    {
+      "label": "explicit68 installed unchanged",
+      "pass": true
+    },
+    {
+      "label": "archive and every fresh extraction member unchanged",
+      "pass": true
+    },
+    {
+      "label": "native head",
+      "pass": true
+    },
+    {
+      "label": "native branch",
+      "pass": true
+    },
+    {
+      "label": "native index",
+      "pass": true
+    },
+    {
+      "label": "native diff-check",
+      "pass": true
+    }
+  ],
+  "natives": [
+    {
+      "label": "head",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "branch",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "exit": 0,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "index",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "exit": 0,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    }
+  ],
+  "scope": "Post-documentation read-only identity and full archive extraction audit, not new business/compiler/production qualification"
+}

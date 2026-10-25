@@ -29,6 +29,18 @@ exit $LASTEXITCODE
 
 | 文件 | 结论和范围 |
 | --- | --- |
+| `pair-controllers-800-20261025/README.md` | 最终281源/129site的新唯一800+4、native0/PASS及前后指纹同；原helper整对象12883检查与另独立基础统计7253检查均通过，不冒称第二套bootstrap。cold/warm/save median119.8/60.2/66.06475ms，冷max327.8劣于参考保留；console17688、导航PARTIAL和合成桌面局限明确。509成员tar完整raw仅一次；精确提交CI未完成，非M3 EXIT/生产 |
+| `controller-extraction-20261025/README.md` | 最终281源的两controller提取、真实互锁和补名事务cache/旧代状态竞态修复；原先红、V1浏览器34/35及V2结构断言2fail均保留。V3为1409PASS/3skip、syntax223、Chrome35/35、两次完整129构建同、all86,850/cold47,014、audit0。只是本地QA/代码范围；新800+4结果另见pair-controllers，精确CI尚待完成，非M3 EXIT/发布 |
+| `pair-controllers-800-20261025/PROTOCOL.md` | 两controller与补名修复后的独立预声明：同0570429安全对齐参考、严格同锁、原工具800+4/ABBA/5000/160003/30s、门禁不变。运行前最终QA/source/site/工具/协议冻结，完整原始报告仅在新独立Temp及后续归档保存；协议本身不是已运行或PASS |
+| `pair-correctness-800-20261023/README.md` | controller提取前274源的新正确性候选，唯一800+4/native0、完整独立重算；all85,969/cold46,149、本地时延PASS。归档含全部88MB raw，不能继承给后续281源的runtime改动，也不代表M3退出或生产 |
+| `budget-policy-20261023/README.md` | 用户仅批准全部非OCR总包90KiB，cold52,241及其他门禁不变；旧CLI对同site仍FAIL。旧夹具失败和新1320PASS/3skip、35/35、四次127构建相同、audit0原件归档；不追溯改判旧候选，不等于压缩收益或发布 |
+| `private-vertical-20261023/README.md` | 当前正确性基线的完整私有路由原型：A249不变/B257精确改2旧+8新；generic Quote/cache严格规则仍K，不伪称全退役。A完整127精确当前；B完整136/17chunks，all87,338（+1,369）/cold46,005（−144），原预算真实native1/未采用。无候选完整QA/三轮确定性/配对时延或生产资格；原始源码、收据、实际app块和完整site库存保留，root273/site127/安装68/Git未变，15.0.2/M3 IN_PROGRESS |
+| `closure-overlay-20261023/README.md` | 当前273输入上的独立同版parser overlay：共同packaging重定位+B1唯一2022 case，B0/B1各13类/16模式及完整族javap仅有限前提PASS；原DRIVER/8夹具/4support共13文件字节与固定options不变。唯一F01 original0→Java2，原标签SETUP_OR_DRIVER_FAILURE保留、真实阶段OPTIMIZER_INTERNAL_EXCEPTION（RemoveUnusedCode内部NPE），无转换代码/余7组/产品build/gzip/采用。旧§53桥接失败及本轮fetch/空格断言准备失败全保留；执行前后273源/127site/68安装/Git同，all85,969/cold46,149、预算FAIL/差8,742 B，旧QA/800不继承，15.0.2/M3 IN_PROGRESS/未发布；未来正常renderChunk为Closure→OXC→hash，TLA正文约束不等于最终SHA不变 |
+| `closure-fixed-probe-20261022/README.md` | 当前273输入上单次固定Java API SIMPLE前置实验：工具JDK/JAR实下载SHA/版本通过，原下载超时和受控206续传保留；F01原版sanity0，Java2解析桥接异常ECMASCRIPT_2022，controller2/SETUP_OR_DRIVER_FAILURE，F01转换及其余7组NOT_RUN。无改参重跑/产品转换/压缩收益/采用；106成员归档全新解压同、14项归档审计0（非策略PASS），只读诊断确认上游input桥接漏项、不推断output目标失败；root产物仍85,969/46,149，预算FAIL/M3 IN_PROGRESS/15.0.2/未发布 |
+| `accuracy-lifecycle-fix-20261022/README.md` | 独立accuracy异步enriched生命周期修复：真实accepted-US-session RED04→同字节隔离GREEN01，新增12单测；最终1313 PASS/3原Windows skip、语法215、Chrome35/35，三轮完整127行SHA同。预测目标Sep28而非中国Sep29今日涨跌，暖ledger结果幂等（非零写入证明），合成后续NAV1.224结算预测1/实际约2/误差约−1个百分点。all85,969/cold46,149，较第51节+13/+20 B、预算native1/仍差8,742整数B；273完整输入与旧272前置A/B/Closure身份区分，旧失败全保留，无压缩执行/采用、Java下载或新时延/CI/生产资格，15.0.2/M3 IN_PROGRESS |
+| `model-provenance-fix-20261022/README.md` | 独立双模型来源P1本地修复：真实OLD13有7 RED/6控制，同字节最终13 GREEN；正式新80测试、最终1301 PASS/3 skip、Chrome34/34及三轮完整127构建相同。all85,956/cold46,129，正确性成本+1,769/+1,430 B、预算native1/仍差8,729 B；791成员全解压同、主30项native0。旧失败保留，accuracy完整生命周期未闭合；无新时延/CI/真机/生产或压缩采用，15.0.2/M3 IN_PROGRESS |
+| `pipeline-boundaries-20261022/README.md` | 完整管线原型仅wire64公开边界一致；另234/34是独立OLD控制，不是完整候选，保留首次冻结器与两个forecast native1。发现可达双模型候选来源P1、未证明主金额错；916成员全量归档/新解压同、主23项native0，root产品不变/仍超6960B，无新build/时延/CI/采用或发布 |
+| `worker-seam-20261022/README.md` | 原输入三文件Worker同文件解析边界：generic64/fixed52完整独立旧对照相同，2×97定向测试，原配方六轮全127成员确定；候选all84,257/cold44,702反增70/3 B，不采用。两侧graph native0、budget真实native1，root仍84,187/44,699、差6,960 B；非完整QA/新时延/CI/生产或M3 EXIT。完整行为raw、source/原件/方法及有限归档见目录 |
 | `m3-pair-60.json` | 第一轮 60 retained +4 warm-up；统计 INCONCLUSIVE，harness pageerror 和请求记录问题使完整性证据不足；原样保存，SHA256 `88b927752e589553cea18dba88e3d2233c780f208beeb1ea77a1de6902a4611d` |
 | `m3-pair-200.json` | 修正 harness 后预设 200 retained +4 warm-up；health/instrumentation/integrity/cleanup PASS，统计 INCONCLUSIVE（旧版 p95 区间宽、保存额外 p95 观察不稳定）；SHA256 `b7abe1b6f9409a8ebf5543b0b380acbb252bc2db60676db5ead7d75491813ad9` |
 | `m3-counter-probe.json` | 新同文档 counter 协议的 3 次 current-only 桌面实际采集兼容性预检；COMPATIBILITY_PASS，不是 v15 相对性能/p95；SHA256 `94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707` |
@@ -88,3 +100,29 @@ exit $LASTEXITCODE
 10月15日正式闭合运行投影与SW加固见第30节及[71份完整原件说明](m3-runtime-projections-20261015.md)。新all80394是三次组合构建的实值，不是两候选收益相加；whole-site明文实际增长6824 B。原件中五次0接受的allRowsPredicatesEqual:true与无条件条件可信标签已明确否决，不作为真实源/通知等价验收。
 
 10月18日105基金真实Bridge队列溢出与独立官方2-slot修复见第35节及[原始RED/GREEN、Chrome与三次构建证据](nav-scheduler-20261018/README.md)。新all80494（+17B）/cold42985，仍差3267B；是刷新可靠性修复，不是减包收益。最终1064/1061PASS/3skip、E2E31/31；原pair仍INCONCLUSIVE，不进入M4或发布。
+
+10月18日压缩器独立比较与新800配对分别见第36/37节；后者当前源时延PASS，旧200不改判，all包门禁仍FAIL。10月20日第38节补[独立实际字面闭包/原生静态绑定门禁](esm-link-20261020/README.md)：完整1101/1098PASS/3skip、syntax207、E2E31/31、两次确定性build/audit0，产品库存不变；预算工具仍诚实返回importClosureVerified:false，不能混用新命令的有限证明范围。第39节[UTF8/ASCII打印预筛](format-only-20261020/README.md)最终仅−270B且有未闭合AST差异，未采用，不是实际Vite候选。当前M3仍IN PROGRESS /15.0.2，未提交推送、部署或发布本轮工具工作。
+
+第40节另补[Uglify与clock/HMS共享的固定有限排除](bounded-minifier-scalars-20261020/README.md)：6+12次实际write:false构建，Uglify仅−139B且lazy增122B，scalar最优仅−33B；无采用。439原件含全部产物/输入/4930对primitive trace，压缩归档后新Temp解压逐文件验证；不声称完整API、重复执行历史测试/时延或全程序无法优化。原产品与3267B缺口未变。
+
+第41节补[私有纯字符串池固定离线预筛](string-pooling-20261020/README.md)：153组/1117处，raw−7579B但实际all gzip+641/cold+352B，三轮固定结果，停止且不采用。129原件含全部候选/轮次字节已新Temp解压实核；保留v1零测量词法失败及获批v2修正，不能当作实际Vite构建或完整运行资格。原all80494/77227.7 FAIL及M3状态不变。
+
+第42节按原M3交付补[刷新计数诊断与有界内存观察链](refresh-observability-20261020/README.md)：1133/1130PASS/3skip、syntax210、Chrome32/32、3确定性build/audit0，56原件完整解压实核。当前all83084/cold44386，功能增加all2590B，原预算仍FAIL/至少差5857B；旧800组时延不继承给新源码，无新CI/设备/生产资格，版本15.0.2/M3 IN PROGRESS。
+
+第43节继续补[固定十项计划原因和解构逃逸负控](plan-reasons-20261020/README.md)：最终1159/1156PASS/3skip、syntax211、Chrome32/32、3次确定性build/audit0，105原件解压逐项实核。新all83647/cold44514，相对前轮功能all+563B、原预算仍FAIL/至少差6420B；原决策单次观察不是实际请求/gate历史。无新时延/CI/真机/生产资格，原版本与M3状态不变，未推送发布。
+
+第44节补[实际执行拒绝事实及新安全阻断](execution-skips-20261022/README.md)：1224/1221PASS/3skip、syntax212、Chrome33/33、3次确定性build，93原件解压实核。all84187/cold44699，原预算仍FAIL/至少差6960B；当前官方audit已返回Vite8.2.2的1个high，不能沿用旧0。无force升级/新时延/CI/真机/发布；版本15.0.2/M3 IN PROGRESS，精确gate细因历史不新增为硬退出条件。
+
+第45节补[Vite8.2.4最小安全patch隔离资格及root服务阻断](vite824-security-20261022/README.md)：A/B各完整1224/1221PASS/3skip、syntax212、Chrome33/33及六次全127file字节同，候选audit0后独立screen通过，仅回写两个文件五scalar；root完整回归与三次全产物同一也通过。root audit503→唯一timeout，最新为UNKNOWN，不用隔离0或旧1high覆盖。all84187仍FAIL/至少差6960B，无新相对时延或锁比较例外，应用15.0.2/M3 IN PROGRESS，未推送发布。原件隐私遮盖/完整copy与构建输入范围见新报告，不夸大根目录最终验收完成。
+
+第46节[独立root安全审计闭合与三路有界只读审查](audit-closure-20261022/README.md)：先声明单次probe，实际root完整JSON audit0含dev，前后270输入/127输出/68安装库存及20历史收据全同，经独立hash复核，Vite本地资格已闭合；旧503/timeout与第45节UNKNOWN为历史事实保留。三路未发现新合格材料性候选，无新源码/压缩变体/全量QA；原预算CLI新native1仍84187/77227.7 FAIL，M3未退出，无新时延/CI或发布资格。
+
+第47节[当前诊断+Vite824独立800配对预声明](pair-vite824-diagnostics-800-20261022/README.md)：创建仅本地同依赖v15安全参考05704296，原业务不动/预算锚不改，strict锁同不waive；固定原800/4/5000/seed一次，原sampler不改。预声明本身不是结果，等待唯一新进程/JSON，任何时延结果均不能覆盖all84187预算FAIL或进入M4/发布。
+
+第48节[同一新800配对最终结果](pair-vite824-diagnostics-800-20261022/RESULTS.md)：唯一native0/PASS，完整800+4/ABBA400+400/0failed，独立v2原bootstrap整对象重算及9,663项0失败。cold/warm/save median分别改善7.344%/10.648%/14.288%；raw88,032,041B/SHA46aeb7a3完整保留，v1跨阶段diff错误与native3也保留。结束后完整重枚举270输入/127当前产物/68安装同，先冻结测量patch；新参考三次实际重建全部110成员等于原库存，不冒称已清理旧snapshot重读。console17,687、导航renderer PARTIAL、no-store暖重载与合成桌面限制明确；无新全量QA/精确CI/真机/生产。all84,187/77,227.7仍FAIL/至少差6,960整数B，M3未退出，未推送发布；归档范围和新Temp解压核验见该结果页及机器清单。
+
+第56节[原配方模块归属与三路结构审查](module-attribution-20261023/README.md)：实际16块逐字节复现、59模块预压缩归属；UI/契约/仓储未发现新材料性退休池，不把renderedLength当gzip节省。108原件新解压实核，原预算FAIL保持历史事实，无新优化/性能资格。
+
+第57节[用户批准90KiB总包政策及当前本地验收](budget-policy-20261023/README.md)：仅all上限92,160B，cold52,241及其他门禁不变；当前85,969/46,149新政策CLI0、保留旧CLI1。新增policy RED→GREEN、V1全量负例夹具失败及预声明V2纠正均保留；V2实际1320PASS/3既有skip、syntax216、Chrome35/35、4次完整127构建同、当前audit0。702成员/9,663,880B归档新解压实核；新时延/精确CI/后续阶段仍待完成，15.0.2/M3 IN_PROGRESS，未发布。
+
+第58节[当前正确性产品独立800配对结果](pair-correctness-800-20261023/README.md)：唯一native0/PASS，800+4/ABBA400各/0失败，全量12,883检查与另一路整对象重算同。cold/warm/save median改善7.975%/12.244%/17.377%，保留save最慢317.8952及非零console/nav PARTIAL限制；274/127/68和dirty身份前后同。88,033,360B完整raw收录14,555,822B归档，432成员新解压全同；不是旧800继承、真机/CI/M3总退出或发布，精确CI/完整阶段review仍待完成。

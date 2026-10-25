@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { createCandidate, inventorySite, validateCandidateManifest, verifyAndExtractCandidate } from '../scripts/release-candidate.mjs';
-import { fingerprintReleaseDirectory, RELEASE_CRITICAL_PATHS } from '../scripts/release-fingerprint.mjs';
+import { fingerprintReleaseDirectory, RELEASE_CRITICAL_PATHS, verifyAppChunkReleaseDirectory } from '../scripts/release-fingerprint.mjs';
 import { validateCandidateRun } from '../scripts/resolve-release-candidate.mjs';
 import { validateInstallPolicy } from '../scripts/dependency-install-policy.mjs';
 
@@ -22,7 +22,7 @@ async function writeReleaseFixture(site, { oversized = false } = {}) {
     await mkdir(dirname(join(site, path)), { recursive: true });
     await writeFile(join(site, path), `synthetic:${path}\n`);
   }
-  const lazy = Buffer.alloc(oversized ? 90_000 : 16);
+  const lazy = Buffer.alloc(oversized ? 100_000 : 16);
   for (let offset = 0; offset < lazy.length; offset += 32) {
     createHash('sha256').update(`synthetic-fixture-${offset}`).digest().copy(lazy, offset);
   }
@@ -123,9 +123,11 @@ test('standalone candidate admission rejects a real over-budget artifact even if
   try {
     const site = join(directory, 'site');
     const releaseFingerprint = await writeReleaseFixture(site, { oversized: true });
+    const actual = await verifyAppChunkReleaseDirectory(site);
+    assert.ok(actual.actualAllNonOcrGzipBytes > 92_160, 'The negative fixture must exceed the approved actual gzip ceiling.');
     const output = join(directory, 'bundle');
     const manifest = await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint });
-    assert.ok(manifest.site.totalBytes > 90_000, 'WIP packaging is allowed and retains all bytes.');
+    assert.ok(manifest.site.totalBytes > 100_000, 'WIP packaging is allowed and retains all bytes.');
     await assert.rejects(() => verifyAndExtractCandidate({ ...origin, bundle: output, output: join(directory, 'extracted') }),
       /bundle.*budget|budget.*exceed/i);
   } finally { await rm(directory, { recursive: true, force: true }); }
