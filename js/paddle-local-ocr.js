@@ -5,6 +5,8 @@
 // it is never joined into a raw-text transcript.
 
 import { normalizeOcrBackend } from './ocr/capability.js';
+import { readLocalImageHeader } from './ocr/image-header.js';
+import { createLocalImagePreprocessor } from './ocr/preprocess-client.js';
 import {
   loadOcrAssetManifest,
   OCR_ENGINE_VERSION,
@@ -357,21 +359,6 @@ export function createPaddleOcrOptions({ backend = 'wasm' } = {}) {
   };
 }
 
-async function createLocalImageBitmap(file, createBitmap = globalThis.createImageBitmap) {
-  if (typeof createBitmap !== 'function') {
-    throw new PaddleLocalOcrError('当前浏览器不支持本地截图预处理。');
-  }
-  try {
-    return await createBitmap(file, { imageOrientation: 'from-image' });
-  } catch (_) {
-    try {
-      return await createBitmap(file);
-    } catch (error) {
-      throw new PaddleLocalOcrError('无法读取截图，请更换图片后重试。');
-    }
-  }
-}
-
 function predictionItems(prediction) {
   const first = Array.isArray(prediction) ? prediction[0] : prediction;
   return Array.isArray(first && first.items) ? first.items : [];
@@ -429,10 +416,10 @@ export async function recognizeAlipayPaddleImage(file, {
   runtime = globalThis,
   loadAssetManifest = loadOcrAssetManifest,
   loadPaddleFactory = loadLocalPaddleFactory,
-  createBitmap = runtime?.createImageBitmap,
+  createImagePreprocessor = createLocalImagePreprocessor,
 } = {}) {
   const startedAt = performanceNow();
-  let source = null;
+  let preprocessor = null;
   let ocr = null;
   let imageWidth = 0;
   let imageHeight = 0;
@@ -444,10 +431,22 @@ export async function recognizeAlipayPaddleImage(file, {
     assertPaddleOcrBrowserCapabilities(runtime);
     failureStage = 'input';
     await verifyPaddleOcrImageSignature(file);
+    signal?.throwIfAborted();
+    let header;
+    try { header = await readLocalImageHeader(file, { signal }); }
+    catch (_) { throw new PaddleLocalOcrError('无法读取有效的静态截图尺寸，请更换图片后重试。'); }
+    signal?.throwIfAborted();
+    if (header.width * header.height > MAX_SOURCE_IMAGE_PIXELS) {
+      throw new PaddleLocalOcrError('截图像素过大，请裁剪为较短的截图后重试。');
+    }
     report(onProgress, 'preparing', 0.04);
 
     failureStage = 'preprocess';
-    source = await createLocalImageBitmap(file, createBitmap);
+    // Decode/crop ownership stays in one light, terminable Worker. It loads
+    // no OCR SDK/models; the single heavy Paddle Worker remains independent.
+    preprocessor = createImagePreprocessor({ signal });
+    const source = await preprocessor.initialize(file);
+    signal?.throwIfAborted();
     imageWidth = positiveInteger(source.width);
     imageHeight = positiveInteger(source.height);
     if (!imageWidth || !imageHeight || imageWidth * imageHeight > MAX_SOURCE_IMAGE_PIXELS) {
@@ -465,9 +464,11 @@ export async function recognizeAlipayPaddleImage(file, {
       ortVersion: OCR_ORT_VERSION,
       ...(signal ? { signal } : {}),
     });
+    signal?.throwIfAborted();
     report(onProgress, 'loading-engine', 0.10);
     failureStage = 'initialization';
     const createLocalPaddleOcr = await loadPaddleFactory();
+    signal?.throwIfAborted();
     report(onProgress, 'loading-models', 0.18);
     ocr = await createLocalPaddleOcr({
       signal,
@@ -476,6 +477,7 @@ export async function recognizeAlipayPaddleImage(file, {
         if (event?.phase === 'webgpu-fallback') report(onProgress, 'webgpu-fallback', 0.19);
       },
     });
+    signal?.throwIfAborted();
 
     const tokens = [];
     failureStage = 'recognition';
@@ -483,9 +485,11 @@ export async function recognizeAlipayPaddleImage(file, {
       signal?.throwIfAborted();
       const tile = tiles[index];
       report(onProgress, 'recognizing', 0.20 + 0.78 * (index / tiles.length));
-      const crop = await createBitmap(source, tile.x, tile.y, tile.width, tile.height);
+      const crop = await preprocessor.crop({ x: tile.x, y: tile.y, width: tile.width, height: tile.height });
       try {
+        signal?.throwIfAborted();
         const prediction = await ocr.predict(crop, PADDLE_ALIPAY_RECOGNITION_OPTIONS);
+        signal?.throwIfAborted();
         tokens.push(...normalizePaddleOcrItems(predictionItems(prediction), tile)
           .map(token => ({ ...token, region: tile.region })));
       } finally {
@@ -544,9 +548,13 @@ export async function recognizeAlipayPaddleImage(file, {
       performance: failurePerformance,
     });
   } finally {
+    // Terminate image ownership before draining OCR, even if its disposal is
+    // slow. Never keep a decoder alive behind a different resource's await.
+    if (preprocessor && typeof preprocessor.dispose === 'function') {
+      try { preprocessor.dispose(); } catch (_) { /* private local cleanup */ }
+    }
     if (ocr && typeof ocr.dispose === 'function') {
       try { await ocr.dispose(); } catch (_) { /* local cleanup must not mask OCR errors */ }
     }
-    if (source && typeof source.close === 'function') source.close();
   }
 }

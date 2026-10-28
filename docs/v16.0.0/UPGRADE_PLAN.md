@@ -1,7 +1,15 @@
 # FundVal（蜉蝣基金）v16.0.0 总体升级方案
 
-> 文档状态：`IMPLEMENTING / M2 EXIT, M3 IN PROGRESS`（M0/M1/M2 证据见同目录状态文档；不是已发布状态）
-> M3 刷新实现与独立验收门禁的当前证据见 [M3_STATUS.md](M3_STATUS.md)；最新包体政策/本地时延通过不替代精确CI和阶段完整性复核，不跳过到 M4。
+> **2026-10-28 最新发布决定：源码目标已统一16.0.0，按用户“先跳过这些，推送v16发布v16更新v16”推进带警告发布。** 剩余真实Gist、两版PWA升级、最终配对性能及M5/真机等验收不再作为本次发布前置，但实际NOT_RUN/未完成状态不改判；详见[风险接受](RELEASE_RISK_ACCEPTANCE_20261028.md)、[候选冻结执行账](RELEASE_CHECKLIST.md)和最终GitHub Release。下列原里程碑/检查点保留当时15.0.2与未发布事实，不覆盖这项新决定；数据/安全/cold硬保护和精确CI同产物部署仍保留。
+
+> 文档状态：`IMPLEMENTING / M2 EXIT, M3 EXIT / M4 AND M5 IN PROGRESS / NOT_RELEASED`（应用仍15.0.2；总量按10-28用户政策不设硬限，历史90KiB FAIL保留，见[M4_STATUS.md](M4_STATUS.md)；OCR局部证据见[M5_STATUS.md](M5_STATUS.md)；不是main候选准入、v16全部完成或已发布状态）
+> M3有限签收见[M3_STATUS.md §62](M3_STATUS.md)：精确业务SHA`f67675746276173fd3b84b770287e1ab5bea27fb`、run40174354009/attempt1、artifact12590908982的9checks/129文件严格一致，连同最终QA和独立新800+4闭合M3；历史FAIL/告警与M4–M6全部门禁保留，下一工作包为M4。
+> 离线职责透明保留：bootstrap在App前安装的resilience继续管理network及online/offline，PWA controller负责更新协调，App负责联网恢复；不声称已将全部离线职责迁入controller，§8及M5/M6的离线壳、时延、升级和真机验收仍需独立完成。
+> 2026-10-26：按用户批准仅将全部非OCR gzip上限定为92,160B，冷启动52,241B及其余门禁不变。依§17的既定分叉并行推进M4/M5；这不表示M4已退出，也不允许越过M6。
+> 最新本地检查点见[LOCAL_QA_20261026.md](LOCAL_QA_20261026.md)：2041单测通过/3既有skip、274 syntax、72/72 E2E、两次逐字节确定性构建；all95,223/92,160 FAIL，cold50,763/52,241 PASS。真实云端、真机/已安装升级、最终性能及精确CI/发布门禁未豁免，未提交/推送/发布。
+> 2026-10-28用户明确要求跳过三类物理手机矩阵；仅此项按[DEVICE_WAIVER_20261028.md](DEVICE_WAIVER_20261028.md)记NOT_RUN/USER_WAIVED，不改历史PASS/FAIL。其余必备门禁继续执行；若最终发布，必须声明真机未验收并使用带警告状态。专用真实Gist测试账号选定summersin77，本机登录/凭证仍待就绪。
+> 同日用户明确要求全部非OCR总量“不设上限”，按[BUNDLE_BUDGET_POLICY_20261028.md](BUNDLE_BUDGET_POLICY_20261028.md)仅取消该合计gzip硬限，仍记录实际字节、旧90KiB FAIL及原基线。cold52,241B、性能/数据/安全/来源/兼容门禁不变；不等于安装包体积无限制或发布已完成。
+> 最新本地冻结见[LOCAL_QA_20261028.md §6](LOCAL_QA_20261028.md)：永久test/集2139通过/3既有skip（宽发现包含Temp的计数另列）、281 syntax、74/74 E2E、两次site逐字节一致；cold51,283/52,241B PASS，all95,884B NOT_ENFORCED。HTTP获取元信息小偏差、最小同页返回及快速重复点击已修复；真实云端、两版升级、最终配对性能/精确CI与生产仍未闭合。
 > 制定日期：2026-09-30（Asia/Shanghai）
 > 基线版本：v15.0.2，提交 `40e68edab9cb3fba0b17338dc3672a82d13ad17e`
 > 生产地址：<https://aureliuswu.github.io/FundVal/>
@@ -347,12 +355,14 @@ local-only → pending → syncing → verified
 
 每次迁移都先加 characterization test，再移动代码；外部字段和 Schema 3 不随文件拆分改名。
 
+2026-10-25 M3签收的实际职责边界：上述第5项的更新guard/版本提示已拆入controller；离线网络状态原本就在`js/resilience.js:149,176–183`，由`js/bootstrap.js:33–34`在import App之前安装，170→f676该早期链保持不变。App消费在线状态做缓存新鲜度并编排联网恢复，而不是另存第二份network flag。阶段签收接受保留这一早期owner，不为目标文件名把guard延后到PWA controller start，也不默默删去“离线状态”要求；不宣称controller已独占全部离线职责。§8的完整离线UI/≤3秒壳层、已安装v15→v16迁移及M5/M6设备验收继续完整保留。
+
 ### 9.2 性能目标
 
 | 指标 | v15.0.2 参考 | v16 门禁 |
 | --- | --- | --- |
 | 冷启动 gzip | 51,941 / 52,241 B | 不高于既有 hard budget；相对基线增长 >5% 必须说明，>10% 阻断 |
-| 全部非 OCR chunks | 70,207 B（历史基线不变） | 用户于2026-10-23明确批准总包上限90KiB（92,160B）；首屏同步加载不得新增重模块，详见下述政策记录 |
+| 全部非 OCR chunks | 70,207 B（历史基线不变） | 用户于2026-10-28明确要求总量不设硬上限；继续测量及报告、标NOT_ENFORCED，首屏同步加载不得新增重模块，cold及时延/请求数门禁保留 |
 | 桌面 E2E 冷启动 | 147.8 / 153.8 / 203.6 ms 样本 | 同一机器中位数回归不超过 15%，p95 回归不超过 20% |
 | 桌面 E2E 暖启动 | 88.9 / 117.3 / 148.8 ms 样本 | 同上 |
 | 保存操作 | 74.7 / 86.6 / 97.0 ms 样本 | 中位数不超过基线 15% |
@@ -361,6 +371,8 @@ local-only → pending → syncing → verified
 性能报告必须区分网络等待、服务端、主线程和渲染；不能只凭主观“更快”。
 
 2026-10-23总包政策变更：[批准范围及新旧验收](BUNDLE_BUDGET_POLICY_20261023.md)。仅替换原“基线+10% / 77,227.7B”总包上限，不改变52,241B冷启动、数据/兼容、相对时延/请求数或其他门禁；历史FAIL不追改，当前产物也不因此自动具备M3退出或发布资格。
+
+2026-10-28再次按用户明确要求取消全部非OCR合计硬限：[当前政策](BUNDLE_BUDGET_POLICY_20261028.md)。上述10月23日及10月26日结论仍为历史记录，不能把旧FAIL追改成PASS；新的总量判定为NOT_ENFORCED而非减包成功。
 
 ## 10. 测试与验收矩阵
 

@@ -10,12 +10,12 @@ import { validateOcrAssetManifest } from '../js/ocr/asset-manifest.js';
 const APP_BUNDLE_BASELINE_COMMIT = '40e68edab9cb3fba0b17338dc3672a82d13ad17e';
 const APP_BUNDLE_BASELINE_ALL_GZIP_BYTES = 70_207;
 const APP_BUNDLE_COLD_GZIP_BUDGET = 52_241;
-// Explicit user-approved policy, 2026-10-23: only the total ceiling changes.
-// Keep the original v15 anchor and former ceiling visible, not rebased history.
-const APP_BUNDLE_BUDGET_POLICY = 'v16-total-90kib-approved-20261023';
+// Explicit user policy, 2026-10-28: only the all-non-OCR total ceiling is removed.
+// Keep actual measurements, the cold gate, and both former total limits visible.
+const APP_BUNDLE_BUDGET_POLICY = 'v16-total-unbounded-by-user-20261028';
 const APP_BUNDLE_PREVIOUS_ALL_GZIP_BUDGET = APP_BUNDLE_BASELINE_ALL_GZIP_BYTES * 11 / 10;
-const APP_BUNDLE_ALL_BUDGET_NUMERATOR = 92_160 * 10;
-const APP_BUNDLE_ALL_BUDGET_DENOMINATOR = 10;
+const APP_BUNDLE_PREVIOUS_APPROVED_ALL_GZIP_BUDGET = 92_160;
+const APP_BUNDLE_ALL_LIMIT_ENABLED = false;
 
 export const RELEASE_CRITICAL_PATHS = Object.freeze([
   'index.html',
@@ -271,27 +271,28 @@ export async function verifyAppStaticBindingsReleaseDirectory(directory) {
 export function analyzeAppChunkBudgets(result) {
   const cold = result?.actualColdStartGzipBytes;
   const all = result?.actualAllNonOcrGzipBytes;
-  if (!Number.isSafeInteger(cold) || cold <= 0 || !Number.isSafeInteger(all) || all < cold
-    || !Number.isSafeInteger(all * APP_BUNDLE_ALL_BUDGET_DENOMINATOR)) {
+  if (!Number.isSafeInteger(cold) || cold <= 0 || !Number.isSafeInteger(all) || all < cold) {
     throw new Error('App bundle budget requires valid actual gzip measurements.');
   }
   const coldPass = cold <= APP_BUNDLE_COLD_GZIP_BUDGET;
-  const allPass = all * APP_BUNDLE_ALL_BUDGET_DENOMINATOR <= APP_BUNDLE_ALL_BUDGET_NUMERATOR;
   return Object.freeze({
     baselineCommit: APP_BUNDLE_BASELINE_COMMIT,
     baselineAllNonOcrGzipBytes: APP_BUNDLE_BASELINE_ALL_GZIP_BYTES,
     budgetPolicy: APP_BUNDLE_BUDGET_POLICY,
     previousAllBudgetBytes: APP_BUNDLE_PREVIOUS_ALL_GZIP_BUDGET,
+    previousApprovedAllBudgetBytes: APP_BUNDLE_PREVIOUS_APPROVED_ALL_GZIP_BUDGET,
     actualColdStartGzipBytes: cold,
     actualAllNonOcrGzipBytes: all,
     coldBudgetBytes: APP_BUNDLE_COLD_GZIP_BUDGET,
-    allBudgetNumerator: APP_BUNDLE_ALL_BUDGET_NUMERATOR,
-    allBudgetDenominator: APP_BUNDLE_ALL_BUDGET_DENOMINATOR,
-    allBudgetBytes: APP_BUNDLE_ALL_BUDGET_NUMERATOR / APP_BUNDLE_ALL_BUDGET_DENOMINATOR,
+    allLimitEnabled: APP_BUNDLE_ALL_LIMIT_ENABLED,
+    allBudgetNumerator: null,
+    allBudgetDenominator: null,
+    allBudgetBytes: null,
     coldPass,
-    allPass,
-    pass: coldPass && allPass,
-    verdict: coldPass && allPass ? 'PASS' : 'FAIL',
+    allPass: null,
+    allVerdict: 'NOT_ENFORCED',
+    pass: coldPass,
+    verdict: coldPass ? 'PASS' : 'FAIL',
     importClosureVerified: false,
   });
 }
@@ -300,7 +301,6 @@ export function assertAppBundleBudget(result) {
   const report = analyzeAppChunkBudgets(result);
   const failures = [];
   if (!report.coldPass) failures.push(`cold gzip budget: ${report.actualColdStartGzipBytes} > ${report.coldBudgetBytes}`);
-  if (!report.allPass) failures.push(`all non-OCR gzip budget: ${report.actualAllNonOcrGzipBytes} > ${report.allBudgetBytes}`);
   if (failures.length) throw new Error(`App bundle exceeds ${failures.join('; ')} bytes.`);
   return report;
 }

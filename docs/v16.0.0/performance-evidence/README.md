@@ -1,6 +1,10 @@
 # M3 配对性能证据
 
+> 2026-10-28 发布范围：本目录为历史 M3 资料，不是当前 v16 的最终配对性能。三份约88 MB的重复原始 JSON 及38 MB的 `original-evidence.tar.gz` 留在本机，不随本次源码提交或 Release 附件发布；历史摘要/哈希和失败不改写。本次最终配对验收按[明确风险接受](../RELEASE_RISK_ACCEPTANCE_20261028.md)跳过，不将历史样本提升为新版本 PASS。
+
 报告只含合成持仓、耗时、分类后的请求和测试环境/源码/产物指纹。不得加入 Token、真实持仓、原始 URL/query、图片或 OCR 文本。大 JSON 是原始样本，不是生成的生产资源，不进入 site/SW。
+
+2026-10-25最新阶段签收见[精确提交/CI/下载候选归档](exact-commit-ci-20261025/README.md)和[M3_STATUS §62](../M3_STATUS.md)：有限M3 EXIT / M4 NEXT，仍15.0.2 / NOT_RELEASED。下列旧行按原检查点保留，其“CI待完成/非M3 EXIT”等历史描述不倒改；新签收不把本地性能外推到生产/真机，也不豁免M4–M6。
 
 ## 采样约定
 
@@ -29,6 +33,7 @@ exit $LASTEXITCODE
 
 | 文件 | 结论和范围 |
 | --- | --- |
+| `exact-commit-ci-20261025/README.md` | 精确业务f67675746276173fd3b84b770287e1ab5bea27fb、run40174354009/attempt1实际success：Linux1412/0skip、syntax223/E2E35/audit0，限定SHA/ref CodeQL103/0；artifact12590908982真实ZIP92,695,480B/SHA c1e9cdb2…，auditor native0/9checks/全部129文件严格等于exact V3，critical5290a460…/inventory25c4cd75…。all86,850/cold47,014及§61新800+4共同签收有限M3 EXIT，M4 NEXT/15.0.2 NOT_RELEASED。733成员归档38,378,799B/SHA94521216…含唯一成功ZIP；下载/locale/export失败、告警、脱敏派生稿及raw缺口明确保留；离线early owner未变，不代验M5/真机/生产。 |
 | `pair-controllers-800-20261025/README.md` | 最终281源/129site的新唯一800+4、native0/PASS及前后指纹同；原helper整对象12883检查与另独立基础统计7253检查均通过，不冒称第二套bootstrap。cold/warm/save median119.8/60.2/66.06475ms，冷max327.8劣于参考保留；console17688、导航PARTIAL和合成桌面局限明确。509成员tar完整raw仅一次；精确提交CI未完成，非M3 EXIT/生产 |
 | `controller-extraction-20261025/README.md` | 最终281源的两controller提取、真实互锁和补名事务cache/旧代状态竞态修复；原先红、V1浏览器34/35及V2结构断言2fail均保留。V3为1409PASS/3skip、syntax223、Chrome35/35、两次完整129构建同、all86,850/cold47,014、audit0。只是本地QA/代码范围；新800+4结果另见pair-controllers，精确CI尚待完成，非M3 EXIT/发布 |
 | `pair-controllers-800-20261025/PROTOCOL.md` | 两controller与补名修复后的独立预声明：同0570429安全对齐参考、严格同锁、原工具800+4/ABBA/5000/160003/30s、门禁不变。运行前最终QA/source/site/工具/协议冻结，完整原始报告仅在新独立Temp及后续归档保存；协议本身不是已运行或PASS |

@@ -102,6 +102,22 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
+      - name: Preserve successful synthetic E2E receipts
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fundval-e2e-receipts-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            site/.playwright-results/**/actual-paddle-synthetic-receipt.json
+            site/.playwright-results/**/actual-paddle-cancel-receipt.json
+            site/.playwright-results/**/offline-shell-evidence.json
+            site/.playwright-results/**/native-built-app-update-guards.json
+            site/.playwright-results/**/subpath-preload-evidence.json
+            site/.playwright-results/**/native-create-intent-reload-receipt.json
+            site/.playwright-results/**/native-panel-navigation-receipt.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
       - name: Seal immutable candidate
         shell: bash
         env:
@@ -129,9 +145,9 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
-      # Preserve reviewable WIP bytes first; a red budget must still make this
-      # required job fail and can never become a successful deployable run.
-      - name: Enforce actual M3 app bundle budget
+      # Total non-OCR bytes are still reported, without a ceiling by user policy.
+      # The unchanged cold-start budget must still fail this required job.
+      - name: Enforce actual app startup budget
         run: node scripts/release-fingerprint.mjs --assert-app-bundle-budget site
 
   codeql:

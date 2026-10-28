@@ -5,10 +5,14 @@ import {
   LEGACY_GIST_FILENAME,
   V3_GIST_CANONICAL_FILENAME,
   findExistingHoldingsGist,
+  listHoldingsGists,
 } from '../js/storage/gist-remote.js';
+import { createSyncStatus } from '../js/runtime/sync-status.js';
 
-// M1 explicit red contract. Run directly until M4 implements archive selection;
-// then move these cases into the automatic Node test suite. No live Gist access.
+// M1's seven safety scenarios, now included by the automatic M4 test wrapper.
+// M4 exposes a result DTO (no description/user content) and the controller owns
+// explicit selection; it does not attach private candidates to thrown errors.
+// The original RED contract remains in Git history. No live Gist access.
 const SYNTHETIC_TOKEN = 'synthetic-no-auth';
 const ARCHIVE_A = '0000000000000000000000000000000a';
 const ARCHIVE_B = '0000000000000000000000000000000b';
@@ -48,22 +52,21 @@ function mockDiscovery(pages) {
   return { request, calls };
 }
 
-function assertSafeSelectionError(error, expected) {
-  assert.equal(error.code, 'gist_selection_required');
-  assert.ok(Array.isArray(error.candidates));
-  assert.equal(error.candidates.length, expected.length);
-  for (const candidate of error.candidates) {
-    assert.deepEqual(Object.keys(candidate).sort(), ['description', 'id']);
+function assertSafeCandidates(result, expected) {
+  assert.equal(result.ok, true);
+  assert.equal(result.complete, true);
+  assert.ok(Array.isArray(result.candidates));
+  assert.equal(result.candidates.length, expected.length);
+  for (const candidate of result.candidates) {
+    assert.deepEqual(Object.keys(candidate).sort(), ['id', 'schema', 'updatedAt']);
     assert.equal(typeof candidate.id, 'string');
-    assert.equal(typeof candidate.description, 'string');
-    assert.ok(candidate.description.length <= 160);
-    assert.doesNotMatch(candidate.description, /[\u0000-\u001f\u007f]/);
+    assert.equal(candidate.schema, 3);
+    assert.equal(candidate.updatedAt, null);
   }
   assert.deepEqual(
-    [...error.candidates].sort((left, right) => left.id.localeCompare(right.id)),
-    [...expected].sort((left, right) => left.id.localeCompare(right.id)),
+    result.candidates.map(item => item.id).sort(), [...expected].sort(),
   );
-  const selectionJson = JSON.stringify(error.candidates);
+  const selectionJson = JSON.stringify(result.candidates);
   assert.ok(!selectionJson.includes(PRIVATE_CONTENT_SENTINEL));
   assert.ok(!selectionJson.includes(SYNTHETIC_RAW_URL));
   assert.ok(!selectionJson.includes('synthetic-only-owner'));
@@ -92,44 +95,33 @@ test('multiple compatible V3 archives require a choice instead of silently selec
     archive(ARCHIVE_A, '合成档案甲'),
     archive(ARCHIVE_B, '合成档案乙'),
   ]]);
-  await assert.rejects(
-    findExistingHoldingsGist({ token: SYNTHETIC_TOKEN, request: mock.request }),
-    error => assertSafeSelectionError(error, [
-      { id: ARCHIVE_A, description: '合成档案甲' },
-      { id: ARCHIVE_B, description: '合成档案乙' },
-    ]),
-  );
+  const result = await listHoldingsGists({ token: SYNTHETIC_TOKEN, request: mock.request });
+  assertSafeCandidates(result, [ARCHIVE_A, ARCHIVE_B]);
+  const refused = await findExistingHoldingsGist({ token: SYNTHETIC_TOKEN, request: mock.request });
+  assert.equal(refused, '');
 });
 
 test('archive discovery must finish pagination before deciding that a V3 archive is unique', async () => {
   const firstPage = [archive(ARCHIVE_A, '合成档案甲'), ...Array.from({ length: 99 }, (_, index) => ({
-    id: `unrelated-${index}`, description: '无关合成档案', files: {},
+    id: (1000 + index).toString(16).padStart(32, '0'), description: '无关合成档案', files: {},
   }))];
   const mock = mockDiscovery([firstPage, [archive(ARCHIVE_B, '合成档案乙')]]);
-  await assert.rejects(
-    findExistingHoldingsGist({ token: SYNTHETIC_TOKEN, request: mock.request }),
-    error => assertSafeSelectionError(error, [
-      { id: ARCHIVE_A, description: '合成档案甲' },
-      { id: ARCHIVE_B, description: '合成档案乙' },
-    ]),
-  );
+  assertSafeCandidates(await listHoldingsGists({ token: SYNTHETIC_TOKEN, request: mock.request }), [ARCHIVE_A, ARCHIVE_B]);
   assert.deepEqual(mock.calls, [{ page: 1, method: 'GET' }, { page: 2, method: 'GET' }]);
 });
 
 test('an explicit choice of the second compatible archive overrides list ordering', async () => {
   const mock = mockDiscovery([[archive(ARCHIVE_A, '合成档案甲'), archive(ARCHIVE_B, '合成档案乙')]]);
-  assert.equal(await findExistingHoldingsGist({
-    token: SYNTHETIC_TOKEN,
-    request: mock.request,
-    selectedGistId: ARCHIVE_B,
-  }), ARCHIVE_B);
+  const controller = createSyncStatus({ getGistToken: () => SYNTHETIC_TOKEN,
+    getGistId: () => ARCHIVE_B, listGists: () => { throw new Error('explicit selection must not rediscover'); } });
+  assert.equal(await controller.resolveGistId(SYNTHETIC_TOKEN), ARCHIVE_B);
+  assert.equal(mock.calls.length, 0);
 });
 
 test('an explicit choice of the first compatible archive stays backwards compatible', async () => {
   const mock = mockDiscovery([[archive(ARCHIVE_A, '合成档案甲'), archive(ARCHIVE_B, '合成档案乙')]]);
-  assert.equal(await findExistingHoldingsGist({
-    token: SYNTHETIC_TOKEN,
-    request: mock.request,
-    selectedGistId: ARCHIVE_A,
-  }), ARCHIVE_A);
+  const controller = createSyncStatus({ getGistToken: () => SYNTHETIC_TOKEN,
+    getGistId: () => ARCHIVE_A, listGists: () => { throw new Error('explicit selection must not rediscover'); } });
+  assert.equal(await controller.resolveGistId(SYNTHETIC_TOKEN), ARCHIVE_A);
+  assert.equal(mock.calls.length, 0);
 });

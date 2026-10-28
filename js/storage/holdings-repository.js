@@ -458,7 +458,7 @@ export function reconcileLegacyHoldings(value, currentValue, options = {}) {
     let costNav = !hasCost || rawCost == null || rawCost === '' ? null : Number(rawCost);
     if (costNav != null && (!['number', 'string'].includes(typeof rawCost) || String(rawCost).trim() === ''
       || !Number.isFinite(costNav) || costNav < 0)) throw new HoldingSchemaError('invalid_legacy_number', 'costNav must be non-negative or null');
-    if (existing?.costNav == null && costNav === 0 && updatedAt <= existing.updatedAt) costNav = null;
+    if (existing && existing.costNav == null && costNav === 0 && updatedAt <= existing.updatedAt) costNav = null;
     const fundName = String(item.fundName || item.name || code).trim().slice(0, 120) || code;
     const deleted = item.deleted === true || item.deletedAt != null || item.deleted_at != null;
     const note = Object.prototype.hasOwnProperty.call(item, 'note')

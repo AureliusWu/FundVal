@@ -17,7 +17,7 @@ const verifiedRun = {
   event: 'push', head_branch: 'main', head_sha: origin.sha, status: 'completed', conclusion: 'success', run_attempt: 1,
 };
 
-async function writeReleaseFixture(site, { oversized = false } = {}) {
+async function writeReleaseFixture(site, { oversized = false, oversizedCold = false } = {}) {
   for (const path of RELEASE_CRITICAL_PATHS) {
     await mkdir(dirname(join(site, path)), { recursive: true });
     await writeFile(join(site, path), `synthetic:${path}\n`);
@@ -26,8 +26,12 @@ async function writeReleaseFixture(site, { oversized = false } = {}) {
   for (let offset = 0; offset < lazy.length; offset += 32) {
     createHash('sha256').update(`synthetic-fixture-${offset}`).digest().copy(lazy, offset);
   }
+  const cold = oversizedCold ? Buffer.alloc(100_000) : Buffer.from('export const synthetic = true;\n');
+  if (oversizedCold) for (let offset = 0; offset < cold.length; offset += 32) {
+    createHash('sha256').update(`synthetic-cold-fixture-${offset}`).digest().copy(cold, offset);
+  }
   const definitions = [
-    ['js/app-shell.js', 'cold', Buffer.from('export const synthetic = true;\n')],
+    ['js/app-shell.js', 'cold', cold],
     ['js/chunks/feature-fixture.js', 'lazy', lazy],
   ];
   for (const [path, , bytes] of definitions) {
@@ -118,18 +122,36 @@ test('candidate packing and extraction preserve every byte and reject modified a
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
-test('standalone candidate admission rejects a real over-budget artifact even if archive and inventory match', async () => {
+test('standalone candidate admission records an actual total above the former ceiling without enforcing a total limit', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'fundval-budget-admission-'));
   try {
     const site = join(directory, 'site');
     const releaseFingerprint = await writeReleaseFixture(site, { oversized: true });
     const actual = await verifyAppChunkReleaseDirectory(site);
-    assert.ok(actual.actualAllNonOcrGzipBytes > 92_160, 'The negative fixture must exceed the approved actual gzip ceiling.');
+    assert.ok(actual.actualAllNonOcrGzipBytes > 92_160, 'The lazy fixture must exceed the former actual gzip ceiling.');
+    assert.ok(actual.actualColdStartGzipBytes <= 52_241, 'The unchanged cold ceiling must still fit.');
+    const output = join(directory, 'bundle');
+    const manifest = await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint });
+    assert.ok(manifest.site.totalBytes > 100_000, 'WIP packaging is allowed and retains all bytes.');
+    const extracted = join(directory, 'extracted');
+    await verifyAndExtractCandidate({ ...origin, bundle: output, output: extracted });
+    assert.deepEqual(await inventorySite(extracted), manifest.site);
+    assert.deepEqual(await verifyAppChunkReleaseDirectory(extracted), actual);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('standalone candidate admission still rejects actual oversized cold gzip even if archive and inventory match', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'fundval-cold-budget-admission-'));
+  try {
+    const site = join(directory, 'site');
+    const releaseFingerprint = await writeReleaseFixture(site, { oversizedCold: true });
+    const actual = await verifyAppChunkReleaseDirectory(site);
+    assert.ok(actual.actualColdStartGzipBytes > 52_241, 'The negative fixture must exceed the unchanged actual cold gzip ceiling.');
     const output = join(directory, 'bundle');
     const manifest = await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint });
     assert.ok(manifest.site.totalBytes > 100_000, 'WIP packaging is allowed and retains all bytes.');
     await assert.rejects(() => verifyAndExtractCandidate({ ...origin, bundle: output, output: join(directory, 'extracted') }),
-      /bundle.*budget|budget.*exceed/i);
+      /cold.*budget|budget.*cold/i);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

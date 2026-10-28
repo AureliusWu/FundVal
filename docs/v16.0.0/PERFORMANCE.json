@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "project": "FundVal",
+  "targetVersion": "16.0.0",
+  "recordDate": "2026-10-28",
+  "recordKind": "PRE_CANDIDATE_FREEZE_SNAPSHOT",
+  "releaseStatus": "RELEASE_PENDING",
+  "finalResultsAuthority": "https://github.com/AureliusWu/FundVal/releases/tag/v16.0.0",
+  "decisionEvidence": "docs/v16.0.0/RELEASE_RISK_ACCEPTANCE_20261028.md",
+  "observedLocalCheckpoint": {
+    "evidence": "docs/v16.0.0/LOCAL_QA_20261028.md#6",
+    "versionAtCheckpoint": "15.0.2",
+    "isFinalVersionedReleaseCandidate": false,
+    "sourceInventorySha256": "1168f85c71e13752e4e290898cdbfccb56dabd02a65a2e4f424c5950d6199b65",
+    "siteInventorySha256": "b54490bf84d02d5a8f14f01825fee27631fb62c1daf0c000bd6eac5ca5422218",
+    "nonOcrChunks": 17,
+    "nonOcrRawBytes": 280237,
+    "coldGzip": {
+      "bytes": 51283,
+      "hardLimitBytes": 52241,
+      "limitEnabled": true,
+      "verdict": "PASS",
+      "headroomBytes": 958
+    },
+    "allNonOcrGzip": {
+      "bytes": 95884,
+      "hardLimitBytes": null,
+      "limitEnabled": false,
+      "verdict": "NOT_ENFORCED",
+      "pass": null,
+      "policy": "v16-total-unbounded-by-user-20261028"
+    },
+    "ocrAssetBytesExcludedFromNonOcrBundleMetric": 88197828
+  },
+  "historicalBudgetEvidence": {
+    "v15AllNonOcrBaselineGzipBytes": 70207,
+    "originalTotalLimitBytes": 77227.7,
+    "previousTotalLimitBytes": 92160,
+    "local20261026AllGzipBytes": 95223,
+    "local20261026VerdictUnderThenPolicy": "FAIL",
+    "historicalFailuresReclassified": false
+  },
+  "finalCandidatePairedPerformance": {
+    "measurementStatus": "NOT_RUN",
+    "releaseDecision": "USER_WAIVED",
+    "pass": null,
+    "coldWarmSaveMedianAndP95": null,
+    "historicalM3PassInherited": false,
+    "claimsFasterOrMeetsRelativeTargets": false
+  },
+  "physicalDevicePerformance": {
+    "measurementStatus": "NOT_RUN",
+    "releaseDecision": "USER_WAIVED",
+    "pass": null
+  },
+  "finalVersionedCandidate": {
+    "status": "PENDING",
+    "commit": null,
+    "ciRun": null,
+    "artifactSha256": null,
+    "coldGzipBytes": null,
+    "allNonOcrGzipBytes": null,
+    "productionVerification": "PENDING"
+  },
+  "scopeNotes": [
+    "Bundle size is not APK size, installed PWA disk usage, latency, memory, or a paired regression result.",
+    "No benchmark, build, network request, or gate rerun was performed to author this ledger.",
+    "Latest pre-version-bump local measurements must not be relabeled as final v16 candidate or production evidence.",
+    "Cold 52241-byte hard limit, integrity, security, data protection and same-artifact CI/deployment remain enforced.",
+    "Pending fields are pre-candidate snapshot values; final results are recorded in the fixed-tag GitHub Release and its Actions links, not by a post-release source-doc amendment."
+  ]
+}

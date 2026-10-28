@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { extname, isAbsolute, relative, resolve, win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -184,7 +184,17 @@ async function harness(browser) {
       await expect(value.locator('#update-banner')).toBeVisible();
       expect(await value.evaluate(() => __updateGuardWaiting !== navigator.serviceWorker.controller)).toBe(true);
     }
-    return { state, context, origin, page, waiting, close, navigations, assets,
+    async function ocrPage(name) {
+      const value = await context.newPage();
+      names.set(value, name); navigations.set(name, 0);
+      value.on('framenavigated', frame => {
+        if (frame === value.mainFrame()) navigations.set(name, navigations.get(name) + 1);
+      });
+      await value.goto(`${origin}/FundVal/ocr-import.html`);
+      await expect(value.locator('#ocr-import-pick')).toBeVisible();
+      return value;
+    }
+    return { state, context, origin, page, ocrPage, waiting, close, navigations, assets,
       events: (name, kind) => state.events.filter(event => event.page === name && event.kind === kind) };
   } catch (error) { await close(); throw error; }
 }
@@ -215,12 +225,14 @@ async function attachEvidence(testInfo, h, details) {
   expect(h.state.serverWrites).toEqual([]);
   expect(h.state.served.has('js/app-shell.js')).toBe(true);
   expect([...h.state.served].some(path => /^js\/chunks\/post-integrity-/.test(path))).toBe(true);
-  await testInfo.attach('native-built-app-update-guards.json', { contentType: 'application/json', body: Buffer.from(JSON.stringify({
+  const evidencePath = testInfo.outputPath('native-built-app-update-guards.json');
+  await writeFile(evidencePath, JSON.stringify({
     synthetic: true, sameVersionRevisionOnly: true, versionMigrationClaim: false,
     assets: h.assets, navigationCounts: Object.fromEntries(h.navigations), events: h.state.events,
     providerRequestsBlocked: h.state.blocked.length, gistWrites: h.state.gistWrites,
     ownedServerClosed: h.state.closed, ...details,
-  }, null, 2)) });
+  }, null, 2) + '\n', { flag: 'wx' });
+  await testInfo.attach('native-built-app-update-guards.json', { contentType: 'application/json', path: evidencePath });
 }
 
 async function finishEvidence(testInfo, h, details, failure) {
@@ -357,6 +369,69 @@ test('real stopAndDrain rechecks newly dirty input before sending SKIP_WAITING',
     evidence.lateSyntheticEstimate = 9.99;
     evidence.lateEstimateDidNotPersistToFundAggregate = true;
     evidence.lateEstimateDidNotReplaceVisibleNav = true;
+  } catch (error) { failure = error; throw error; }
+  finally { await finishEvidence(testInfo, h, evidence, failure); }
+});
+
+test('real stopAndDrain rechecks an OCR peer that became busy after the first prepare', async ({ browser }, testInfo) => {
+  test.setTimeout(60_000);
+  const h = await harness(browser), evidence = {};
+  let failure;
+  try {
+    const requester = await h.page('requester', true), peer = await h.ocrPage('ocr-peer');
+    // Keep only recognition controlled; use the actual isolated page, task,
+    // page guard, native BroadcastChannel, built App and native waiting SW.
+    await h.context.route('**/FundVal/js/paddle-local-ocr.js', route => route.fulfill({ contentType: 'text/javascript', body:
+      `export async function recognizeAlipayPaddleImage(file,{signal}) {
+        window.__syntheticM5PeerRecognition = true;
+        await new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new DOMException('Cancelled','AbortError')),{once:true}));
+      }` }));
+    await h.waiting(requester);
+    const before = { requester: await snapshot(requester, h.navigations.get('requester')),
+      peer: await snapshot(peer, h.navigations.get('ocr-peer')) };
+    h.state.holdNext = true;
+    await requester.evaluate(() => {
+      globalThis.__holdNextUpdateEstimate = true;
+      window.scrollTo(0, 0);
+      const start = new Event('touchstart'); Object.defineProperty(start, 'touches', { value: [{ clientY: 0 }] });
+      window.dispatchEvent(start);
+      const end = new Event('touchend'); Object.defineProperty(end, 'changedTouches', { value: [{ clientY: 100 }] });
+      window.dispatchEvent(end);
+    });
+    await expect.poll(() => Boolean(h.state.held)).toBe(true);
+    await requester.locator('#update-now-btn').click();
+    await expect.poll(() => h.events('requester', 'held-estimate-aborted').length).toBe(1);
+    expect(h.state.held.released).toBe(false);
+    // The first peer observation is already over and the real drain is held.
+    expect(h.events('ocr-peer', 'channel-prepare')).toHaveLength(1);
+    await peer.locator('#ocr-image-input').setInputFiles({ name: 'synthetic-m5-peer.png', mimeType: 'image/png',
+      buffer: Buffer.from([137, 80, 78, 71]) });
+    await peer.waitForFunction(() => window.__syntheticM5PeerRecognition === true);
+    h.state.held.release();
+    await expect(requester.locator('#update-banner-text')).toHaveText('其他已打开页面有未保存输入，更新已暂停');
+    await expect.poll(() => h.events('ocr-peer', 'channel-prepare').length).toBe(2);
+    await expect.poll(() => h.events('requester', 'channel-blocked').length).toBeGreaterThan(0);
+    await expect(requester.locator('#update-now-btn')).toBeEnabled();
+    expect(h.events('requester', 'skip-waiting')).toHaveLength(0);
+    expect(h.events('requester', 'update-activated')).toHaveLength(0);
+    expect(await requester.evaluate(() => __updateGuardWaiting.state)).toBe('installed');
+    expect(await snapshot(peer, h.navigations.get('ocr-peer'))).toEqual(before.peer);
+    expect(await holdingsHash(requester)).toBe(before.requester.holdingsHash);
+    evidence.blockedBeforeActivation = true;
+
+    await peer.locator('#ocr-import-cancel').click();
+    await expect(peer.locator('#ocr-import-pick')).toBeEnabled();
+    await expect(peer.locator('#ocr-import-status')).toContainText('已取消');
+    await requester.locator('#update-now-btn').click();
+    await expect.poll(() => h.navigations.get('requester')).toBe(before.requester.navigationCount + 1);
+    await ready(requester);
+    expect(h.events('requester', 'skip-waiting')).toHaveLength(1);
+    expect(h.events('ocr-peer', 'skip-waiting')).toHaveLength(0);
+    expect(h.navigations.get('ocr-peer')).toBe(before.peer.navigationCount);
+    expect(await holdingsHash(requester)).toBe(before.requester.holdingsHash);
+    expect(await holdingsHash(peer)).toBe(before.peer.holdingsHash);
+    evidence.cleanRetryOnlyReloadedRequester = true;
+    evidence.sameVersionNativeSwNotInstalledVersionMigration = true;
   } catch (error) { failure = error; throw error; }
   finally { await finishEvidence(testInfo, h, evidence, failure); }
 });

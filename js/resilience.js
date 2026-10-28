@@ -2,6 +2,7 @@ import {
   appendDiagnostic,
   collectOrphanNavCacheKeys,
   reconcileFundCache,
+  selectSafeDiagnosticEvents,
   safeJsonParse
 } from './integrity.js';
 import {
@@ -147,6 +148,11 @@ export function runStartupIntegrityChecksLocked(storage = localStorage, now = Da
 
 export function installRuntimeGuards(storage = localStorage) {
   document.documentElement.dataset.network = navigator.onLine === false ? 'offline' : 'online';
+  const previousDiagnostics = safeGet(storage, DIAGNOSTICS_KEY);
+  if (previousDiagnostics !== null) {
+    const metadataOnly = JSON.stringify(selectSafeDiagnosticEvents(safeJsonParse(previousDiagnostics, [])));
+    if (metadataOnly !== previousDiagnostics) safeSet(storage, DIAGNOSTICS_KEY, metadataOnly);
+  }
 
   window.addEventListener('error', event => {
     rememberDiagnostic(storage, {

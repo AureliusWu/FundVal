@@ -5,6 +5,34 @@ import { createHash } from 'node:crypto';
 import { isAbsolute, join } from 'node:path';
 import { parseSync } from 'rolldown/utils';
 import { legacyDirtyHelpers, legacyPolicy, legacyRegistration } from './fixtures/pwa-update-v15-reference.js';
+import { m5PostDrainPeerGuard, m5PostDrainPeerGuardSha256 } from './fixtures/pwa-update-m5-delta.js';
+
+// Explicit M5 delta-excluding v15 compatibility projection. This suite retains
+// all old assertions/oracle bytes but no longer claims full-current behavior
+// equality. Full actual second-wait behavior runs in pwa-ocr-drain-guard-m5.
+function projectM5SecondObservation(fullSource) {
+  assert.equal(createHash('sha256').update(m5PostDrainPeerGuard).digest('hex'), m5PostDrainPeerGuardSha256);
+  const first = fullSource.indexOf(m5PostDrainPeerGuard);
+  assert.ok(first > 0, 'The exact independently bound M5 guard must be present');
+  assert.equal(fullSource.lastIndexOf(m5PostDrainPeerGuard), first, 'Only one M5 guard may be projected');
+  const program = parseSync('pwa-full-current.js', fullSource).program;
+  const factory = program.body.find(node => node.type === 'ExportNamedDeclaration'
+    && node.declaration?.id?.name === 'createPwaUpdateController')?.declaration;
+  assert.ok(factory, 'Expected the actual public factory');
+  const apply = factory.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'applyPendingServiceWorkerUpdate');
+  const attempts = apply.body.body.filter(node => node.type === 'TryStatement');
+  assert.equal(attempts.length, 1, 'The original single drain/activation try owner remains');
+  const statements = attempts[0].block.body;
+  assert.equal(statements[0].expression?.type, 'AwaitExpression');
+  assert.equal(statements[0].expression.argument?.callee?.name, 'stopAndDrain');
+  assert.equal(statements[1].test?.callee?.name, 'hasServiceWorkerUpdateBlocker');
+  const added = statements[2];
+  assert.equal(added.type, 'IfStatement');
+  assert.equal(added.start, first, 'The one exact delta must follow the original local drain recheck');
+  assert.equal(fullSource.slice(added.start, added.end), m5PostDrainPeerGuard);
+  assert.equal(statements[3].test?.name, 'serviceWorkerReloadPending', 'The original local-reload branch must immediately follow');
+  return fullSource.slice(0, added.start) + fullSource.slice(added.end);
+}
 
 const source = (await readFile(new URL('../js/app.js', import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
 const program = parseSync('app.js', source).program;
@@ -12,7 +40,8 @@ const text = node => source.slice(node.start, node.end);
 const declaration = name => program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
 const functions = ['holdingEditorValue', 'hasUnsavedHoldingEditorInput', 'hasUnsavedPageInput'].map(declaration);
 assert.ok(functions.every(Boolean), 'Execute the real App dirty-form helpers, not copied helpers.');
-const controllerSource = (await readFile(new URL('../js/runtime/pwa-update-controller.js', import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
+const fullControllerSource = (await readFile(new URL('../js/runtime/pwa-update-controller.js', import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
+const controllerSource = projectM5SecondObservation(fullControllerSource);
 const controllerProgram = parseSync('pwa-update-controller.js', controllerSource).program;
 const factory = controllerProgram.body.find(node => node.type === 'ExportNamedDeclaration'
   && node.declaration?.id?.name === 'createPwaUpdateController')?.declaration;
@@ -42,8 +71,11 @@ async function flush() { for (let index = 0; index < 12; index++) await Promise.
 function harness(options = {}) {
   const origin = 'https://fundval.example.test';
   const trace = [], timers = new Map(), listeners = new Map(), drains = [];
-  const elements = Object.fromEntries(['i-code', 'i-name', 'i-shares', 'i-cost', 'gist-token',
+  const credentials = { token: options.token || '', mode: options.credentialMode || 'session' };
+  const elements = Object.fromEntries(['i-code', 'i-name', 'i-shares', 'i-cost', 'gist-token', 'gist-remember-token',
     'update-banner', 'update-banner-text', 'update-now-btn'].map(id => [id, { value: '', textContent: '', disabled: false, hidden: true }]));
+  elements['gist-token'].value = credentials.token;
+  elements['gist-remember-token'].checked = credentials.mode === 'persistent';
   for (const id of options.missingElements || []) delete elements[id];
   let now = Date.parse('2026-10-15T06:30:00Z'), timerId = 0, reloads = 0, channel;
   const add = (map, type, fn) => map.set(type, [...map.get(type) || [], fn]);
@@ -85,7 +117,11 @@ function harness(options = {}) {
     BroadcastChannel: options.noBroadcastChannel ? undefined : options.channelThrows ? class { constructor() { throw new Error('channel failed'); } } : Channel,
     Date: FixedDate, Math: math, URL,
     TIMING: { SW_UPDATE_MS: 1_800_000 },
-    safeGetItem: () => '',
+    // Only the App's credential readers are synthetic; execute the actual dirty
+    // helper with its new M4 session/persistence inputs, not a copied predicate.
+    getGistToken: () => credentials.token,
+    gistCredentialStore: { read: () => ({ mode: credentials.mode }) },
+    safeGetItem: () => credentials.token,
     showToast: message => trace.push(`toast:${message}`),
     startAutoRefresh: () => trace.push('refresh:restart'),
     refreshCoordinator: { stopAndDrain(reason) {
@@ -117,6 +153,7 @@ function harness(options = {}) {
   ].join('\n'))(...Object.values(bindings));
   function emit(type, event = {}) { for (const fn of [...listeners.get(type) || []]) fn(event); }
   return { ...instance, trace, elements, origin, previous, waiting, reg,
+    setCredentials(token, mode = credentials.mode) { credentials.token = token; credentials.mode = mode; },
     reloads: () => reloads,
     posted: () => trace.filter(value => value.startsWith('post:')),
     drainCount: () => trace.filter(value => value.startsWith('drain:')).length,
@@ -402,11 +439,68 @@ test('the independent oracle stays byte-bound to the pre-extraction App, not the
   assert.equal(digest(legacyRegistration), 'faeab3ddbb03ba11413bf055c548d3552f35cf87647ff47dfb27da49cb2d75f6');
   assert.equal(Buffer.byteLength(legacyDirtyHelpers), 1128);
   assert.equal(digest(legacyDirtyHelpers), '0a16a8c8d1eac8e56f1d2e32c56647789d8e55333931d3f6899ce210e4480093');
-  assert.deepEqual(withoutPositions(functions), withoutPositions(parseSync('pwa-old-editor-helpers.js', legacyDirtyHelpers).program.body),
-    'dirty-form helpers stay in App and keep their original behavior during this extraction');
+  const oldHelpers = parseSync('pwa-old-editor-helpers.js', legacyDirtyHelpers).program.body;
+  assert.deepEqual(withoutPositions(functions.slice(0, 2)), withoutPositions(oldHelpers.slice(0, 2)),
+    'holding-editor dirty detection remains exactly the frozen pre-extraction behavior');
+  // M4 intentionally replaces persistent-token reads with the live credential
+  // interface and adds the remember-token draft. This is not a controller-policy
+  // migration or permission to rewrite the independent old oracle. Exercise that
+  // explicit new dirty-input behavior below, while common inputs still run the
+  // complete frozen old/current transcript matrix unchanged.
+  assert.match(text(functions[2]), /getGistToken\(\)/);
+  assert.match(text(functions[2]), /gistCredentialStore\?\.read\(\)\.mode/);
+  assert.match(text(functions[2]), /gist-remember-token/);
 });
 
-test('the real factory preserves every old policy and registration statement except the explicit callback seams', () => {
+test('M5 compatibility projection rejects missing, modified, duplicated or relocated guard and keeps all other differences', () => {
+  for (const changed of [
+    fullControllerSource.replace(m5PostDrainPeerGuard, ''),
+    fullControllerSource.replace('var localBlocked = hasServiceWorkerUpdateBlocker();', 'var localBlocked = false;'),
+    fullControllerSource.replace(m5PostDrainPeerGuard, m5PostDrainPeerGuard + '\n' + m5PostDrainPeerGuard),
+    fullControllerSource.replace(m5PostDrainPeerGuard, '').replace('requestedServiceWorker = worker;', m5PostDrainPeerGuard + '\nrequestedServiceWorker = worker;'),
+  ]) assert.throws(() => projectM5SecondObservation(changed));
+  const outside = fullControllerSource.replace("worker.postMessage({ type: 'SKIP_WAITING' });", "worker.postMessage({ type: 'BROKEN_SKIP_WAITING' });");
+  assert.notDeepEqual(withoutPositions(parseSync('projected-mutant.js', projectM5SecondObservation(outside)).program),
+    withoutPositions(controllerProgram), 'Projection cannot hide any other changed policy statement');
+});
+
+test('M4 current dirty helper reads the saved session token and blocks an unsaved credential edit', async () => {
+  const h = harness({ token: 'synthetic-session-token' });
+  await h.ready(); assert.equal(h.blocker(), false, 'Matching session credentials are clean without persistent storage');
+  h.elements['gist-token'].value = 'synthetic-edited-token';
+  assert.equal(h.blocker(), true); await h.apply(); h.ack();
+  assert.equal(h.prepareCount(), 0); assert.equal(h.drainCount(), 0); assert.equal(h.posted().length, 0); assert.equal(h.reloads(), 0);
+  assert.equal(h.elements['gist-token'].value, 'synthetic-edited-token');
+});
+
+test('M4 remember-token draft blocks before activation and is rechecked after drain', async () => {
+  const h = harness({ token: 'synthetic-session-token' }); await h.ready();
+  h.elements['gist-remember-token'].checked = true; assert.equal(h.blocker(), true);
+  await h.apply(); assert.equal(h.prepareCount(), 0); assert.equal(h.drainCount(), 0);
+  h.elements['gist-remember-token'].checked = false;
+  const drain = h.holdDrain(), applying = h.apply(); await h.tick(); assert.equal(h.drainCount(), 1);
+  h.elements['gist-remember-token'].checked = true; drain.resolve(); await applying; h.ack();
+  assert.equal(h.posted().length, 0); assert.equal(h.reloads(), 0); assert.equal(h.isUpdateApplying(), false);
+  assert.equal(h.elements['gist-remember-token'].checked, true, 'The unsaved persistence choice survives drain');
+});
+
+test('M4 persistent credential mode and live credential changes remain dirty-update blockers', async () => {
+  const h = harness({ token: 'synthetic-persistent-token', credentialMode: 'persistent' }); await h.ready();
+  assert.equal(h.blocker(), false); h.elements['gist-remember-token'].checked = false;
+  assert.equal(h.blocker(), true); h.elements['gist-remember-token'].checked = true;
+  h.setCredentials('synthetic-new-session-token', 'session');
+  assert.equal(h.blocker(), true); await h.apply();
+  assert.equal(h.prepareCount(), 0); assert.equal(h.posted().length, 0); assert.equal(h.reloads(), 0);
+});
+
+test('M4 persistence draft prevents a first-install reload and keeps unauthorized ACK inert', async () => {
+  const h = harness({ firstInstall: true }); await h.ready(); h.elements['gist-remember-token'].checked = true;
+  h.changeController(h.waiting); h.ack();
+  assert.equal(h.reloads(), 0); assert.equal(h.state().pendingReload, true);
+  assert.equal(h.elements['gist-remember-token'].checked, true);
+});
+
+test('M5 delta-excluding factory view preserves old policy and registration except the explicit callback seams', () => {
   const clearTimer = `if (autoRefreshTimer) {\n    clearTimeout(autoRefreshTimer);\n    autoRefreshTimer = null;\n  }`;
   assert.equal(legacyPolicy.split(clearTimer).length, 2, 'one original timer ownership block');
   const expectedPolicy = legacyPolicy.replace(/\bisSyncing\b/g, 'isSyncing()')
@@ -503,7 +597,7 @@ const pairedScenarios = [
     async run(h, mark) { await h.ready(); mark(); h.show(h.waiting); const apply = h.apply(); await h.tick(); await apply; mark(); h.ack(); mark(); } },
 ];
 
-for (const [index, scenario] of pairedScenarios.entries()) test(`frozen old/current factory transcript: ${scenario.name}`, async t => {
+for (const [index, scenario] of pairedScenarios.entries()) test(`M5 delta-excluding v15 compatibility projection: ${scenario.name}`, async t => {
   async function run(legacy) {
     let h;
     h = harness({ ...scenario.options?.(() => h), legacy });
@@ -522,7 +616,7 @@ for (const [index, scenario] of pairedScenarios.entries()) test(`frozen old/curr
     assert.equal(isAbsolute(directory), true, 'explicit test evidence directory must be absolute');
     await writeFile(join(directory, `${String(index + 1).padStart(2, '0')}.json`), serialized, { flag: 'wx' });
   }
-  t.diagnostic(`transcript checkpoints=${current.length};bytes=${Buffer.byteLength(serialized)};sha256=${digest(serialized)}`);
+  t.diagnostic(`M5-second-observation-excluded-source-view;transcript checkpoints=${current.length};bytes=${Buffer.byteLength(serialized)};sha256=${digest(serialized)}`);
   assert.deepEqual(current, old, 'complete checkpoint state/DOM/IO/clock-listener transcript');
 });
 

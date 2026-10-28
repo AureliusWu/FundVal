@@ -1,7 +1,7 @@
 # M3 刷新图、模块化与性能：阶段检查点
-> 更新：2026-10-25（Asia/Shanghai）；§57仅all上限按用户批准改90KiB（92,160B），cold52,241及其他门禁不变。§60已完成9.1两controller接线和自动补名cache/旧代状态竞态修复；最终本地1409PASS/3skip、Chrome35/35、两次完整129产物一致，all86,850/cold47,014。§61最终281源的新固定800+4性能及两路复核已通过，不继承§58旧样本；精确提交CI和候选下载核验仍未完成。M3仍`IN PROGRESS / NOT RELEASED`，不进入M4/发布。
+> 更新：2026-10-25（Asia/Shanghai）；§62签收精确业务提交`f67675746276173fd3b84b770287e1ab5bea27fb`、CI run40174354009/attempt1和artifact12590908982实际下载：Linux1412/0skip、E2E35/35、限定CodeQL103/0、9checks及全129文件严格一致；与§60最终QA、§61独立新800+4及all86,850/cold47,014共同支持有限`M3 EXIT / M4 NEXT / NOT_RELEASED`。§57只调整获批all上限92,160B，cold52,241及其他门禁不变；不是main候选准入、v16完成或发布。
 > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
-> 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
+> 版本仍为15.0.2。历史检查点按当时身份和结果原样保留，由§62追加最新阶段判定，不倒填旧失败/未执行观察。精确证据是continuation分支候选，不是immutable main candidate、生产或真机证据。9.1离线早期owner继续位于bootstrap/resilience；M4–M6完整范围和M5完整离线/版本/设备验收不豁免。
 > 历史第55节：完整私有路由不等于generic Quote/cache表示全部退休；A249/B257冻结，build只加原business组membership。A精确当前127/16chunks，B136/17chunks；all+1,369 B，未运行候选完整QA/三轮确定性/新时延，未采用/发布。root273/site127/安装68和Git前后同。新政策不追溯提升该原型为合格。
 > 历史第54节：同版Compiler共同packaging重定位及唯一2022桥接修复只获有限前提PASS；唯一B1运行F01原版0→Java2，诊断OPTIMIZER_INTERNAL_EXCEPTION，无转换代码/余7组或产品收益。第53/54节失败与当时原预算FAIL保持历史事实，不继续修compiler/扫flags。最新政策和当前验收见第57节，旧800不继承为新正确性修复后的时延资格。
 
@@ -1238,3 +1238,30 @@ cold median/p95 141.70/187→130.40/177.80ms（−7.975%/−4.920%）；warm75.5
 详见[独立协议、完整统计表与实际原件](performance-evidence/pair-controllers-800-20261025/README.md)。归档509成员/108,670,719B，压缩14,955,988B/SHA `38bfa2efa4ac7bde5cc82654dfe4ac13a270d0e6b82024bec99eee0aba1c72d7`，全新解压逐项byte/SHA同；完整88MB raw仅`parent/PAIR.json`一次，含预审、原helper审计、第二路终审、257非历史源及105非OCR目录产物payload。24旧Android、生成OCR/安装及工具已清理的参考大payload仅库存；内部参考build日志未由原工具保存，不冒称存在。控制器QA原包只绑定hash，不重复打包。包外原生归档回执及6项工具指纹复核native0，无新失败。
 
 本地QA/预算/新时延和范围复核现已闭合，**精确不可变业务提交CI、下载候选的完整性与构建身份衔接仍需完成**。只读提交范围核对46个变更源均在最终QA闭包，Temp/历史输出和3份88MB重复raw不加入提交；package/lock仅Vite8.2.2→8.2.4原安全窗口改动，Git文本换行和新提交epoch必须分别验证。远端只读查询仍continuation170fd3e、main abfb631；尚未新提交/推送/合并/升版/部署。15.0.2 / M3_IN_PROGRESS / NOT_RELEASED，M4–M6完整目标不缩小、不跳过。
+
+## 62. 精确提交、CI与下载候选签收：有限M3退出（2026-10-25）
+
+状态：**M3 EXIT / M4 NEXT / 15.0.2 / NOT_RELEASED**。本节是§60/61之后的窗口外阶段签收，不反写历史源码库存、旧FAIL或当时未执行观察，也不把M3退出等同于main合并、部署准入、v16整体完成或发布。
+
+精确业务身份为`f67675746276173fd3b84b770287e1ab5bea27fb`，tree `8819c39c3f67d4635c368a42720667f2ae92c391`，epoch1792914554，分支`codex/v16.0.0-m3-continuation`。§60/61测量输入到实际Git导出的257源，220份原字节相同、37份仅严格CRLF→LF；命令级关闭archive smudge后892个导出文件OID逐一等于Git blob。精确epoch下两次完整129文件构建逐字节一致；17份compiled/chunk-manifest文件等于性能测量产物，其余差别仅已核实的文本换行和一份OCR清单生成时间桥接，不继承旧epoch指纹冒称新提交。
+
+| 门禁 | 已实际观察并签收的结果 |
+| --- | --- |
+| 最终本地QA | §60原生1412 total / 1409 PASS / 0 FAIL / 3既有Windows skip，syntax223、Chrome35/35、audit0，两次完整129产物一致；Windows skip不作PASS，另由下列精确Linux结果闭合。 |
+| 精确CI | [run40174354009](https://github.com/AureliusWu/FundVal/actions/runs/40174354009)，attempt1、push、`.github/workflows/ci.yml`；candidate job121111717016与CodeQL job121111716884均实际completed/success。Linux1412/1412、0skip，syntax223、Chromium E2E35/35、官方registry audit0。预期的失败诊断上传step为skipped，不冒称已执行。 |
+| CodeQL有限范围 | 精确SHA/ref的analysis2021545949：security-extended、103rules/0results、error/warning空，该ref open-alerts返回[]；路径`js`/`scripts`/`sw.js`，排除node_modules/site/vendor/test/e2e，不外推main、全分支或全部安全问题。 |
+| 真实下载产物 | [artifact12590908982](https://github.com/AureliusWu/FundVal/actions/runs/40174354009/artifacts/12590908982)，ZIP92,695,480B，SHA256 `c1e9cdb2fa4ecdb8c5312c01485910a3015457084556cac2fda9fd2f9256828b`，与API/上传身份一致；不是仅凭上传日志。 |
+| 实际完整性核验 | V2 auditor真实native0/stderr0，9checks全PASS；纯regular TAR/原生类型与列表、每文件长度/SHA和全部129文件严格等于exact-commit V3 site。原manifest未改，continuation来源未伪装main；未调用production main-only validator。 |
+| 两种指纹 | release-critical `5290a46055255c8c80123948f4fc6b732d103a9693aba338c6499201345feab1`；完整inventory `25c4cd7526bedca483d662fb44279072082a17cf3bc102303057857becbd7091`。前者来自后续实际下载核验，CI原报告中未回显的critical字段仍保持null，不倒填。 |
+| 体积/隔离 | all86,850≤92,160B，cold47,014≤52,241B；16chunks/raw254560B、23OCR资产88196906B。原五组/ES2022/OXC、OCR/cloud冷图隔离及数据校验不变；静态bindings/literal closure不证明完整evaluation/启动动态行为。 |
+| 新独立性能 | §61唯一800retained+4warmup、AB400/BA400，原bootstrap5000/seed160003/timeout30000；native0/PASS、12,883原helper整对象检查及7,253独立基础统计复核通过。cold/warm/save median/p95分别119.80/154.90、60.20/80.20、66.06475/72.4896ms。保留cold max327.8劣于参考237.7、console17688及导航PARTIAL；非第二套独立bootstrap，CI未复跑800+4。 |
+
+最终逐项要求矩阵不仅核对测试数量，也实读六职责的真实消费者、稳定TTL、同代Promise去重/失败不重发、过期代UI/cache gate、NAV/metadata/shared证券调度、实际计数，以及自动补名settlement后的唯一flush。未发现新增确认的M3运行时阻断，已有证据支持原计划M3工作包与退出条件的有限签收。原Web Lock永久外部持有时的有界drain没有证明；合成测试会释放锁，不能外推OCR取消≤2秒或全系统停止时限。
+
+**9.1离线架构限定：**`js/bootstrap.js:33–34`先安装`resilience`运行时guard，再import App；`js/resilience.js:149,176–183`早已拥有初始network状态与online/offline监听，170→f676该早期链未变。App仅消费在线状态做缓存新鲜度/恢复编排；PWA controller接管更新guard/版本提示/握手，而非独占全部离线职责。阶段签收保留这一已有早期owner，不为文件名把guard移到较晚PWA start，也不以M5归属默默删掉9.1要求。M5离线壳≤3秒、明确可能过期、manifest身份、已安装v15→v16/缓存桶及真机门禁仍待独立验收。
+
+精确证据已收录[归档与有限结论](performance-evidence/exact-commit-ci-20261025/README.md)：733成员/113,086,285B，TAR.GZ38,378,799B/SHA256 `945212168a6f6b0a181f10ec0d3a7cc48da760ccc78f4befd804712ed70dd4c3`，全新解压逐成员字节/SHA一致。只含一份完整成功ZIP；失败partial、重复site.tar、大snapshot等的去留按archive-plan明确记录，部分隐私形状原件只留私有Temp、公开为标记的脱敏派生稿，不冒充原始native字节或完整秘密认证。
+
+失败/告警不抹平：GH007拒绝、export EOL/epoch因果修正、a1真实180秒超时partial、a2 ZIP stdin不兼容、原V1 auditor本地月份fatalUTF8误读均保留。V2只对人类verbose type行改Latin1保字节解码，40原+4本地编码夹具44/44；文件名/JSON/源码UTF8、TAR内容/tuple/全129/预算均未放宽。CI弃用提示、direct-native-link ExperimentalWarning、历史staged diff-check native2格式告警及缺失原件如实保留；顶层stderr0不等于每个内部进程无告警。
+
+下一工作包是**M4 Gist可靠性**，按原计划完成档案选择、同步状态机、退避/凭证、Schema3/device shard/tombstone/legacy兼容、专用合成Gist双端往返/冲突/离线恢复及远端读回哈希/无token泄露证据。M5 OCR/移动端/PWA和M6 RC、三类物理设备各3次、同一候选发布/生产/回滚/观测全部保留；真实金融源、真实云、OCR长图、已安装PWA升级和生产不由M3证据代验。本次阶段文档更新不改业务、版本、归档或预算，不提交/推送/部署，不把完整v16目标标为完成。

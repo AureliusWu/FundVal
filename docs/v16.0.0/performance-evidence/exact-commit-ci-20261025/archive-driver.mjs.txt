@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { createHash } from 'node:crypto';
+const here = import.meta.dirname, mode = process.argv[2] ?? 'prepare';
+assert.ok(['prepare', 'execute'].includes(mode));
+const args = [resolve(here, 'archive.mjs'), mode, ...process.argv.slice(3)];
+const startedAt = new Date().toISOString();
+const r = spawnSync(process.execPath, args, { cwd: here, encoding: null, windowsHide: true, timeout: 600000, maxBuffer: 8 * 1024 * 1024 });
+const sha = b => createHash('sha256').update(b).digest('hex');
+const stdout = r.stdout ?? Buffer.alloc(0), stderr = r.stderr ?? Buffer.alloc(0);
+const receipt = { command: process.execPath, args, cwd: here, startedAt, finishedAt: new Date().toISOString(), nativeExit: r.status, signal: r.signal, error: r.error?.message ?? null,
+  stdout: { bytes: stdout.length, sha256: sha(stdout) }, stderr: { bytes: stderr.length, sha256: sha(stderr) } };
+for (const [suffix, bytes] of [['stdout', stdout], ['stderr', stderr], ['receipt.json', Buffer.from(JSON.stringify(receipt, null, 2) + '\n')]]) writeFileSync(resolve(here, mode + '-driver.' + suffix), bytes, { flag: 'wx' });
+if (mode === 'execute' && r.status === 0) {
+  const dest = 'D:/AI项目/FundVal/docs/v16.0.0/performance-evidence/exact-commit-ci-20261025/archive-native'; mkdirSync(dest, { recursive: true });
+  // Driver only emits compact archive aggregate data, never original input diagnostics.
+  assert.equal(stderr.length, 0);
+  for (const suffix of ['stdout', 'stderr', 'receipt.json']) writeFileSync(resolve(dest, mode + '-driver.' + suffix), readFileSync(resolve(here, mode + '-driver.' + suffix)), { flag: 'wx' });
+  writeFileSync(resolve(dirname(dest), 'archive-driver.mjs.txt'), readFileSync(import.meta.filename), { flag: 'wx' });
+}
+process.stdout.write(JSON.stringify({ nativeExit: r.status, signal: r.signal, error: r.error?.message ?? null, stdoutBytes: stdout.length, stderrBytes: stderr.length, outputs: mode + '-driver.*' }) + '\n');
+if (r.status !== 0) process.exitCode = 1;

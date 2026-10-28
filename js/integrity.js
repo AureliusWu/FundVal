@@ -196,31 +196,39 @@ export function collectOrphanNavCacheKeys(keys, activeCodes) {
 export function redactDiagnosticText(value) {
   return String(value || '')
     .replace(/gh[pousr]_[A-Za-z0-9_]{20,}/g, '[REDACTED_GITHUB_TOKEN]')
+    .replace(/github_pat_[A-Za-z0-9_]{20,}/g, '[REDACTED_GITHUB_TOKEN]')
+    .replace(/https?:\/\/(?:gist\.github(?:usercontent)?\.com|api\.github\.com\/gists)(?:[^\s<>"']*)/gi, '[REDACTED_GIST_URL]')
     .replace(/(authorization\s*[:=]\s*)(?:token|bearer)\s+[^\s,;]+/gi, '$1[REDACTED]')
     .replace(/([?&](?:token|access_token)=)[^&#\s]+/gi, '$1[REDACTED]')
     .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi, '[REDACTED_IMAGE_DATA]')
     .slice(0, 4000);
 }
 
+function safeDiagnosticTime(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return '';
+  const time = Date.parse(value);
+  return Number.isFinite(time) && new Date(time).toISOString().slice(0, 19) === value.slice(0, 19) ? value : '';
+}
+
 export function appendDiagnostic(raw, entry, limit = 20) {
   const parsed = safeJsonParse(raw, []);
-  const list = Array.isArray(parsed) ? parsed : [];
+  const list = selectSafeDiagnosticEvents(parsed, limit);
   const sanitized = {
-    time: typeof entry.time === 'string' ? entry.time : new Date().toISOString(),
-    type: redactDiagnosticText(entry.type).slice(0, 80),
-    message: redactDiagnosticText(entry.message),
-    stack: redactDiagnosticText(entry.stack)
+    time: safeDiagnosticTime(entry?.time) || new Date().toISOString(),
+    type: SAFE_RUNTIME_DIAGNOSTIC_TYPES.has(entry?.type) ? entry.type : 'unknown',
   };
-  return [...list, sanitized].slice(-Math.max(1, limit));
+  // Runtime exceptions can contain arbitrary holdings/OCR/user text. Regex
+  // redaction cannot prove that safe; persist only enum/time, even for old logs.
+  return [...list, sanitized].slice(-Math.max(1, Math.min(20, Number(limit) || 20)));
 }
 
 export function selectSafeDiagnosticEvents(value, limit = 20) {
   if (!Array.isArray(value)) return [];
   const boundedLimit = Math.max(1, Math.min(20, Number(limit) || 20));
   return value.slice(-boundedLimit).map(entry => {
-    const type = String(entry && entry.type || '').trim().toLowerCase();
+    const type = typeof entry?.type === 'string' ? entry.type.trim().toLowerCase() : '';
     return Object.freeze({
-      time: typeof (entry && entry.time) === 'string' ? entry.time : '',
+      time: safeDiagnosticTime(entry && entry.time),
       type: SAFE_RUNTIME_DIAGNOSTIC_TYPES.has(type) ? type : 'unknown',
     });
   });

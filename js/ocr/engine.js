@@ -17,6 +17,7 @@ export const OCR_ENGINE_ERROR = Object.freeze({
   RECOGNITION_FAILED: 'OCR_RECOGNITION_FAILED',
   DISPOSE_FAILED: 'OCR_DISPOSE_FAILED',
   DISPOSED: 'OCR_ENGINE_DISPOSED',
+  CANCELLED: 'OCR_ENGINE_CANCELLED',
   UNEXPECTED: 'OCR_UNEXPECTED',
 });
 
@@ -48,6 +49,10 @@ const ERROR_DEFINITIONS = Object.freeze({
   [OCR_ENGINE_ERROR.DISPOSED]: Object.freeze({
     category: 'lifecycle',
     message: '本地识别引擎已释放。',
+  }),
+  [OCR_ENGINE_ERROR.CANCELLED]: Object.freeze({
+    category: 'lifecycle',
+    message: '本地识别已取消。',
   }),
   [OCR_ENGINE_ERROR.UNEXPECTED]: Object.freeze({
     category: 'internal',
@@ -140,6 +145,7 @@ export class LocalOcrEngine {
     detectCapabilities = detectOcrCapabilities,
     backends = {},
     validateInput = assertLocalOcrBlob,
+    signal,
   } = {}) {
     if (typeof detectCapabilities !== 'function') {
       throw new TypeError('detectCapabilities must be a function');
@@ -151,6 +157,7 @@ export class LocalOcrEngine {
     this.now = createMonotonicClock(this.runtime);
     this.detectCapabilities = detectCapabilities;
     this.validateInput = validateInput;
+    this.signal = signal;
     this.backendFactories = Object.freeze({
       [OCR_BACKEND.WEBGPU]: backends?.[OCR_BACKEND.WEBGPU],
       [OCR_BACKEND.WASM]: backends?.[OCR_BACKEND.WASM],
@@ -190,9 +197,8 @@ export class LocalOcrEngine {
   }
 
   initialize() {
-    if (this.disposed) {
-      return Promise.reject(new OcrEngineError(OCR_ENGINE_ERROR.DISPOSED, { stage: 'initialization' }));
-    }
+    try { this.assertLifecycle('initialization'); }
+    catch (error) { return Promise.reject(error); }
     if (this.initializationPromise) return this.initializationPromise;
 
     this.state = 'initializing';
@@ -205,7 +211,9 @@ export class LocalOcrEngine {
 
   async initializeOnce() {
     try {
+      this.assertLifecycle('initialization');
       this.capabilities = this.detectCapabilities(this.runtime);
+      this.assertLifecycle('initialization');
       if (!this.capabilities?.baseline?.supported || !canUseWasmOcr(this.capabilities)) {
         throw new OcrEngineError(OCR_ENGINE_ERROR.CAPABILITY_UNAVAILABLE, {
           stage: 'capability',
@@ -216,6 +224,9 @@ export class LocalOcrEngine {
         try {
           return await this.initializeBackend(OCR_BACKEND.WEBGPU);
         } catch (error) {
+          // Cancellation is not an acceleration failure and must never start
+          // a second backend after the owning recognition was invalidated.
+          this.assertLifecycle('initialization');
           if (this.disposed || (error instanceof OcrEngineError && error.code === OCR_ENGINE_ERROR.DISPOSED)) {
             throw new OcrEngineError(OCR_ENGINE_ERROR.DISPOSED, { stage: 'initialization' });
           }
@@ -232,7 +243,8 @@ export class LocalOcrEngine {
 
       return await this.initializeBackend(OCR_BACKEND.WASM);
     } catch (error) {
-      this.state = this.disposed ? 'disposed' : 'failed';
+      this.state = this.disposed ? 'disposed' : (this.signal?.aborted ? 'cancelled' : 'failed');
+      this.assertLifecycle('initialization');
       if (error instanceof OcrEngineError) throw error;
       throw new OcrEngineError(OCR_ENGINE_ERROR.INITIALIZATION_FAILED, {
         stage: 'initialization',
@@ -242,6 +254,7 @@ export class LocalOcrEngine {
   }
 
   async initializeBackend(kind) {
+    this.assertLifecycle('initialization');
     if (this.attempted[kind]) {
       throw new OcrEngineError(OCR_ENGINE_ERROR.INITIALIZATION_FAILED, {
         stage: 'initialization',
@@ -263,9 +276,11 @@ export class LocalOcrEngine {
         backend: kind,
         capabilities: this.capabilities,
       }), kind);
+      this.assertLifecycle('initialization');
       if (typeof candidate.initialize === 'function') {
         await candidate.initialize({ backend: kind });
       }
+      this.assertLifecycle('initialization');
       if (typeof candidate.isModelCompatible === 'function'
         && await candidate.isModelCompatible() !== true) {
         throw new OcrEngineError(OCR_ENGINE_ERROR.INITIALIZATION_FAILED, {
@@ -273,6 +288,7 @@ export class LocalOcrEngine {
           backend: kind,
         });
       }
+      this.assertLifecycle('initialization');
       if (this.disposed) {
         await this.safeDisposeBackend(candidate);
         throw new OcrEngineError(OCR_ENGINE_ERROR.DISPOSED, { stage: 'initialization' });
@@ -293,20 +309,21 @@ export class LocalOcrEngine {
 
   recognize(input, ...args) {
     this.validateInput(input, this.runtime);
-    if (this.disposed) {
-      throw new OcrEngineError(OCR_ENGINE_ERROR.DISPOSED, { stage: 'recognition' });
-    }
+    this.assertLifecycle('recognition');
 
     const startedAt = this.now();
     const operation = (async () => {
       const backend = await this.initialize();
-      if (this.disposed) {
-        throw new OcrEngineError(OCR_ENGINE_ERROR.DISPOSED, { stage: 'recognition' });
-      }
+      this.assertLifecycle('recognition');
       try {
-        return await backend.recognize(input, ...args);
+        const result = await backend.recognize(input, ...args);
+        // dispose() drains work that already entered a backend; keep that
+        // contract while refusing a late result for an explicitly aborted run.
+        if (this.signal?.aborted) throw new OcrEngineError(OCR_ENGINE_ERROR.CANCELLED, { stage: 'recognition' });
+        return result;
       } catch (error) {
-        if (error instanceof OcrEngineError && error.code === OCR_ENGINE_ERROR.DISPOSED) throw error;
+        if (error instanceof OcrEngineError
+          && [OCR_ENGINE_ERROR.DISPOSED, OCR_ENGINE_ERROR.CANCELLED].includes(error.code)) throw error;
         throw new OcrEngineError(OCR_ENGINE_ERROR.RECOGNITION_FAILED, {
           stage: 'recognition',
           backend: this.backendKind,
@@ -323,6 +340,11 @@ export class LocalOcrEngine {
       () => this.activeOperations.delete(operation),
     );
     return operation;
+  }
+
+  assertLifecycle(stage) {
+    if (this.disposed) throw new OcrEngineError(OCR_ENGINE_ERROR.DISPOSED, { stage });
+    if (this.signal?.aborted) throw new OcrEngineError(OCR_ENGINE_ERROR.CANCELLED, { stage });
   }
 
   dispose() {

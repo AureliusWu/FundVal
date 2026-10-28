@@ -37,7 +37,7 @@ test('App does not retain a second copy of migrated update and synchronization s
 });
 
 test('App sync entry names delegate to the real state owner instead of retaining algorithms', () => {
-  for (const name of ['hasCloudConfig', 'renderCloudStatus', 'handleCloudFailure', 'hasPendingSync',
+  for (const name of ['hasCloudConfig', 'renderCloudStatus', 'hasPendingSync',
     'resolveGistId', 'pullFromCloud', 'pushToCloud', 'scheduleAutoPush', 'startAutoPull', 'autoPullOnLoad']) {
     const fn = program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
     assert.ok(fn, `Keep the App entry ${name}`);
@@ -45,6 +45,9 @@ test('App sync entry names delegate to the real state owner instead of retaining
     assert.equal(fn.body.body[0].type, 'ReturnStatement');
     assert.ok(called(fn.body.body[0].argument, 'syncController', name));
   }
+  // M4 manual actions no longer inject this unused App wrapper. Failure policy
+  // still belongs to the real controller, tested through its active API.
+  assert.doesNotMatch(app, /function handleCloudFailure\(/);
 });
 
 test('PWA starts once at the former registration phase and reads sync busy state dynamically', () => {

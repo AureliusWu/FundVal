@@ -1,0 +1,232 @@
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, lstatSync, openSync, readSync, closeSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { resolve, dirname, sep } from 'node:path';
+import { spawnSync } from 'node:child_process';
+
+// Archive-only derivative of the reviewed controller/pair evidence procedure.
+// No tests, builds, browser, network, Git mutations or release operations.
+const here = import.meta.dirname;
+const root = 'D:/AI项目/FundVal';
+const temp = 'C:/Users/84046/AppData/Local/Temp';
+const dest = resolve(root, 'docs/v16.0.0/performance-evidence/exact-commit-ci-20261025');
+const target = 'f67675746276173fd3b84b770287e1ab5bea27fb';
+const zipSha = 'c1e9cdb2fa4ecdb8c5312c01485910a3015457084556cac2fda9fd2f9256828b';
+const zipBytes = 92695480;
+const approvedFixtureMatches = new Set([
+  '25a70677dea9fe85187cdf1e330388c67281f3c075b38c98759366e0919720d6',
+  'ae8754608195aafb81001fbdb911f6019eb8b13fa6e5ef7229ea71b0b9a7f976',
+]);
+const sourceDefs = [
+  ['exact-ci', 'FundVal-exact-ci-evidence-20261025-child'],
+  ['commit-control', 'FundVal-m3-commit-control-20261025-parent'],
+  ['final-stage', 'FundVal-final-stage-manifest-20261025-child'],
+  ['commit-scope', 'FundVal-m3-commit-scope-20261025-child'],
+  ['exact-v1-sourceprobe', 'FundVal-m3-exact-commit-validation-20261025-child'],
+  ['causal-archive', 'FundVal-m3-exact-commit-causal-archive-20261025-child'],
+  ['exact-v2', 'FundVal-m3-exact-commit-validation-v2-20261025-child'],
+  ['exact-v3', 'FundVal-m3-exact-commit-validation-v3-20261025-child'],
+  ['download-a1', 'FundVal-m3-branch-artifact-40174354009-a1-20261025-child'],
+  ['download-a2', 'FundVal-m3-branch-artifact-40174354009-a2-20261025-child'],
+  ['download-a2-tools', 'FundVal-m3-branch-artifact-40174354009-a2-20261025-child/frozen-auditor'],
+  ['recovery-a3', 'FundVal-m3-branch-artifact-40174354009-a3-20261025-child'],
+  ['recovery-a3-bundle-metadata', 'FundVal-m3-branch-artifact-40174354009-a3-20261025-child/bundle'],
+  ['recovery-a3-tools', 'FundVal-m3-branch-artifact-40174354009-a3-20261025-child/frozen-auditor'],
+  ['recovery-a3-auditor-v1-failure', 'FundVal-m3-branch-artifact-40174354009-a3-20261025-child/frozen-auditor/run-40174354009-attempt-1-20261025-a3'],
+  ['auditor-v1-tool', 'FundVal-branch-artifact-auditor-20261025-child'],
+  ['auditor-v2-tool', 'FundVal-branch-artifact-auditor-v2-20261025-child'],
+  ['auditor-v2-pass', 'FundVal-branch-artifact-auditor-v2-20261025-child/run-40174354009-attempt-1-v2-20261025'],
+  ['final-matrix', 'FundVal-m3-final-acceptance-matrix-20261025-child'],
+  ['offline-boundary', 'FundVal-m3-offline-boundary-20261025-child'],
+];
+const sha = b => createHash('sha256').update(b).digest('hex');
+const save = (path, bytes) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, bytes, { flag: 'wx' }); };
+const saveJSON = (path, value) => save(path, JSON.stringify(value, null, 2) + '\n');
+const json = path => JSON.parse(readFileSync(path, 'utf8'));
+function hashFile(path) {
+  const h = createHash('sha256'), fd = openSync(path, 'r'), buf = Buffer.allocUnsafe(1024 * 1024);
+  let bytes = 0; try { for (;;) { const n = readSync(fd, buf, 0, buf.length, null); if (!n) break; h.update(buf.subarray(0, n)); bytes += n; } } finally { closeSync(fd); }
+  return { bytes, sha256: h.digest('hex') };
+}
+function topInventory(base) {
+  assert.equal(lstatSync(base).isDirectory(), true); assert.equal(lstatSync(base).isSymbolicLink(), false);
+  return readdirSync(base, { withFileTypes: true }).map(ent => {
+    const path = resolve(base, ent.name), stat = lstatSync(path);
+    if (stat.isSymbolicLink()) return { path: ent.name, kind: 'link-not-followed', bytes: stat.size };
+    if (stat.isDirectory()) return { path: ent.name, kind: 'directory-not-recursed' };
+    assert.equal(stat.isFile(), true, 'Only regular files, directories and links permitted in source metadata');
+    return { path: ent.name, kind: 'file', ...hashFile(path) };
+  }).sort((a, b) => a.path.localeCompare(b.path));
+}
+function inventory(base, part = '') {
+  const rows = [];
+  for (const entry of readdirSync(resolve(base, part), { withFileTypes: true })) {
+    const path = part ? part + '/' + entry.name : entry.name, physical = resolve(base, path), stat = lstatSync(physical);
+    assert.equal(stat.isSymbolicLink(), false, 'No stage/extract links');
+    if (stat.isDirectory()) rows.push(...inventory(base, path));
+    else { assert.equal(stat.isFile(), true); rows.push({ path, ...hashFile(physical) }); }
+  }
+  return rows.sort((a, b) => a.path.localeCompare(b.path));
+}
+function native(label, command, args, timeout = 180000) {
+  const startedAt = new Date().toISOString();
+  const env = { ...process.env }; delete env.NODE_OPTIONS; delete env.NODE_V8_COVERAGE;
+  const r = spawnSync(command, args, { cwd: here, windowsHide: true, encoding: null, maxBuffer: 40 * 1024 * 1024, timeout, env });
+  const stdout = r.stdout ?? Buffer.alloc(0), stderr = r.stderr ?? Buffer.alloc(0);
+  save(resolve(here, label + '.stdout'), stdout); save(resolve(here, label + '.stderr'), stderr);
+  const receipt = { command, args, cwd: here, startedAt, finishedAt: new Date().toISOString(), nativeExit: r.status, signal: r.signal, error: r.error?.message ?? null,
+    stdout: { bytes: stdout.length, sha256: sha(stdout) }, stderr: { bytes: stderr.length, sha256: sha(stderr) } };
+  saveJSON(resolve(here, label + '.receipt.json'), receipt);
+  assert.equal(r.status, 0, label + ' native exit'); assert.equal(r.signal, null); assert.equal(r.error, undefined);
+  return { receipt, stdout, stderr };
+}
+function gitGuard(label) {
+  return Object.fromEntries([
+    ['head', ['rev-parse', 'HEAD']], ['branch', ['branch', '--show-current']],
+    ['index', ['diff', '--cached', '--binary']],
+    ['tracked-diff', ['diff', '--binary', 'HEAD', '--', '.', ':!docs/v16.0.0/performance-evidence/exact-commit-ci-20261025']],
+  ].map(([tag, args]) => {
+    const r = native(label + '-' + tag, 'git', ['-C', root, ...args]);
+    return [tag, { bytes: r.stdout.length, sha256: sha(r.stdout), ...(tag === 'head' || tag === 'branch' ? { value: r.stdout.toString('utf8').trim() } : {}) }];
+  }));
+}
+
+// Deliberately capture this setting in memory only; no original address/stdout is written.
+const emailQuery = spawnSync('git', ['-C', root, 'config', '--get', 'user.email'], { encoding: null, windowsHide: true });
+assert.equal(emailQuery.error, undefined); assert.equal(emailQuery.signal, null); assert.ok([0, 1].includes(emailQuery.status));
+const emailValue = (emailQuery.stdout ?? Buffer.alloc(0)).toString('utf8').trim();
+const gitEmailIsPublicNoreply = /^\d+\+[A-Za-z0-9-]+@users\.noreply\.github\.com$/i.test(emailValue) || /^[A-Za-z0-9-]+@users\.noreply\.github\.com$/i.test(emailValue);
+const emailQueryMetadata = { kind: 'PRIVACY_DERIVED_NOT_NATIVE_STDOUT', command: 'git', args: ['-C', root, 'config', '--get', 'user.email'],
+  nativeExit: emailQuery.status, signal: emailQuery.signal, error: null, stdout: { bytes: (emailQuery.stdout ?? Buffer.alloc(0)).length, sha256: sha(emailQuery.stdout ?? Buffer.alloc(0)), persisted: false },
+  stderr: { bytes: (emailQuery.stderr ?? Buffer.alloc(0)).length, sha256: sha(emailQuery.stderr ?? Buffer.alloc(0)), persisted: false }, publicNoreply: gitEmailIsPublicNoreply };
+
+function scan(bytes, allowedFixture = false) {
+  // latin1 indexes equal original byte offsets, preserving non-UTF8 native diagnostics.
+  const text = bytes.toString('latin1'), findings = [], reviewed = [];
+  const patterns = [
+    ['high-confidence-secret', /(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)/g],
+    ['non-noreply-email', /[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,63}/g],
+    ['signed-or-credential-url', /https?:\/\/[^\s<>"'`]+/g],
+  ];
+  for (const [kind, pattern] of patterns) for (const m of text.matchAll(pattern)) {
+    if (kind === 'non-noreply-email' && /@users\.noreply\.github\.com$/i.test(m[0])) continue;
+    if (kind === 'signed-or-credential-url' && !/[?&](?:X-Amz-[^=\s]+|sig(?:nature)?|token|access_token|jwt|se|sv|sp)=/i.test(m[0]) && !/^https?:\/\/[^/]+@/.test(m[0])) continue;
+    const hit = { kind, start: m.index, end: m.index + m[0].length, bytes: m[0].length, sha256: sha(Buffer.from(m[0], 'latin1')) };
+    if (allowedFixture && kind === 'high-confidence-secret' && approvedFixtureMatches.has(hit.sha256)) reviewed.push(hit);
+    else findings.push(hit);
+  }
+  if (emailValue && !gitEmailIsPublicNoreply) {
+    const needle = Buffer.from(emailValue, 'utf8'); let at = 0;
+    while ((at = bytes.indexOf(needle, at)) !== -1) { findings.push({ kind: 'actual-private-git-email', start: at, end: at + needle.length, bytes: needle.length, sha256: sha(needle) }); at += needle.length; }
+  }
+  return { findings, reviewed };
+}
+function probeScreen(base, bytes) {
+  const map = json(resolve(base, 'SOURCE_MAP_PROBE.json')), request = readFileSync(resolve(base, 'probe-git-blobs.request'), 'utf8').trimEnd().split('\n');
+  assert.equal(map.sourceCount, 257); assert.equal(map.rows.length, 257); assert.equal(request.length, 257);
+  let at = 0; const findings = [], reviewed = [], blobs = [];
+  for (let i = 0; i < map.rows.length; i++) {
+    const row = map.rows[i]; assert.equal(request[i], map.target + ':' + row.path);
+    const end = bytes.indexOf(10, at), m = /^([a-f0-9]{40}) blob (\d+)$/.exec(bytes.subarray(at, end).toString('ascii')); assert.ok(m);
+    const start = end + 1, length = Number(m[2]), body = bytes.subarray(start, start + length);
+    assert.equal(m[1], row.gitBlob.oid); assert.equal(length, row.gitBlob.bytes); assert.equal(sha(body), row.gitBlob.sha256); assert.equal(bytes[start + length], 10);
+    const report = scan(body, row.path === 'test/integrity.test.js');
+    for (const hit of report.findings) findings.push({ ...hit, start: hit.start + start, end: hit.end + start, sourcePath: row.path, gitBlob: m[1] });
+    for (const hit of report.reviewed) reviewed.push({ ...hit, start: hit.start + start, end: hit.end + start, sourcePath: row.path, gitBlob: m[1] });
+    blobs.push({ path: row.path, oid: m[1], bytes: length, sha256: sha(body) }); at = start + length + 1;
+  }
+  assert.equal(at, bytes.length); assert.equal(reviewed.length, 2); assert.deepEqual(new Set(reviewed.map(r => r.sha256)), approvedFixtureMatches);
+  return { findings, reviewed, blobBinding: { historicalCommit: map.target, sourceCount: 257, rowsSha256: sha(JSON.stringify(blobs)), originalBatchBytes: bytes.length, originalBatchSha256: sha(bytes) } };
+}
+function redact(bytes, hits) {
+  const ordered = hits.slice().sort((a, b) => a.start - b.start || b.end - a.end), ranges = [];
+  for (const hit of ordered) { const prev = ranges.at(-1); if (prev && hit.start <= prev.end) prev.end = Math.max(prev.end, hit.end); else ranges.push({ start: hit.start, end: hit.end }); }
+  let at = 0; const out = [Buffer.from('DERIVED REDACTED COPY — NOT ORIGINAL NATIVE BYTES. Original byte count/SHA and findings are in archive-plan.json.\n', 'utf8')];
+  for (const r of ranges) { out.push(bytes.subarray(at, r.start), Buffer.from('[REDACTED-PRIVATE-OR-SECRET-SHAPED-VALUE]')); at = r.end; }
+  out.push(bytes.subarray(at)); return Buffer.concat(out);
+}
+function prepare() {
+  const inputs = sourceDefs.map(([prefix, rel]) => {
+    const originalPath = resolve(temp, rel); return { prefix, originalPath, rows: topInventory(originalPath) };
+  });
+  const rows = [], omissions = [], screening = [], blobBindings = [];
+  for (const input of inputs) for (const row of input.rows) {
+    const archivePath = input.prefix + '/' + row.path;
+    if (row.kind !== 'file') { omissions.push({ source: archivePath, ...row, reason: 'No recursive traversal of snapshot, site, extracted payload or junction; explicitly named child workspaces are independently selected' }); continue; }
+    const exactZip = input.prefix === 'download-a2' && row.path === 'download-01.zip';
+    if (exactZip) { assert.equal(row.bytes, zipBytes); assert.equal(row.sha256, zipSha); rows.push({ source: archivePath, archivePath: 'candidate-zip/ci-candidate.zip', ...row, disposition: 'original-bytes', binaryPayloadScreening: 'Parent verified ZIP/TAR/member safety; this archive does not claim binary secret scanning' }); continue; }
+    if (/\.(?:tar(?:\.gz)?|zip)$/i.test(row.path) || row.bytes >= 30 * 1024 * 1024) {
+      omissions.push({ source: archivePath, ...row, reason: row.path === 'exact-source.tar' ? 'Exact source TAR omitted; exact committed SHA/tree/source inventories and native extraction/map records retained' : 'Partial ZIP or duplicate candidate TAR/payload omitted; single complete successful CI candidate ZIP is retained', exactCommit: target }); continue;
+    }
+    assert.equal(/\.(?:jpg|jpeg|png|webp|gif|sqlite|db)$/i.test(row.path), false, 'Unexpected screenshot or user-data-shaped payload');
+    const bytes = readFileSync(resolve(input.originalPath, row.path)); assert.equal(bytes.length, row.bytes); assert.equal(sha(bytes), row.sha256);
+    const report = input.prefix === 'exact-v1-sourceprobe' && row.path === 'probe-git-blobs.stdout' ? probeScreen(input.originalPath, bytes) : scan(bytes);
+    if (report.blobBinding) blobBindings.push({ source: archivePath, ...report.blobBinding });
+    const disposition = report.findings.length ? 'private-original-inventory-only-plus-clearly-derived-redacted-copy' : 'original-bytes';
+    const derived = report.findings.length ? redact(bytes, report.findings) : bytes;
+    rows.push({ source: archivePath, archivePath: archivePath + (report.findings.length ? '.redacted.txt' : ''), ...row, disposition,
+      payload: { bytes: derived.length, sha256: sha(derived) } });
+    screening.push({ source: archivePath, scannedBytes: bytes.length, findingCount: report.findings.length, reviewedSyntheticFixtureCount: report.reviewed.length,
+      findings: report.findings, reviewedSyntheticFixtures: report.reviewed });
+  }
+  assert.equal(rows.filter(r => r.sha256 === zipSha && r.bytes === zipBytes).length, 1);
+  return { schema: 1, kind: 'BOUNDED_ARCHIVE_PREPARATION_NOT_EXECUTED', exactCommit: target, status: 'NOT_RELEASED', generatedAt: new Date().toISOString(), inputs, rows, omissions, screening, blobBindings,
+    gitEmailSetting: emailQueryMetadata,
+    policy: { onlySuccessfulZipOnce: true, noSnapshotsOrJunctionTraversal: true, noLargeSourceTar: true, noDuplicateSiteTarOrExtractedSite: true, preserveFailures: true, newQaRun: false, network: false,
+      approvedSyntheticFixtureScope: 'Only exact parsed Git-batch blob test/integrity.test.js and the two pre-reviewed match hashes; all257 blob boundaries/size/OID/SHA are checked against original SOURCE_MAP_PROBE',
+      privacy: 'All non-noreply email/signed URL/high-confidence token hits excluded as raw public bytes; inventory original SHA plus explicitly labeled derived redacted bytes only. Current Git email stays memory-only.',
+      limitations: 'No comprehensive secret certification. No binary ZIP/model secret scanning; no screenshots, userStorage, production, device or release evidence added.' } };
+}
+const mode = process.argv[2] ?? 'prepare';
+assert.ok(['prepare', 'execute'].includes(mode));
+if (mode === 'prepare') {
+  const plan = prepare(); saveJSON(resolve(here, 'PREPARED.json'), plan);
+  process.stdout.write(JSON.stringify({ status: plan.kind, inputWorkspaces: plan.inputs.length, plannedFiles: plan.rows.length, plannedBytes: plan.rows.reduce((s, r) => s + (r.payload?.bytes ?? r.bytes), 0),
+    omittedFilePayloads: plan.omissions.filter(r => r.kind === 'file').length, privacyAffectedFiles: plan.screening.filter(r => r.findingCount).map(r => ({ source: r.source, count: r.findingCount })),
+    reviewedSyntheticMatches: plan.screening.reduce((s, r) => s + r.reviewedSyntheticFixtureCount, 0), statusRelease: 'NOT_RELEASED' }) + '\n');
+} else {
+  assert.equal(process.argv[3], 'PARENT_FINAL_SOURCES_FROZEN', 'Explicit final parent freeze token required');
+  assert.equal(existsSync(dest), false); assert.equal(existsSync(resolve(here, 'stage')), false); assert.equal(existsSync(resolve(here, 'extract')), false);
+  const before = gitGuard('before'); assert.equal(before.head.value, target); assert.equal(before.index.bytes, 0);
+  const plan = prepare(); plan.kind = 'BOUNDED_ARCHIVE_EXECUTION_PLAN';
+  assert.ok(existsSync(resolve(temp, 'FundVal-m3-final-acceptance-matrix-20261025-child/REPORT.md')));
+  assert.ok(existsSync(resolve(temp, 'FundVal-branch-artifact-auditor-v2-20261025-child/REPORT.md')));
+  assert.equal(hashFile(resolve(temp, 'FundVal-m3-final-acceptance-matrix-20261025-child/REPORT.md')).sha256, 'a8accc25046979764d51b6c2eb6c04e0f6e3cf267b94b178490140edbe30ff18');
+  assert.equal(hashFile(resolve(temp, 'FundVal-branch-artifact-auditor-v2-20261025-child/run-40174354009-attempt-1-v2-20261025/RESULT.json')).sha256, '9814242b0412d2dddd06db2e2700910a4a752b16bd2d7e259573857fac59d78e');
+  const stage = resolve(here, 'stage'), extract = resolve(here, 'extract');
+  for (const row of plan.rows) {
+    const input = plan.inputs.find(i => row.source.startsWith(i.prefix + '/')); assert.ok(input);
+    const physical = resolve(input.originalPath, row.path); assert.deepEqual(hashFile(physical), { bytes: row.bytes, sha256: row.sha256 });
+    const targetPath = resolve(stage, row.archivePath); assert.ok(targetPath.startsWith(stage + sep)); mkdirSync(dirname(targetPath), { recursive: true });
+    if (row.disposition === 'original-bytes') copyFileSync(physical, targetPath, 1);
+    else { const item = plan.screening.find(r => r.source === row.source); save(targetPath, redact(readFileSync(physical), item.findings)); }
+    assert.deepEqual(hashFile(targetPath), row.payload ?? { bytes: row.bytes, sha256: row.sha256 });
+  }
+  saveJSON(resolve(stage, 'archive-plan.json'), plan); save(resolve(stage, 'archive-tool.mjs.txt'), readFileSync(import.meta.filename));
+  save(resolve(stage, 'README.md'), readFileSync(resolve(here, 'README.md')));
+  const rows = inventory(stage); assert.equal(rows.filter(r => r.sha256 === zipSha && r.bytes === zipBytes).length, 1);
+  mkdirSync(dest); saveJSON(resolve(dest, 'archive-plan.json'), plan); save(resolve(dest, 'README.md'), readFileSync(resolve(here, 'README.md')));
+  const packed = native('tar-create', 'tar.exe', ['-czf', resolve(dest, 'original-evidence.tar.gz'), '-C', stage, '.']);
+  mkdirSync(extract); const unpacked = native('tar-extract', 'tar.exe', ['-xzf', resolve(dest, 'original-evidence.tar.gz'), '-C', extract]);
+  assert.deepEqual(inventory(extract), rows);
+  for (const input of plan.inputs) assert.deepEqual(topInventory(input.originalPath), input.rows, 'Original source workspace unchanged: ' + input.prefix);
+  const after = gitGuard('after'); assert.deepEqual(after, before);
+  const archive = hashFile(resolve(dest, 'original-evidence.tar.gz'));
+  const audit = { schema: 1, status: 'ARCHIVE_VERIFIED_NOT_RELEASED', exactCommit: target, archive, over50MiB: archive.bytes >= 50 * 1024 * 1024,
+    members: rows.length, expandedBytes: rows.reduce((s, r) => s + r.bytes, 0), memberRowsSha256: sha(JSON.stringify(rows)), memberRows: rows,
+    nativeCreate: packed.receipt, nativeExtract: unpacked.receipt, sourceWorkspaceCount: plan.inputs.length,
+    sourceWorkspacesUnchanged: true, sourceInventoryScope: 'Every top-level regular file bytes/SHA plus immediate directory/link names only; no traversal of excluded snapshots/sites/junctions',
+    successfulCandidateZip: { archivePath: 'candidate-zip/ci-candidate.zip', bytes: zipBytes, sha256: zipSha, copies: 1 },
+    preservedNativeFailures: true, privacy: { derivedFiles: plan.rows.filter(r => r.disposition !== 'original-bytes').map(r => ({ original: r.source, originalBytes: r.bytes, originalSha256: r.sha256, derivedPath: r.archivePath, derived: r.payload })), currentGitEmailPersisted: false },
+    checks: { freshStage: true, freshExtractionEveryByteSha256: true, headBranchIndexAndOtherTrackedDiffUnchanged: true, noSourceTarSnapshotOrDuplicateSitePayload: true,
+      originalFailuresNotRewritten: true, noQABuildTestNetworkRerun: true, noRepositoryCodeGitOrConfigurationMutation: true },
+    released: false, deployed: false, m3ExitClaim: false, limitations: plan.policy.limitations };
+  saveJSON(resolve(dest, 'archive-audit.json'), audit); save(resolve(dest, 'archive-tool.mjs.txt'), readFileSync(import.meta.filename));
+  for (const entry of readdirSync(here, { withFileTypes: true })) if (entry.isFile() && /^(?:before|after|tar-create|tar-extract)[-.]/.test(entry.name)) {
+    const bytes = readFileSync(resolve(here, entry.name)), screening = scan(bytes);
+    assert.equal(screening.findings.length, 0, 'Unexpected privacy finding in archive-generated native file; no raw publication');
+    save(resolve(dest, 'archive-native', entry.name), bytes);
+  }
+  saveJSON(resolve(here, 'RESULT.json'), audit);
+  process.stdout.write(JSON.stringify({ status: audit.status, archive, over50MiB: audit.over50MiB, members: audit.members, expandedBytes: audit.expandedBytes, privacyDerivedFiles: audit.privacy.derivedFiles.length }) + '\n');
+}

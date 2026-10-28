@@ -1,7 +1,7 @@
 import { normalizeEstimateQuote } from './runtime/quote-normalizer.js';
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
 import { fundDataApiUrl } from './config.js';
-import { normalizeWorkerEstimateRow, parseWorkerEnvelope, WorkerContractError } from './runtime/worker-contract.js';
+import { normalizeWorkerEstimateRow, parseWorkerHttpEnvelope, WorkerContractError } from './runtime/worker-contract.js';
 
 const TIMEOUT = 10000;
 
@@ -10,7 +10,7 @@ function safeText(value, maximum = 300) {
   return text.length <= maximum && !/[<>\u0000-\u001f\u007f]/.test(text) ? text : '';
 }
 
-export function normalizeEstimateRow(row, options = {}) {
+function normalizeRow(row, options = {}, clientReceivedAt = null) {
   const code = String(row?.code || row?.bzdm || '');
   if (!/^\d{6}$/.test(code)) return null;
   let wire;
@@ -53,7 +53,11 @@ export function normalizeEstimateRow(row, options = {}) {
     fallback_reason: safeText(wire.fallback_reason || '', 80),
     diagnostics: row.diagnostics && typeof row.diagnostics === 'object' ? { ...row.diagnostics } : {},
   };
-  normalized.source_quote = normalizeEstimateQuote({ ...normalized, status: wire.source_status }, {
+  // Preserve raw row metadata. Only the HTTP adapter's accepted skew path may
+  // project the local receipt into Quote acquisition time, ahead of row aliases.
+  const quoteInput = { ...normalized, status: wire.source_status };
+  if (clientReceivedAt) quoteInput.fetched_at = clientReceivedAt;
+  normalized.source_quote = normalizeEstimateQuote(quoteInput, {
     fetchedAt: options.fetchedAt || row.fetched_at,
     now: options.now,
   });
@@ -62,6 +66,10 @@ export function normalizeEstimateRow(row, options = {}) {
     if (!normalized.message) normalized.message = '估值源未提供可用行情';
   }
   return normalized;
+}
+
+export function normalizeEstimateRow(row, options = {}) {
+  return normalizeRow(row, options);
 }
 
 export async function fetchEstimateRows(codes, options = {}) {
@@ -80,9 +88,11 @@ export async function fetchEstimateRows(codes, options = {}) {
     });
     if (!response.ok) throw new Error(`估值代理 HTTP ${response.status}`);
     const payload = await response.json();
-    const envelope = parseWorkerEnvelope(payload, { endpoint: 'estimates', requestedCodes: wanted, now: options.now });
+    const receivedAt = options.now === undefined ? Date.now() : options.now;
+    const envelope = parseWorkerHttpEnvelope(payload, { endpoint: 'estimates', requestedCodes: wanted, now: receivedAt });
     envelope.items.forEach((row) => {
-      const normalized = normalizeEstimateRow(row, { wireVersion: envelope.wireVersion, fetchedAt: envelope.fetchedAt, now: options.now });
+      const normalized = normalizeRow(row, { wireVersion: envelope.wireVersion, fetchedAt: envelope.fetchedAt,
+        now: options.now }, envelope.clientReceivedAt);
       if (normalized && output.has(normalized.code)) output.set(normalized.code, normalized);
     });
     return output;

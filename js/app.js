@@ -1,8 +1,9 @@
 import { APP_VERSION } from './version.js';
 import { createPwaUpdateController } from './runtime/pwa-update-controller.js';
+import { createPageNavigation } from './runtime/page-navigation.js';
 import { createSyncStatus } from './runtime/sync-status.js';
 import { TIMING, TTL, refreshInterval } from './config.js';
-import { safeGetItem, safeRemoveItem, safeSetItem } from './storage.js';
+import { safeGetItem, safeRemoveItem, safeSetItem, safeStorageKeys } from './storage.js';
 import { resolveQuoteBaseNav } from './calculator.js';
 import { classifyFundMarket, refreshDelayForMarkets } from './freshness.js';
 import {
@@ -39,6 +40,7 @@ import {
 
 const CACHE_KEY = 'fuyu_funds_cache_v1';
 const GIST_TOKEN_KEY = 'fuyu_gist_token';
+const GIST_CONSENT_KEY = 'fuyu_gist_token_persist';
 const GIST_ID_KEY = 'fuyu_gist_id';
 const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
@@ -108,8 +110,9 @@ const syncController = createSyncStatus({
   TIMING, document,
   isUpdateApplying: () => pwaUpdateController.isUpdateApplying(),
   getHoldingsDocument: () => holdingsDocument,
-  getGistToken, getGistId, setGistId, getSyncTime, setSyncTime,
-  loadSyncMeta, markSyncPending, loadCloudSyncFeature, findExistingGist,
+  getGistToken, getGistId, setGistId, setSyncTime,
+  loadSyncMeta, markSyncPending, loadCloudSyncFeature, listGists: listCloudArchives,
+  setArchiveCandidates,
   createGistRemoteAdapter, createCloudLocalAdapter, reloadHoldingsAfterCloud,
   renderHoldingsList, refresh, showToast, nowISO,
   setTimeout, clearTimeout, setInterval, clearInterval,
@@ -323,11 +326,76 @@ function importData(event) { return runHoldingsTransfer('importData', event); }
 function restoreLatestBackup() { return runHoldingsTransfer('restoreLatestBackup'); }
 
 // ── 云同步 (GitHub Gist) — 双向自动同步 ────────────────────
-function getGistToken() { return safeGetItem(GIST_TOKEN_KEY) || ''; }
-function setGistToken(t) { return safeSetItem(GIST_TOKEN_KEY, t); }
-function getGistId() { return safeGetItem(GIST_ID_KEY) || ''; }
-function setGistId(id) { return safeSetItem(GIST_ID_KEY, id); }
-function getSyncTime() { return safeGetItem(GIST_SYNC_TIME_KEY) || ''; }
+let gistCredentialStore = null;
+let gistCredentialsPromise = null;
+let cloudInputRevision = 0;
+function sessionStore() {
+  try { return window.sessionStorage; } catch (_) { return null; }
+}
+function localStore() {
+  try { return window.localStorage; } catch (_) { return null; }
+}
+function loadGistCredentials() {
+  if (!gistCredentialsPromise) gistCredentialsPromise = import('./storage/gist-credentials.js')
+    .then(module => {
+      gistCredentialStore = module.createGistCredentialStore({ sessionStorage: sessionStore(), localStorage: localStore(),
+        tokenKey: GIST_TOKEN_KEY, consentKey: GIST_CONSENT_KEY });
+      return gistCredentialStore;
+    }).catch(error => { gistCredentialsPromise = null; throw error; });
+  return gistCredentialsPromise;
+}
+function getGistToken() { return gistCredentialStore?.read().token || ''; }
+function resetCloudConfiguration(gistId = '') {
+  syncController.resetCloudState({ preserveBackoff: Boolean(gistId) });
+  if (gistId && !setGistId(gistId)) { showToast('档案选择保存失败，请检查浏览器存储'); return false; }
+  safeRemoveItem(GIST_SYNC_TIME_KEY);
+  safeRemoveItem(SYNC_META_KEY);
+  if (!gistId) { safeRemoveItem(GIST_ID_KEY); setArchiveCandidates([]); }
+  return true;
+}
+async function setGistToken(token, options = {}) {
+  cloudInputRevision += 1;
+  const store = await loadGistCredentials();
+  const previous = store.read();
+  const saved = store.save(token, { persist: options.persist === true });
+  const changed = previous.token !== store.read().token;
+  if (changed) resetCloudConfiguration();
+  renderCredentialStatus();
+  renderCloudStatus();
+  return saved;
+}
+async function clearGistCredentials() {
+  const revision = ++cloudInputRevision;
+  resetCloudConfiguration();
+  const store = await loadGistCredentials();
+  const result = store.clear();
+  const scope = syncController.captureConfigurationScope(store.read().token);
+  if (cloudInputRevision === revision) {
+    document.getElementById('gist-token').value = '';
+    const remember = document.getElementById('gist-remember-token');
+    if (remember) remember.checked = false;
+  }
+  renderCredentialStatus();
+  renderCloudStatus();
+  // Internal UI result, not a persistable DTO: evaluate current when the
+  // awaiting tool consumes it, after any already-queued credential save.
+  return Object.freeze({ ...result, get current() { return scope.isCurrent(); } });
+}
+function renderCredentialStatus() {
+  const state = gistCredentialStore?.read();
+  const legacy = state?.legacyPending || (!state && safeStorageKeys().includes(GIST_TOKEN_KEY) && safeGetItem(GIST_CONSENT_KEY) !== 'true');
+  const hint = document.getElementById('gist-credential-status');
+  if (hint) hint.textContent = legacy
+    ? '检测到旧版持久 Token，未自动启用。请重新输入并选择保存方式。'
+    : state?.mode === 'persistent' ? 'Token 已按你的选择保存在此浏览器。清除配置可撤销保存。'
+    : state?.mode === 'memory' ? '浏览器存储不可用，Token 仅在当前页面内存中保留。'
+    : '默认仅本次会话使用 Token，不写入持久存储。';
+}
+function getGistId() {
+  const id = safeGetItem(GIST_ID_KEY) || '';
+  return /^[a-f0-9]{1,64}$/i.test(id) ? id : '';
+}
+function setGistId(id) { return (id === '' || /^[a-f0-9]{1,64}$/i.test(id)) && safeSetItem(GIST_ID_KEY, id); }
 function setSyncTime(t) { return safeSetItem(GIST_SYNC_TIME_KEY, t); }
 
 // 同步元数据：记录上次 push 时数据的快照 hash，用于判断是否需要推送
@@ -362,26 +430,32 @@ function gistRequest(url, options) {
 
 async function createGistRemoteAdapter(token, gistId, options = {}) {
   const runtime = await loadGistRemoteModule();
+  const isCurrent = options.isCurrent || (() => true);
   return runtime.createGistRemoteAdapter({
     token,
     gistId,
     deviceId: options.deviceId || holdingsDocument?.deviceId,
-    request: gistRequest,
+    request: async (url, init) => {
+      if (!isCurrent()) throw new DOMException('Cloud configuration changed', 'AbortError');
+      const response = await gistRequest(url, { ...init, signal: options.signal });
+      if (!isCurrent()) throw new DOMException('Cloud configuration changed', 'AbortError');
+      return response;
+    },
     now: nowISO,
   });
 }
 
-async function createCloudLocalAdapter(gistId) { return (await loadCloudArchiveFeature()).createCloudLocalAdapter(gistId); }
+async function createCloudLocalAdapter(gistId, options = {}) { return (await loadCloudArchiveFeature()).createCloudLocalAdapter(gistId, options); }
 
-function reloadHoldingsAfterCloud() {
+function reloadHoldingsAfterCloud(scope = {}) {
   return withHoldingsLock(() => {
+    if (scope.isCurrent && !scope.isCurrent()) return { ok: false, reason: 'cloud_configuration_changed' };
     const loaded = loadHoldingsRepository(undefined, { cacheKey: CACHE_KEY });
     if (loaded.ok) installHoldingsDocument(loaded.document);
     return loaded;
   });
 }
 
-function handleCloudFailure(result, silent) { return syncController.handleCloudFailure(result, silent); }
 
 function markSyncPending() {
   syncController.setSyncPending(true);
@@ -415,12 +489,14 @@ let cloudArchiveFeature;
 function loadCloudArchiveFeature() {
     if (!cloudArchiveFeature) cloudArchiveFeature = import("./storage/cloud-archive-ui.js").then(module => module.createCloudArchiveFeature({
       CACHE_KEY, getHoldingsDocument: () => holdingsDocument, getHoldings: () => holdings,
-      GIST_TOKEN_KEY, GIST_ID_KEY, GIST_SYNC_TIME_KEY, SYNC_META_KEY, safeRemoveItem,
-      resetCloudState: syncController.resetCloudState,
       loadCloudSyncFeature, loadGistRemoteModule, nowISO, fetchWithTimeout, setGistId, createGistRemoteAdapter,
       loadSyncMeta, saveSyncMeta, setSyncTime, setSyncPending: syncController.setSyncPending,
-      installHoldingsDocument, setGistToken, getGistId, pushToCloud, pullFromCloud, markSyncPending,
-      handleCloudFailure, renderCloudStatus, showToast, startAutoPull, findExistingGist,
+      installHoldingsDocument, setGistToken, clearGistCredentials, getGistId, pushToCloud, pullFromCloud, markSyncPending,
+      renderCloudStatus, showToast, startAutoPull,
+      resolveGistId, listCloudArchives, setArchiveCandidates,
+      runManualOperation: syncController.runManualOperation,
+      captureCloudConfigurationScope: syncController.captureConfigurationScope,
+      getSyncStatus: syncController.getStatus,
     })).catch(error => { cloudArchiveFeature = null; throw error; });
   return cloudArchiveFeature;
 }
@@ -432,13 +508,46 @@ async function runCloudArchiveAction(action) {
 function uploadToCloud() { return runCloudArchiveAction("uploadToCloud"); }
 function downloadFromCloud() { return runCloudArchiveAction("downloadFromCloud"); }
 
-// ── 搜索已存在的云端存档 ──────────────────────────────────
-async function findExistingGist(token) {
-  try {
-    const runtime = await loadGistRemoteModule();
-    return await runtime.findExistingHoldingsGist({ token, request: gistRequest, maxPages: 5 }) || null;
-  } catch(e) { return null; }
+async function listCloudArchives(token) {
+  const runtime = await loadGistRemoteModule();
+  return runtime.listHoldingsGists({ token, request: gistRequest, maxPages: 5 });
 }
+let archiveCandidates = [];
+function setArchiveCandidates(candidates) {
+  archiveCandidates = Array.isArray(candidates) ? candidates.filter(item => /^[a-f0-9]{1,64}$/i.test(item?.id || '')) : [];
+  const select = document.getElementById('gist-archive');
+  if (!select) return;
+  select.replaceChildren();
+  const placeholder = document.createElement('option');
+  placeholder.value = ''; placeholder.textContent = archiveCandidates.length ? '请选择云端档案' : '尚未发现档案';
+  select.append(placeholder);
+  for (const candidate of archiveCandidates) {
+    const option = document.createElement('option');
+    option.value = candidate.id;
+    option.textContent = `${candidate.id} · Schema ${candidate.schema}`;
+    select.append(option);
+  }
+  const current = getGistId();
+  if (current && !archiveCandidates.some(item => item.id === current)) {
+    const option = document.createElement('option');
+    option.value = current; option.textContent = `当前档案 ${current}`; select.append(option);
+  }
+  select.value = current;
+}
+function selectCloudArchive() {
+  const id = document.getElementById('gist-archive')?.value || '';
+  if (!archiveCandidates.some(item => item.id === id) || id === getGistId()) return;
+  if (!confirm('切换到所选云端档案？本地持仓会保留，之后同步将与该档案合并。')) {
+    document.getElementById('gist-archive').value = getGistId(); return;
+  }
+  if (!resetCloudConfiguration(id)) {
+    document.getElementById('gist-archive').value = getGistId();
+    renderCloudStatus();
+    return;
+  }
+  markSyncPending(); renderCloudStatus(); startAutoPull();
+}
+function refreshCloudArchives() { return runCloudArchiveAction('refreshCloudArchives'); }
 
 
 function clearCloudConfig() { return runCloudArchiveAction("clearCloudConfig"); }
@@ -1557,6 +1666,9 @@ async function delFund(code) {
 // ── 页面切换 ─────────────────────────────────────────────
 let lastEditPull = 0;
 function switchPage(name) {
+  pageNavigation.navigate(name);
+}
+function showPagePanel(name) {
   var page = document.getElementById('page-' + name);
   var nav = document.getElementById('nav-' + name);
   if (!page || !nav) return;
@@ -1574,6 +1686,7 @@ function switchPage(name) {
   }
   // Switching panels preserves the draft and its original conflict baseline.
 }
+const pageNavigation = createPageNavigation({ window, showPage: showPagePanel });
 
 // ── 指数行情条（腾讯 JSONP 仅在无同源存储权限的隔离 Bridge 内执行） ────
 // ── 黄金 AU9999 实时金价（复刻司南基金：东方财富 push2 + 持久缓存兜底） ──
@@ -1768,9 +1881,11 @@ function hasUnsavedHoldingEditorInput() {
 function hasUnsavedPageInput() {
   var tokenInput = document.getElementById('gist-token');
   var tokenChanged = tokenInput
-    ? String(tokenInput.value || '').trim() !== String(safeGetItem(GIST_TOKEN_KEY) || '').trim()
+    ? String(tokenInput.value || '').trim() !== getGistToken()
     : false;
-  return hasUnsavedHoldingEditorInput() || tokenChanged;
+  const remember = document.getElementById('gist-remember-token');
+  const persistenceChanged = Boolean(remember?.checked) !== (gistCredentialStore?.read().mode === 'persistent');
+  return hasUnsavedHoldingEditorInput() || tokenChanged || persistenceChanged;
 }
 
 function hasServiceWorkerUpdateBlocker() {
@@ -1843,6 +1958,7 @@ function handleAppAction(event) {
   else if (action === 'cancel-edit') cancelEdit();
   else if (action === 'cloud-upload') uploadToCloud();
   else if (action === 'cloud-download') downloadFromCloud();
+  else if (action === 'cloud-discover') refreshCloudArchives();
   else if (action === 'restore-backup') restoreLatestBackup();
   else if (action === 'clear-cloud') clearCloudConfig();
   else if (action === 'export-data') exportData();
@@ -1859,6 +1975,9 @@ function handleAppAction(event) {
 function initActionBindings() {
   document.addEventListener('click', handleAppAction);
   document.getElementById('imp-file')?.addEventListener('change', importData);
+  document.getElementById('gist-archive')?.addEventListener('change', selectCloudArchive);
+  document.getElementById('gist-token')?.addEventListener('input', () => { cloudInputRevision += 1; });
+  document.getElementById('gist-remember-token')?.addEventListener('change', () => { cloudInputRevision += 1; });
   document.getElementById('diagnostics-center')?.addEventListener('toggle', function(event) {
     if (event.currentTarget.open) refreshDiagnosticsCenter();
   });
@@ -1873,7 +1992,10 @@ window.addEventListener('beforeunload', function(event) {
 });
 
 window.addEventListener('pagehide', function(event) {
-  if (!event.persisted && quoteBridge) quoteBridge.destroy();
+  if (!event.persisted) {
+    pageNavigation.dispose();
+    if (quoteBridge) quoteBridge.destroy();
+  }
 }, { once: true });
 
 window.addEventListener('online', function() {
@@ -1883,6 +2005,7 @@ window.addEventListener('online', function() {
 
 var returnedFromOcrImport = consumeOcrImportReturn();
 await loadHoldings();
+pageNavigation.start();
 document.documentElement.dataset.appReady = 'true';
 if (holdingsStorageError) {
   showToast('持仓存储校验失败，已停止写入，请先使用备份恢复');
@@ -1904,6 +2027,25 @@ if (returnedFromOcrImport) {
 startAutoRefresh();
 initPullToRefresh();
 scheduleNotificationFeature();
-autoPullOnLoad();
-startAutoPull();
-if (getGistToken()) document.getElementById('gist-token').value = getGistToken();
+renderCredentialStatus();
+setArchiveCandidates([]);
+// No credential module or cloud request on the default, unconfigured startup.
+// Only a prior session or explicitly consented persistent token enables it.
+if (safeGetItem(GIST_TOKEN_KEY, sessionStore()) || safeGetItem(GIST_CONSENT_KEY) === 'true') {
+  const initialTokenInput = document.getElementById('gist-token').value;
+  const initialRememberChoice = document.getElementById('gist-remember-token').checked;
+  const initialCloudInputRevision = cloudInputRevision;
+  loadGistCredentials().then(() => {
+    const token = getGistToken();
+    const input = document.getElementById('gist-token');
+    const remember = document.getElementById('gist-remember-token');
+    const untouched = cloudInputRevision === initialCloudInputRevision
+      && input.value === initialTokenInput && remember.checked === initialRememberChoice;
+    if (untouched && token) {
+      input.value = token;
+      remember.checked = gistCredentialStore.read().mode === 'persistent';
+    }
+    renderCredentialStatus(); renderCloudStatus();
+    if (untouched) { autoPullOnLoad(); startAutoPull(); }
+  }).catch(() => showToast('会话凭证暂不可用，请重新输入 Token'));
+}

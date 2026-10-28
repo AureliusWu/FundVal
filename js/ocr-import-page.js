@@ -4,6 +4,7 @@ import {
   createHoldingImportPlan,
   importPlanSummary,
   resolveCandidateSelectionAction,
+  setHoldingImportRowEnabled,
   validateHoldingImportPlan,
 } from './holding-import-plan.js';
 import { reconstructOcrTableLayout } from './ocr-table-layout.js';
@@ -17,6 +18,7 @@ import { runStartupIntegrityChecks } from './resilience.js';
 import { safeRemoveItem, safeSetItem } from './storage.js';
 import { loadHoldingsRepository, withHoldingsLock } from './storage/holdings-repository.js';
 import { commitConfirmedImport } from './ocr/import-transaction.js';
+import { createOcrPageGuard } from './ocr/page-guard.js';
 
 const CACHE_KEY = 'fuyu_funds_cache_v1';
 const OCR_IMPORT_PENDING_KEY = 'fuyu_ocr_import_pending_v1';
@@ -26,6 +28,7 @@ let paddleOcrModulePromise = null;
 let activeRecognitionTask = null;
 let importInProgress = false;
 let activeMatchSession = null;
+let pageGuard = null;
 let state = { rows: [], catalogWarning: '' };
 
 function monotonicNow() {
@@ -148,6 +151,8 @@ function beginRecognitionTask() {
   const task = { session: ++activeSession, controller: new AbortController() };
   activeRecognitionTask = task;
   setRecognitionControlsDisabled(true);
+  const cancel = element('ocr-import-cancel');
+  if (cancel) { cancel.hidden = false; cancel.disabled = false; }
   return task;
 }
 
@@ -155,6 +160,16 @@ function finishRecognitionTask(task) {
   if (activeRecognitionTask !== task) return;
   activeRecognitionTask = null;
   setRecognitionControlsDisabled(false);
+  const cancel = element('ocr-import-cancel');
+  if (cancel) { cancel.hidden = true; cancel.disabled = false; }
+  if (task.cancelRequested) {
+    renderIntro();
+    setStatus('已取消识别。请选择截图后重试。');
+  }
+}
+
+function isRecognitionTaskCurrent(task) {
+  return activeRecognitionTask === task && task.session === activeSession && !task.controller.signal.aborted;
 }
 
 async function currentHoldings() {
@@ -182,7 +197,7 @@ function renderIntro() {
   element('ocr-import-body').innerHTML = `
     <div class="ocr-results-summary">
       <strong>开始前请确认</strong><br>
-      请选择带有支付宝标识的完整「基金持有」页面截图。图片只在此独立页面的本机内存中处理；系统不会根据估值猜测份额。为避免手机内存溢出，超过 1600 万像素的超长截图仍需裁剪后分次识别。
+      请选择带有支付宝标识的完整「基金持有」页面截图。图片只在此独立页面的本机内存中处理；系统不会根据估值猜测份额。为避免手机内存溢出，超过 16 Mi像素（16,777,216 像素）的超长截图仍需裁剪后分次识别。
     </div>`;
   element('ocr-import-confirm').hidden = true;
   element('ocr-import-retry').hidden = true;
@@ -246,6 +261,15 @@ function buildPaddleHoldingCandidates(recognition, catalog, matchSession) {
       holdingProfitRate: row.holdingProfitRate,
       dailyProfit: row.dailyProfit,
       match: row.match,
+      semanticReliable: row.semanticReliable === true,
+      risks: {
+        identityUncertain: row.match?.status !== 'matched'
+          || !['code', 'exact_name'].includes(row.match?.strategy)
+          || normalizeFundName(row.name) !== normalizeFundName(row.match?.name),
+        shareClassUncertain: row.match?.status !== 'matched' && (row.match?.candidates?.length || 0) > 1,
+        numericAmbiguous: row.evidence?.middle > 2 || row.evidence?.right > 2,
+        signUncertain: row.risks?.signUncertain === true,
+      },
       warnings,
       bbox: row.bbox,
     };
@@ -305,7 +329,7 @@ function snapshotItem(label, value, suffix = '') {
 }
 
 function renderCandidate(row) {
-  const needsConfirmation = row.matchStatus !== 'matched';
+  const needsConfirmation = row.matchStatus !== 'matched' || row.requiresExplicitEnable;
   const warnings = row.warnings.length
     ? `<ul class="ocr-warning-list">${row.warnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join('')}</ul>`
     : '';
@@ -326,6 +350,7 @@ function renderCandidate(row) {
         ${snapshotItem('截图收益率', row.holdingProfitRate, '%')}
         ${snapshotItem('截图日收益', row.dailyProfit)}
       </div>
+      <label class="ocr-confirm-check" data-field="enable-container"${row.requiresExplicitEnable ? '' : ' hidden'}><input type="checkbox" data-field="enable"${row.explicitlyEnabled ? ' checked' : ''}>我已核对本行基金身份和真实份额，启用此行</label>
       <div class="ocr-row"><label class="ocr-row-label">处理方式</label><select class="ocr-action-select" data-field="action">${actionOptions(row)}</select></div>
       <div class="ocr-row"><label class="ocr-row-label">基金候选（代码优先；同名 A/C 不会自动混用）</label><select class="ocr-match-choice" data-field="candidate">${candidateOptions(row)}</select></div>
       <div class="ocr-inline-grid">
@@ -354,21 +379,25 @@ function renderResults() {
   element('ocr-import-pick').hidden = true;
 }
 
+function readCandidateFormRow(row, root) {
+  const value = field => root.querySelector(`[data-field="${field}"]`)?.value ?? '';
+  return {
+    ...row,
+    action: value('action'),
+    code: value('code').trim(),
+    name: value('name').trim(),
+    shares: value('shares').trim(),
+    cost: value('cost').trim(),
+    useScreenshotCost: Boolean(root.querySelector('[data-field="screenshot-cost"]')?.checked),
+    explicitSkip: root.dataset.explicitSkip === 'true',
+  };
+}
+
 function readRowsFromForm() {
   return state.rows.map(row => {
     const root = element('ocr-import-body').querySelector(`[data-row-id="${row.id}"]`);
     if (!root) return { ...row };
-    const value = field => root.querySelector(`[data-field="${field}"]`)?.value ?? '';
-    return {
-      ...row,
-      action: value('action'),
-      code: value('code').trim(),
-      name: value('name').trim(),
-      shares: value('shares').trim(),
-      cost: value('cost').trim(),
-      useScreenshotCost: Boolean(root.querySelector('[data-field="screenshot-cost"]')?.checked),
-      explicitSkip: root.dataset.explicitSkip === 'true',
-    };
+    return readCandidateFormRow(row, root);
   });
 }
 
@@ -416,6 +445,7 @@ async function processSelectedFile(file) {
   try {
     paddleOcrModulePromise ||= import('./paddle-local-ocr.js');
     const localOcr = await paddleOcrModulePromise;
+    if (!isRecognitionTaskCurrent(task)) return;
     failureStage = 'recognition';
     const recognition = await localOcr.recognizeAlipayPaddleImage(file, {
       signal: task.controller.signal,
@@ -425,7 +455,7 @@ async function processSelectedFile(file) {
     performanceRun.imageWidth = recognition?.imageWidth || performanceRun.imageWidth;
     performanceRun.imageHeight = recognition?.imageHeight || performanceRun.imageHeight;
     performanceRun.blockCount = Array.isArray(recognition?.tokens) ? recognition.tokens.length : 0;
-    if (session !== activeSession) return;
+    if (!isRecognitionTaskCurrent(task)) return;
     setWorking(session, 'matching');
     let catalog = [];
     let catalogWarning = '';
@@ -435,6 +465,7 @@ async function processSelectedFile(file) {
     } catch (_) {
       catalogWarning = '基金目录暂不可用，请手动确认代码和名称。';
     }
+    if (!isRecognitionTaskCurrent(task)) return;
     activeMatchSession?.clear();
     activeMatchSession = createFundMatchSession(catalog, {
       fuzzyThreshold: 0.78,
@@ -443,7 +474,7 @@ async function processSelectedFile(file) {
       memoLimit: 128,
     });
     performanceRun.catalogLoadMs = monotonicNow() - catalogStartedAt;
-    if (session !== activeSession) return;
+    if (!isRecognitionTaskCurrent(task)) return;
     failureStage = 'layout';
     const parsed = buildPaddleHoldingCandidates(recognition, catalog, activeMatchSession);
     mergeRecognitionPerformance(performanceRun, parsed.performance);
@@ -463,6 +494,7 @@ async function processSelectedFile(file) {
     recordPerformanceOnce('none');
     failureStage = 'parse';
     const holdingsSnapshot = await currentHoldings();
+    if (!isRecognitionTaskCurrent(task)) return;
     if (holdingsSnapshot == null) {
       state = { rows: [], catalogWarning: '' };
       element('ocr-import-body').innerHTML = '<div class="ocr-results-summary">无法安全读取现有持仓。请返回主页面完成数据恢复后再导入。</div>';
@@ -470,7 +502,7 @@ async function processSelectedFile(file) {
       return;
     }
     state = {
-      rows: createHoldingImportPlan(parsed.holdings, holdingsSnapshot.holdings),
+      rows: createHoldingImportPlan(parsed.holdings, holdingsSnapshot.holdings, { importable: parsed.layout.schema.importable }),
       catalogWarning,
       holdings: holdingsSnapshot.holdings,
       baselineDocument: holdingsSnapshot.document,
@@ -540,6 +572,7 @@ async function confirmImport() {
       return;
     }
     recordCommitTiming();
+    clearSensitiveSession();
     // The main page consumes the recovery flag on its next startup. If the
     // scheduled navigation is interrupted, a later open still triggers the
     // existing Gist retry and valuation refresh for this confirmed batch.
@@ -563,13 +596,23 @@ async function confirmImport() {
 }
 
 function chooseCandidate(event) {
+  const enable = event.target.closest('[data-field="enable"]');
+  if (enable) {
+    const root = enable.closest('[data-row-id]');
+    const index = state.rows.findIndex(item => item.id === root?.dataset.rowId);
+    if (index < 0) return;
+    const row = setHoldingImportRowEnabled(readCandidateFormRow(state.rows[index], root), enable.checked);
+    state.rows[index] = row;
+    root.querySelector('[data-field="action"]').value = row.action;
+    return;
+  }
   const actionSelect = event.target.closest('[data-field="action"]');
   if (actionSelect) {
     const root = actionSelect.closest('[data-row-id]');
     if (!root) return;
     root.dataset.explicitSkip = actionSelect.value === 'skip' ? 'true' : 'false';
     const row = state.rows.find(item => item.id === root.dataset.rowId);
-    if (row) row.explicitSkip = root.dataset.explicitSkip === 'true';
+    if (row) { row.explicitSkip = root.dataset.explicitSkip === 'true'; row.action = actionSelect.value; }
     return;
   }
   const select = event.target.closest('[data-field="candidate"]');
@@ -581,7 +624,7 @@ function chooseCandidate(event) {
   if (!candidate) return;
   root.querySelector('[data-field="code"]').value = candidate.code;
   root.querySelector('[data-field="name"]').value = candidate.name;
-  refreshManualCandidateState(root, { activateCandidate: true });
+  refreshManualCandidateState(root, { identityChanged: true });
 }
 
 function existingHoldingForCode(code) {
@@ -593,14 +636,25 @@ function existingHoldingForCode(code) {
 }
 
 function refreshManualCandidateState(root, options = {}) {
+  const index = state.rows.findIndex(item => item.id === root.dataset.rowId);
+  if (index < 0) return;
+  const previous = state.rows[index];
+  let row = readCandidateFormRow(previous, root);
   const code = root.querySelector('[data-field="code"]')?.value.trim() || '';
   const existing = existingHoldingForCode(code);
+  row.existing = existing;
+  if (options.identityChanged || row.code !== previous.code || row.name !== previous.name) {
+    row = setHoldingImportRowEnabled({ ...row, requiresExplicitEnable: true }, false);
+    const enable = root.querySelector('[data-field="enable"]');
+    if (enable) enable.checked = false;
+    const container = root.querySelector('[data-field="enable-container"]');
+    if (container) container.hidden = false;
+  }
+  state.rows[index] = row;
   const actionSelect = root.querySelector('[data-field="action"]');
   if (actionSelect) {
-    const selectedAction = options.activateCandidate
-      ? resolveCandidateSelectionAction(existing, root.dataset.explicitSkip === 'true')
-      : actionSelect.value;
-    actionSelect.innerHTML = actionOptionsForExisting(existing, selectedAction);
+    actionSelect.innerHTML = actionOptionsForExisting(existing, row.action);
+    actionSelect.value = row.action;
   }
   const meta = root.querySelector('.ocr-candidate-meta');
   if (meta) meta.textContent = existingHoldingHint(existing);
@@ -628,6 +682,7 @@ function requestFile() {
 
 function clearSensitiveSession() {
   activeSession += 1;
+  if (activeRecognitionTask) activeRecognitionTask.cancelRequested = true;
   activeRecognitionTask?.controller.abort();
   activeMatchSession?.clear();
   activeMatchSession = null;
@@ -639,9 +694,16 @@ function clearSensitiveSession() {
   paddleOcrModulePromise = null;
 }
 
-function leaveImportPage() {
+function cancelRecognition() {
+  if (!activeRecognitionTask || importInProgress) return;
   clearSensitiveSession();
-  window.location.assign('./');
+  const cancel = element('ocr-import-cancel');
+  if (cancel) cancel.disabled = true;
+  setStatus('正在取消识别，等待本机资源释放后即可重试…', { working: true });
+}
+
+function leaveImportPage() {
+  pageGuard?.requestLeave();
 }
 
 function init() {
@@ -650,6 +712,7 @@ function init() {
   element('ocr-import-close').addEventListener('click', leaveImportPage);
   element('ocr-import-manual').addEventListener('click', leaveImportPage);
   element('ocr-import-confirm').addEventListener('click', confirmImport);
+  element('ocr-import-cancel').addEventListener('click', cancelRecognition);
   element('ocr-image-input').addEventListener('change', event => {
     const file = event.target.files && event.target.files[0];
     event.target.value = '';
@@ -657,9 +720,15 @@ function init() {
   });
   element('ocr-import-body').addEventListener('change', chooseCandidate);
   element('ocr-import-body').addEventListener('input', editCandidateIdentity);
-  window.addEventListener('pagehide', () => {
-    clearSensitiveSession();
-  }, { once: true });
+  pageGuard = createOcrPageGuard({ window,
+    hasPendingWork: () => Boolean(activeRecognitionTask || importInProgress || state.rows.length),
+    isSaving: () => importInProgress,
+    discard: clearSensitiveSession,
+    navigate: () => window.location.assign('./'),
+    notify: message => setStatus(message, { error: true }),
+    restored: () => { if (!activeRecognitionTask) renderIntro(); },
+  });
+  pageGuard.start();
   renderIntro();
 }
 

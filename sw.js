@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v15.0.2';
+const CACHE = 'fuyu-v16.0.0';
 const CACHE_PREFIX = 'fuyu-v';
 let updateRequester = null;
 const CORE = [
@@ -14,7 +14,8 @@ const CORE = [
   './js/runtime/market-session.js', './js/runtime/source-registry.js',
   './js/runtime/market-clock.js', './js/runtime/valuation-period.js', './js/runtime/worker-contract.js',
   './js/runtime/cache-envelope.js',
-  './js/runtime/sync-status.js', './js/runtime/pwa-update-controller.js',
+  './js/runtime/sync-status.js', './js/runtime/sync-policy.js', './js/runtime/pwa-update-controller.js',
+  './js/runtime/page-navigation.js',
   './js/runtime/quote-diagnostics.js',
   './js/runtime/holding-set-contract.js',
   './js/runtime/holding-quote-amounts.js',
@@ -27,6 +28,7 @@ const CORE = [
   './js/storage/holdings-repository.js', './js/storage/cloud-sync.js', './js/storage/gist-remote.js',
   './js/storage/cloud-runtime.js', './js/storage/gist-runtime.js',
   './js/storage/cloud-archive-ui.js',
+  './js/storage/gist-credentials.js', './js/storage/gist-http.js',
   // BUILD_APP_SHELL_CORE_END
   './css/style.css', './data/overseas-models.json'
 ];

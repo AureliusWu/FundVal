@@ -53,6 +53,8 @@ Gist 多档案契约 `contracts/gist-selection.contract.mjs` 为 **RED / M4 PEND
 
 ## 执行边界
 
+2026-10-25 M4 接续：上述 Gist 历史 RED 场景已按更严格的候选 DTO/显式 controller 选择接口纳入默认 Node 测试并通过，见 [M4_STATUS.md](M4_STATUS.md)。该接口演进不带候选描述或私有内容，不删除原七场景；历史失败仍保留。OCR 契约仍为 M5 PENDING，真实云双端仍未验收。
+
 - M1 red 测试提交留在实施分支，不单独合并失败 CI 到 main。
 - M2 只实施日期/缓存/Worker/重仓/时钟与相应呈现、排序、诊断和通知；刷新图、Gist 状态机与 OCR/PWA 分别保留给 M3/M4/M5。
 - 数据展示字段兼容保留，持仓 Schema 3、device shard、tombstone、legacy、Web Lock、事务基线及 Bridge sandbox 不改变。

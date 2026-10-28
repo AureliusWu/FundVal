@@ -111,6 +111,20 @@ export function createPwaUpdateController({ hasUnsavedPageInput, isSyncing, isSa
         startAutoRefresh();
         return;
       }
+      if (!serviceWorkerReloadPending) {
+        var peerBlocked = await otherPageBlocksServiceWorkerUpdate();
+        var localBlocked = hasServiceWorkerUpdateBlocker();
+        if (localBlocked || peerBlocked && !serviceWorkerReloadPending) {
+          serviceWorkerUpdateApplying = false;
+          showServiceWorkerUpdate(worker);
+          if (text) text.textContent = localBlocked
+            ? '检测到未保存编辑，更新仍已暂停'
+            : '其他已打开页面有未保存输入，更新已暂停';
+          if (peerBlocked && !localBlocked) showToast('请先处理其他页面中的未保存输入');
+          startAutoRefresh();
+          return;
+        }
+      }
       if (serviceWorkerReloadPending) {
         handleActivatedServiceWorker(navigator.serviceWorker.controller || worker);
         return;

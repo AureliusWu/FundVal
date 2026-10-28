@@ -24,9 +24,9 @@ function noisyBytes(length) {
   return Buffer.concat(blocks).subarray(0, length);
 }
 
-async function fixture(root, lazyContent = Buffer.from('export const feature = true;\n')) {
+async function fixture(root, lazyContent = Buffer.from('export const feature = true;\n'), coldContent = Buffer.from('export const entry = true;\n')) {
   const definitions = [
-    ['js/app-shell.js', 'cold', Buffer.from('export const entry = true;\n')],
+    ['js/app-shell.js', 'cold', coldContent],
     ['js/chunks/feature-fixture.js', 'lazy', lazyContent],
   ];
   for (const [path, , content] of definitions) {
@@ -43,25 +43,38 @@ async function fixture(root, lazyContent = Buffer.from('export const feature = t
   return { path, manifest, definitions };
 }
 
-test('v16 approved budget pins v15 baseline and compares exact integer boundaries', () => {
+test('v16 user-unbounded total policy pins history and keeps the exact cold integer boundary', () => {
   assert.equal(typeof release.analyzeAppChunkBudgets, 'function');
   assert.equal(typeof release.assertAppBundleBudget, 'function');
   const equalCold = release.analyzeAppChunkBudgets(measurement());
   assert.equal(equalCold.baselineCommit, BASELINE_COMMIT);
   assert.equal(equalCold.baselineAllNonOcrGzipBytes, 70_207);
   assert.equal(equalCold.coldBudgetBytes, 52_241);
-  assert.equal(equalCold.allBudgetNumerator, 921_600);
-  assert.equal(equalCold.allBudgetDenominator, 10);
-  assert.equal(equalCold.allBudgetBytes, 92_160);
+  assert.equal(equalCold.previousAllBudgetBytes, 77_227.7);
+  assert.equal(equalCold.previousApprovedAllBudgetBytes, 92_160);
+  assert.equal(equalCold.allBudgetNumerator, null);
+  assert.equal(equalCold.allBudgetDenominator, null);
+  assert.equal(equalCold.allBudgetBytes, null);
+  assert.equal(equalCold.allLimitEnabled, false);
+  assert.equal(equalCold.allVerdict, 'NOT_ENFORCED');
+  assert.equal(equalCold.allPass, null);
   assert.equal(equalCold.pass, true);
   assert.ok(Object.isFrozen(equalCold));
   assert.equal(release.assertAppBundleBudget(measurement(52_240, 92_159)).pass, true);
   assert.equal(release.assertAppBundleBudget(measurement()).pass, true);
   assert.throws(() => release.assertAppBundleBudget(measurement(52_242, 92_160)), /cold.*budget/i);
-  assert.throws(() => release.assertAppBundleBudget(measurement(52_241, 92_161)), /all.*budget/i);
-  assert.equal(release.analyzeAppChunkBudgets({ ...measurement(52_241, 92_161), allBudgetBytes: 999_999, baselineAllNonOcrGzipBytes: 999_999 }).allPass, false);
-  for (const invalid of [undefined, {}, measurement(-1, 1), measurement(10, 9), measurement(1.5, 10), measurement(1, Number.MAX_SAFE_INTEGER)]) {
+  assert.equal(release.assertAppBundleBudget(measurement(52_241, 92_161)).allVerdict, 'NOT_ENFORCED');
+  const forged = release.analyzeAppChunkBudgets({ ...measurement(52_241, 92_161), allBudgetBytes: 999_999, baselineAllNonOcrGzipBytes: 999_999,
+    allLimitEnabled: true, budgetPolicy: 'forged', allPass: true });
+  assert.equal(forged.allPass, null);
+  assert.equal(forged.allLimitEnabled, false);
+  assert.equal(forged.budgetPolicy, 'v16-total-unbounded-by-user-20261028');
+  assert.equal(forged.baselineAllNonOcrGzipBytes, 70_207);
+  assert.equal(release.assertAppBundleBudget(measurement(1, Number.MAX_SAFE_INTEGER)).actualAllNonOcrGzipBytes, Number.MAX_SAFE_INTEGER);
+  for (const invalid of [undefined, {}, measurement(-1, 1), measurement(10, 9), measurement(1.5, 10),
+    measurement(1, Number.MAX_SAFE_INTEGER + 1), measurement(0, 1), measurement(1, NaN), measurement(1, Infinity)]) {
     assert.throws(() => release.analyzeAppChunkBudgets(invalid), /measurement/i);
+    assert.throws(() => release.assertAppBundleBudget(invalid), /measurement/i);
   }
 });
 
@@ -151,18 +164,32 @@ test('budget CLI emits measured JSON before failing and preserves structural ver
     assert.ok(withinApproved.actualAllNonOcrGzipBytes <= 92_160);
     const admitted = spawnSync(process.execPath, [cliPath, '--assert-app-bundle-budget', root], { encoding: 'utf8' });
     assert.equal(admitted.status, 0, admitted.stderr);
-    assert.equal(JSON.parse(admitted.stdout).budgetPolicy, 'v16-total-90kib-approved-20261023');
+    assert.equal(JSON.parse(admitted.stdout).budgetPolicy, 'v16-total-unbounded-by-user-20261028');
     await fixture(root, noisyBytes(100_000));
     const result = await release.verifyAppChunkReleaseDirectory(root);
     assert.ok(result.actualColdStartGzipBytes <= 52_241);
     assert.ok(result.actualAllNonOcrGzipBytes > 92_160);
-    const failed = spawnSync(process.execPath, [cliPath, '--assert-app-bundle-budget', root], { encoding: 'utf8' });
-    assert.equal(failed.status, 1);
-    const report = JSON.parse(failed.stdout);
+    const unbounded = spawnSync(process.execPath, [cliPath, '--assert-app-bundle-budget', root], { encoding: 'utf8' });
+    assert.equal(unbounded.status, 0, unbounded.stderr);
+    const report = JSON.parse(unbounded.stdout);
     assert.equal(report.actualAllNonOcrGzipBytes, result.actualAllNonOcrGzipBytes);
     assert.equal(report.coldPass, true);
-    assert.equal(report.allPass, false);
-    assert.equal(report.pass, false);
-    assert.match(failed.stderr, /all.*budget/i);
+    assert.equal(report.allPass, null);
+    assert.equal(report.allVerdict, 'NOT_ENFORCED');
+    assert.equal(report.allLimitEnabled, false);
+    assert.equal(report.pass, true);
+    await fixture(root, Buffer.from('export const feature = true;\n'), noisyBytes(60_000));
+    const coldResult = await release.verifyAppChunkReleaseDirectory(root);
+    assert.ok(coldResult.actualColdStartGzipBytes > 52_241);
+    const failed = spawnSync(process.execPath, [cliPath, '--assert-app-bundle-budget', root], { encoding: 'utf8' });
+    assert.equal(failed.status, 1);
+    const coldReport = JSON.parse(failed.stdout);
+    assert.equal(coldReport.actualColdStartGzipBytes, coldResult.actualColdStartGzipBytes);
+    assert.equal(coldReport.actualAllNonOcrGzipBytes, coldResult.actualAllNonOcrGzipBytes);
+    assert.equal(coldReport.coldPass, false);
+    assert.equal(coldReport.allPass, null);
+    assert.equal(coldReport.allVerdict, 'NOT_ENFORCED');
+    assert.equal(coldReport.pass, false);
+    assert.match(failed.stderr, /cold.*budget/i);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

@@ -1,6 +1,6 @@
 # M3 9.1剩余职责拆分
 
-状态：2026-10-25 / IMPLEMENTED_LOCAL_QA_AND_PAIRED_PERFORMANCE_PASS / M3_IN_PROGRESS / NOT_RELEASED。这是原UPGRADE_PLAN 9.1/M3的剩余实施，不是修改计划范围或开始M4/M5最终功能。最终候选的新800+4已独立通过（M3_STATUS §61），精确提交CI和候选核验仍待完成；不是继承迁移前§58结果。
+状态：2026-10-25 / M3_EXIT_WITH_RECORDED_LIMITATIONS / M4_NEXT / 15.0.2 / NOT_RELEASED。原UPGRADE_PLAN 9.1/M3的剩余实施已由最终本地QA、§61独立新800+4、精确业务提交`f67675746276173fd3b84b770287e1ab5bea27fb`的CI及实际下载候选签收，详见[M3_STATUS §62](M3_STATUS.md)。不继承迁移前§58结果，不表示main部署准入或M4–M6已完成；下文迁移前检查点按当时事实保留。
 
 ## 为什么必须继续
 
@@ -58,4 +58,12 @@ QA V2新增补名修复后单测1407 PASS/2 FAIL/3 skip；失败为原结构断�
 
 证据见[完整归档](performance-evidence/controller-extraction-20261025/README.md)：844成员/21,026,354B，压缩10,284,125B/SHA256 `63ef139c550aa71f2d9e755ba77deb01e0b9351bfe6463a8d6add70e7caaa971`；全新解压逐路径bytes/SHA同，257个非历史源payload、105个非OCR目录构建payload及全部库存保留。24份历史Android和生成OCR/安装大payload仅库存。归档前两次工具失败（目录计数、既有合成Token测试夹具筛查）保留，不记为业务RED；原始PWA worker部分独立native收据从未落盘，未补造。
 
-新的[固定800+4配对协议](performance-evidence/pair-controllers-800-20261025/PROTOCOL.md)独立冻结，未以§58旧样本替代；[实际新结果及原件](performance-evidence/pair-controllers-800-20261025/README.md)为800+4/native0、原helper整对象12883检查和另一独立基础统计7253检查全通过，完整raw及归档保留。参考是v15，不是提取前候选，不能把全部时延差归因于此拆分。这里只证明本地合成QA、有限性能与代码范围；未证明真实金融源/Gist写读、OCR真机、PWA版本迁移、生产部署。版本仍15.0.2，精确不可变提交CI及M4–M6仍须完成，M3尚未EXIT。
+新的[固定800+4配对协议](performance-evidence/pair-controllers-800-20261025/PROTOCOL.md)独立冻结，未以§58旧样本替代；[实际新结果及原件](performance-evidence/pair-controllers-800-20261025/README.md)为800+4/native0、原helper整对象12883检查和另一独立基础统计7253检查全通过，完整raw及归档保留。参考是v15，不是提取前候选，不能把全部时延差归因于此拆分；冷最大327.8ms劣于参考237.7、非零console和导航PARTIAL边界仍保留。这一检查点本身只证明本地合成QA、有限性能与代码范围；后续精确提交/CI/下载签收如下，未证明真实金融源/Gist写读、OCR真机、PWA版本迁移或生产部署。
+
+## 精确候选签收与职责限定（2026-10-25）
+
+精确业务SHA `f67675746276173fd3b84b770287e1ab5bea27fb`的[CI run40174354009](https://github.com/AureliusWu/FundVal/actions/runs/40174354009)/attempt1实际success：Linux1412/1412、0skip，syntax223，E2E35/35，官方audit0；CodeQL仅该SHA/ref与配置路径103rules/0results、error/warning空及open-alerts[]，不外推main或全部安全问题。实际[artifact12590908982](https://github.com/AureliusWu/FundVal/actions/runs/40174354009/artifacts/12590908982)完整ZIP92,695,480B/SHA `c1e9cdb2fa4ecdb8c5312c01485910a3015457084556cac2fda9fd2f9256828b`，V2 auditor native0/9checks全PASS，全部129文件严格等于精确commit V3构建；release-critical FP `5290a46055255c8c80123948f4fc6b732d103a9693aba338c6499201345feab1`。all86,850/cold47,014仍分别低于获批92,160/原52,241B，未改其他门禁。详见[精确身份、原件和失败历史](performance-evidence/exact-commit-ci-20261025/README.md)及M3_STATUS §62。
+
+9.1离线状态保持已有早期边界：bootstrap先安装resilience网络guard再加载App；resilience拥有初始network值及online/offline监听，App编排恢复联网刷新，PWA controller负责更新协调。170→f676该早期链未变，没有本轮遗漏的旧App离线状态块；不宣称所有离线职责已迁入较晚start的controller，也不以M5名义豁免M3责任。M5完整离线壳≤3秒、明确过期提示、manifest身份、已安装版本迁移和M6真机仍未由此验收。
+
+最终矩阵实核六职责、TTL、同代去重、过期代UI/cache、补名settlement后唯一flush、实际诊断、加载隔离、体积/时延与精确产物，支持有限**M3 EXIT / M4 NEXT**。原失败、风格/弃用告警、原Web Lock无限持有的有界drain未证、归档raw缺口和合成/静态范围全部保留。版本仍15.0.2/NOT_RELEASED，M4–M6完整目标不缩小；本次仅文档签收，不改业务、不升版、不提交推送或部署。

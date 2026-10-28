@@ -1,6 +1,6 @@
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
 import { fundDataApiUrl } from './config.js';
-import { parseWorkerEnvelope } from './runtime/worker-contract.js';
+import { parseWorkerHttpEnvelope } from './runtime/worker-contract.js';
 
 const TIMEOUT = 10000;
 
@@ -64,7 +64,8 @@ export async function fetchFundHoldings(code, options = {}) {
     });
     if (!response.ok) throw new Error(`重仓代理 HTTP ${response.status}`);
     const payload = await response.json();
-    const envelope = parseWorkerEnvelope(payload, { endpoint: 'holdings', requestedCodes: [fundCode], now: options.now });
+    const receivedAt = options.now === undefined ? Date.now() : options.now;
+    const envelope = parseWorkerHttpEnvelope(payload, { endpoint: 'holdings', requestedCodes: [fundCode], now: receivedAt });
     const items = envelope.items;
     return {
       status: items.length ? (envelope.status === 'ok' ? 'ok' : 'degraded')
@@ -72,7 +73,7 @@ export async function fetchFundHoldings(code, options = {}) {
       sourceStatus: envelope.status,
       wireVersion: envelope.wireVersion,
       reportDate: envelope.reportDate,
-      fetchedAt: envelope.fetchedAt,
+      fetchedAt: envelope.clientReceivedAt || envelope.fetchedAt,
       source: envelope.source || 'sinan-holdings-proxy',
       items,
     };

@@ -13,6 +13,8 @@ import { stableHoldingId } from '../js/storage/holdings-schema.js';
 
 const T1 = '2026-08-20T00:00:00.000Z';
 const T2 = '2026-08-21T00:00:00.000Z';
+const GIST_A = '0000000000000000000000000000000a';
+const GIST_B = '0000000000000000000000000000000b';
 
 function holding(code, overrides = {}) {
   return {
@@ -86,7 +88,7 @@ test('adapter reconciles all V3 files with newer legacy edits and preserves both
     [LEGACY_GIST_FILENAME]: { content: JSON.stringify(legacy) },
   };
   const adapter = createGistRemoteAdapter({
-    token: 'test-token', gistId: 'test-gist', deviceId,
+    token: 'test-token', gistId: GIST_A, deviceId,
     request: async () => response({ files, updated_at: T2 }),
   });
 
@@ -102,7 +104,7 @@ test('Schema 3 PATCH writes only the current device sidecar and never deletes or
   const deviceId = 'device:new';
   const requests = [];
   const adapter = createGistRemoteAdapter({
-    token: 'test-token', gistId: 'test-gist', deviceId,
+    token: 'test-token', gistId: GIST_A, deviceId,
     now: () => T2,
     request: async (url, options) => {
       requests.push({ url, options });
@@ -128,7 +130,7 @@ test('Schema 3 PATCH writes only the current device sidecar and never deletes or
 test('adapter refuses every Schema 2 PATCH without sending a request', async () => {
   let requests = 0;
   const adapter = createGistRemoteAdapter({
-    token: 'test-token', gistId: 'test-gist', deviceId: 'device:new',
+    token: 'test-token', gistId: GIST_A, deviceId: 'device:new',
     request: async () => { requests += 1; return response({}); },
   });
 
@@ -141,32 +143,32 @@ test('adapter refuses every Schema 2 PATCH without sending a request', async () 
 
 test('adapter fails closed on a truncated Gist or an excessive V3 shard set', async () => {
   const truncated = createGistRemoteAdapter({
-    token: 'test-token', gistId: 'test-gist', deviceId: 'device:new',
+    token: 'test-token', gistId: GIST_A, deviceId: 'device:new',
     request: async () => response({ truncated: true, files: {} }),
   });
-  assert.deepEqual(await truncated.get(), { ok: false, reason: 'remote_gist_truncated' });
+  assert.equal((await truncated.get()).reason, 'remote_gist_truncated');
 
   const files = Object.fromEntries(Array.from({ length: MAX_V3_GIST_FILES + 1 }, (_, index) => [
     `fuyu-holdings-v3-${index.toString(16).padStart(16, '0')}.json`,
     { content: JSON.stringify(v3([])) },
   ]));
   const excessive = createGistRemoteAdapter({
-    token: 'test-token', gistId: 'test-gist', deviceId: 'device:new',
+    token: 'test-token', gistId: GIST_A, deviceId: 'device:new',
     request: async () => response({ truncated: false, files }),
   });
-  assert.deepEqual(await excessive.get(), { ok: false, reason: 'remote_v3_file_limit_exceeded' });
+  assert.equal((await excessive.get()).reason, 'remote_v3_file_limit_exceeded');
 });
 
-test('Gist discovery prefers any V3 archive across pages before falling back to legacy', async () => {
+test('legacy discovery cannot silently prefer V3 when another compatible archive exists across pages', async () => {
   const firstPage = Array.from({ length: 100 }, (_, index) => ({
-    id: index === 0 ? 'legacy-gist' : `other-${index}`,
+    id: index === 0 ? GIST_A : (index + 100).toString(16).padStart(32, '0'),
     files: index === 0 ? { [LEGACY_GIST_FILENAME]: {} } : {},
   }));
   const request = async url => response(url.includes('page=2')
-    ? [{ id: 'v3-gist', files: { [v3GistFilename('device:other')]: {} } }]
+    ? [{ id: GIST_B, files: { [v3GistFilename('device:other')]: {} } }]
     : firstPage);
 
   const found = await findExistingHoldingsGist({ token: 'test-token', request });
 
-  assert.equal(found, 'v3-gist');
+  assert.equal(found, '');
 });

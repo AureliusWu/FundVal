@@ -18,7 +18,7 @@ const surfaces = [
     'synchronizeHoldingsCloud', 'pullHoldingsCloud', 'canonicalCloudPayload',
     'makeCloudWritePayload', 'finalizeCreatedArchiveState', 'finalizeCloudSyncMetadata',
   ]],
-  ['gist', gistRuntime, gist, ['createGistRemoteAdapter', 'findExistingHoldingsGist', 'v3GistFilename']],
+  ['gist', gistRuntime, gist, ['createGistRemoteAdapter', 'findExistingHoldingsGist', 'listHoldingsGists', 'classifyGistHttpFailure', 'v3GistFilename']],
   ['repository', startupRepository, repository, ['recoverPendingRepositoryTransaction', 'withHoldingsLock']],
   ['migrations', startupMigrations, migrations, ['runLocalMigrations']],
 ];

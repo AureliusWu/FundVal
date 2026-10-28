@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="蜉蝣基金">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://sinan-estimate-push.ligugu69.workers.dev" crossorigin>
 <link rel="stylesheet" href="css/style.css">
 <title>蜉蝣基金</title>
@@ -20,7 +21,7 @@
   <div class="header-inner">
     <div class="logo">
       <div class="logo-title">蜉蝣基金</div>
-      <div class="logo-sub"><span id="app-version-label">V15.0.2</span><em id="mkt-status"></em></div>
+      <div class="logo-sub"><span id="app-version-label">V16.0.0</span><em id="mkt-status"></em></div>
     </div>
   </div>
 </div>
@@ -38,6 +39,8 @@
 </div>
 
 <div class="last-upd" id="last-upd"></div>
+
+<div class="last-upd offline-banner" id="offline-banner" role="status" aria-live="polite">离线 · 当前仅显示本地数据，行情可能过期</div>
 
 <div class="update-banner" id="update-banner" role="status" aria-live="polite" hidden>
   <span id="update-banner-text">发现新版本，可安全更新</span>
@@ -112,14 +115,23 @@
     <div class="sec-title">云同步 (GitHub Gist) <span style="font-weight:400;font-size:11px;color:var(--muted)">自动双向同步</span></div>
     <div class="cloud-section">
       <div class="f-row">
-        <div class="f-label">GitHub Personal Access Token</div>
+        <label class="f-label" for="gist-token">GitHub Personal Access Token</label>
         <input class="f-input" id="gist-token" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
         <div class="f-hint">
           需要 <code>gist</code> 权限，<a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">创建 Classic Token</a>
            · 填入 Token 后首次点击「上传」即开始自动同步
         </div>
       </div>
-      <div class="cloud-status" id="cloud-status">配置 Token 后自动同步</div>
+      <label class="f-hint cloud-consent"><input type="checkbox" id="gist-remember-token"> 在此浏览器记住 Token（非默认）</label>
+      <div class="f-hint">持久保存的 Token 可被同源脚本读取，请勿在公用设备启用；默认仅本次会话使用。</div>
+      <div class="f-hint" id="gist-credential-status">默认仅本次会话使用 Token，不写入持久存储。</div>
+      <div class="f-row">
+        <label class="f-label" for="gist-archive">云端档案</label>
+        <select class="f-input" id="gist-archive"><option value="">尚未发现档案</option></select>
+        <button class="exp-btn cloud-clear" type="button" data-action="cloud-discover">查找 / 刷新档案</button>
+        <div class="f-hint">存在多个档案时请明确选择；档案失效不会自动切换到其他档案。</div>
+      </div>
+      <div class="cloud-status" id="cloud-status" role="status" aria-live="polite">仅本地保存，配置 Token 后可同步</div>
       <div class="cloud-btns">
         <button class="exp-btn cloud-btn" id="cloud-upload-btn" type="button" data-action="cloud-upload">上传到云端</button>
         <button class="exp-btn cloud-btn" id="cloud-download-btn" type="button" data-action="cloud-download">从云端下载</button>
