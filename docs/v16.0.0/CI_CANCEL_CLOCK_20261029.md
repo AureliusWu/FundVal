@@ -30,3 +30,11 @@ predict取消的 Node“自动点击调用开始→最后Worker close事件”�
 正式发布若成功，必须在Release保留这项告警和全部既有用户豁免，不声称所有安全扫描结果为0或所有验收完成。
 
 追加本地冻结：新算法接线后永久test/集2148 total/2145 pass/3既有Windows skip、283 syntax、完整74/74 E2E均native0，原30s/expect8s/0retry不变；两次构建一致，cold51,282/52,241 B、all95,880 B NOT_ENFORCED。原始收据`Temp/v16-main-20261028/clock29-*`。这些不是后续精确head/main CI或生产证据，不覆盖旧PR失败。
+
+## 后续主分支失败与用户豁免落地
+
+main SHA b5b67e191a05d6fdbfc33bae1fa04f19a8071716 的CI40874137433又为73pass/1fail：predict原生close等待2秒超时，尚未进入校准值断言，不能伪造raw/trusted实测值，也不能将其说成计时误差。该失败及artifact12897123646保留，没有触发部署。
+
+按用户已明确要求跳过的资源性能验收，2秒目标从此作为观察值保留，实际超目标记`NOT_PASSED / USER_WAIVED / OBSERVED_NOT_ENFORCED`，不改写为PASS。保留校准算法及其负控；测试仍必须在原通用expect8秒内观测所有原生Worker关闭，关闭后才能实际同图重试；页面解锁2秒、30秒测试、零重试、持仓hash/无迟到/真实模型结果断言均不变。详见风险接受执行细则。此为明确豁免的性能前置变更，不是声称优化了产品资源关闭或默认所有SLA通过。
+
+落地检查：报告函数原8项及独立超目标/无效输入负控通过，超目标永远NOT_PASSED、缺失或非有限读数拒绝。重建后真实init/predict功能两case 2/2、native0；永久单测2150 total/2147 pass/3既有Windows skip。切换Git分支后曾因CRLF源与旧site字节不同导致OCR绑定预检失败，重建后解决，原失败未删除；另两个旧单测的LF源码分隔符在CRLF checkout下失败，仅在读取处归一换行，原断言及冻结SHA不改，全部重新通过。这些本地检查不代替新PR/main精确CI。
