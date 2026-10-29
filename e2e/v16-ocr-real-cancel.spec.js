@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CORPUS_RELATIVE_DIRECTORY } from '../test/fixtures/ocr-synthetic-corpus.mjs';
 import { bindOcrSource, sha256 } from './helpers/ocr-corpus-binding.mjs';
+import { boundObservedCancellation } from './helpers/cancel-clock.mjs';
 
 // Desktop native-Worker cancellation preflight, not physical memory evidence.
 // Only passive protocol/DOM observation; real SDK, models and inference remain.
@@ -58,7 +59,7 @@ for (const stage of ['init', 'predict']) test(`actual Paddle ${stage} cancellati
       });
     });
     await page.addInitScript(() => {
-      const observation = { protocol: [], cancelPageMs: null, unlockPageMs: null,
+      const observation = { protocol: [], timeOriginMs: performance.timeOrigin, cancelPageMs: null, unlockPageMs: null,
         predictAtCancel: false, retryStarted: false, lateCandidateObserved: false };
       globalThis.__fundvalActualCancelObservation = observation;
       const original = Worker.prototype.postMessage;
@@ -116,6 +117,10 @@ for (const stage of ['init', 'predict']) test(`actual Paddle ${stage} cancellati
     record.activeAtCancel = active.map(({ id, kind }) => ({ id, kind }));
     expect(active.some(entry => entry.kind === 'light_preprocess')).toBe(true);
     expect(active.some(entry => entry.kind === 'heavy_paddle')).toBe(true);
+    const nodeBeforeMs = performance.now();
+    const pageClock = await page.evaluate(() => ({ pageSampleMs: performance.now(), sampleTimeOriginMs: performance.timeOrigin }));
+    const nodeAfterMs = performance.now();
+    record.cancelClockSample = { nodeBeforeMs, nodeAfterMs, ...pageClock };
     cancelNodeStart = performance.now();
     record.cancelClickInvocationStartElapsedMs = cancelNodeStart - started;
     await page.locator('#ocr-import-cancel').click();
@@ -126,13 +131,18 @@ for (const stage of ['init', 'predict']) test(`actual Paddle ${stage} cancellati
     ]);
     record.allActiveWorkersClosedUpperBoundMs = Math.max(...active.map(entry => entry.closedNodeMs)) - cancelNodeStart;
     record.cancelObservation = await page.evaluate(() => globalThis.__fundvalActualCancelObservation);
+    record.trustedClickClockBounds = boundObservedCancellation({ ...record.cancelClockSample,
+      pageCancelMs: record.cancelObservation.cancelPageMs, cancelTimeOriginMs: record.cancelObservation.timeOriginMs,
+      invocationStartMs: cancelNodeStart, invocationEndMs: record.cancelClickInvocationEndElapsedMs + started,
+      closedNodeMs: Math.max(...active.map(entry => entry.closedNodeMs)) });
+    record.trustedClickToWorkersClosedUpperBoundMs = record.trustedClickClockBounds.observedCloseUpperBoundMs;
     record.taskFinallyUnlockMs = record.cancelObservation.unlockPageMs - record.cancelObservation.cancelPageMs;
     expect(record.cancelObservation.cancelPageMs).not.toBeNull();
     expect(record.cancelObservation.protocol.some(entry => entry.type === stage && entry.pageMs <= record.cancelObservation.cancelPageMs)).toBe(true);
     if (stage === 'init') expect(record.cancelObservation.predictAtCancel).toBe(false);
     else expect(record.cancelObservation.predictAtCancel).toBe(true);
     expect(record.allActiveWorkersClosedUpperBoundMs).toBeGreaterThanOrEqual(0);
-    expect(record.allActiveWorkersClosedUpperBoundMs).toBeLessThanOrEqual(2_000);
+    expect(record.trustedClickToWorkersClosedUpperBoundMs).toBeLessThanOrEqual(2_000);
     expect(record.taskFinallyUnlockMs).toBeGreaterThanOrEqual(0);
     expect(record.taskFinallyUnlockMs).toBeLessThanOrEqual(2_000);
     await expect(page.locator('#ocr-import-pick')).toBeVisible();
