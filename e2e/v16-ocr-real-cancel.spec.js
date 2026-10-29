@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CORPUS_RELATIVE_DIRECTORY } from '../test/fixtures/ocr-synthetic-corpus.mjs';
 import { bindOcrSource, sha256 } from './helpers/ocr-corpus-binding.mjs';
-import { boundObservedCancellation } from './helpers/cancel-clock.mjs';
+import { boundObservedCancellation, observeNativeCloseLatency } from './helpers/cancel-clock.mjs';
 
 // Desktop native-Worker cancellation preflight, not physical memory evidence.
 // Only passive protocol/DOM observation; real SDK, models and inference remain.
@@ -126,7 +126,10 @@ for (const stage of ['init', 'predict']) test(`actual Paddle ${stage} cancellati
     await page.locator('#ocr-import-cancel').click();
     record.cancelClickInvocationEndElapsedMs = performance.now() - started;
     await Promise.all([
-      expect.poll(() => active.every(entry => entry.closedNodeMs !== null), { timeout: 2_000, intervals: [10, 20, 50] }).toBe(true),
+      // The user waived the native resource-latency release gate. Still require
+      // actual close before retry within the unchanged 8 s expect deadline;
+      // measure the original 2 s goal below, never relabel a miss as PASS.
+      expect.poll(() => active.every(entry => entry.closedNodeMs !== null), { timeout: 8_000, intervals: [10, 20, 50] }).toBe(true),
       page.waitForFunction(() => globalThis.__fundvalActualCancelObservation.unlockPageMs !== null, null, { timeout: 2_000 }),
     ]);
     record.allActiveWorkersClosedUpperBoundMs = Math.max(...active.map(entry => entry.closedNodeMs)) - cancelNodeStart;
@@ -136,13 +139,17 @@ for (const stage of ['init', 'predict']) test(`actual Paddle ${stage} cancellati
       invocationStartMs: cancelNodeStart, invocationEndMs: record.cancelClickInvocationEndElapsedMs + started,
       closedNodeMs: Math.max(...active.map(entry => entry.closedNodeMs)) });
     record.trustedClickToWorkersClosedUpperBoundMs = record.trustedClickClockBounds.observedCloseUpperBoundMs;
+    record.nativeWorkerCloseLatency = observeNativeCloseLatency(record.trustedClickToWorkersClosedUpperBoundMs);
+    record.nativeWorkersClosedBeforeRetry = active.every(entry => entry.closedNodeMs !== null);
     record.taskFinallyUnlockMs = record.cancelObservation.unlockPageMs - record.cancelObservation.cancelPageMs;
     expect(record.cancelObservation.cancelPageMs).not.toBeNull();
     expect(record.cancelObservation.protocol.some(entry => entry.type === stage && entry.pageMs <= record.cancelObservation.cancelPageMs)).toBe(true);
     if (stage === 'init') expect(record.cancelObservation.predictAtCancel).toBe(false);
     else expect(record.cancelObservation.predictAtCancel).toBe(true);
     expect(record.allActiveWorkersClosedUpperBoundMs).toBeGreaterThanOrEqual(0);
-    expect(record.trustedClickToWorkersClosedUpperBoundMs).toBeLessThanOrEqual(2_000);
+    expect(Number.isFinite(record.trustedClickToWorkersClosedUpperBoundMs)).toBe(true);
+    expect(record.trustedClickToWorkersClosedUpperBoundMs).toBeGreaterThanOrEqual(0);
+    expect(record.nativeWorkersClosedBeforeRetry).toBe(true);
     expect(record.taskFinallyUnlockMs).toBeGreaterThanOrEqual(0);
     expect(record.taskFinallyUnlockMs).toBeLessThanOrEqual(2_000);
     await expect(page.locator('#ocr-import-pick')).toBeVisible();

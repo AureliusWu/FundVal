@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { boundObservedCancellation } from '../e2e/helpers/cancel-clock.mjs';
+import { boundObservedCancellation, observeNativeCloseLatency } from '../e2e/helpers/cancel-clock.mjs';
 
 const sample = (extra = {}) => ({ nodeBeforeMs: 1000, nodeAfterMs: 1010, pageSampleMs: 100,
   pageCancelMs: 200, sampleTimeOriginMs: 42, cancelTimeOriginMs: 42,
@@ -38,4 +38,15 @@ test('known invocation bounds may tighten calibration without becoming optimisti
   const result = boundObservedCancellation(sample({ pageCancelMs: 110, invocationStartMs: 1011, invocationEndMs: 1015 }));
   assert.equal(result.clickLowerMs, 1011); assert.equal(result.clickUpperMs, 1015);
   assert.equal(result.observedCloseUpperBoundMs, 2088);
+});
+
+test('waived resource goal is still exactly 2000ms and a miss is never called PASS', () => {
+  assert.equal(observeNativeCloseLatency(2000).verdict, 'PASS');
+  const miss = observeNativeCloseLatency(2000.001);
+  assert.equal(miss.goalMs, 2000); assert.equal(miss.observedUpperBoundMs, 2000.001);
+  assert.equal(miss.verdict, 'NOT_PASSED'); assert.equal(miss.releaseDecision, 'USER_WAIVED');
+  assert.equal(miss.enforcement, 'OBSERVED_NOT_ENFORCED'); assert.ok(Object.isFrozen(miss));
+});
+test('a missing or invalid native-close observation cannot become a waived success', () => {
+  for (const value of [null, undefined, '', false, '1', NaN, Infinity, -1]) assert.throws(() => observeNativeCloseLatency(value));
 });

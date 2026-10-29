@@ -128,7 +128,7 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
 });
 
 test('layout-only performance cannot erase an already observed OCR backend fallback', async () => {
-  const page = await readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8');
+  const page = (await readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
   const start = page.indexOf('function mergeRecognitionPerformance(target, source)');
   const end = page.indexOf('\n}\n\nfunction element', start);
   assert.ok(start >= 0 && end > start, 'performance merge helper must remain extractable');

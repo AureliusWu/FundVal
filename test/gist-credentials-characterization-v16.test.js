@@ -190,7 +190,8 @@ const TOKENS = { old: 'synthetic-old-token', session: 'synthetic-session-token',
 const DEFAULT_KEYS = { tokenKey: 'fuyu_gist_token', consentKey: 'fuyu_gist_token_persist' };
 
 test('credential characterization oracle is byte-bound to the original module', () => {
-  const self = readFileSync(new URL(import.meta.url), 'utf8');
+  // The frozen SHA anchors Git's canonical LF text, not checkout CRLF bytes.
+  const self = readFileSync(new URL(import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const begin = '\n// FROZEN_CREDENTIAL_ORACLE_BEGIN\n';
   const end = '\n// FROZEN_CREDENTIAL_ORACLE_END\n';
   const start = self.indexOf(begin) + begin.length;

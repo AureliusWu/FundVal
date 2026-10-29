@@ -26,3 +26,14 @@ export function boundObservedCancellation(input) {
     observedCloseUpperBoundMs: closedNodeMs - clickLowerMs,
     invocationToCloseMs: closedNodeMs - invocationStartMs });
 }
+
+// Explicit release acceptance: keep the original performance goal observable.
+// A waived goal miss is never reported as PASS or as successful SLA acceptance.
+export function observeNativeCloseLatency(observedUpperBoundMs) {
+  if (typeof observedUpperBoundMs !== 'number' || !Number.isFinite(observedUpperBoundMs) || observedUpperBoundMs < 0) {
+    throw new Error('Invalid native close observation.');
+  }
+  return Object.freeze({ goalMs: 2000, observedUpperBoundMs,
+    verdict: observedUpperBoundMs <= 2000 ? 'PASS' : 'NOT_PASSED',
+    releaseDecision: 'USER_WAIVED', enforcement: 'OBSERVED_NOT_ENFORCED' });
+}
