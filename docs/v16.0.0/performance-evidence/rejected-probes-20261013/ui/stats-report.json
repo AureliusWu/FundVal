@@ -1,0 +1,103 @@
+{
+  "head": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+  "sourceSha": "1172d217cd4bd00e700aeb0a07507c85fc102f0beedef30678b6c75525485130",
+  "recipeSha": "51a4d35902ad2e6510dd3e82fea7198a12a9b722ef3098c791aeb4c8327ac9a4",
+  "recipeConfigSha": "fc809c7569d3034f422cd58f57c1efcee09461285cc68e3af9dc928adfed6282",
+  "recipeGroupsSha": "f57e1fc7cee84dca28aa3314bcf43e4c2bd4436cbec86ebe0ba6e82442be07d9",
+  "dependencies": {
+    "vite": "8.2.2",
+    "minify": "oxc",
+    "target": "es2022",
+    "groups": "EXACT_ACTUAL_RECIPE"
+  },
+  "selectedFunctions": [
+    "renderFundList",
+    "renderHoldingsList",
+    "renderIndexBar"
+  ],
+  "transformedExpressions": 5,
+  "sourceBytes": {
+    "baseline": 93915,
+    "statsCells": 93769
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "baseline": {
+        "chunks": 16,
+        "raw": 237665,
+        "all": 81158,
+        "cold": 42907,
+        "graphSha": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+      },
+      "statsCells": {
+        "chunks": 16,
+        "raw": 237440,
+        "all": 81163,
+        "cold": 42908,
+        "graphSha": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+      }
+    },
+    {
+      "round": 2,
+      "baseline": {
+        "chunks": 16,
+        "raw": 237665,
+        "all": 81158,
+        "cold": 42907,
+        "graphSha": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+      },
+      "statsCells": {
+        "chunks": 16,
+        "raw": 237440,
+        "all": 81163,
+        "cold": 42908,
+        "graphSha": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+      }
+    },
+    {
+      "round": 3,
+      "baseline": {
+        "chunks": 16,
+        "raw": 237665,
+        "all": 81158,
+        "cold": 42907,
+        "graphSha": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+      },
+      "statsCells": {
+        "chunks": 16,
+        "raw": 237440,
+        "all": 81163,
+        "cold": 42908,
+        "graphSha": "01150a1e5f7ff9a40254509280bf2f65b4eafdb064a2f116f281f04f976c579b"
+      }
+    }
+  ],
+  "sourceUnchanged": true,
+  "recipeUnchanged": true,
+  "strictSemantics": "Private stat-cell HTML only; old estimateLabel addition coercion happens before later argument evaluation. Formatter and escaping calls remain at original call sites and order. Exact renderer fixtures are still required.",
+  "nativeSemantics": "No native template negative control in this run; stat-cell arguments other than estimateLabel are fixed literal or actual formatter/escape string results.",
+  "patches": [
+    {
+      "before": "      html += '<div><div class=\"stat-label\">' + estimateLabel + '</div><div class=\"stat-val\">' + fmtQuoteNav(currentNavValue) + '</div>' + primaryNote + estimateNote + modelNote + officialNote + '</div>';",
+      "after": "      html += statCell('' + estimateLabel, '', fmtQuoteNav(currentNavValue), primaryNote + estimateNote + modelNote + officialNote);"
+    },
+    {
+      "before": "      html += '<div><div class=\"stat-label\">基准净值</div><div class=\"stat-val\">' + fmtQuoteNav(baseNavValue) + '</div></div>';",
+      "after": "      html += statCell('基准净值', '', fmtQuoteNav(baseNavValue));"
+    },
+    {
+      "before": "        html += '<div><div class=\"stat-label\">持有份额</div><div class=\"stat-val\">' + fmt(f.shares) + '</div></div>';",
+      "after": "        html += statCell('持有份额', '', fmt(f.shares));"
+    },
+    {
+      "before": "        html += '<div><div class=\"stat-label\">' + esc(presentation.periodLabel) + '</div><div class=\"stat-val money ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '\">' + (hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';",
+      "after": "        html += statCell(esc(presentation.periodLabel), ' money ' + (hasToday ? (f.today_profit>=0?'up':'down') : ''), hasToday ? fmtM(f.today_profit) : '--');"
+    },
+    {
+      "before": "        html += '<div><div class=\"stat-label\">累计盈亏</div><div class=\"stat-val money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '\">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';",
+      "after": "        html += statCell('累计盈亏', ' money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : ''), hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--');"
+    }
+  ],
+  "addedHelper": "function statCell(label, classes, value, notes = '') {\n  return '<div><div class=\"stat-label\">' + label + '</div><div class=\"stat-val' + classes + '\">' + value + '</div>' + notes + '</div>';\n}\n\n"
+}

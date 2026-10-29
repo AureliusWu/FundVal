@@ -1,0 +1,922 @@
+{
+  "schema": 1,
+  "corpusId": "synthetic-alipay-1440x9317-v1",
+  "provenance": "authored_synthetic_amounts_public_fund_identities_no_user_screenshot",
+  "width": 1440,
+  "height": 9317,
+  "fontFamily": "Microsoft YaHei",
+  "nameFontPx": 46,
+  "numericFontPx": 50,
+  "unknownDisplay": "—",
+  "expectedCandidateCount": 15,
+  "requiredAutomaticMatches": 12,
+  "requiredWrongAutomaticMatches": 0,
+  "requiredAcClassMismatch": 0,
+  "ambiguousCandidates": [
+    {
+      "code": "006228",
+      "name": "中欧医疗创新股票A"
+    },
+    {
+      "code": "006229",
+      "name": "中欧医疗创新股票C"
+    }
+  ],
+  "rows": [
+    {
+      "rowId": "synthetic-01",
+      "code": "000001",
+      "name": "华夏成长混合",
+      "top": 1370,
+      "holdingAmount": 1137.11,
+      "dailyProfit": 0,
+      "holdingProfit": 0,
+      "holdingProfitRate": 0,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "000001"
+      ],
+      "seamCase": "top_and_bottom_numbers_straddle_first_core_boundary_1420",
+      "nameLines": [
+        "华夏成长混合"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 1370,
+        "x1": 650,
+        "y1": 1428
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "1,137.11",
+          "value": 1137.11,
+          "x0": 805,
+          "y0": 1372,
+          "x1": 1005,
+          "y1": 1432
+        },
+        "dailyProfit": {
+          "text": "+0.00",
+          "value": 0,
+          "x0": 867.9150390625,
+          "y0": 1460,
+          "x1": 1005,
+          "y1": 1520
+        },
+        "holdingProfit": {
+          "text": "+0.00",
+          "value": 0,
+          "x0": 1222.9150390625,
+          "y0": 1372,
+          "x1": 1360,
+          "y1": 1432
+        },
+        "holdingProfitRate": {
+          "text": "+0.00%",
+          "value": 0,
+          "x0": 1178.4326171875,
+          "y0": 1460,
+          "x1": 1360,
+          "y1": 1520
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-02",
+      "code": "000011",
+      "name": "华夏大盘精选混合A",
+      "top": 1890,
+      "holdingAmount": 1274.22,
+      "dailyProfit": -2.27,
+      "holdingProfit": -24.62,
+      "holdingProfitRate": -1.9,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "000011"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "华夏大盘精选混合A"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 1890,
+        "x1": 650,
+        "y1": 1948
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "1,274.22",
+          "value": 1274.22,
+          "x0": 805,
+          "y0": 1892,
+          "x1": 1005,
+          "y1": 1952
+        },
+        "dailyProfit": {
+          "text": "-2.27",
+          "value": -2.27,
+          "x0": 883.369140625,
+          "y0": 1980,
+          "x1": 1005,
+          "y1": 2040
+        },
+        "holdingProfit": {
+          "text": "-24.62",
+          "value": -24.62,
+          "x0": 1209.0478515625,
+          "y0": 1892,
+          "x1": 1360,
+          "y1": 1952
+        },
+        "holdingProfitRate": {
+          "text": "-1.90%",
+          "value": -1.9,
+          "x0": 1193.88671875,
+          "y0": 1980,
+          "x1": 1360,
+          "y1": 2040
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-03",
+      "code": "000031",
+      "name": "华夏复兴混合A",
+      "top": 2410,
+      "holdingAmount": 1411.33,
+      "dailyProfit": 3.34,
+      "holdingProfit": 31.93,
+      "holdingProfitRate": 2.31,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "000031"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "华夏复兴混合A"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 2410,
+        "x1": 650,
+        "y1": 2468
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "1,411.33",
+          "value": 1411.33,
+          "x0": 805,
+          "y0": 2412,
+          "x1": 1005,
+          "y1": 2472
+        },
+        "dailyProfit": {
+          "text": "+3.34",
+          "value": 3.34,
+          "x0": 867.9150390625,
+          "y0": 2500,
+          "x1": 1005,
+          "y1": 2560
+        },
+        "holdingProfit": {
+          "text": "+31.93",
+          "value": 31.93,
+          "x0": 1193.59375,
+          "y0": 2412,
+          "x1": 1360,
+          "y1": 2472
+        },
+        "holdingProfitRate": {
+          "text": "+2.31%",
+          "value": 2.31,
+          "x0": 1178.4326171875,
+          "y0": 2500,
+          "x1": 1360,
+          "y1": 2560
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-04",
+      "code": "000041",
+      "name": "华夏全球股票(QDII)(人民币)",
+      "top": 2930,
+      "holdingAmount": 1548.44,
+      "dailyProfit": -4.41,
+      "holdingProfit": -39.24,
+      "holdingProfitRate": -2.47,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "000041"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "华夏全球股票(QDII)(人民币",
+        ")"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 2930,
+        "x1": 650,
+        "y1": 3046
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "1,548.44",
+          "value": 1548.44,
+          "x0": 805,
+          "y0": 2932,
+          "x1": 1005,
+          "y1": 2992
+        },
+        "dailyProfit": {
+          "text": "-4.41",
+          "value": -4.41,
+          "x0": 883.369140625,
+          "y0": 3020,
+          "x1": 1005,
+          "y1": 3080
+        },
+        "holdingProfit": {
+          "text": "-39.24",
+          "value": -39.24,
+          "x0": 1209.0478515625,
+          "y0": 2932,
+          "x1": 1360,
+          "y1": 2992
+        },
+        "holdingProfitRate": {
+          "text": "-2.47%",
+          "value": -2.47,
+          "x0": 1193.88671875,
+          "y0": 3020,
+          "x1": 1360,
+          "y1": 3080
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-05",
+      "code": "000083",
+      "name": "汇添富消费行业混合",
+      "top": 3450,
+      "holdingAmount": 1685.55,
+      "dailyProfit": 5.48,
+      "holdingProfit": null,
+      "holdingProfitRate": null,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "000083"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "汇添富消费行业混合"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 3450,
+        "x1": 650,
+        "y1": 3508
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "1,685.55",
+          "value": 1685.55,
+          "x0": 805,
+          "y0": 3452,
+          "x1": 1005,
+          "y1": 3512
+        },
+        "dailyProfit": {
+          "text": "+5.48",
+          "value": 5.48,
+          "x0": 867.9150390625,
+          "y0": 3540,
+          "x1": 1005,
+          "y1": 3600
+        },
+        "holdingProfit": {
+          "text": "—",
+          "value": null,
+          "x0": 1305.99609375,
+          "y0": 3452,
+          "x1": 1360,
+          "y1": 3512
+        },
+        "holdingProfitRate": {
+          "text": "—",
+          "value": null,
+          "x0": 1305.99609375,
+          "y0": 3540,
+          "x1": 1360,
+          "y1": 3600
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-06",
+      "code": "000854",
+      "name": "鹏华养老产业股票",
+      "top": 3970,
+      "holdingAmount": 1822.66,
+      "dailyProfit": -6.55,
+      "holdingProfit": -53.86,
+      "holdingProfitRate": -2.87,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "000854"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "鹏华养老产业股票"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 3970,
+        "x1": 650,
+        "y1": 4028
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "1,822.66",
+          "value": 1822.66,
+          "x0": 805,
+          "y0": 3972,
+          "x1": 1005,
+          "y1": 4032
+        },
+        "dailyProfit": {
+          "text": "-6.55",
+          "value": -6.55,
+          "x0": 883.369140625,
+          "y0": 4060,
+          "x1": 1005,
+          "y1": 4120
+        },
+        "holdingProfit": {
+          "text": "-53.86",
+          "value": -53.86,
+          "x0": 1209.0478515625,
+          "y0": 3972,
+          "x1": 1360,
+          "y1": 4032
+        },
+        "holdingProfitRate": {
+          "text": "-2.87%",
+          "value": -2.87,
+          "x0": 1193.88671875,
+          "y0": 4060,
+          "x1": 1360,
+          "y1": 4120
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-07",
+      "code": "001156",
+      "name": "申万菱信新能源汽车主题灵活配置混合A",
+      "top": 4490,
+      "holdingAmount": 1959.77,
+      "dailyProfit": 7.62,
+      "holdingProfit": 61.17,
+      "holdingProfitRate": 3.22,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "001156"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "申万菱信新能源汽车主题灵",
+        "活配置混合A"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 4490,
+        "x1": 650,
+        "y1": 4606
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "1,959.77",
+          "value": 1959.77,
+          "x0": 805,
+          "y0": 4492,
+          "x1": 1005,
+          "y1": 4552
+        },
+        "dailyProfit": {
+          "text": "+7.62",
+          "value": 7.62,
+          "x0": 867.9150390625,
+          "y0": 4580,
+          "x1": 1005,
+          "y1": 4640
+        },
+        "holdingProfit": {
+          "text": "+61.17",
+          "value": 61.17,
+          "x0": 1193.59375,
+          "y0": 4492,
+          "x1": 1360,
+          "y1": 4552
+        },
+        "holdingProfitRate": {
+          "text": "+3.22%",
+          "value": 3.22,
+          "x0": 1178.4326171875,
+          "y0": 4580,
+          "x1": 1360,
+          "y1": 4640
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-08",
+      "code": "005827",
+      "name": "易方达蓝筹精选混合",
+      "top": 5010,
+      "holdingAmount": 2096.88,
+      "dailyProfit": -8.69,
+      "holdingProfit": -68.48,
+      "holdingProfitRate": -3.16,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "005827"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "易方达蓝筹精选混合"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 5010,
+        "x1": 650,
+        "y1": 5068
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "2,096.88",
+          "value": 2096.88,
+          "x0": 805,
+          "y0": 5012,
+          "x1": 1005,
+          "y1": 5072
+        },
+        "dailyProfit": {
+          "text": "-8.69",
+          "value": -8.69,
+          "x0": 883.369140625,
+          "y0": 5100,
+          "x1": 1005,
+          "y1": 5160
+        },
+        "holdingProfit": {
+          "text": "-68.48",
+          "value": -68.48,
+          "x0": 1209.0478515625,
+          "y0": 5012,
+          "x1": 1360,
+          "y1": 5072
+        },
+        "holdingProfitRate": {
+          "text": "-3.16%",
+          "value": -3.16,
+          "x0": 1193.88671875,
+          "y0": 5100,
+          "x1": 1360,
+          "y1": 5160
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-09",
+      "code": "110011",
+      "name": "易方达优质精选混合(QDII)",
+      "top": 5530,
+      "holdingAmount": 2233.99,
+      "dailyProfit": 9.76,
+      "holdingProfit": 75.79,
+      "holdingProfitRate": 3.51,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "110011"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "易方达优质精选混合(QDII)"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 5530,
+        "x1": 650,
+        "y1": 5588
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "2,233.99",
+          "value": 2233.99,
+          "x0": 805,
+          "y0": 5532,
+          "x1": 1005,
+          "y1": 5592
+        },
+        "dailyProfit": {
+          "text": "+9.76",
+          "value": 9.76,
+          "x0": 867.9150390625,
+          "y0": 5620,
+          "x1": 1005,
+          "y1": 5680
+        },
+        "holdingProfit": {
+          "text": "+75.79",
+          "value": 75.79,
+          "x0": 1193.59375,
+          "y0": 5532,
+          "x1": 1360,
+          "y1": 5592
+        },
+        "holdingProfitRate": {
+          "text": "+3.51%",
+          "value": 3.51,
+          "x0": 1178.4326171875,
+          "y0": 5620,
+          "x1": 1360,
+          "y1": 5680
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-10",
+      "code": "110022",
+      "name": "易方达消费行业股票",
+      "top": 6050,
+      "holdingAmount": 2371.1,
+      "dailyProfit": -10.83,
+      "holdingProfit": -83.1,
+      "holdingProfitRate": -3.39,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "110022"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "易方达消费行业股票"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 6050,
+        "x1": 650,
+        "y1": 6108
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "2,371.10",
+          "value": 2371.1,
+          "x0": 805,
+          "y0": 6052,
+          "x1": 1005,
+          "y1": 6112
+        },
+        "dailyProfit": {
+          "text": "-10.83",
+          "value": -10.83,
+          "x0": 854.0478515625,
+          "y0": 6140,
+          "x1": 1005,
+          "y1": 6200
+        },
+        "holdingProfit": {
+          "text": "-83.10",
+          "value": -83.1,
+          "x0": 1209.0478515625,
+          "y0": 6052,
+          "x1": 1360,
+          "y1": 6112
+        },
+        "holdingProfitRate": {
+          "text": "-3.39%",
+          "value": -3.39,
+          "x0": 1193.88671875,
+          "y0": 6140,
+          "x1": 1360,
+          "y1": 6200
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-11",
+      "code": "161725",
+      "name": "招商中证白酒指数(LOF)A",
+      "top": 6570,
+      "holdingAmount": 2508.21,
+      "dailyProfit": 11.9,
+      "holdingProfit": 90.41,
+      "holdingProfitRate": 3.74,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "161725"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "招商中证白酒指数(LOF)A"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 6570,
+        "x1": 650,
+        "y1": 6628
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "2,508.21",
+          "value": 2508.21,
+          "x0": 805,
+          "y0": 6572,
+          "x1": 1005,
+          "y1": 6632
+        },
+        "dailyProfit": {
+          "text": "+11.90",
+          "value": 11.9,
+          "x0": 838.59375,
+          "y0": 6660,
+          "x1": 1005,
+          "y1": 6720
+        },
+        "holdingProfit": {
+          "text": "+90.41",
+          "value": 90.41,
+          "x0": 1193.59375,
+          "y0": 6572,
+          "x1": 1360,
+          "y1": 6632
+        },
+        "holdingProfitRate": {
+          "text": "+3.74%",
+          "value": 3.74,
+          "x0": 1178.4326171875,
+          "y0": 6660,
+          "x1": 1360,
+          "y1": 6720
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-12",
+      "code": "163406",
+      "name": "兴全合润混合A",
+      "top": 7090,
+      "holdingAmount": 2645.32,
+      "dailyProfit": -12.97,
+      "holdingProfit": -97.72,
+      "holdingProfitRate": -3.56,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "163406"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "兴全合润混合A"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 7090,
+        "x1": 650,
+        "y1": 7148
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "2,645.32",
+          "value": 2645.32,
+          "x0": 805,
+          "y0": 7092,
+          "x1": 1005,
+          "y1": 7152
+        },
+        "dailyProfit": {
+          "text": "-12.97",
+          "value": -12.97,
+          "x0": 854.0478515625,
+          "y0": 7180,
+          "x1": 1005,
+          "y1": 7240
+        },
+        "holdingProfit": {
+          "text": "-97.72",
+          "value": -97.72,
+          "x0": 1209.0478515625,
+          "y0": 7092,
+          "x1": 1360,
+          "y1": 7152
+        },
+        "holdingProfitRate": {
+          "text": "-3.56%",
+          "value": -3.56,
+          "x0": 1193.88671875,
+          "y0": 7180,
+          "x1": 1360,
+          "y1": 7240
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-13",
+      "code": "006228",
+      "name": "中欧医疗创新股票A",
+      "top": 7610,
+      "holdingAmount": 2782.43,
+      "dailyProfit": 14.04,
+      "holdingProfit": 105.03,
+      "holdingProfitRate": 3.92,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "006228"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "中欧医疗创新股票A"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 7610,
+        "x1": 650,
+        "y1": 7668
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "2,782.43",
+          "value": 2782.43,
+          "x0": 805,
+          "y0": 7612,
+          "x1": 1005,
+          "y1": 7672
+        },
+        "dailyProfit": {
+          "text": "+14.04",
+          "value": 14.04,
+          "x0": 838.59375,
+          "y0": 7700,
+          "x1": 1005,
+          "y1": 7760
+        },
+        "holdingProfit": {
+          "text": "+105.03",
+          "value": 105.03,
+          "x0": 1164.2724609375,
+          "y0": 7612,
+          "x1": 1360,
+          "y1": 7672
+        },
+        "holdingProfitRate": {
+          "text": "+3.92%",
+          "value": 3.92,
+          "x0": 1178.4326171875,
+          "y0": 7700,
+          "x1": 1360,
+          "y1": 7760
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-14",
+      "code": "006229",
+      "name": "中欧医疗创新股票C",
+      "top": 8130,
+      "holdingAmount": 2919.54,
+      "dailyProfit": -15.11,
+      "holdingProfit": -112.34,
+      "holdingProfitRate": -3.71,
+      "expectedAmbiguous": false,
+      "expectedDefaultSkip": false,
+      "allowedCandidateCodes": [
+        "006229"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "中欧医疗创新股票C"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 8130,
+        "x1": 650,
+        "y1": 8188
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "2,919.54",
+          "value": 2919.54,
+          "x0": 805,
+          "y0": 8132,
+          "x1": 1005,
+          "y1": 8192
+        },
+        "dailyProfit": {
+          "text": "-15.11",
+          "value": -15.11,
+          "x0": 854.0478515625,
+          "y0": 8220,
+          "x1": 1005,
+          "y1": 8280
+        },
+        "holdingProfit": {
+          "text": "-112.34",
+          "value": -112.34,
+          "x0": 1179.7265625,
+          "y0": 8132,
+          "x1": 1360,
+          "y1": 8192
+        },
+        "holdingProfitRate": {
+          "text": "-3.71%",
+          "value": -3.71,
+          "x0": 1193.88671875,
+          "y0": 8220,
+          "x1": 1360,
+          "y1": 8280
+        }
+      }
+    },
+    {
+      "rowId": "synthetic-15",
+      "code": null,
+      "name": "中欧医疗创新股票",
+      "top": 8650,
+      "holdingAmount": 3056.65,
+      "dailyProfit": 16.18,
+      "holdingProfit": 119.65,
+      "holdingProfitRate": 4.07,
+      "expectedAmbiguous": true,
+      "expectedDefaultSkip": true,
+      "allowedCandidateCodes": [
+        "006228",
+        "006229"
+      ],
+      "seamCase": null,
+      "nameLines": [
+        "中欧医疗创新股票"
+      ],
+      "nameBox": {
+        "x0": 80,
+        "y0": 8650,
+        "x1": 650,
+        "y1": 8708
+      },
+      "boxes": {
+        "holdingAmount": {
+          "text": "3,056.65",
+          "value": 3056.65,
+          "x0": 805,
+          "y0": 8652,
+          "x1": 1005,
+          "y1": 8712
+        },
+        "dailyProfit": {
+          "text": "+16.18",
+          "value": 16.18,
+          "x0": 838.59375,
+          "y0": 8740,
+          "x1": 1005,
+          "y1": 8800
+        },
+        "holdingProfit": {
+          "text": "+119.65",
+          "value": 119.65,
+          "x0": 1164.2724609375,
+          "y0": 8652,
+          "x1": 1360,
+          "y1": 8712
+        },
+        "holdingProfitRate": {
+          "text": "+4.07%",
+          "value": 4.07,
+          "x0": 1178.4326171875,
+          "y0": 8740,
+          "x1": 1360,
+          "y1": 8800
+        }
+      }
+    }
+  ],
+  "imageSha256": "487ec86fc114732a3350e02b53c99aa7dfbd7f7e85d9299bda3144d986a0b314",
+  "authoredSha256": "733ec088f5056675abe463ec41d9efe49e92343e67a535b4096725d8df90594d",
+  "renderer": {
+    "browser": "155.0.8059.86",
+    "font": "C:/Windows/Fonts/msyh.ttc",
+    "fontSha256": "d79c55e68b1131eea0cc1c47be4f572d964f28c682e143db2ad09c1e4cb07a3f"
+  }
+}

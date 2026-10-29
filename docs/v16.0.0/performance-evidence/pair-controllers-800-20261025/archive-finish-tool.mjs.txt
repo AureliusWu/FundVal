@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
+const here = import.meta.dirname;
+const root = 'D:/AI项目/FundVal';
+const dest = resolve(root, 'docs/v16.0.0/performance-evidence/pair-controllers-800-20261025');
+const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const json = path => JSON.parse(readFileSync(path, 'utf8'));
+const frozen = json('C:/Users/84046/AppData/Local/Temp/FundVal-pair-controllers-800-20261025-parent/FROZEN.json');
+const audit = json(resolve(dest, 'archive-audit.json'));
+const archive = readFileSync(resolve(dest, 'original-evidence.tar.gz'));
+assert.equal(archive.length, audit.archive.bytes); assert.equal(sha(archive), audit.archive.sha256);
+assert.equal(sha(readFileSync(resolve(dest, 'PROTOCOL.md'))), frozen.protocolSha256);
+const checks = [
+  ['tools/common.mjs.txt', frozen.commonHelperSha256],
+  ['parent/run.mjs', frozen.runnerSha256],
+  ['parent/independent-audit.mjs', frozen.independentAuditSha256],
+  ['frozen-inputs/QA_SOURCE_V3.json', frozen.qaSourceSha256],
+  ...Object.entries(frozen.toolHashes).map(([path, hash]) => ['final-source/' + path, hash]),
+].map(([path, expected]) => {
+  const actual = sha(readFileSync(resolve(here, 'extract', path)));
+  assert.equal(actual, expected, path);
+  return { path, sha256: actual, matchesFrozen: true };
+});
+const receipt = json(resolve(here, 'archive-run.receipt.json'));
+assert.equal(receipt.nativeExit, 0); assert.equal(receipt.error, null); assert.equal(receipt.signal, null);
+for (const extension of ['stdout', 'stderr', 'receipt.json']) {
+  const bytes = readFileSync(resolve(here, 'archive-run.' + extension));
+  if (extension !== 'receipt.json') {
+    assert.equal(bytes.length, receipt[extension].bytes); assert.equal(sha(bytes), receipt[extension].sha256);
+  }
+  writeFileSync(resolve(dest, 'archive-native/archive-run.' + extension), bytes, { flag: 'wx' });
+}
+const result = { status: 'POST_ARCHIVE_FROZEN_TOOL_BYTES_PASS', checks,
+  archive: audit.archive, protocolSha256: frozen.protocolSha256,
+  limitation: 'Archive addendum created after packaging; not an original tar member or new performance/CI proof', release: false, m3Exit: false };
+writeFileSync(resolve(dest, 'archive-tool-bindings.json'), JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
+writeFileSync(resolve(dest, 'archive-finish-tool.mjs.txt'), readFileSync(import.meta.filename), { flag: 'wx' });
+process.stdout.write(JSON.stringify({ status: result.status, checks: checks.length, archive: result.archive }) + '\n');

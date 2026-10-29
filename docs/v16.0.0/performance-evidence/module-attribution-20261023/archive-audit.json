@@ -1,0 +1,197 @@
+{
+  "status": "ARCHIVE_AUDIT_PASS_METADATA_ONLY",
+  "checks": [
+    {
+      "label": "successful exact metadata capture not a candidate",
+      "pass": true
+    },
+    {
+      "label": "capture actual native success raw bytes",
+      "pass": true
+    },
+    {
+      "label": "every emitted chunk exactly actual site",
+      "pass": true
+    },
+    {
+      "label": "ui-review report exists",
+      "pass": true
+    },
+    {
+      "label": "contract-review report exists",
+      "pass": true
+    },
+    {
+      "label": "storage-review report exists",
+      "pass": true
+    },
+    {
+      "label": "safe relative archive paths",
+      "pass": true
+    },
+    {
+      "label": "all fresh extraction bytes paths hashes",
+      "pass": true
+    },
+    {
+      "label": "capture selected original bytes unchanged",
+      "pass": true
+    },
+    {
+      "label": "ui-review selected original bytes unchanged",
+      "pass": true
+    },
+    {
+      "label": "contract-review selected original bytes unchanged",
+      "pass": true
+    },
+    {
+      "label": "storage-review selected original bytes unchanged",
+      "pass": true
+    },
+    {
+      "label": "selected-source selected original bytes unchanged",
+      "pass": true
+    },
+    {
+      "label": "root273 site127 installed68 Git same",
+      "pass": true
+    }
+  ],
+  "receipts": [
+    {
+      "label": "tar-create",
+      "command": "tar",
+      "args": [
+        "-czf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\module-attribution-20261023\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-module-attribution-archive-20261023-parent\\stage",
+        "."
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T06:11:18.678Z",
+      "finishedAt": "2026-10-23T06:11:18.954Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-list",
+      "command": "tar",
+      "args": [
+        "-tzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\module-attribution-20261023\\original-evidence.tar.gz"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T06:11:18.954Z",
+      "finishedAt": "2026-10-23T06:11:18.998Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 4929,
+        "sha256": "2d122870e3ac1ca2deb06441cd1cade71abc51b28ac94bb2ca10403eefcc2b64"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-extract",
+      "command": "tar",
+      "args": [
+        "-xzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\module-attribution-20261023\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-module-attribution-archive-20261023-parent\\extract"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T06:11:19.001Z",
+      "finishedAt": "2026-10-23T06:11:19.103Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "command": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "diff",
+        "--check"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T06:11:20.381Z",
+      "finishedAt": "2026-10-23T06:11:20.502Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    }
+  ],
+  "before": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "after": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourcePayloadCount": 59,
+  "archive": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\module-attribution-20261023\\original-evidence.tar.gz",
+    "bytes": 298751,
+    "sha256": "6e71198d7057c274364c191a203a99613dead4c0bce09a0a5edd84e2f2d363d4"
+  },
+  "inventory": {
+    "count": 108,
+    "bytes": 1066174,
+    "sha256": "9145fd424ed5d78d3b901be560cbd45b380fd785593c1a6d2e7c9bd86d13ae3d"
+  },
+  "extract": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-module-attribution-archive-20261023-parent\\extract",
+  "prePolicyAll": 85969,
+  "prePolicyBudget": 77227.7,
+  "prePolicyVerdict": "FAIL",
+  "candidate": false,
+  "postPolicyQa": false,
+  "release": "NOT_RELEASED",
+  "addendaOutside": true
+}

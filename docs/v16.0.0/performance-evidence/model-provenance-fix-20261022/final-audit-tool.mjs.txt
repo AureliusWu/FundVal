@@ -1,0 +1,36 @@
+import {readFileSync,writeFileSync,readdirSync,lstatSync,cpSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+const root='D:/AI项目/FundVal',dir=import.meta.dirname,out=resolve(root,'docs/v16.0.0/performance-evidence/model-provenance-fix-20261022');
+const sha=b=>createHash('sha256').update(b).digest('hex'),json=p=>JSON.parse(readFileSync(p,'utf8')),checks=[],natives=[];
+const save=(p,b)=>writeFileSync(p,b,{flag:'wx'}),check=(label,fn)=>{fn();checks.push({label,pass:true});};
+function inv(base,exclude=new Set(),part=''){
+ const rows=[];for(const e of readdirSync(resolve(base,part),{withFileTypes:true})){
+  if(!part&&exclude.has(e.name))continue;const path=part?part+'/'+e.name:e.name,p=resolve(base,path);assert.equal(lstatSync(p).isSymbolicLink(),false);
+  if(e.isDirectory())rows.push(...inv(base,exclude,path));else{const b=readFileSync(p);rows.push({path,bytes:b.length,sha256:sha(b)});}
+ }return rows.sort((a,b)=>a.path.localeCompare(b.path));
+}
+function git(label,args){const r=spawnSync('git',args,{cwd:root,windowsHide:true,encoding:null,maxBuffer:5_000_000});const stdout=r.stdout||Buffer.alloc(0),stderr=r.stderr||Buffer.alloc(0);for(const[k,b]of[['stdout',stdout],['stderr',stderr]])save(resolve(out,'final-'+label+'.'+k),b);natives.push({label,args,exitCode:r.status,signal:r.signal,error:r.error?.message??null,stdout:{bytes:stdout.length,sha256:sha(stdout)},stderr:{bytes:stderr.length,sha256:sha(stderr)}});assert.equal(r.status,0);assert.equal(r.signal,null);assert.equal(r.error,undefined);return stdout;}
+const state=json(resolve(dir,'extract/parent/final-state.json')),audit=json(resolve(out,'archive-audit.json'));
+const noDocs=inv(root,new Set(['.git','node_modules','site','Temp','.claude','docs'])),docPath='docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md',doc=readFileSync(resolve(root,docPath));
+const rows=[...noDocs,{path:docPath,bytes:doc.length,sha256:sha(doc)}].sort((a,b)=>a.path.localeCompare(b.path));
+check('current complete272 source matches sealed final input',()=>assert.deepEqual(rows,state.rows));
+check('current complete127 site matches sealed final build',()=>assert.deepEqual(inv(resolve(root,'site')),state.site));
+const installed=state.installed.map(r=>{const b=readFileSync(resolve(root,'node_modules',r.path));return{path:r.path,bytes:b.length,sha256:sha(b)};});
+check('installed explicit68 still same',()=>assert.deepEqual(installed,state.installed));
+check('HEAD branch staged-index unchanged',()=>{assert.equal(git('head',['rev-parse','HEAD']).toString().trim(),state.head);assert.equal(git('branch',['branch','--show-current']).toString().trim(),state.branch);assert.equal(sha(git('index',['diff','--cached','--binary'])),state.indexSha256);});
+const inventory=json(resolve(out,'inventory.json')),archive=readFileSync(resolve(out,'original-evidence.tar.gz'));
+check('archive hash size still same',()=>{assert.equal(archive.length,audit.archive.bytes);assert.equal(sha(archive),audit.archive.sha256);});
+check('all791 extracted member bytes and paths still same',()=>assert.deepEqual(inv(resolve(dir,'extract')),inventory.files));
+check('inventory identity still same',()=>{assert.equal(inventory.count,791);assert.equal(sha(JSON.stringify(inventory.files)),audit.inventory.sha256);});
+for(const item of json(resolve(dir,'extract/parent/source-inventories.json')))check('original completed workspace still same '+item.path.split('/').at(-1),()=>assert.deepEqual(inv(item.path),item.files));
+const readme=readFileSync(resolve(out,'README.md'),'utf8'),sealedReadme=readFileSync(resolve(dir,'extract/parent/README.md'),'utf8');
+check('sealed README retained verbatim prefix with explicit outside addendum',()=>{assert.ok(readme.startsWith(sealedReadme));assert.match(readme,/归档后补记（包外addendum）/);});
+const status=readFileSync(resolve(root,'docs/v16.0.0/M3_STATUS.md'),'utf8'),index=readFileSync(resolve(root,'docs/v16.0.0/performance-evidence/README.md'),'utf8');
+check('latest M3 report records actual failure and full remaining scope',()=>{assert.match(status,/## 51\./);assert.match(status,/8,729整数B/);assert.match(status,/accuracy自动生命周期未闭合/);assert.match(status,/15\.0\.2 \/ M3 IN_PROGRESS \/ NOT_RELEASED/);assert.ok(index.includes('model-provenance-fix-20261022/README.md'));});
+git('diff-check',['diff','--check']);git('status',['status','--porcelain=v1']);
+const docs=['docs/v16.0.0/M3_STATUS.md','docs/v16.0.0/performance-evidence/README.md','docs/v16.0.0/performance-evidence/model-provenance-fix-20261022/README.md'].map(path=>{const b=readFileSync(resolve(root,path));return{path,bytes:b.length,sha256:sha(b)};});
+const result={schema:1,status:'PASS',at:new Date().toISOString(),checks,natives,docs,sourceRowsSha256:sha(JSON.stringify(rows)),siteRowsSha256:sha(JSON.stringify(state.site)),installedRowsSha256:sha(JSON.stringify(installed)),scope:'Post-documentation read-only product/archive verification, not a new build/test/performance/CI/deployment/financial reconciliation',budget:'FAIL',M3:'IN_PROGRESS',release:'NOT_RELEASED'};
+save(resolve(out,'final-audit.json'),JSON.stringify(result,null,2)+'\n');cpSync(import.meta.filename,resolve(out,'final-audit-tool.mjs.txt'),{force:false,errorOnExist:true});console.log(JSON.stringify({status:result.status,checks:checks.length,nativeChecks:natives.length,sourceRowsSha256:result.sourceRowsSha256,siteRowsSha256:result.siteRowsSha256,budget:result.budget,M3:result.M3}));

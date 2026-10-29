@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fetchFundHoldings, normalizeHoldingRow, holdingQuoteCode } from '../js/fund-holdings.js';
 import { formatChinaQuoteTime, normalizeTencentQuoteTime } from '../js/holdings-estimate.js';
+import * as securityQuoteFeature from '../js/runtime/security-quote-batch.js';
+import { throwIfAborted } from '../js/runtime/request-signal.js';
 
 test('normalizes a disclosed holding without coercing missing ratios to zero', () => {
   assert.deepEqual(normalizeHoldingRow({ code: '688361', name: '中科飞测', ratio: '9.55' }), {
@@ -39,19 +41,20 @@ test('app routes identical Korean and mainland codes independently and removes u
   const body = source.slice(source.indexOf('async function fetchHoldingsQuotes('), source.indexOf('function fmtQuoteNav('));
   const fetchQuotes = new Function('loadHoldingsEstimateFeature', 'loadFundHoldingsFeature', 'fundsData', 'holdings', 'classifyFundMarket',
     'fetchWithTimeout', 'TIMING', 'parseNav', 'formatChinaQuoteTime', 'loadQuoteBridgeFeature', 'normalizeTencentQuoteTime',
+    'loadSecurityQuoteFeature', 'throwIfAborted',
     `${body}\nreturn fetchHoldingsQuotes;`)(
     async () => ({}), async () => ({ holdingQuoteCode }), [{ code: '012920', name: 'Synthetic QDII' }], [], () => 'qdii',
     async url => {
       assert.match(url, /secids=0\.000660&/);
-      return Response.json({ data: { diff: [{ f12: '000660', f3: 3, f124: 1788822000 }] } });
+      return Response.json({ data: { diff: [{ f12: '000660', f13: 0, f2: 10, f3: 3, f124: 1788822000 }] } });
     }, { INDEX_JSONP_TIMEOUT: 100 }, Number, formatChinaQuoteTime,
     async () => ({ securityQuotes: async codes => {
-      assert.deepEqual(codes, ['kr000660', 'jp285A']);
+      assert.deepEqual(codes, ['jp285A', 'kr000660']);
       return { quotes: [
-        { code: 'kr000660', changePct: -2, sourceTimeRaw: '20260908145900' },
-        { code: 'jp285A', changePct: 1, sourceTimeRaw: '20260908145900' },
+        { code: 'kr000660', price: 10, changePct: -2, sourceTimeRaw: '20260908145900' },
+        { code: 'jp285A', price: 10, changePct: 1, sourceTimeRaw: '20260908145900' },
       ] };
-    } }), normalizeTencentQuoteTime,
+    } }), normalizeTencentQuoteTime, async () => securityQuoteFeature, throwIfAborted,
   );
   const stocks = [
     { code: '000660', market: 'cn' }, { code: '000660', market: 'kr' }, { code: '285A', market: 'jp' },

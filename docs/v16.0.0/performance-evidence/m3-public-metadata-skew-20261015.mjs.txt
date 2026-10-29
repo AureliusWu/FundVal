@@ -1,0 +1,34 @@
+import {writeFile,readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {pathToFileURL} from 'node:url';
+const root='D:/AI项目/FundVal',codes=['005844','012920'],fetchNative=globalThis.fetch;
+const {fetchEstimateRows}=await import(pathToFileURL(root+'/js/eastmoney-estimate.js'));
+const report={schema:1,status:'SEPARATE_BOUNDED_METADATA_DIAGNOSTIC_NOT_REPLACEMENT',startedAt:new Date().toISOString(),protocol:{attempts:3,client:'fetchEstimateRows',options:{force:true},explicitNow:false,method:'GET',envProxy:true,instrumentation:'Native response.json wrapper observes top-level public metadata before returning the exact same payload; small instrumentation overhead disclosed. No payload/clock/source validator changes.',originalFailedFiveReplaced:false},samples:[]};
+const text=v=>typeof v==='string'?v.slice(0,200):null;
+const metaHashes=Object.fromEntries(await Promise.all(['js/eastmoney-estimate.js','js/runtime/worker-contract.js'].map(async p=>[p,createHash('sha256').update(await readFile(root+'/'+p)).digest('hex')])));
+report.sourceHashes=metaHashes;
+for(let attempt=1;attempt<=3;attempt++){
+ const start=performance.now(),row={attempt,startAt:new Date().toISOString()};
+ globalThis.fetch=async(url,options)=>{
+  const request=new URL(url);
+  if(request.origin!=='https://sinan-estimate-push.ligugu69.workers.dev'||request.pathname!=='/estimates'||options?.method&&options.method!=='GET')throw new Error('Diagnostic read scope escaped');
+  const response=await fetchNative(url,options),originalJson=response.json.bind(response);
+  row.http={status:response.status,date:text(response.headers.get('date')),headersReceivedAt:new Date().toISOString()};
+  response.json=async()=>{
+   const payload=await originalJson(),now=Date.now();
+   row.metadata={capturedAt:new Date(now).toISOString(),schemaVersion:payload?.schema_version??null,serviceVersion:text(payload?.service_version),generatedAt:text(payload?.generated_at),fetchedAt:text(payload?.fetched_at),status:text(payload?.status),source:text(payload?.source),capabilities:Array.isArray(payload?.capabilities)?payload.capabilities.map(text):null,itemCount:Array.isArray(payload?.items)?payload.items.length:null};
+   for(const [label,value] of [['generatedAt',payload?.generated_at],['fetchedAt',payload?.fetched_at],['httpDate',response.headers.get('date')]]){
+    const parsed=typeof value==='string'?Date.parse(value):NaN;
+    row.metadata[label+'MinusCaptureMs']=Number.isFinite(parsed)?parsed-now:null;
+   }
+   return payload;
+  };
+  return response;
+ };
+ try{const result=await fetchEstimateRows(codes,{force:true});row.status='ACCEPTED';row.acceptedCodes=[...result].filter(([,value])=>value).map(([code])=>code);}
+ catch(error){row.status='REJECTED';row.error={name:error.name,code:error.code??null};}
+ row.durationMs=performance.now()-start;report.samples.push(row);process.stdout.write(JSON.stringify(row)+'\n');
+}
+globalThis.fetch=fetchNative;report.completedAt=new Date().toISOString();report.summary={accepted:report.samples.filter(x=>x.status==='ACCEPTED').length,capturedResponses:report.samples.filter(x=>x.metadata).length,rootCause:'Infer only from actually captured metadata; no relaxed-clock acceptance or source freshness claim.'};
+await writeFile(new URL('./public-metadata-instrumented.json',import.meta.url),JSON.stringify(report,null,2)+'\n');
+process.stdout.write(JSON.stringify({summary:report.summary})+'\n');

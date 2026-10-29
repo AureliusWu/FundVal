@@ -1,0 +1,85 @@
+import assert from 'node:assert/strict';
+import { readFile,readdir,lstat,copyFile,mkdir,mkdtemp,writeFile,cp } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { dirname,resolve,join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+const here=dirname(fileURLToPath(import.meta.url)),root='D:/AI项目/FundVal';
+const out=resolve(root,'docs/v16.0.0/performance-evidence/pair-vite824-diagnostics-800-20261022');
+const run='C:/Users/84046/AppData/Local/Temp/fundval-m3-pair824-20261022-84c9ce529d91';
+const independent='C:/Users/84046/AppData/Local/Temp/fundval-pair824-prepared-verifier-20261022-114642-337';
+const reconstruction='C:/Users/84046/AppData/Local/Temp/fundval-reference-rebuild-20261022-0570429';
+const sha=b=>createHash('sha256').update(b).digest('hex'),json=async p=>JSON.parse(await readFile(p,'utf8'));
+const rawPath=resolve(root,'docs/v16.0.0/performance-evidence/m3-pair-vite824-diagnostics-800-20261022.json');
+const rawBytes=await readFile(rawPath),raw=JSON.parse(rawBytes),rawSha=sha(rawBytes);
+assert.equal(rawSha,'46aeb7a3ad8908bf256ffe4b17e706e59fddd282e5bdcbed994780222a9bf49f');
+const postflight=await json(resolve(here,'postflight.json'));
+assert.equal(postflight.verdict,'SOURCE_WINDOW_AND_FULL_INVENTORIES_VERIFIED');
+const rebuild=await json(resolve(reconstruction,'result.json'));
+assert.equal(rebuild.status,'PASS_REFERENCE_RECONSTRUCTION_THREE_BUILDS');
+const finalReferenceCheck=await json(resolve(here,'reconstruction-check.json'));
+assert.equal(finalReferenceCheck.verdict,'REFERENCE_RECONSTRUCTION_INDEPENDENTLY_VERIFIED');
+const staging=await mkdtemp(join(tmpdir(),'fundval-pair824-archive-'));
+async function copy(from,to,expected){const b=await readFile(from);if(expected){assert.equal(b.length,expected.bytes);assert.equal(sha(b),expected.sha256);}
+ const target=resolve(staging,to);await mkdir(dirname(target),{recursive:true});await copyFile(from,target);
+ assert.equal(sha(await readFile(target)),sha(b));}
+const runFiles=['PROTOCOL.md','create-reference.mjs','reference.json','reference-input.tar','preflight.mjs','preflight.json','launch.mjs','launch-reservation.json','live-handle.json','native-completion.json'];
+for(const name of runFiles)await copy(resolve(run,name),'run/'+name);
+await cp(resolve(run,'reference-input'),resolve(staging,'run/reference-input'),{recursive:true,errorOnExist:true,force:false});
+await cp(independent,resolve(staging,'independent-finished'),{recursive:true,errorOnExist:true,force:false});
+await cp(reconstruction,resolve(staging,'reference-reconstruction'),{recursive:true,errorOnExist:true,force:false});
+for(const name of ['PROTOCOL.md','postflight.mjs','postflight.json','measurement-window-tracked.patch','budget-native.json','check-reconstruction.mjs','reconstruction-check.json'])
+ await copy(resolve(here,name),'postflight/'+name);
+await copy(fileURLToPath(import.meta.url),'tooling/archive.mjs.txt');
+await copy(resolve(out,'independent-preflight-review.md'),'independent-preflight-review.md');
+let sourceCount=0,sourceBytes=0;const excludedHistorical=[];
+for(const row of postflight.source.rows){if(row.path.startsWith('.codex-tmp/')){excludedHistorical.push(row);continue;}
+ await copy(resolve(root,row.path),'measured-current-inputs/'+row.path,row);sourceCount++;sourceBytes+=row.bytes;}
+assert.equal(sourceCount,246);assert.equal(sourceBytes,12107657);assert.equal(excludedHistorical.length,24);
+const outputCohorts=[];
+for(const [name,base,inventory]of [['current-non-ocr-artifacts',resolve(root,'site'),raw.artifactsAfter.current],
+ ['reconstructed-reference-non-ocr-artifacts',resolve(rebuild.snapshot,'site'),raw.artifactsAfter.reference]]){
+ const copied=[],omitted=[];
+ for(const row of inventory.files){if(row.path.startsWith('assets/ocr/')){omitted.push(row);continue;}await copy(resolve(base,row.path),name+'/'+row.path,row);copied.push(row);}
+ outputCohorts.push({name,allFiles:inventory.fileCount,allBytes:inventory.totalBytes,copiedFiles:copied.length,copiedBytes:copied.reduce((s,r)=>s+r.bytes,0),omittedOcrFiles:omitted.length,omittedOcrBytes:omitted.reduce((s,r)=>s+r.bytes,0),copied,omitted});
+}
+const scope={schema:1,raw:{path:rawPath,bytes:rawBytes.length,sha256:rawSha,inArchive:false},
+ exactSourceCopies:{files:sourceCount,bytes:sourceBytes},excludedHistorical,outputCohorts,
+ caveats:['Raw JSON is preserved as a separate sibling and not duplicated in this archive.',
+ '24 historical .codex-tmp output files have inventories only, not payload copies.',
+ 'Large output OCR payloads are not copied; full inventories remain in raw/reconstruction reports.',
+ 'The copied reference outputs are from a new exact reconstruction, not the deleted sampled snapshot.',
+ 'Independent verifier v1 native3 with a cross-stage diff assertion error remains preserved; v2 only corrects that tool assertion.',
+ 'No new browser experiment, sample filtering, test, install, audit or root build is performed by archival.',
+ 'Root tracked docs were changed only after measurement-window patch and full source proof were saved.',
+ 'One further architectural review agent ended without a result; it is not counted as a completed review.']};
+await writeFile(resolve(staging,'ARCHIVE_SCOPE.json'),JSON.stringify(scope,null,2)+'\n',{flag:'wx'});
+async function inventory(base){const rows=[];async function visit(p){const full=resolve(base,p),s=await lstat(full);assert.ok(!s.isSymbolicLink());
+ if(s.isDirectory())for(const n of await readdir(full))await visit(p==='.'?n:p+'/'+n);
+ else{assert.ok(s.isFile());const b=await readFile(full);rows.push({path:p,bytes:b.length,sha256:sha(b)});}}
+ await visit('.');rows.sort((a,b)=>a.path.localeCompare(b.path));return rows;}
+const rows=await inventory(staging),archive=resolve(out,'original-evidence.tar.gz');
+assert.equal(await lstat(archive).then(()=>true,e=>e.code==='ENOENT'?false:Promise.reject(e)),false);
+const receipts=[];
+function tar(args){const startedAt=new Date().toISOString(),r=spawnSync('tar.exe',args,{encoding:'utf8',windowsHide:true,timeout:60000,maxBuffer:1000000});
+ receipts.push({command:'tar.exe',args,startedAt,endedAt:new Date().toISOString(),status:r.status,signal:r.signal,error:r.error?.message||null,stdout:r.stdout,stderr:r.stderr});
+ assert.equal(r.status,0,r.stderr);assert.equal(r.error,undefined);}
+tar(['-czf',archive,'-C',staging,'.']);
+const extraction=await mkdtemp(join(tmpdir(),'fundval-pair824-extract-'));tar(['-xzf',archive,'-C',extraction]);
+assert.deepEqual(await inventory(extraction),rows);
+assert.equal(sha(await readFile(rawPath)),rawSha);
+const packed=await readFile(archive);
+const audit={schema:1,createdAt:new Date().toISOString(),archive:'original-evidence.tar.gz',files:rows.length,uncompressedBytes:rows.reduce((s,r)=>s+r.bytes,0),
+ bytes:packed.length,sha256:sha(packed),inventorySha256:sha(JSON.stringify(rows)),extractionVerified:true,staging,extraction,sourceFiles:sourceCount,sourceBytes,outputCohorts:outputCohorts.map(({copied,omitted,...rest})=>rest),receipts,rows};
+await writeFile(resolve(out,'archive-audit.json'),JSON.stringify(audit,null,2)+'\n',{flag:'wx'});
+await copyFile(fileURLToPath(import.meta.url),resolve(out,'archive-tool.mjs.txt'));
+const independentResult=await json(resolve(independent,'finished-verification.v2.json'));
+const summary={schema:1,raw:scope.raw,status:raw.status,nativeSamplerExit:0,reference:raw.referenceSha,currentSourceAtMeasurement:raw.currentSourceAfter,
+ summary:raw.summary,independent:{checks:independentResult.checks.length,failures:independentResult.failures,verdict:independentResult.verificationVerdict,v1NativeExit:3,v2NativeExit:0},
+ postflight:{checks:postflight.checks,verdict:postflight.verdict,trackedPatch:postflight.trackedPatch},
+ referenceReconstruction:{status:rebuild.status,rounds:rebuild.rounds,independent:finalReferenceCheck},
+ observational:independentResult.observational,budget:postflight.budget,archive:{...audit,rows:undefined},
+ m3Status:'IN_PROGRESS_NOT_RELEASED',appVersion:'15.0.2',productCommit:false,pushed:false,deployed:false};
+await writeFile(resolve(out,'result-summary.json'),JSON.stringify(summary,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({...audit,rows:undefined,receipts:undefined}));

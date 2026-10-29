@@ -1,0 +1,419 @@
+{
+  "schema": 1,
+  "status": "VITE824_LOCAL_QUALIFICATION_COMPLETE_M3_STILL_FAIL",
+  "rootQualificationComplete": true,
+  "appVersion": "15.0.2",
+  "sourceAndOutputIdentity": {
+    "inputs": {
+      "files": 270,
+      "bytes": 214510943,
+      "sha256": "a93ec47713269596123a672c43af9e8740b47bcf8ec19c7f700249cb0bdb3a16"
+    },
+    "site": {
+      "files": 127,
+      "bytes": 92537133,
+      "sha256": "5b946d23a08cd42743e5151b3ba5bb62ec52b7b6016dcd83eafaac42817124a9"
+    }
+  },
+  "installedIdentity": {
+    "count": 68,
+    "bytes": 42709269,
+    "sha256": "2da11b473eaff8bcaa1fef492e4b595629145b97f8c7f2ea18f4e7fb5b074e1c"
+  },
+  "installedRows": [
+    {
+      "path": ".package-lock.json",
+      "bytes": 28294,
+      "sha256": "ec8ef5cfcad7f67c33e62d1fcd96a16c86cf7f5c4ce31be817170a16e8d2ef08"
+    },
+    {
+      "path": "@esbuild/win32-x64/esbuild.exe",
+      "bytes": 11694592,
+      "sha256": "c7bee37877d0aa6a046e52783fa0a2cf1a9ce5579d68bb3083bda99d4bff18ef"
+    },
+    {
+      "path": "@esbuild/win32-x64/package.json",
+      "bytes": 374,
+      "sha256": "89382df45735edcd917c492a810ab514920fa07d36c653cdc122bdfd8f526964"
+    },
+    {
+      "path": "@oxc-project/types/package.json",
+      "bytes": 577,
+      "sha256": "bc53dd92263a87e43d7e7e1844574e1a870b2f9cd2b2925b4583dda755a33190"
+    },
+    {
+      "path": "@paddleocr/paddleocr-js/package.json",
+      "bytes": 1640,
+      "sha256": "b0852f082e668d85e480ec8804e3b7430c60a5b920991d1be75e5d2e5d6879be"
+    },
+    {
+      "path": "@playwright/test/package.json",
+      "bytes": 754,
+      "sha256": "be51f784a5742a1aa075e0173f5f04f189a791cc30c40e3bb18be584f696764e"
+    },
+    {
+      "path": "@protobufjs/aspromise/package.json",
+      "bytes": 581,
+      "sha256": "4a39ee1c94f6ee038d2944196aa6167785d3429a91727f828a1274262919e2d8"
+    },
+    {
+      "path": "@protobufjs/base64/package.json",
+      "bytes": 574,
+      "sha256": "7ff6a89f566b95c0f21a5a9cb12df5718f0b06ef96d4186a92d650c0849fa2c5"
+    },
+    {
+      "path": "@protobufjs/codegen/package.json",
+      "bytes": 359,
+      "sha256": "818bf10387c19ab09b3814004ec672ab8d975302cdaf2dd65466bdb604764d65"
+    },
+    {
+      "path": "@protobufjs/eventemitter/package.json",
+      "bytes": 554,
+      "sha256": "d157d364fe4aee21cfd517abff35bca312ff51e6e6e90abdbec16225057e5914"
+    },
+    {
+      "path": "@protobufjs/fetch/package.json",
+      "bytes": 687,
+      "sha256": "52f997898a745acce5d68751883aad6296bcc2f152468ced0ed30e3c3c5a1c72"
+    },
+    {
+      "path": "@protobufjs/float/package.json",
+      "bytes": 738,
+      "sha256": "1cae4ded1bc97375a67fe4608f87ee59990734ea738fabb98e9061ab23669cdf"
+    },
+    {
+      "path": "@protobufjs/path/package.json",
+      "bytes": 589,
+      "sha256": "b19802dd696ceb8a4aa4839f35ab1c8312e97693d93485ff3c3e4f19cca183c4"
+    },
+    {
+      "path": "@protobufjs/pool/package.json",
+      "bytes": 533,
+      "sha256": "7a33b609e770020fe1e09690cfebc23bbdd6e1306e3f0dd98ba5048966cb7fec"
+    },
+    {
+      "path": "@protobufjs/utf8/package.json",
+      "bytes": 575,
+      "sha256": "80fdb6b9f633023846b6cdf352ea795523abcf27affd4d54afd4b50a90a87411"
+    },
+    {
+      "path": "@rolldown/binding-win32-x64-msvc/package.json",
+      "bytes": 782,
+      "sha256": "8f1fd57f1ede8ffaa871be7a0f1b85e2873a47b80a15b7be80b0cce1d7b90708"
+    },
+    {
+      "path": "@rolldown/binding-win32-x64-msvc/rolldown-binding.win32-x64-msvc.node",
+      "bytes": 21401600,
+      "sha256": "7d51fbe850cc06771ad2e85615d5e1a86b5e323b6f34d7a5aa2728e1a9f364b9"
+    },
+    {
+      "path": "@rolldown/pluginutils/package.json",
+      "bytes": 975,
+      "sha256": "c3d2bfe0ff94de71fd5b82e6f3a01b12ee4d99b8f1b34cc00b984b9acde61cfa"
+    },
+    {
+      "path": "@techstark/opencv-js/package.json",
+      "bytes": 934,
+      "sha256": "e04887eeeaeef91d673c6cd07d92e05da4f41655cb08de461f9d633581b175a3"
+    },
+    {
+      "path": "@tesseract.js-data/chi_sim/package.json",
+      "bytes": 534,
+      "sha256": "cc520ba9b3ced7b1fb69d7d4c0cea43b3dc9eb5e0814662e9be028c8a5cc36c6"
+    },
+    {
+      "path": "@types/node/package.json",
+      "bytes": 4508,
+      "sha256": "7f28d6ce3d40a8243f659ecb1254004c65504205e66428889bfda5985bdf90cb"
+    },
+    {
+      "path": "argparse/package.json",
+      "bytes": 682,
+      "sha256": "688bace28e14392b3a1c4137eb56bc48b684dbf5cb56278ed7056cd2ece07990"
+    },
+    {
+      "path": "bmp-js/package.json",
+      "bytes": 546,
+      "sha256": "78f3eefd21ab427f9085270917585c39f3b110c321b3ddbb5a210abfab0c9bdb"
+    },
+    {
+      "path": "clipper-lib/package.json",
+      "bytes": 448,
+      "sha256": "ceb486780dca92ab9582a5fa991c7b0c277752403c9a0b53625e5439f8d0cbdd"
+    },
+    {
+      "path": "detect-libc/package.json",
+      "bytes": 1278,
+      "sha256": "ee88e5b954fdf3a8480b1d01ef767d68d8ca2c6da269f58c5cf1c5550e9aa2a7"
+    },
+    {
+      "path": "esbuild/bin/esbuild",
+      "bytes": 9350,
+      "sha256": "183d6ead2dbc3af51aec767d5395f86fe54fbbc2d2aa8e54feb4e31d76a62f7e"
+    },
+    {
+      "path": "esbuild/package.json",
+      "bytes": 3980,
+      "sha256": "9d0bc453f4e791553c4cc2298ba023b409241fd9801e494741666eb0f6051490"
+    },
+    {
+      "path": "fdir/package.json",
+      "bytes": 2694,
+      "sha256": "aca49395d61ef383a09f74555c66ed45817ca2b5724e710a4dc9e0471b83d8f5"
+    },
+    {
+      "path": "flatbuffers/package.json",
+      "bytes": 1432,
+      "sha256": "dfdf01a6e56de4400a5722b8e98719cee60f55f7ff306e48fe92487ac51022ae"
+    },
+    {
+      "path": "guid-typescript/package.json",
+      "bytes": 950,
+      "sha256": "ed86856ee95fe87eadd8552b6803a85b7fb4f6cce08603bf9c8385972b5badb6"
+    },
+    {
+      "path": "idb-keyval/package.json",
+      "bytes": 2256,
+      "sha256": "28c6f3816282c710a8f67021422939cbff9a440ebadd67f083292da6edaf6648"
+    },
+    {
+      "path": "is-url/package.json",
+      "bytes": 274,
+      "sha256": "215ed6a491b1ac845b556de17f46075897e084c7c9f6018bde7150017da34817"
+    },
+    {
+      "path": "js-yaml/package.json",
+      "bytes": 2281,
+      "sha256": "3eeb05aa0ceb4c3686e44c9b5d9b88f914b099ba9a7426b36947e65c6373d9a5"
+    },
+    {
+      "path": "lightningcss-win32-x64-msvc/lightningcss.win32-x64-msvc.node",
+      "bytes": 9484800,
+      "sha256": "d043df0f0675e7fffed4cf8b8c33e28639ec9f21d445c21e7fe4985e4a9b5a91"
+    },
+    {
+      "path": "lightningcss-win32-x64-msvc/package.json",
+      "bytes": 719,
+      "sha256": "b5ebddf44be90f0f82899482f512de5c2937fee0892dd001041cd17b35bc7699"
+    },
+    {
+      "path": "lightningcss/package.json",
+      "bytes": 3834,
+      "sha256": "b26fa1b188f90ec672206326e9a1de793f0403a263be9c3797c2e2d56aa48b3c"
+    },
+    {
+      "path": "long/package.json",
+      "bytes": 1493,
+      "sha256": "982e554a35d140981c7962fbba77855563e5890de200f8dc0a249135e4d9acb8"
+    },
+    {
+      "path": "long/umd/package.json",
+      "bytes": 25,
+      "sha256": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+    },
+    {
+      "path": "nanoid/async/package.json",
+      "bytes": 233,
+      "sha256": "0e02b9178f3638eba65e96c8643f3bf08ea192dcef7faadaf3c38c50a829b301"
+    },
+    {
+      "path": "nanoid/non-secure/package.json",
+      "bytes": 99,
+      "sha256": "2f9b8c4bee9312538f388b49c13987f4565ac25d6756fabdbbb771d339945e3e"
+    },
+    {
+      "path": "nanoid/package.json",
+      "bytes": 2283,
+      "sha256": "18673eb0d7ed43dd871d59dc22a5670303f5d4eb9b17783b1f698f5840ce1fff"
+    },
+    {
+      "path": "nanoid/url-alphabet/package.json",
+      "bytes": 99,
+      "sha256": "2f9b8c4bee9312538f388b49c13987f4565ac25d6756fabdbbb771d339945e3e"
+    },
+    {
+      "path": "node-fetch/package.json",
+      "bytes": 2668,
+      "sha256": "000a0b3b037d4e3e211e7b7ca559a5a62a39b96ca2c6bcdaed3aba0a545eedba"
+    },
+    {
+      "path": "onnxruntime-common/dist/cjs/package.json",
+      "bytes": 20,
+      "sha256": "091a04fa67c7907b98e106fcff8b964e13129754fce72d24f3025b97c4887fa3"
+    },
+    {
+      "path": "onnxruntime-common/dist/esm/package.json",
+      "bytes": 18,
+      "sha256": "e3d5a4a2d8551aa52c5a01d2a0efb2e06a2d9711b4f5c5f1d20de6e21807e2cd"
+    },
+    {
+      "path": "onnxruntime-common/package.json",
+      "bytes": 977,
+      "sha256": "740784b70b19207529b9a08229aaa4bf7c211afcc30ab4594daa32891ccffb94"
+    },
+    {
+      "path": "onnxruntime-web/package.json",
+      "bytes": 4593,
+      "sha256": "8cdbce0a4f6205109083cc4675477632147ed48e13fa7f891827fd08ef3c818c"
+    },
+    {
+      "path": "opencollective-postinstall/package.json",
+      "bytes": 787,
+      "sha256": "8e0dab770014766c637d3f7679bdb6837b313b8d9847d0e36936250120cfbc52"
+    },
+    {
+      "path": "picocolors/package.json",
+      "bytes": 552,
+      "sha256": "ef2ac226c4811d312e12c64214c453878653e834482125ae475f27cea60de737"
+    },
+    {
+      "path": "picomatch/package.json",
+      "bytes": 1915,
+      "sha256": "fb7766f5f9c724e13e075760a95d16f87cdb327143d153a913135fde267ec615"
+    },
+    {
+      "path": "platform/package.json",
+      "bytes": 1013,
+      "sha256": "ecc6885e62cf6165cc61e7f7b67e344508b6126fbbd87e4a44d918de5b9b0a1a"
+    },
+    {
+      "path": "playwright-core/package.json",
+      "bytes": 876,
+      "sha256": "07c47543631fef9508760365dee9fbe958c562093ec8d122543949ed231f233f"
+    },
+    {
+      "path": "playwright/package.json",
+      "bytes": 1416,
+      "sha256": "ca170ec143a88ed3043ac953eb3b2377b2b97304104f4e1e23316684ce2c35af"
+    },
+    {
+      "path": "postcss/package.json",
+      "bytes": 2497,
+      "sha256": "e0f23518d0e8fc0570ac68438eff7ecc7554774de3194af6f54f502e33f0c25b"
+    },
+    {
+      "path": "protobufjs/package.json",
+      "bytes": 4169,
+      "sha256": "893c7c89175f609c08fa04329c89cefb411faf5ad7da76213f64498485e81404"
+    },
+    {
+      "path": "regenerator-runtime/package.json",
+      "bytes": 464,
+      "sha256": "438ba14ad7859f5e16914e174e425afa8f5d9c21cf5ab208699a28454c4618ee"
+    },
+    {
+      "path": "rolldown/package.json",
+      "bytes": 6127,
+      "sha256": "6be75efa1a51c115f17375d1fc4713f70392bff70335045ec5cf7eeaf1228c96"
+    },
+    {
+      "path": "source-map-js/package.json",
+      "bytes": 2548,
+      "sha256": "9f1ea63b1661d0f6e5fcd50b625d86cddd77de870a0019b23262360987b487f5"
+    },
+    {
+      "path": "tesseract.js-core/package.json",
+      "bytes": 1784,
+      "sha256": "554b867684677c81aa3ffab61f31e83618445fa09adee99e8fff3515cee6ca54"
+    },
+    {
+      "path": "tesseract.js/package.json",
+      "bytes": 2914,
+      "sha256": "fa342f37afd665595eca66ee867197c47c9ac35a7967123d1132c39a40b3dfbd"
+    },
+    {
+      "path": "tinyglobby/package.json",
+      "bytes": 1761,
+      "sha256": "bd2b2af3c9ba0580f1acfb22c55d0b6d29abf683af5cac8a2efe82fa7c943f23"
+    },
+    {
+      "path": "tr46/package.json",
+      "bytes": 732,
+      "sha256": "615087f58ee138fd35c2b414c355b72e36e5919725b8aecc1c34f6a5585b9779"
+    },
+    {
+      "path": "undici-types/package.json",
+      "bytes": 1192,
+      "sha256": "fe5de6d50b3e426af5bbe08b9d83b6b3c5106d639ec28e5b90c79bfb1d7cddab"
+    },
+    {
+      "path": "vite/package.json",
+      "bytes": 5093,
+      "sha256": "957f44e8e8cad72131365571a2b619977462327068eaf05bfa276689f2361d78"
+    },
+    {
+      "path": "wasm-feature-detect/package.json",
+      "bytes": 1859,
+      "sha256": "f511a8499a742e364d5bc9cdb23fb09108b12c7683fe06fb9e2bc324832b3b5b"
+    },
+    {
+      "path": "webidl-conversions/package.json",
+      "bytes": 511,
+      "sha256": "e26568c06b82596d754c7490fd568b4b3f970b3b97c55020d42f65990d0c86af"
+    },
+    {
+      "path": "whatwg-url/package.json",
+      "bytes": 886,
+      "sha256": "05a015c4176246f051bbaa3a543ed82480a4a4d85360283e049f159ba014b008"
+    },
+    {
+      "path": "zlibjs/package.json",
+      "bytes": 1387,
+      "sha256": "5a087e0b211482ab3ab1de0ede25efe4296f77830ec5b7ec6fea357d68af9ede"
+    }
+  ],
+  "audit": {
+    "nativeExit": 0,
+    "total": 0,
+    "devIncluded": 71,
+    "started": "2026-10-22T03:20:06.210Z",
+    "ended": "2026-10-22T03:20:07.814Z",
+    "attemptsInThisIndependentProbe": 1,
+    "maxAttempts": 1
+  },
+  "priorQualification": {
+    "path": "C:/Users/84046/AppData/Local/Temp/fundval-vite824-qualification-20261022-0d5350fa5e31a",
+    "qaSummarySha256": "7139c206e3a17ba24fdd01b68fe434f2cf83a0febda63e34cfab77fa3fa90c0b",
+    "independentReviewSha256": "7f3da85c161c75e3dba3ed3f5c615362671d8127ab7c4eca6a31a571f13da187",
+    "fullQaNotRerun": true,
+    "unit": {
+      "total": 1224,
+      "pass": 1221,
+      "fail": 0,
+      "skipped": 3,
+      "durationMs": 7234.0174
+    },
+    "syntax": 212,
+    "e2e": "33 passed (1.1m)",
+    "sourceExact": true,
+    "outputExact": true,
+    "preservedRoot503AndTimeout": true
+  },
+  "budget": {
+    "nativeExit": 1,
+    "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "baselineAllNonOcrGzipBytes": 70207,
+    "actualColdStartGzipBytes": 44699,
+    "actualAllNonOcrGzipBytes": 84187,
+    "coldBudgetBytes": 52241,
+    "allBudgetNumerator": 772277,
+    "allBudgetDenominator": 10,
+    "allBudgetBytes": 77227.7,
+    "coldPass": true,
+    "allPass": false,
+    "pass": false,
+    "verdict": "FAIL",
+    "importClosureVerified": false,
+    "minimumIntegerReductionBytes": 6960
+  },
+  "stage": "M3_IN_PROGRESS",
+  "relativeLatencyQualified": false,
+  "newCi": false,
+  "pushed": false,
+  "deployed": false,
+  "limitations": [
+    "Dependency audit0 is time-specific; it does not prove universal security or production non-exploitability.",
+    "No full tests/build/browser/performance were rerun in this audit-only probe.",
+    "The original all-budget remains FAIL; all original grouping/target/compatibility/source validation constraints remain."
+  ]
+}

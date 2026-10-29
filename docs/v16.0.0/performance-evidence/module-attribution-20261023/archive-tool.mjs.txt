@@ -1,0 +1,42 @@
+import { readFileSync, mkdirSync, cpSync, existsSync, readdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import assert from 'node:assert/strict';
+import { root, expected, sha, save, state, native, inv, json } from 'file:///C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-20261023-parent/common.mjs';
+const here = import.meta.dirname, capture = 'C:/Users/84046/AppData/Local/Temp/FundVal-module-attribution-20261023-parent';
+const out = resolve(root, 'docs/v16.0.0/performance-evidence/module-attribution-20261023'), stage = resolve(here, 'stage'), extract = resolve(here, 'extract'), archive = resolve(out, 'original-evidence.tar.gz');
+const reports = [
+  ['ui-review', 'C:/Users/84046/AppData/Local/Temp/FundVal-ui-structural-audit-20261023-cf3dfa07ac534888ae4a6e56e910afc0'],
+  ['contract-review', 'C:/Users/84046/AppData/Local/Temp/FundVal-contract-structural-audit-20261023-a1'],
+  ['storage-review', 'C:/Users/84046/AppData/Local/Temp/FundVal-storage-structural-audit-20261023-worker'],
+];
+const checks = [], receipts = []; function check(label, fn) {fn(); checks.push({label, pass: true});}
+function copy(a,b) {mkdirSync(dirname(b), {recursive: true}); cpSync(a,b,{force:false,errorOnExist:true});}
+function run(label,command,args) {const r=native(here,label,command,args);receipts.push(r.receipt);assert.equal(r.receipt.nativeExit,0);assert.equal(r.receipt.signal,null);assert.equal(r.receipt.error,null);return r.stdout;}
+save(resolve(out, 'archive-plan.json'), JSON.stringify({scope:'pre-policy exact current metadata capture + bounded read-only reports, not candidate qualification',
+  included:['capture actual files and all16 actual appchunks','three report snapshots','actual source modules+builder','complete current inventories'],
+  excludes:['installed payload','full site OCR assets payload','unreferenced source payload already§52/55'],noAppOrNewBuild:true},null,2)+'\n');
+const before = state(here,'before'), result = json(resolve(capture,'RESULT.json'));
+check('successful exact metadata capture not a candidate',()=>{assert.equal(result.failure,null);assert.equal(result.postflightError,null);assert.equal(result.outcome.status,'EXACT_CURRENT_CHUNKS_METADATA_CAPTURE_ONLY');assert.equal(result.outcome.modules.length,59);assert.equal(result.outcome.chunks.length,16);assert.equal(result.outcome.allGzip,85969);assert.equal(result.outcome.coldGzip,46149);assert.deepEqual(result.before,result.after);});
+check('capture actual native success raw bytes',()=>{const r=json(resolve(capture,'capture-01.receipt.json'));assert.equal(r.nativeExit,0);assert.equal(r.stderr.bytes,0);for(const k of['stdout','stderr']){const b=readFileSync(resolve(capture,'capture-01.'+k));assert.equal(b.length,r[k].bytes);assert.equal(sha(b),r[k].sha256);}});
+const sourcePaths = new Set(result.outcome.modules.map(m=>m.path).filter(p=>!p.startsWith('\0')));sourcePaths.add('scripts/build-site.mjs');
+const sourceRows = [...sourcePaths].sort((a,b)=>a.localeCompare(b)).map(path=>{const row=expected.rows.find(r=>r.path===path);assert.ok(row,path);const b=readFileSync(resolve(root,path));assert.equal(b.length,row.bytes);assert.equal(sha(b),row.sha256);return row;});
+check('every emitted chunk exactly actual site',()=>{for(const r of result.outcome.chunks){const b=readFileSync(resolve(capture,'chunks',r.path));assert.equal(b.length,r.rawBytes);assert.equal(sha(b),r.sha256);assert.deepEqual(b,readFileSync(resolve(root,'site',r.path)));}});
+const inputs=[{name:'capture',base:capture,rows:inv(capture)},...reports.map(([name,base])=>({name,base,rows:inv(base)})),{name:'selected-source',base:root,rows:sourceRows}];
+for(const input of inputs.filter(i=>i.name.endsWith('review')))check(input.name+' report exists',()=>assert.ok(input.rows.some(r=>r.path==='REPORT.md')));
+for(const p of[stage,extract,archive])assert.equal(existsSync(p),false,p);mkdirSync(stage);
+for(const input of inputs)for(const r of input.rows)copy(resolve(input.base,r.path),resolve(stage,input.name,r.path));
+copy(import.meta.filename,resolve(stage,'parent/archive.mjs'));copy('C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-20261023-parent/common.mjs',resolve(stage,'parent/common.mjs.txt'));
+copy(resolve(out,'README.md'),resolve(stage,'parent/README.md'));copy(resolve(out,'archive-plan.json'),resolve(stage,'parent/archive-plan.json'));
+save(resolve(stage,'parent/current-state.inventory.json'),JSON.stringify(expected,null,2)+'\n');save(resolve(stage,'parent/input-inventories.json'),JSON.stringify(inputs,null,2)+'\n');
+const rows=inv(stage),inventory={count:rows.length,bytes:rows.reduce((s,r)=>s+r.bytes,0),inventorySha256:sha(JSON.stringify(rows)),files:rows};save(resolve(out,'inventory.json'),JSON.stringify(inventory,null,2)+'\n');
+run('tar-create','tar',['-czf',archive,'-C',stage,'.']);const members=run('tar-list','tar',['-tzf',archive]).toString().split(/\r?\n/).filter(Boolean);
+check('safe relative archive paths',()=>{for(const p of members){assert.ok(!/^(?:\/|[A-Za-z]:)/.test(p));assert.ok(!p.split(/[\\/]/).includes('..'));}});
+mkdirSync(extract);run('tar-extract','tar',['-xzf',archive,'-C',extract]);check('all fresh extraction bytes paths hashes',()=>assert.deepEqual(inv(extract),rows));
+for(const input of inputs)check(input.name+' selected original bytes unchanged',()=>{for(const r of input.rows){const b=readFileSync(resolve(input.base,r.path));assert.equal(b.length,r.bytes);assert.equal(sha(b),r.sha256);}});
+const after=state(here,'after');check('root273 site127 installed68 Git same',()=>assert.deepEqual(after,before));run('diff-check','git',['-C',root,'diff','--check']);
+const b=readFileSync(archive),audit={status:'ARCHIVE_AUDIT_PASS_METADATA_ONLY',checks,receipts,before,after,sourcePayloadCount:sourceRows.length,
+  archive:{path:archive,bytes:b.length,sha256:sha(b)},inventory:{count:inventory.count,bytes:inventory.bytes,sha256:inventory.inventorySha256},extract,
+  prePolicyAll:85969,prePolicyBudget:77227.7,prePolicyVerdict:'FAIL',candidate:false,postPolicyQa:false,release:'NOT_RELEASED',addendaOutside:true};
+save(resolve(out,'archive-audit.json'),JSON.stringify(audit,null,2)+'\n');copy(import.meta.filename,resolve(out,'archive-tool.mjs.txt'));
+for(const name of readdirSync(here).filter(n=>/\.(?:stdout|stderr)$/.test(n)||n.endsWith('.receipt.json')))copy(resolve(here,name),resolve(out,name));
+process.stdout.write(JSON.stringify({status:audit.status,checks:checks.length,sourcePayloadCount:sourceRows.length,archive:audit.archive,inventory:audit.inventory})+'\n');

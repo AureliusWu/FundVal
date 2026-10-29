@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "status": "ARCHIVE_BYTES_VERIFIED_NOT_RELEASE",
+  "nativeCreate": {
+    "label": "tar-create",
+    "command": "tar.exe",
+    "args": [
+      "-czf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\budget-policy-20261023\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-budget-policy-archive-20261023-parent\\stage",
+      "."
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+    "startedAt": "2026-10-23T06:30:47.174Z",
+    "finishedAt": "2026-10-23T06:30:49.298Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "nativeExtract": {
+    "label": "tar-extract",
+    "command": "tar.exe",
+    "args": [
+      "-xzf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\budget-policy-20261023\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-budget-policy-archive-20261023-parent\\extract"
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+    "startedAt": "2026-10-23T06:30:49.299Z",
+    "finishedAt": "2026-10-23T06:30:49.737Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "archive": {
+    "bytes": 9663880,
+    "sha256": "0e5614192ef63cdf7f943d5159f93fa6e2d0d3053a45fc002ec8fc82b5c74011"
+  },
+  "members": 702,
+  "expandedBytes": 19960502,
+  "rowsSha256": "952bf712d09e1cee3fb575b6db75957c451039a0d414db13ccd84a13d3c0c94c",
+  "checks": {
+    "freshExtractionAllRows": true,
+    "parentWorkspaceUnchanged": true,
+    "finalSource274": true,
+    "actualSite127Unchanged": true,
+    "installed68Unchanged": true,
+    "selectedSource250": true,
+    "oldFailurePreserved": true,
+    "realBrowserArtifacts": true
+  },
+  "resultsSha256": "eae66c999c7acd32be7831a871ea501056eff95c113d4ceb226c1a938cc7c397",
+  "policyPass": true,
+  "release": false,
+  "m3Exit": false
+}

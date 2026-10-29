@@ -1,0 +1,220 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { gzipSync } from 'node:zlib';
+
+const root = 'D:/AI项目/FundVal';
+const require = createRequire(resolve(root, 'package.json'));
+const { parseSync } = await import(pathToFileURL(require.resolve('rolldown/utils')));
+const { build: viteBuild } = await import(pathToFileURL(require.resolve('vite')));
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const lf = text => text.replaceAll('\r\n', '\n');
+const source = lf(await readFile(resolve(root, 'js/app.js'), 'utf8'));
+const buildSource = lf(await readFile(resolve(root, 'scripts/build-site.mjs'), 'utf8'));
+const sourceProgram = parseSync('app.js', source).program;
+const buildProgram = parseSync('build-site.mjs', buildSource).program;
+function declaration(program, name) {
+  const node = program.body.find(item => item.type === 'FunctionDeclaration' && item.id.name === name);
+  assert.ok(node, `Missing real function ${name}`);
+  return node;
+}
+function replaceOne(text, old, next) {
+  assert.equal(text.split(old).length, 2, 'Replacement must be unique');
+  return text.replace(old, next);
+}
+const oldFirst = "return { ...quote, name: cfg.name, cached: true,\n                status: Date.now() < goldEntry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' };";
+const nextFirst = "return cachedMarketQuote(quote, cfg, goldEntry);";
+const oldSecond = "return quote ? { ...quote, name: cfg.name, cached: true,\n              status: Date.now() < indexEntry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' }\n              : staleIndexItem(indexCache[index], cfg.name);";
+const nextSecond = "return quote ? cachedMarketQuote(quote, cfg, indexEntry)\n              : staleIndexItem(indexCache[index], cfg.name);";
+const helper = "function cachedMarketQuote(quote, cfg, entry) {\n  return { ...quote, name: cfg.name, cached: true,\n    status: Date.now() < entry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' };\n}\n\n";
+let candidate = replaceOne(source, oldFirst, nextFirst);
+candidate = replaceOne(candidate, oldSecond, nextSecond);
+candidate = replaceOne(candidate, 'async function runRefresh(context, options) {', helper + 'async function runRefresh(context, options) {');
+const candidateProgram = parseSync('candidate-app.js', candidate).program;
+assert.equal(candidateProgram.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === 'cachedMarketQuote').length, 1);
+// Evaluate the exact existing build-site config/sets and graph guards, never its
+// output writes or top-level clean/copy/build workflow.
+const variableNames = new Set(['APP_SHELL_FILENAME', 'APP_CHUNK_FILENAME', 'OCR_BUNDLE_REFERENCE', 'COLD_LAZY_MODULE',
+  'STARTUP_MODULES', 'POST_INTEGRITY_MODULES', 'BUSINESS_MODULES', 'APP_CHUNK_GROUPS']);
+const declarations = buildProgram.body.filter(node => node.type === 'VariableDeclaration'
+  && node.declarations.some(item => item.id.type === 'Identifier' && variableNames.has(item.id.name)))
+  .map(node => buildSource.slice(node.start, node.end));
+const functions = ['modulePath', 'collectStaticChunkGraph', 'assertStartupPhaseIsolation'].map(name => {
+  const node = declaration(buildProgram, name); return buildSource.slice(node.start, node.end);
+});
+const appBuilder = declaration(buildProgram, 'buildAppShell');
+const resultDeclaration = appBuilder.body.body.find(node => node.type === 'VariableDeclaration'
+  && node.declarations.some(item => item.id.name === 'result')).declarations.find(item => item.id.name === 'result');
+assert.equal(resultDeclaration.init.type, 'AwaitExpression');
+assert.equal(resultDeclaration.init.argument.callee.name, 'viteBuild');
+const configNode = resultDeclaration.init.argument.arguments[0];
+const factory = new Function('root', 'relative', 'resolve', [...declarations, ...functions,
+  `return { config: ${buildSource.slice(configNode.start, configNode.end)}, modulePath, collectStaticChunkGraph, assertStartupPhaseIsolation, OCR_BUNDLE_REFERENCE };`].join('\n'));
+async function measure(label) {
+  const tools = factory(root, relative, resolve), config = tools.config;
+  assert.equal(config.build.write, false); assert.equal(config.build.minify, 'oxc'); assert.equal(config.build.target, 'es2022');
+  let transforms = 0;
+  if (label === 'candidate') config.plugins = [{ name: 'fundval-private-identity-probe', enforce: 'pre',
+    transform(code, id) {
+      if (id.replaceAll('\\', '/') !== resolve(root, 'js/app.js').replaceAll('\\', '/')) return;
+      assert.equal(lf(code), source); transforms++; return { code: candidate, map: null };
+    } }];
+  const result = await viteBuild(config), outputs = Array.isArray(result) ? result.flatMap(item => item.output || []) : result.output || [];
+  assert.equal(transforms, label === 'candidate' ? 1 : 0);
+  const chunks = outputs.filter(item => item.type === 'chunk');
+  const entries = chunks.filter(chunk => chunk.isEntry); assert.equal(entries.length, 1); assert.equal(entries[0].fileName, 'js/app-shell.js');
+  const graph = new Map(chunks.map(chunk => [chunk.fileName, chunk]));
+  for (const chunk of chunks) {
+    assert.ok(/^js\/(?:app-shell|chunks\/[A-Za-z0-9._-]+)\.js$/.test(chunk.fileName));
+    assert.ok(!tools.OCR_BUNDLE_REFERENCE.test(chunk.code));
+    for (const file of [...chunk.imports, ...chunk.dynamicImports]) assert.ok(graph.has(file));
+  }
+  const cold = tools.collectStaticChunkGraph(graph, [entries[0].fileName, ...entries[0].dynamicImports]);
+  tools.assertStartupPhaseIsolation(graph, entries[0], cold);
+  return { chunks: chunks.length, raw: chunks.reduce((sum, c) => sum + Buffer.byteLength(c.code), 0),
+    allGzip: chunks.reduce((sum, c) => sum + gzipSync(c.code).length, 0),
+    coldGzip: chunks.filter(c => cold.has(c.fileName)).reduce((sum, c) => sum + gzipSync(c.code).length, 0),
+    modules: [...new Set(chunks.flatMap(c => Object.keys(c.modules).map(tools.modulePath)))].sort(),
+    unchangedConfig: { minify: config.build.minify, target: config.build.target, groups: config.build.rolldownOptions.output.codeSplitting.groups.map(g => ({ name: g.name, priority: g.priority, test: g.test.toString() })) } };
+}
+
+// Run the exact original/candidate market callback and exact indexQuoteStatus.
+function visit(node, callback) {
+  if (!node || typeof node !== 'object') return;
+  callback(node);
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(child => visit(child, callback));
+    else if (value && typeof value === 'object') visit(value, callback);
+  }
+}
+function marketCallback(program, code) {
+  const found = [];
+  visit(declaration(program, 'runRefresh'), node => {
+    if (node.type === 'Property' && node.key.name === 'market' && node.value.type === 'ArrowFunctionExpression'
+      && node.value.params.map(p => p.name).join(',') === 'indexEntry,goldEntry,components') found.push(node.value);
+  });
+  assert.equal(found.length, 1); return code.slice(found[0].start, found[0].end);
+}
+const oldCallback = marketCallback(sourceProgram, source), nextCallback = marketCallback(candidateProgram, candidate);
+const statusSource = lf(await readFile(resolve(root, 'js/runtime/index-quote.js'), 'utf8'));
+const statusProgram = parseSync('index-quote.js', statusSource).program;
+const exported = statusProgram.body.find(n => n.type === 'ExportNamedDeclaration' && n.declaration?.id?.name === 'indexQuoteStatus').declaration;
+const actualStatus = statusSource.slice(exported.start, exported.end);
+const staleNode = declaration(sourceProgram, 'staleIndexItem'), goldNode = declaration(sourceProgram, 'loadGoldCache');
+const actualStale = source.slice(staleNode.start, staleNode.end), actualGold = source.slice(goldNode.start, goldNode.end);
+const configNodeSource = sourceProgram.body.flatMap(n => n.type === 'VariableDeclaration' ? n.declarations : [])
+  .find(n => n.id.name === 'INDEX_CONFIG').init;
+const freshConfigs = () => new Function('return ' + source.slice(configNodeSource.start, configNodeSource.end))();
+const { parseQuoteTimestamp } = await import(pathToFileURL(resolve(root, 'js/runtime/quote-contract.js')));
+const T0 = Date.parse('2026-10-13T06:45:10.000Z'), errorSentinel = Object.freeze({ synthetic: 'market getter error' });
+const marker = Symbol('synthetic extra');
+function run(callback, extraHelper, fixture, mode = 'native', throwAt = null) {
+  const trace = []; let clockCalls = 0, events = 0;
+  function event(kind) { trace.push(kind); if (throwAt && kind.includes(throwAt)) throw errorSentinel; events++; }
+  class Clock extends Date {
+    static now() { event('Date.now'); return T0 + (fixture.moving ? clockCalls++ : 0); }
+  }
+  function wrap(value, label) {
+    if (mode === 'native' || value == null) return value;
+    return new Proxy(value, {
+      get(target, key, receiver) { event(label + '.get:' + String(key)); return Reflect.get(target, key, receiver); },
+      ownKeys(target) { event(label + '.ownKeys'); return Reflect.ownKeys(target); },
+      getOwnPropertyDescriptor(target, key) { event(label + '.descriptor:' + String(key)); return Reflect.getOwnPropertyDescriptor(target, key); },
+    });
+  }
+  const configs = freshConfigs().map((c, i) => wrap(c, 'cfg' + i));
+  const oldCache = freshConfigs().map(c => ({ name: c.name, price: 12, changePct: 0, observedAt: null, status: 'stale', cached: true }));
+  const quotes = ['sh000001', 'sh000300', 'usNDX', 'usINX'].filter((_, i) => fixture.indices === 'all' || fixture.indices === 'partial' && i === 0)
+    .map((code, i) => {
+      const q = { code, name: 'upstream', status: 'delayed', cached: false, price: fixture.price, changePct: fixture.change, observedAt: fixture.observed };
+      q[marker] = 'kept'; Object.defineProperty(q, 'hidden', { value: 9, enumerable: false });
+      return wrap(q, 'quote' + i);
+    });
+  const index = fixture.indices === 'none' ? null : wrap({ payload: wrap({ quotes }, 'index.payload'), expiresAt: T0 + fixture.expiry }, 'index');
+  const goldQuote = fixture.gold === 'quote' ? wrap({ name: 'upstream', price: fixture.price, changePct: fixture.change, observedAt: fixture.observed, status: 'delayed' }, 'gold.quote') : null;
+  const gold = fixture.gold === 'missing' ? null : wrap({ payload: goldQuote, expiresAt: T0 + fixture.expiry }, 'gold');
+  const bindings = { Date: Clock, Map, INDEX_CONFIG: configs, indexCache: oldCache, parseQuoteTimestamp, GOLD_CACHE_KEY: 'synthetic.gold',
+    safeGetItem(key) { event('safeGetItem:' + key); return fixture.gold === 'cached' ? JSON.stringify({ price: fixture.price, time: T0, changePct: fixture.change, observedAt: fixture.observed }) : null; },
+    renderIndexBar(data) { event('renderIndexBar'); assert.ok(Array.isArray(data)); } };
+  const instance = new Function(...Object.keys(bindings), [actualStatus, actualStale, actualGold, extraHelper,
+    'const callback = ' + callback + '; return { callback, state: () => indexCache };'].join('\n'))(...Object.values(bindings));
+  let error;
+  try { instance.callback(index, gold, fixture.components); } catch (e) { error = e; }
+  const state = instance.state(), unchangedAliases = state.map((v, i) => v === oldCache[i]);
+  const descriptors = state.map(v => Object.getOwnPropertyDescriptors(v));
+  return { state, descriptors, unchangedAliases, error, trace };
+}
+let nativeChecks = 0, getterChecks = 0, throwChecks = 0;
+const defaultFixture = { components: { gold: true, indices: true }, indices: 'all', gold: 'quote', expiry: 10000,
+  price: 12, change: 0, observed: '2026-10-13T06:44:00Z', moving: false };
+function equal(a, b) {
+  assert.deepEqual(a.trace, b.trace); assert.deepEqual(a.descriptors, b.descriptors); assert.deepEqual(a.state, b.state);
+  assert.deepEqual(a.unchangedAliases, b.unchangedAliases);
+  if (a.error === errorSentinel || b.error === errorSentinel) assert.equal(a.error, b.error);
+  else assert.deepEqual(a.error && { name: a.error.name, message: a.error.message }, b.error && { name: b.error.name, message: b.error.message });
+}
+for (const components of [{ gold: false, indices: false }, { gold: true, indices: false }, { gold: false, indices: true }, { gold: true, indices: true }])
+  for (const indices of ['all', 'partial', 'none']) for (const gold of ['quote', 'missing', 'cached']) for (const expiry of [-1, 0, 10000])
+  for (const price of [null, 0, 12]) for (const change of [null, -0, -1.25]) for (const moving of [false, true]) {
+    const fixture = { ...defaultFixture, components, indices, gold, expiry, price, change, moving };
+    for (const mode of ['native', 'proxy']) {
+      equal(run(oldCallback, '', fixture, mode), run(nextCallback, helper, fixture, mode));
+      if (mode === 'native') nativeChecks++; else getterChecks++;
+    }
+  }
+for (const fail of ['quote0.ownKeys', 'quote0.get:status', 'quote0.get:observedAt', 'gold.quote.ownKeys', 'cfg0.get:name', 'gold.get:expiresAt', 'index.get:expiresAt', 'Date.now']) {
+  const a = run(oldCallback, '', defaultFixture, 'proxy', fail), b = run(nextCallback, helper, defaultFixture, 'proxy', fail);
+  equal(a, b); assert.equal(a.error, errorSentinel); throwChecks++;
+}
+// Look for exact repeated large object literals in the aggregation/orchestration
+// functions; alpha/semantic similarity alone is not an equivalence proof.
+const scannedOwners = ['buildFundData', 'officialFundFallback', 'preferredDailyMove', 'slimFundCache', 'commitRefreshedFund', 'commitRefreshFailure', 'runRefresh', 'tryShowCache'];
+const signatures = new Map(), objectCounts = {};
+function stripped(value) {
+  if (Array.isArray(value)) return value.map(stripped);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !['start','end','loc','range','raw','leadingComments','trailingComments','innerComments'].includes(key))
+    .map(([key, child]) => [key, stripped(child)]));
+}
+for (const owner of scannedOwners) {
+  objectCounts[owner] = 0;
+  visit(declaration(sourceProgram, owner), node => {
+    if (node.type !== 'ObjectExpression') return; objectCounts[owner]++;
+    const text = source.slice(node.start, node.end); if (Buffer.byteLength(text) < 200) return;
+    const signature = JSON.stringify(stripped(node)), rows = signatures.get(signature) || [];
+    rows.push({ owner, line: source.slice(0, node.start).split('\n').length, rawBytes: Buffer.byteLength(text) }); signatures.set(signature, rows);
+  });
+}
+const largeObjectDuplicates = { scannedOwners, objectCounts, exactDuplicatesAtLeast200RawBytes: [...signatures.values()].filter(rows => rows.length > 1),
+  boundary: 'AST structural equality is narrow: distinct identifiers/labels/trust semantics prevent reuse; does not prove that all possible semantic or alpha-renamed compactions are absent.' };
+const headBefore = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+const statusBefore = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' });
+const { artifactFingerprint } = await import(pathToFileURL(resolve(root, 'scripts/measure-performance-pair.mjs')));
+const siteBefore = await artifactFingerprint(resolve(root, 'site'));
+const measurements = [];
+for (let round = 1; round <= 3; round++) {
+  const original = await measure('original'), next = await measure('candidate');
+  assert.deepEqual(original.modules, next.modules); assert.deepEqual(original.unchangedConfig, next.unchangedConfig);
+  assert.equal(original.allGzip, 81158); assert.equal(original.coldGzip, 42907);
+  measurements.push({ round, original: { chunks: original.chunks, raw: original.raw, allGzip: original.allGzip, coldGzip: original.coldGzip },
+    candidate: { chunks: next.chunks, raw: next.raw, allGzip: next.allGzip, coldGzip: next.coldGzip },
+    delta: { raw: next.raw - original.raw, allGzip: next.allGzip - original.allGzip, coldGzip: next.coldGzip - original.coldGzip } });
+}
+assert.equal(lf(await readFile(resolve(root, 'js/app.js'), 'utf8')), source);
+assert.equal(lf(await readFile(resolve(root, 'scripts/build-site.mjs'), 'utf8')), buildSource);
+const siteAfter = await artifactFingerprint(resolve(root, 'site')); assert.deepEqual(siteBefore, siteAfter);
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), headBefore);
+assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }), statusBefore);
+console.log(JSON.stringify({ status: 'READ_ONLY_VIRTUAL_PROBE', head: headBefore, sourceSha256: hash(source), candidateSha256: hash(candidate),
+  measurements, largeObjectDuplicates, equivalence: { nativeChecks, getterChecks, throwChecks, actualMarketCallbackAndStatus: true,
+    boundary: 'Actual market callback and status/cache-fallback functions, native/Proxy property and spread ordering, Date traces, exact output descriptors/aliases and same thrown sentinel observed. DOM renderer injected; no full app/E2E/latency/device or universal stack proof.' },
+  sourceAndSiteUnchanged: true, siteSha256: siteAfter.sha256,
+  exactPatch: { before1: oldFirst, after1: nextFirst, before2: oldSecond, after2: nextSecond, helper },
+  policy: { dependenciesInstalledOrChanged: false, repositoryFilesEdited: false, siteWritten: false, network: false, latency: false, thresholdChanged: false }
+}, null, 2));
+
+

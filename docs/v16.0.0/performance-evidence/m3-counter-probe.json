@@ -1,0 +1,652 @@
+{
+  "kind": "independent-current-only-renderer-compatibility-smoke",
+  "protocol": "paired-readiness-v2-same-document-counters",
+  "collectedAt": "2026-10-02T03:00:04.250Z",
+  "scope": "Three fresh current-only contexts; cold/warm/save collection compatibility only, not v15 relative performance, p95 or M3 EXIT; cannot pool with old 60/200 protocol.",
+  "node": "v24.14.0",
+  "samples": [
+    {
+      "index": 0,
+      "coldReadyMs": 145.39999999850988,
+      "warmReadyMs": 59.5,
+      "saveUiMs": 34.96469999999999,
+      "pageErrors": 0,
+      "pageErrorCategories": {},
+      "consoleErrors": 13,
+      "serviceWorkerEvents": 0,
+      "networkInstrumentation": {
+        "failures": 0
+      },
+      "drains": [
+        {
+          "reason": "beforeOwnedWarmReload",
+          "status": "SETTLED",
+          "durationMs": 246.68910000000005
+        },
+        {
+          "reason": "afterWarmReadiness",
+          "status": "SETTLED",
+          "durationMs": 217.89669999999978
+        },
+        {
+          "reason": "beforeOwnedContextClose",
+          "status": "SETTLED",
+          "durationMs": 277.1441999999997
+        }
+      ],
+      "phases": {
+        "cold": {
+          "rendererStatus": "PARTIAL",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "0eb3be5200a7d2acdda986794bb475ae930d9449363f3f343d606d34b4431671",
+          "epochFingerprintAfter": "0eb3be5200a7d2acdda986794bb475ae930d9449363f3f343d606d34b4431671",
+          "clocks": {
+            "before": {
+              "Timestamp": 38753.103708,
+              "NavigationStart": 38753.069195,
+              "timeOriginMs": 1790910006160.1,
+              "observedAtDocumentMs": 42.29999999701977,
+              "readyMs": null
+            },
+            "after": {
+              "Timestamp": 38753.266296,
+              "NavigationStart": 38753.069195,
+              "timeOriginMs": 1790910006160.1,
+              "observedAtDocumentMs": 200.79999999701977,
+              "readyMs": 145.39999999850988
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.009752,
+              "ScriptDuration": 0,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0.000063
+            },
+            "after": {
+              "TaskDuration": 0.112783,
+              "ScriptDuration": 0.010433,
+              "LayoutDuration": 0.050249,
+              "RecalcStyleDuration": 0.001977
+            }
+          },
+          "countersMs": {
+            "TaskMs": 103.03099999999999,
+            "ScriptMs": 10.433,
+            "LayoutMs": 50.249,
+            "RecalcStyleMs": 1.9140000000000001
+          },
+          "coverage": {
+            "scope": "same-document post-commit baseline through readiness collection; partial startup attribution",
+            "baselineDocumentMs": 42.29999999701977,
+            "readyDocumentMs": 145.39999999850988,
+            "collectionDocumentMs": 200.79999999701977,
+            "preReadyCoverageMs": 103.10000000149012,
+            "metricClockIntervalMs": 162.58799999923212,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        },
+        "warm": {
+          "rendererStatus": "PARTIAL",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "d560ae28a4f8bb01ee0dee2d46ac99b7fac1834f4a428d3746e08ebf61bc50b2",
+          "epochFingerprintAfter": "d560ae28a4f8bb01ee0dee2d46ac99b7fac1834f4a428d3746e08ebf61bc50b2",
+          "clocks": {
+            "before": {
+              "Timestamp": 38753.543385,
+              "NavigationStart": 38753.524894,
+              "timeOriginMs": 1790910006615.8,
+              "observedAtDocumentMs": 22.899999998509884,
+              "readyMs": null
+            },
+            "after": {
+              "Timestamp": 38753.604068,
+              "NavigationStart": 38753.524894,
+              "timeOriginMs": 1790910006615.8,
+              "observedAtDocumentMs": 83,
+              "readyMs": 59.5
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.006892,
+              "ScriptDuration": 0,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0.000024
+            },
+            "after": {
+              "TaskDuration": 0.033969,
+              "ScriptDuration": 0.002042,
+              "LayoutDuration": 0.00087,
+              "RecalcStyleDuration": 0.001411
+            }
+          },
+          "countersMs": {
+            "TaskMs": 27.077,
+            "ScriptMs": 2.042,
+            "LayoutMs": 0.87,
+            "RecalcStyleMs": 1.387
+          },
+          "coverage": {
+            "scope": "same-document post-commit baseline through readiness collection; partial startup attribution",
+            "baselineDocumentMs": 22.899999998509884,
+            "readyDocumentMs": 59.5,
+            "collectionDocumentMs": 83,
+            "preReadyCoverageMs": 36.600000001490116,
+            "metricClockIntervalMs": 60.68300000333693,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        },
+        "save": {
+          "rendererStatus": "MEASURED",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "d560ae28a4f8bb01ee0dee2d46ac99b7fac1834f4a428d3746e08ebf61bc50b2",
+          "epochFingerprintAfter": "d560ae28a4f8bb01ee0dee2d46ac99b7fac1834f4a428d3746e08ebf61bc50b2",
+          "clocks": {
+            "before": {
+              "Timestamp": 38753.917525,
+              "NavigationStart": 38753.524894,
+              "timeOriginMs": 1790910006615.8,
+              "observedAtDocumentMs": 393.3999999985099,
+              "readyMs": 59.5
+            },
+            "after": {
+              "Timestamp": 38753.963182,
+              "NavigationStart": 38753.524894,
+              "timeOriginMs": 1790910006615.8,
+              "observedAtDocumentMs": 442.3999999985099,
+              "readyMs": 59.5
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.094124,
+              "ScriptDuration": 0.003078,
+              "LayoutDuration": 0.028956,
+              "RecalcStyleDuration": 0.00406
+            },
+            "after": {
+              "TaskDuration": 0.119821,
+              "ScriptDuration": 0.005505,
+              "LayoutDuration": 0.034065,
+              "RecalcStyleDuration": 0.005969
+            }
+          },
+          "countersMs": {
+            "TaskMs": 25.697,
+            "ScriptMs": 2.4270000000000005,
+            "LayoutMs": 5.108999999999999,
+            "RecalcStyleMs": 1.909
+          },
+          "coverage": {
+            "scope": "same-document pre-click baseline through result collection",
+            "baselineDocumentMs": 393.3999999985099,
+            "readyDocumentMs": 59.5,
+            "collectionDocumentMs": 442.3999999985099,
+            "preReadyCoverageMs": null,
+            "metricClockIntervalMs": 45.65700000239303,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 1,
+      "coldReadyMs": 114.5,
+      "warmReadyMs": 62.30000000447035,
+      "saveUiMs": 35.040899999999965,
+      "pageErrors": 0,
+      "pageErrorCategories": {},
+      "consoleErrors": 13,
+      "serviceWorkerEvents": 0,
+      "networkInstrumentation": {
+        "failures": 0
+      },
+      "drains": [
+        {
+          "reason": "beforeOwnedWarmReload",
+          "status": "SETTLED",
+          "durationMs": 252.20589999999993
+        },
+        {
+          "reason": "afterWarmReadiness",
+          "status": "SETTLED",
+          "durationMs": 248.27670000000035
+        },
+        {
+          "reason": "beforeOwnedContextClose",
+          "status": "SETTLED",
+          "durationMs": 236.89259999999922
+        }
+      ],
+      "phases": {
+        "cold": {
+          "rendererStatus": "PARTIAL",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "0285699e512e9d47b0136847d5bd0bd3fa9f03f10276f759c1e6a49fe5e5da52",
+          "epochFingerprintAfter": "0285699e512e9d47b0136847d5bd0bd3fa9f03f10276f759c1e6a49fe5e5da52",
+          "clocks": {
+            "before": {
+              "Timestamp": 38754.426537,
+              "NavigationStart": 38754.406551,
+              "timeOriginMs": 1790910007497.5,
+              "observedAtDocumentMs": 26.100000001490116,
+              "readyMs": null
+            },
+            "after": {
+              "Timestamp": 38754.530633,
+              "NavigationStart": 38754.406551,
+              "timeOriginMs": 1790910007497.5,
+              "observedAtDocumentMs": 127.79999999701977,
+              "readyMs": 114.5
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.007089,
+              "ScriptDuration": 0,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0.000046
+            },
+            "after": {
+              "TaskDuration": 0.085481,
+              "ScriptDuration": 0.009055,
+              "LayoutDuration": 0.038623,
+              "RecalcStyleDuration": 0.002038
+            }
+          },
+          "countersMs": {
+            "TaskMs": 78.39200000000001,
+            "ScriptMs": 9.055,
+            "LayoutMs": 38.623,
+            "RecalcStyleMs": 1.9919999999999998
+          },
+          "coverage": {
+            "scope": "same-document post-commit baseline through readiness collection; partial startup attribution",
+            "baselineDocumentMs": 26.100000001490116,
+            "readyDocumentMs": 114.5,
+            "collectionDocumentMs": 127.79999999701977,
+            "preReadyCoverageMs": 88.39999999850988,
+            "metricClockIntervalMs": 104.09600000275532,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        },
+        "warm": {
+          "rendererStatus": "PARTIAL",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "f323e84637edcffe33bafe03c4f4659acb9bb614834f210163131b50f672965d",
+          "epochFingerprintAfter": "f323e84637edcffe33bafe03c4f4659acb9bb614834f210163131b50f672965d",
+          "clocks": {
+            "before": {
+              "Timestamp": 38754.816854,
+              "NavigationStart": 38754.798949,
+              "timeOriginMs": 1790910007889.9,
+              "observedAtDocumentMs": 21.700000002980232,
+              "readyMs": null
+            },
+            "after": {
+              "Timestamp": 38754.866337,
+              "NavigationStart": 38754.798949,
+              "timeOriginMs": 1790910007889.9,
+              "observedAtDocumentMs": 69,
+              "readyMs": 62.30000000447035
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.006355,
+              "ScriptDuration": 0,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0.000031
+            },
+            "after": {
+              "TaskDuration": 0.029056,
+              "ScriptDuration": 0.001926,
+              "LayoutDuration": 0.0007,
+              "RecalcStyleDuration": 0.00138
+            }
+          },
+          "countersMs": {
+            "TaskMs": 22.701,
+            "ScriptMs": 1.926,
+            "LayoutMs": 0.7,
+            "RecalcStyleMs": 1.349
+          },
+          "coverage": {
+            "scope": "same-document post-commit baseline through readiness collection; partial startup attribution",
+            "baselineDocumentMs": 21.700000002980232,
+            "readyDocumentMs": 62.30000000447035,
+            "collectionDocumentMs": 69,
+            "preReadyCoverageMs": 40.600000001490116,
+            "metricClockIntervalMs": 49.48300000251038,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        },
+        "save": {
+          "rendererStatus": "MEASURED",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "f323e84637edcffe33bafe03c4f4659acb9bb614834f210163131b50f672965d",
+          "epochFingerprintAfter": "f323e84637edcffe33bafe03c4f4659acb9bb614834f210163131b50f672965d",
+          "clocks": {
+            "before": {
+              "Timestamp": 38755.209786,
+              "NavigationStart": 38754.798949,
+              "timeOriginMs": 1790910007889.9,
+              "observedAtDocumentMs": 411.6000000014901,
+              "readyMs": 62.30000000447035
+            },
+            "after": {
+              "Timestamp": 38755.254305,
+              "NavigationStart": 38754.798949,
+              "timeOriginMs": 1790910007889.9,
+              "observedAtDocumentMs": 459.70000000298023,
+              "readyMs": 62.30000000447035
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.096573,
+              "ScriptDuration": 0.002936,
+              "LayoutDuration": 0.02805,
+              "RecalcStyleDuration": 0.004316
+            },
+            "after": {
+              "TaskDuration": 0.122061,
+              "ScriptDuration": 0.005208,
+              "LayoutDuration": 0.033299,
+              "RecalcStyleDuration": 0.006265
+            }
+          },
+          "countersMs": {
+            "TaskMs": 25.487999999999996,
+            "ScriptMs": 2.2720000000000002,
+            "LayoutMs": 5.249000000000004,
+            "RecalcStyleMs": 1.9489999999999994
+          },
+          "coverage": {
+            "scope": "same-document pre-click baseline through result collection",
+            "baselineDocumentMs": 411.6000000014901,
+            "readyDocumentMs": 62.30000000447035,
+            "collectionDocumentMs": 459.70000000298023,
+            "preReadyCoverageMs": null,
+            "metricClockIntervalMs": 44.5190000027651,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        }
+      }
+    },
+    {
+      "index": 2,
+      "coldReadyMs": 182,
+      "warmReadyMs": 88.20000000298023,
+      "saveUiMs": 41.5029999999997,
+      "pageErrors": 0,
+      "pageErrorCategories": {},
+      "consoleErrors": 13,
+      "serviceWorkerEvents": 0,
+      "networkInstrumentation": {
+        "failures": 0
+      },
+      "drains": [
+        {
+          "reason": "beforeOwnedWarmReload",
+          "status": "SETTLED",
+          "durationMs": 266.03310000000056
+        },
+        {
+          "reason": "afterWarmReadiness",
+          "status": "SETTLED",
+          "durationMs": 242.5065999999997
+        },
+        {
+          "reason": "beforeOwnedContextClose",
+          "status": "SETTLED",
+          "durationMs": 259.4856
+        }
+      ],
+      "phases": {
+        "cold": {
+          "rendererStatus": "PARTIAL",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "331eab4bdf0bca7d91389fd3f494702dbc8d35c046347463143c6fb979e59d49",
+          "epochFingerprintAfter": "331eab4bdf0bca7d91389fd3f494702dbc8d35c046347463143c6fb979e59d49",
+          "clocks": {
+            "before": {
+              "Timestamp": 38755.755071,
+              "NavigationStart": 38755.719574,
+              "timeOriginMs": 1790910008810.5,
+              "observedAtDocumentMs": 98.89999999850988,
+              "readyMs": null
+            },
+            "after": {
+              "Timestamp": 38755.910594,
+              "NavigationStart": 38755.719574,
+              "timeOriginMs": 1790910008810.5,
+              "observedAtDocumentMs": 193.29999999701977,
+              "readyMs": 182
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.009935,
+              "ScriptDuration": 0,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0.00005
+            },
+            "after": {
+              "TaskDuration": 0.119843,
+              "ScriptDuration": 0.011943,
+              "LayoutDuration": 0.051972,
+              "RecalcStyleDuration": 0.003162
+            }
+          },
+          "countersMs": {
+            "TaskMs": 109.908,
+            "ScriptMs": 11.943,
+            "LayoutMs": 51.971999999999994,
+            "RecalcStyleMs": 3.1119999999999997
+          },
+          "coverage": {
+            "scope": "same-document post-commit baseline through readiness collection; partial startup attribution",
+            "baselineDocumentMs": 98.89999999850988,
+            "readyDocumentMs": 182,
+            "collectionDocumentMs": 193.29999999701977,
+            "preReadyCoverageMs": 83.10000000149012,
+            "metricClockIntervalMs": 155.52300000126706,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        },
+        "warm": {
+          "rendererStatus": "PARTIAL",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "6881e76b1bf0a13d9eb71cbaf002aeec355e8caf1ed8a7d29180f701c6c078ef",
+          "epochFingerprintAfter": "6881e76b1bf0a13d9eb71cbaf002aeec355e8caf1ed8a7d29180f701c6c078ef",
+          "clocks": {
+            "before": {
+              "Timestamp": 38756.219662,
+              "NavigationStart": 38756.188948,
+              "timeOriginMs": 1790910009279.8,
+              "observedAtDocumentMs": 42.70000000298023,
+              "readyMs": null
+            },
+            "after": {
+              "Timestamp": 38756.282561,
+              "NavigationStart": 38756.188948,
+              "timeOriginMs": 1790910009279.8,
+              "observedAtDocumentMs": 95.20000000298023,
+              "readyMs": 88.20000000298023
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.008792,
+              "ScriptDuration": 0,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0.000054
+            },
+            "after": {
+              "TaskDuration": 0.042782,
+              "ScriptDuration": 0.002142,
+              "LayoutDuration": 0.001014,
+              "RecalcStyleDuration": 0.002312
+            }
+          },
+          "countersMs": {
+            "TaskMs": 33.99,
+            "ScriptMs": 2.142,
+            "LayoutMs": 1.014,
+            "RecalcStyleMs": 2.258
+          },
+          "coverage": {
+            "scope": "same-document post-commit baseline through readiness collection; partial startup attribution",
+            "baselineDocumentMs": 42.70000000298023,
+            "readyDocumentMs": 88.20000000298023,
+            "collectionDocumentMs": 95.20000000298023,
+            "preReadyCoverageMs": 45.5,
+            "metricClockIntervalMs": 62.89899999683257,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        },
+        "save": {
+          "rendererStatus": "MEASURED",
+          "invalidReasons": {},
+          "epochEqual": true,
+          "epochFingerprintBefore": "6881e76b1bf0a13d9eb71cbaf002aeec355e8caf1ed8a7d29180f701c6c078ef",
+          "epochFingerprintAfter": "6881e76b1bf0a13d9eb71cbaf002aeec355e8caf1ed8a7d29180f701c6c078ef",
+          "clocks": {
+            "before": {
+              "Timestamp": 38756.622574,
+              "NavigationStart": 38756.188948,
+              "timeOriginMs": 1790910009279.8,
+              "observedAtDocumentMs": 434.3999999985099,
+              "readyMs": 88.20000000298023
+            },
+            "after": {
+              "Timestamp": 38756.677186,
+              "NavigationStart": 38756.188948,
+              "timeOriginMs": 1790910009279.8,
+              "observedAtDocumentMs": 494.3999999985099,
+              "readyMs": 88.20000000298023
+            }
+          },
+          "rawCountersSeconds": {
+            "before": {
+              "TaskDuration": 0.118514,
+              "ScriptDuration": 0.003754,
+              "LayoutDuration": 0.033996,
+              "RecalcStyleDuration": 0.005939
+            },
+            "after": {
+              "TaskDuration": 0.148784,
+              "ScriptDuration": 0.006452,
+              "LayoutDuration": 0.039733,
+              "RecalcStyleDuration": 0.007986
+            }
+          },
+          "countersMs": {
+            "TaskMs": 30.270000000000007,
+            "ScriptMs": 2.6980000000000004,
+            "LayoutMs": 5.736999999999999,
+            "RecalcStyleMs": 2.047
+          },
+          "coverage": {
+            "scope": "same-document pre-click baseline through result collection",
+            "baselineDocumentMs": 434.3999999985099,
+            "readyDocumentMs": 88.20000000298023,
+            "collectionDocumentMs": 494.3999999985099,
+            "preReadyCoverageMs": null,
+            "metricClockIntervalMs": 54.6119999999064,
+            "caveat": "Default timeTicks activity durations, not isolated OS CPU or exact ready-boundary CPU; includes inspected-renderer and collection/harness work. Post-commit snapshot RPCs add observation overhead. Missing or cross-epoch counters remain null."
+          },
+          "serviceWorkers": {
+            "status": "REGISTRATION_BLOCKED",
+            "registrationAttempts": 1,
+            "controlled": false,
+            "registrations": 0
+          }
+        }
+      }
+    }
+  ],
+  "cleanup": [
+    {
+      "resource": "ownedBrowser",
+      "status": "PASS"
+    },
+    {
+      "resource": "ownedServer",
+      "status": "PASS"
+    }
+  ],
+  "siteBefore": {
+    "sha256": "e196b942fae78d8e53d9c0509d9bba0ec4bcfb652826defcbb8733e60f86c389",
+    "fileCount": 121,
+    "totalBytes": 92496807
+  },
+  "ownedServerPort": 5503,
+  "chromeVersion": "154.0.8037.93",
+  "status": "COMPATIBILITY_PASS",
+  "siteAfter": {
+    "sha256": "e196b942fae78d8e53d9c0509d9bba0ec4bcfb652826defcbb8733e60f86c389",
+    "fileCount": 121,
+    "totalBytes": 92496807
+  },
+  "siteUnchanged": true,
+  "finishedAt": "2026-10-02T03:00:10.463Z"
+}

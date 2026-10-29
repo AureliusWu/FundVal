@@ -1,6 +1,7 @@
-// M1 red contract, explicitly run now and required to join npm test at M5.
-// This is not a passing gate or a skipped test; OCR implementation is scheduled
-// after M2/M3/M4. No screenshot, OCR raw text or personal holding is included.
+// Original M1 RED assertions retained unchanged; joined npm test at M5-A.
+// The approved plan section 17 permits M4/M5 branches after M3. The earlier
+// after-M4 note was historical sequencing, not a waiver of any M4-M6 gate.
+// No screenshot, OCR raw text or personal holding is included.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { applyHoldingImportPlan, createHoldingImportPlan, validateHoldingImportPlan } from '../js/holding-import-plan.js';

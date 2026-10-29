@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "status": "SECURITY_PATCH_REVIEW_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "parentCommit": "411f49dd3385c0a466fd7b92b3a72abdee8f41f2",
+  "branch": "codex/v16.0.0-source-map-js-security",
+  "intendedPrBase": "codex/v16.0.0-m3-continuation",
+  "scope": "Isolated transitive dev-dependency security patch. No Vite/PostCSS/OCR/builder configuration/source/API/version changes. Separate from the unchanged-dependency M3 reduction measurement.",
+  "advisory": {
+    "id": "GHSA-68fv-2mgg-jv7q",
+    "cve": "CVE-2026-93749",
+    "severity": "high",
+    "affected": "source-map-js 1.0.0–1.2.1",
+    "fixed": "1.2.2",
+    "officialAdvisory": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+    "upstreamPatch": "https://github.com/7rulnik/source-map-js/pull/79",
+    "upstreamMetadata": "https://raw.githubusercontent.com/7rulnik/source-map-js/v1.2.2/package.json",
+    "mechanism": "Malformed indexed source-map section offsets and nested source enumeration can exhaust the synchronous event loop/CPU/memory."
+  },
+  "dependency": {
+    "changedEntry": "node_modules/source-map-js",
+    "previousVersion": "1.2.1",
+    "version": "1.2.2",
+    "lockPackageCount": 109,
+    "lockLfSha256": "3b7b4fab7cb18df296ae48c04448b5971cf468506cdef42beeb5ca9bedf23bcc",
+    "path": "vite@8.2.2 (dev) -> postcss@8.5.26 (dev) -> source-map-js@1.2.2 (dev)",
+    "existingPostcssConstraint": "^1.2.1",
+    "patchChangedFields": [
+      "version",
+      "resolved",
+      "integrity"
+    ],
+    "allOtherPackagesUnchanged": true,
+    "packageJsonUnchanged": true,
+    "installScriptAllowlistUnchanged": true,
+    "hasInstallScript": false,
+    "integrity": "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==",
+    "engines": "node >=0.10.0",
+    "newDependencies": 0
+  },
+  "exposure": {
+    "kind": "Developer/build toolchain",
+    "productionDirectImportsFound": false,
+    "holdingsQuoteOcrInputsToSourceMapFound": false,
+    "appCss": "Copied directly by build-site; no Vite CSS input",
+    "ocrBuildSourcemap": false,
+    "warning": "No detected production parsing path does not exempt a known vulnerable build dependency from the full audit gate."
+  },
+  "review": {
+    "entryAndTypesUnchangedAgainstOfficialTags": true,
+    "packageEntrypointFilesEnginesLicenseDependenciesUnchanged": true,
+    "apiProbe": {
+      "status": "PASS",
+      "exitCode": 0,
+      "heapMiB": 64,
+      "timeoutMs": 5000,
+      "maxBufferBytes": 65536,
+      "durationMs": 9.922,
+      "legalScenarios": [
+        "two indexed sections: source queries and eachMapping",
+        "public addMapping/sourceContent flatten to AAAA;ACAA",
+        "basic consumer fromSourceMap roundtrip",
+        "SourceNode exact code bytes",
+        "four nested levels and two leaves",
+        "small six-line gap",
+        "offset beyond short code"
+      ],
+      "rejectedOffsetCases": 21,
+      "rejectedBeforeMapGetterRead": true,
+      "initialProbeFailure": {
+        "api": "SourceMapGenerator.fromSourceMap(indexed consumer)",
+        "kind": "TypeError with undefined indexed sourceRoot",
+        "classification": "Existing convenience API limitation, not introduced by patch; official tag diff statically confirms unchanged method/constructor. Old vulnerable code not executed."
+      },
+      "permanentProjectTestAdded": false
+    },
+    "noOldVersionResourceExhaustionPayloadExecuted": true
+  },
+  "localGates": {
+    "unit": {
+      "tests": 892,
+      "pass": 889,
+      "fail": 0,
+      "skipped": 3,
+      "durationMs": 7132.8684
+    },
+    "syntaxFiles": 192,
+    "audit": {
+      "registry": "https://registry.npmjs.org/",
+      "exitCode": 0,
+      "vulnerabilities": 0
+    },
+    "lockedInstall": {
+      "policyScripts": 5,
+      "ignoreScripts": true,
+      "onlyEnabledInstaller": "esbuild",
+      "frozenCiExitCode": 0
+    },
+    "e2e": {
+      "tests": 23,
+      "pass": 23,
+      "durationSeconds": 54.4,
+      "ownedPort": 12437,
+      "serverStopped": true,
+      "syntheticOnly": true,
+      "readinessSamples": [
+        {
+          "coldReadyMs": 255.59999999403954,
+          "warmReadyMs": 227.5,
+          "saveUiMs": 191.19909999999982
+        },
+        {
+          "coldReadyMs": 231,
+          "warmReadyMs": 146.30000001192093,
+          "saveUiMs": 115.70859999999993
+        },
+        {
+          "coldReadyMs": 428.7000000178814,
+          "warmReadyMs": 185,
+          "saveUiMs": 112.39459999999963
+        }
+      ],
+      "latencyScope": "Descriptive absolute checks only, not paired v15 latency."
+    },
+    "deterministicBuild": {
+      "buildsAfterE2e": 2,
+      "sourceDateEpoch": 1791689435,
+      "baselineCommittedParentFingerprint": "fc15bbea5b692a9c52aa99e4c2d01d407e0f238dd61607b27b26c4b90a5aba64",
+      "patchedParentEpochFingerprint": "fc15bbea5b692a9c52aa99e4c2d01d407e0f238dd61607b27b26c4b90a5aba64",
+      "releaseCriticalFingerprintEqual": true,
+      "scope": "Exact same parent epoch; not future patched-SHA or cross-platform raw CI fingerprint and not an entire-site inventory claim"
+    },
+    "appVerification": {
+      "chunks": 16,
+      "bytes": 237853,
+      "bytesAndShaVerified": true
+    },
+    "ocrVerification": {
+      "assets": 23,
+      "bytes": 88196906,
+      "bytesAndShaVerified": true,
+      "ocrExecuted": false
+    },
+    "budgetCli": {
+      "exitCode": 1,
+      "coldPass": true,
+      "allPass": false,
+      "allGzipBytes": 81195,
+      "coldGzipBytes": 42944,
+      "allBudgetBytes": 77227.7,
+      "coldBudgetBytes": 52241,
+      "remainingWholeBytes": 3968,
+      "importClosureVerified": false
+    }
+  },
+  "parentCi": {
+    "sha": "411f49dd3385c0a466fd7b92b3a72abdee8f41f2",
+    "runId": 38108623940,
+    "attempt": 1,
+    "conclusion": "failure",
+    "candidateJobId": 114379330672,
+    "failedStep": "Audit dependencies",
+    "reason": "Same official GHSA source-map-js high advisory",
+    "testsBuildE2eCandidateBudget": "SKIPPED; must not report local checks as remote execution",
+    "candidateUploaded": false,
+    "codeql": {
+      "workflowJobId": 114379330782,
+      "workflowConclusion": "success",
+      "analysisId": 1930472038,
+      "results": 3,
+      "error": "",
+      "warning": "",
+      "scope": "Three results, not zero-alert or patch-SHA proof."
+    }
+  },
+  "evidencePreservation": {
+    "newSourcePairedLatency": "NOT_RUN",
+    "historicalRawReports": "Untouched",
+    "originalM3FiveSourceBindingUnchanged": "85b00fc42bb034fc89b74592d202ffe6f7b00aa02f34813939301efe9c661716"
+  },
+  "rollback": {
+    "baseCommit": "411f49dd3385c0a466fd7b92b3a72abdee8f41f2",
+    "direction": "Revert only the isolated security commit if a genuine regression is found; this reintroduces the known vulnerable 1.2.1 and is not release-admissible. No reset-hard, no user-data rollback."
+  },
+  "release": {
+    "m3Exit": false,
+    "m4Started": false,
+    "mergeMain": false,
+    "deploy": false,
+    "versionBump": false,
+    "currentVersion": "15.0.2",
+    "status": "NOT_RELEASED",
+    "prMerge": "NOT_DONE; independent PR pending exact CI and integration; main untouched."
+  }
+}

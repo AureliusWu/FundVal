@@ -1,26 +1,31 @@
 import { APP_VERSION } from './version.js';
+import { createPwaUpdateController } from './runtime/pwa-update-controller.js';
+import { createPageNavigation } from './runtime/page-navigation.js';
+import { createSyncStatus } from './runtime/sync-status.js';
 import { TIMING, TTL, refreshInterval } from './config.js';
-import { getCached, safeGetItem, safeRemoveItem, safeSetItem, setCached } from './storage.js';
+import { safeGetItem, safeRemoveItem, safeSetItem, safeStorageKeys } from './storage.js';
 import { resolveQuoteBaseNav } from './calculator.js';
 import { classifyFundMarket, refreshDelayForMarkets } from './freshness.js';
 import {
   buildFundQuoteCandidates,
   legacyFreshnessFromQuote,
+  modelNoteForQuote,
   normalizeCachedQuote,
   normalizeExistingQuoteFreshness,
+  normalizeFundQuoteFreshness,
   normalizeOfficialNavQuote,
+  normalizeMarketModelQuote,
   selectPreferredQuote,
 } from './runtime/quote-normalizer.js';
-import { normalizeQuoteDate, nullableNumber, parseQuoteTimestamp, quoteStatusRank } from './runtime/quote-contract.js';
+import { normalizeQuoteDate, nullableNumber, parseQuoteTimestamp, quoteStatusRank, unavailableQuote } from './runtime/quote-contract.js';
 import { marketClock } from './runtime/market-clock.js';
 import { createValuationPeriod } from './runtime/valuation-period.js';
 import { holdingQuoteAmounts } from './runtime/holding-quote-amounts.js';
 import { indexQuoteStatus, normalizeGoldQuote } from './runtime/index-quote.js';
 import { createQuotePresentation } from './runtime/quote-presentation.js';
 import { classifyAssetKind, classifyMarketKind } from './runtime/market-session.js';
-import { DATA_SOURCE_REGISTRY } from './runtime/source-registry.js';
-import { RefreshCoordinator } from './runtime/refresh-coordinator.js';
-import { isRefreshAbort } from './runtime/refresh-generation.js';
+import { RefreshCoordinator } from './runtime/refresh-runtime.js';
+import { isRefreshAbort, createRefreshDiagnosticsStore } from './runtime/refresh-generation.js';
 import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
 import { activeHoldingCodes, retainActiveFundData } from './runtime/active-holdings.js';
 import {
@@ -35,6 +40,7 @@ import {
 
 const CACHE_KEY = 'fuyu_funds_cache_v1';
 const GIST_TOKEN_KEY = 'fuyu_gist_token';
+const GIST_CONSENT_KEY = 'fuyu_gist_token_persist';
 const GIST_ID_KEY = 'fuyu_gist_id';
 const GIST_SYNC_TIME_KEY = 'fuyu_gist_sync_time';
 const SYNC_META_KEY = 'fuyu_sync_meta_v1';
@@ -67,35 +73,26 @@ let expandedFund = null;
 const holdingsCache = {};
 const holdingsMetaCache = {};
 const fundHoldingsRequests = new Map();
-const holdingsEstimateRequests = new Map();
 let fundTypeCache = {};      // 基金类型/基本信息缓存
 let fundFeeCache = {};       // 费率信息缓存
 let loadingDetails = null;   // 当前正在加载详情的基金代码（防重入）
-const fundFullRequests = new Map();
 let quoteBridge = null;
 let quoteBridgePromise = null;
 let isRefreshing = false;
+const refreshDiagnostics = createRefreshDiagnosticsStore();
 const refreshCoordinator = new RefreshCoordinator({
-  sources: DATA_SOURCE_REGISTRY,
+  withBuiltinSources: true,
   execute: runRefresh,
-  onStateChange: function(snapshot) { isRefreshing = Boolean(snapshot.active); },
+  onStateChange: function(snapshot) {
+    isRefreshing = Boolean(snapshot.active);
+    refreshDiagnostics.observeState(snapshot);
+  },
 });
 let autoRefreshTimer = null;
-let syncPending = false;       // 是否有待推送的本地变更
-let syncDebounceTimer = null;  // 防抖定时器
-let autoPullTimer = null;      // 定时拉取
-let isSyncing = false;         // 是否正在同步中
-let goldCache = { price: NaN, changePct: NaN, time: 0 };  // 金价缓存，API 全部失败时兜底
-let pendingServiceWorker = null;
-let serviceWorkerUpdateApplying = false;
-let serviceWorkerReloadPending = false;
-let serviceWorkerUpdateChannel = null;
-let reloadingForServiceWorkerUpdate = false;
 let fundRenderFrame = null;
 let overseasModelsPromise = null;
 let fundHoldingsModulePromise = null;
 let estimateModulePromise = null;
-let cacheEnvelopeModulePromise = null;
 let modelRuntime = null;
 let holdingsEstimateModulePromise = null;
 let holdingsEstimateRuntime = null;
@@ -104,10 +101,33 @@ let notificationControllerPromise = null;
 let quoteDiagnosticsRuntime = null;
 let quoteDiagnosticsPromise = null;
 let detailToggleGeneration = 0;
+let detailController = null;
+let detailRefreshGeneration = null;
+let securityQuoteModulePromise = null;
+let securityQuoteRuntime = null;
+
+const syncController = createSyncStatus({
+  TIMING, document,
+  isUpdateApplying: () => pwaUpdateController.isUpdateApplying(),
+  getHoldingsDocument: () => holdingsDocument,
+  getGistToken, getGistId, setGistId, setSyncTime,
+  loadSyncMeta, markSyncPending, loadCloudSyncFeature, listGists: listCloudArchives,
+  setArchiveCandidates,
+  createGistRemoteAdapter, createCloudLocalAdapter, reloadHoldingsAfterCloud,
+  renderHoldingsList, refresh, showToast, nowISO,
+  setTimeout, clearTimeout, setInterval, clearInterval,
+});
+
+function loadSecurityQuoteFeature() {
+  if (!securityQuoteModulePromise) securityQuoteModulePromise = import('./runtime/business-features.js')
+    .then(module => { securityQuoteRuntime = module; return module; })
+    .catch(error => { securityQuoteModulePromise = null; throw error; });
+  return securityQuoteModulePromise;
+}
 
 function loadQuoteBridgeFeature() {
   if (!quoteBridgePromise) {
-    quoteBridgePromise = import('./runtime/quote-bridge-client.js').then(function(module) {
+    quoteBridgePromise = import('./runtime/business-features.js').then(function(module) {
       quoteBridge = module.createQuoteBridgeClient();
       return quoteBridge;
     });
@@ -116,39 +136,34 @@ function loadQuoteBridgeFeature() {
 }
 
 function loadFundHoldingsFeature() {
-  if (!fundHoldingsModulePromise) fundHoldingsModulePromise = import('./fund-holdings.js').catch(error => { fundHoldingsModulePromise = null; throw error; });
+  if (!fundHoldingsModulePromise) fundHoldingsModulePromise = import('./runtime/business-features.js').catch(error => { fundHoldingsModulePromise = null; throw error; });
   return fundHoldingsModulePromise;
 }
 
 async function fetchEstimateRows(...args) {
-  if (!estimateModulePromise) estimateModulePromise = import('./eastmoney-estimate.js').catch(error => { estimateModulePromise = null; throw error; });
+  if (!estimateModulePromise) estimateModulePromise = import('./runtime/business-features.js').catch(error => { estimateModulePromise = null; throw error; });
   return (await estimateModulePromise).fetchEstimateRows(...args);
 }
 
-function loadCacheEnvelopeFeature() {
-  if (!cacheEnvelopeModulePromise) cacheEnvelopeModulePromise = import('./runtime/cache-envelope.js').catch(error => { cacheEnvelopeModulePromise = null; throw error; });
-  return cacheEnvelopeModulePromise;
-}
 
 async function loadOverseasModels() {
-  modelRuntime = await import('./runtime/fund-model-enrichment.js');
+  modelRuntime = await import('./runtime/business-features.js');
   return modelRuntime.loadOverseasModels();
 }
 function getOverseasConfig() { return modelRuntime?.getOverseasConfig() || { models: {}, rules: {} }; }
 function selectOverseasModel(...args) { return modelRuntime?.selectOverseasModel(...args) || null; }
 
 function loadHoldingsEstimateFeature() {
-  if (!holdingsEstimateModulePromise) holdingsEstimateModulePromise = import('./holdings-estimate.js').then(function(module) {
+  if (!holdingsEstimateModulePromise) holdingsEstimateModulePromise = import('./runtime/business-features.js').then(function(module) {
     holdingsEstimateRuntime = module;
     return module;
   }).catch(error => { holdingsEstimateModulePromise = null; throw error; });
   return holdingsEstimateModulePromise;
 }
 function normalizeTencentQuoteTime(...args) { return holdingsEstimateRuntime.normalizeTencentQuoteTime(...args); }
-function formatChinaQuoteTime(...args) { return holdingsEstimateRuntime.formatChinaQuoteTime(...args); }
 
 function loadCloudSyncFeature() {
-  if (!cloudSyncModulePromise) cloudSyncModulePromise = import('./storage/cloud-sync.js');
+  if (!cloudSyncModulePromise) cloudSyncModulePromise = import('./storage/cloud-runtime.js');
   return cloudSyncModulePromise;
 }
 
@@ -173,7 +188,7 @@ function updateNotificationStatus(permission) {
 
 function loadNotificationFeature() {
   if (!notificationControllerPromise) {
-    notificationControllerPromise = import('./notifications/notification-controller.js').then(function(module) {
+    notificationControllerPromise = import('./runtime/business-features.js').then(function(module) {
       const controller = module.createNotificationController({
         getHoldings: function() { return holdings; },
         getFunds: function() { return fundsData; },
@@ -211,29 +226,6 @@ function scheduleNotificationFeature() {
   else setTimeout(load, 1500);
 }
 
-function createRequestLimiter(maximum) {
-  var limit = Math.max(1, Number(maximum) || 1);
-  var active = 0;
-  var queue = [];
-
-  function pump() {
-    while (active < limit && queue.length) {
-      var item = queue.shift();
-      active += 1;
-      Promise.resolve().then(item.task).then(item.resolve, item.reject).finally(function() {
-        active -= 1;
-        pump();
-      });
-    }
-  }
-
-  return function runLimited(task) {
-    return new Promise(function(resolve, reject) {
-      queue.push({ task: task, resolve: resolve, reject: reject });
-      pump();
-    });
-  };
-}
 
 // ── 持仓存取 ─────────────────────────────────────────────
 async function loadHoldings() {
@@ -250,19 +242,23 @@ async function loadHoldings() {
   return true;
 }
 
-async function saveHoldingEdit(edit) {
-  const { commitHoldingEdit } = await import('./runtime/holding-edit.js');
+async function saveHoldingEdit(edit, options = {}) {
+  if (edit.signal?.aborted) return { ok: false, reason: 'edit_cancelled' };
+  const { commitHoldingEdit } = await import('./runtime/business-features.js');
   const saved = await commitHoldingEdit(undefined, edit, { cacheKey: CACHE_KEY });
-  if (saved.ok || (saved.reason === 'edit_conflict' && saved.document)) installHoldingsDocument(saved.document);
+  // A queued repository operation can settle after its refresh was superseded.
+  // Its persisted result must not replace the newer page projection/error.
+  if (edit.signal?.aborted) return saved;
+  if (saved.ok || (saved.reason === 'edit_conflict' && saved.document)) installHoldingsDocument(saved.document, options);
   if (!saved.ok) holdingsStorageError = saved.reason || 'holdings_save_failed';
   return saved;
 }
 
-function installHoldingsDocument(value) {
+function installHoldingsDocument(value, options = {}) {
   holdingsDocument = normalizeHoldingsDocumentV3(value);
   holdings = toLegacyHoldings(holdingsDocument);
   holdingsStorageError = '';
-  reconcileActiveFundState();
+  reconcileActiveFundState(options);
 }
 
 function reconcileActiveFundState(options = {}) {
@@ -275,14 +271,14 @@ function reconcileActiveFundState(options = {}) {
       if (!active.has(code)) delete cache[code];
     });
   });
-  [fundHoldingsRequests, holdingsEstimateRequests, fundFullRequests].forEach(function(requests) {
+  [fundHoldingsRequests].forEach(function(requests) {
     Array.from(requests.keys()).forEach(function(code) {
       if (!active.has(code)) requests.delete(code);
     });
   });
   if (expandedFund && !active.has(expandedFund)) expandedFund = null;
   // An external deletion must not silently discard the open form/baseline.
-  if (!activeCodes.length) safeRemoveItem(CACHE_KEY);
+  if (!activeCodes.length && options.persistCache !== false) safeRemoveItem(CACHE_KEY);
   else if (options.persistCache !== false) saveCache(fundsData);
   if (options.render !== false) {
     renderFundList(fundsData);
@@ -318,7 +314,7 @@ async function fetchWithTimeout(url, options = {}, timeout = TIMING.CLOUD_SYNC_T
 let holdingsTransferFeature;
 async function runHoldingsTransfer(action, event) {
   try {
-    if (!holdingsTransferFeature) holdingsTransferFeature = import('./runtime/holdings-transfer.js').then(module => module.createHoldingsTransfer({
+    if (!holdingsTransferFeature) holdingsTransferFeature = import('./runtime/business-features.js').then(module => module.createHoldingsTransfer({
       getHoldingsDocument: () => holdingsDocument, getHoldings: () => holdings,
       installHoldingsDocument, scheduleAutoPush, renderHoldingsList, refresh, showToast, CACHE_KEY,
     }));
@@ -330,11 +326,76 @@ function importData(event) { return runHoldingsTransfer('importData', event); }
 function restoreLatestBackup() { return runHoldingsTransfer('restoreLatestBackup'); }
 
 // ── 云同步 (GitHub Gist) — 双向自动同步 ────────────────────
-function getGistToken() { return safeGetItem(GIST_TOKEN_KEY) || ''; }
-function setGistToken(t) { return safeSetItem(GIST_TOKEN_KEY, t); }
-function getGistId() { return safeGetItem(GIST_ID_KEY) || ''; }
-function setGistId(id) { return safeSetItem(GIST_ID_KEY, id); }
-function getSyncTime() { return safeGetItem(GIST_SYNC_TIME_KEY) || ''; }
+let gistCredentialStore = null;
+let gistCredentialsPromise = null;
+let cloudInputRevision = 0;
+function sessionStore() {
+  try { return window.sessionStorage; } catch (_) { return null; }
+}
+function localStore() {
+  try { return window.localStorage; } catch (_) { return null; }
+}
+function loadGistCredentials() {
+  if (!gistCredentialsPromise) gistCredentialsPromise = import('./storage/gist-credentials.js')
+    .then(module => {
+      gistCredentialStore = module.createGistCredentialStore({ sessionStorage: sessionStore(), localStorage: localStore(),
+        tokenKey: GIST_TOKEN_KEY, consentKey: GIST_CONSENT_KEY });
+      return gistCredentialStore;
+    }).catch(error => { gistCredentialsPromise = null; throw error; });
+  return gistCredentialsPromise;
+}
+function getGistToken() { return gistCredentialStore?.read().token || ''; }
+function resetCloudConfiguration(gistId = '') {
+  syncController.resetCloudState({ preserveBackoff: Boolean(gistId) });
+  if (gistId && !setGistId(gistId)) { showToast('档案选择保存失败，请检查浏览器存储'); return false; }
+  safeRemoveItem(GIST_SYNC_TIME_KEY);
+  safeRemoveItem(SYNC_META_KEY);
+  if (!gistId) { safeRemoveItem(GIST_ID_KEY); setArchiveCandidates([]); }
+  return true;
+}
+async function setGistToken(token, options = {}) {
+  cloudInputRevision += 1;
+  const store = await loadGistCredentials();
+  const previous = store.read();
+  const saved = store.save(token, { persist: options.persist === true });
+  const changed = previous.token !== store.read().token;
+  if (changed) resetCloudConfiguration();
+  renderCredentialStatus();
+  renderCloudStatus();
+  return saved;
+}
+async function clearGistCredentials() {
+  const revision = ++cloudInputRevision;
+  resetCloudConfiguration();
+  const store = await loadGistCredentials();
+  const result = store.clear();
+  const scope = syncController.captureConfigurationScope(store.read().token);
+  if (cloudInputRevision === revision) {
+    document.getElementById('gist-token').value = '';
+    const remember = document.getElementById('gist-remember-token');
+    if (remember) remember.checked = false;
+  }
+  renderCredentialStatus();
+  renderCloudStatus();
+  // Internal UI result, not a persistable DTO: evaluate current when the
+  // awaiting tool consumes it, after any already-queued credential save.
+  return Object.freeze({ ...result, get current() { return scope.isCurrent(); } });
+}
+function renderCredentialStatus() {
+  const state = gistCredentialStore?.read();
+  const legacy = state?.legacyPending || (!state && safeStorageKeys().includes(GIST_TOKEN_KEY) && safeGetItem(GIST_CONSENT_KEY) !== 'true');
+  const hint = document.getElementById('gist-credential-status');
+  if (hint) hint.textContent = legacy
+    ? '检测到旧版持久 Token，未自动启用。请重新输入并选择保存方式。'
+    : state?.mode === 'persistent' ? 'Token 已按你的选择保存在此浏览器。清除配置可撤销保存。'
+    : state?.mode === 'memory' ? '浏览器存储不可用，Token 仅在当前页面内存中保留。'
+    : '默认仅本次会话使用 Token，不写入持久存储。';
+}
+function getGistId() {
+  const id = safeGetItem(GIST_ID_KEY) || '';
+  return /^[a-f0-9]{1,64}$/i.test(id) ? id : '';
+}
+function setGistId(id) { return (id === '' || /^[a-f0-9]{1,64}$/i.test(id)) && safeSetItem(GIST_ID_KEY, id); }
 function setSyncTime(t) { return safeSetItem(GIST_SYNC_TIME_KEY, t); }
 
 // 同步元数据：记录上次 push 时数据的快照 hash，用于判断是否需要推送
@@ -350,44 +411,16 @@ function saveSyncMeta(meta) {
 
 // 完整语义指纹：名称、null 成本、revision、设备与 tombstone 都参与。
 function holdingsHash(h) {
-  if (h === holdings && holdingsDocument) return canonicalHoldingsDocument(holdingsDocument);
-  return JSON.stringify((Array.isArray(h) ? h : []).map(function(x) {
-    return {
-      code: x.code,
-      name: x.name,
-      shares: x.shares,
-      cost: x.cost == null ? null : x.cost,
-      updated_at: x.updated_at || '',
-      deleted: x.deleted === true,
-      revision: x.revision || 0,
-      device_id: x.device_id || '',
-      deleted_at: x.deleted_at || null,
-      note: x.note == null ? null : x.note,
-    };
-  }).sort(function(a, b) { return a.code.localeCompare(b.code); }));
+  return holdingsDocument ? canonicalHoldingsDocument(holdingsDocument) : '[]';
 }
 
-function hasCloudConfig() {
-  return !!(getGistToken());  // 有 Token 即可，Gist ID 可自动发现
-}
+function hasCloudConfig() { return syncController.hasCloudConfig(); }
 
-function renderCloudStatus() {
-  var el = document.getElementById('cloud-status');
-  if (!el) return;
-  var syncTime = getSyncTime();
-  if (syncTime) {
-    var d = new Date(syncTime);
-    el.textContent = '上次同步: ' + d.toLocaleString('zh-CN');
-    el.style.color = 'var(--up)';
-  } else {
-    el.textContent = '配置 Token 后自动同步';
-    el.style.color = 'var(--muted)';
-  }
-}
+function renderCloudStatus() { return syncController.renderCloudStatus(); }
 
 let gistRemoteModulePromise = null;
 function loadGistRemoteModule() {
-  if (!gistRemoteModulePromise) gistRemoteModulePromise = import('./storage/gist-remote.js');
+  if (!gistRemoteModulePromise) gistRemoteModulePromise = import('./storage/gist-runtime.js');
   return gistRemoteModulePromise;
 }
 
@@ -397,194 +430,73 @@ function gistRequest(url, options) {
 
 async function createGistRemoteAdapter(token, gistId, options = {}) {
   const runtime = await loadGistRemoteModule();
+  const isCurrent = options.isCurrent || (() => true);
   return runtime.createGistRemoteAdapter({
     token,
     gistId,
     deviceId: options.deviceId || holdingsDocument?.deviceId,
-    request: gistRequest,
+    request: async (url, init) => {
+      if (!isCurrent()) throw new DOMException('Cloud configuration changed', 'AbortError');
+      const response = await gistRequest(url, { ...init, signal: options.signal });
+      if (!isCurrent()) throw new DOMException('Cloud configuration changed', 'AbortError');
+      return response;
+    },
     now: nowISO,
   });
 }
 
-async function createCloudLocalAdapter(gistId) { return (await loadCloudArchiveFeature()).createCloudLocalAdapter(gistId); }
+async function createCloudLocalAdapter(gistId, options = {}) { return (await loadCloudArchiveFeature()).createCloudLocalAdapter(gistId, options); }
 
-function reloadHoldingsAfterCloud() {
+function reloadHoldingsAfterCloud(scope = {}) {
   return withHoldingsLock(() => {
+    if (scope.isCurrent && !scope.isCurrent()) return { ok: false, reason: 'cloud_configuration_changed' };
     const loaded = loadHoldingsRepository(undefined, { cacheKey: CACHE_KEY });
     if (loaded.ok) installHoldingsDocument(loaded.document);
     return loaded;
   });
 }
 
-function handleCloudFailure(result, silent) {
-  const reason = String(result?.reason || 'cloud_sync_failed');
-  if (reason.includes('404')) {
-    setGistId('');
-    renderCloudStatus();
-  }
-  if (silent) return;
-  if (reason.includes('401')) showToast('Token 无效，请检查');
-  else if (reason === 'remote_schema_future') showToast('云端数据版本更高，已进入只读保护，未写入');
-  else if (reason === 'remote_schema_upgrade_required') {
-    showToast('当前变更需要创建隔离的 Schema 3 云端存档；旧版文件会保留且不能覆盖新格式。请手动上传并确认升级。');
-  }
-  else if (reason.includes('invalid') || reason.includes('missing') || reason.includes('truncated')) {
-    showToast('云端持仓校验失败，已停止同步以保护数据');
-  } else if (result?.patched && !result?.remoteVerified) {
-    showToast('云端已响应但读回验证失败，状态待确认');
-  } else {
-    showToast('同步失败，变更已保留待重试');
-  }
-}
 
 function markSyncPending() {
-  syncPending = true;
+  syncController.setSyncPending(true);
   const meta = loadSyncMeta();
   meta.pending = true;
   meta.pending_hash = holdingsHash(holdings);
   saveSyncMeta(meta);
 }
 
-function hasPendingSync() {
-  const meta = loadSyncMeta();
-  return meta.pending === true || Boolean(meta.pending_hash && meta.pending_hash !== meta.last_push_hash);
-}
+function hasPendingSync() { return syncController.hasPendingSync(); }
 
-async function resolveGistId(token) {
-  let gistId = getGistId();
-  if (gistId) return gistId;
-  const found = await findExistingGist(token);
-  if (!found) return '';
-  setGistId(found);
-  return found;
-}
+function resolveGistId(token) { return syncController.resolveGistId(token); }
 
 // ── 从云端拉取并合并 ───────────────────────────────────────
-async function pullFromCloud(silent) {
-  if (serviceWorkerUpdateApplying) return { ok: false, reason: 'service_worker_update_pending' };
-  if (isSyncing) return;
-  const token = getGistToken();
-  if (!token) return;
-
-  isSyncing = true;
-  try {
-    const { pullHoldingsCloud } = await loadCloudSyncFeature();
-    const gistId = await resolveGistId(token);
-    if (!gistId) return;
-    const result = await pullHoldingsCloud({
-      remote: await createGistRemoteAdapter(token, gistId),
-      local: await createCloudLocalAdapter(gistId),
-      deviceId: holdingsDocument?.deviceId,
-    });
-    if (!result.ok) {
-      handleCloudFailure(result, silent);
-      return result;
-    }
-    const reloaded = await reloadHoldingsAfterCloud();
-    if (!reloaded.ok) {
-      const failure = { ...result, ok: false, reason: reloaded.reason };
-      handleCloudFailure(failure, silent);
-      return failure;
-    }
-    setSyncTime(nowISO());
-    if (result.changed) {
-      renderHoldingsList();
-      renderCloudStatus();
-      refresh();
-    }
-    if (result.pending || hasPendingSync()) scheduleAutoPush();
-    return result;
-  } catch(e) {
-    if (!silent) showToast('同步失败，变更已保留待重试');
-    return { ok: false, reason: e?.message || 'cloud_pull_failed' };
-  } finally {
-    isSyncing = false;
-  }
-}
+function pullFromCloud(silent) { return syncController.pullFromCloud(silent); }
 
 // ── 推送本地变更到云端 ─────────────────────────────────────
-async function pushToCloud(silent, options = {}) {
-  if (serviceWorkerUpdateApplying) return { ok: false, reason: 'service_worker_update_pending' };
-  if (isSyncing) return;
-  const token = getGistToken();
-  if (!token) return;
-
-  isSyncing = true;
-  try {
-    const { synchronizeHoldingsCloud } = await loadCloudSyncFeature();
-    const gistId = await resolveGistId(token);
-    if (!gistId) return;
-    const result = await synchronizeHoldingsCloud({
-      remote: await createGistRemoteAdapter(token, gistId),
-      local: await createCloudLocalAdapter(gistId),
-      deviceId: holdingsDocument?.deviceId,
-      upgradeSchema: options.upgradeSchema === true,
-    });
-    if (!result.ok) {
-      markSyncPending();
-      handleCloudFailure(result, silent);
-      return result;
-    }
-    const reloaded = await reloadHoldingsAfterCloud();
-    if (!reloaded.ok) {
-      const failure = { ...result, ok: false, reason: reloaded.reason };
-      handleCloudFailure(failure, silent);
-      return failure;
-    }
-    setSyncTime(nowISO());
-    renderCloudStatus();
-    if (result.pending || hasPendingSync()) scheduleAutoPush();
-    return result;
-  } catch(e) {
-    // 保留持久化待同步标记，以便网络恢复或下次启动后补推。
-    markSyncPending();
-    return { ok: false, reason: e?.message || 'cloud_push_failed' };
-  } finally {
-    isSyncing = false;
-  }
-}
+function pushToCloud(silent, options = {}) { return syncController.pushToCloud(silent, options); }
 
 // ── 防抖：数据变更后延迟推送 ──────────────────────────────
-function scheduleAutoPush() {
-  if (!hasCloudConfig()) return;
-  markSyncPending();
-  if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
-  syncDebounceTimer = setTimeout(function() {
-    pushToCloud(true);
-  }, TIMING.AUTO_PUSH_DELAY);
-}
+function scheduleAutoPush() { return syncController.scheduleAutoPush(); }
 
 // ── 后台定时拉取 ──────────────────────────────────────────
-function startAutoPull() {
-  if (autoPullTimer) clearInterval(autoPullTimer);
-  autoPullTimer = setInterval(function() {
-    pullFromCloud(true);
-    if (hasPendingSync()) scheduleAutoPush();
-  }, TIMING.AUTO_PULL_INTERVAL);
-}
+function startAutoPull() { return syncController.startAutoPull(); }
 
 // ── 页面启动时拉取 ────────────────────────────────────────
-async function autoPullOnLoad() {
-  if (!hasCloudConfig()) return;
-  await pullFromCloud(true);
-  if (hasPendingSync()) scheduleAutoPush();
-}
+function autoPullOnLoad() { return syncController.autoPullOnLoad(); }
 
 // Manual cloud actions are not part of the cold-start graph.
 let cloudArchiveFeature;
 function loadCloudArchiveFeature() {
     if (!cloudArchiveFeature) cloudArchiveFeature = import("./storage/cloud-archive-ui.js").then(module => module.createCloudArchiveFeature({
       CACHE_KEY, getHoldingsDocument: () => holdingsDocument, getHoldings: () => holdings,
-      GIST_TOKEN_KEY, GIST_ID_KEY, GIST_SYNC_TIME_KEY, SYNC_META_KEY, safeRemoveItem,
-      resetCloudState: () => {
-        syncPending = false;
-        if (syncDebounceTimer) { clearTimeout(syncDebounceTimer); syncDebounceTimer = null; }
-        if (autoPullTimer) { clearInterval(autoPullTimer); autoPullTimer = null; }
-      },
       loadCloudSyncFeature, loadGistRemoteModule, nowISO, fetchWithTimeout, setGistId, createGistRemoteAdapter,
-      loadSyncMeta, saveSyncMeta, setSyncTime, setSyncPending: value => { syncPending = value; },
-      installHoldingsDocument, setGistToken, getGistId, pushToCloud, pullFromCloud, markSyncPending,
-      handleCloudFailure, renderCloudStatus, showToast, startAutoPull, findExistingGist,
+      loadSyncMeta, saveSyncMeta, setSyncTime, setSyncPending: syncController.setSyncPending,
+      installHoldingsDocument, setGistToken, clearGistCredentials, getGistId, pushToCloud, pullFromCloud, markSyncPending,
+      renderCloudStatus, showToast, startAutoPull,
+      resolveGistId, listCloudArchives, setArchiveCandidates,
+      runManualOperation: syncController.runManualOperation,
+      captureCloudConfigurationScope: syncController.captureConfigurationScope,
+      getSyncStatus: syncController.getStatus,
     })).catch(error => { cloudArchiveFeature = null; throw error; });
   return cloudArchiveFeature;
 }
@@ -596,13 +508,46 @@ async function runCloudArchiveAction(action) {
 function uploadToCloud() { return runCloudArchiveAction("uploadToCloud"); }
 function downloadFromCloud() { return runCloudArchiveAction("downloadFromCloud"); }
 
-// ── 搜索已存在的云端存档 ──────────────────────────────────
-async function findExistingGist(token) {
-  try {
-    const runtime = await loadGistRemoteModule();
-    return await runtime.findExistingHoldingsGist({ token, request: gistRequest, maxPages: 5 }) || null;
-  } catch(e) { return null; }
+async function listCloudArchives(token) {
+  const runtime = await loadGistRemoteModule();
+  return runtime.listHoldingsGists({ token, request: gistRequest, maxPages: 5 });
 }
+let archiveCandidates = [];
+function setArchiveCandidates(candidates) {
+  archiveCandidates = Array.isArray(candidates) ? candidates.filter(item => /^[a-f0-9]{1,64}$/i.test(item?.id || '')) : [];
+  const select = document.getElementById('gist-archive');
+  if (!select) return;
+  select.replaceChildren();
+  const placeholder = document.createElement('option');
+  placeholder.value = ''; placeholder.textContent = archiveCandidates.length ? '请选择云端档案' : '尚未发现档案';
+  select.append(placeholder);
+  for (const candidate of archiveCandidates) {
+    const option = document.createElement('option');
+    option.value = candidate.id;
+    option.textContent = `${candidate.id} · Schema ${candidate.schema}`;
+    select.append(option);
+  }
+  const current = getGistId();
+  if (current && !archiveCandidates.some(item => item.id === current)) {
+    const option = document.createElement('option');
+    option.value = current; option.textContent = `当前档案 ${current}`; select.append(option);
+  }
+  select.value = current;
+}
+function selectCloudArchive() {
+  const id = document.getElementById('gist-archive')?.value || '';
+  if (!archiveCandidates.some(item => item.id === id) || id === getGistId()) return;
+  if (!confirm('切换到所选云端档案？本地持仓会保留，之后同步将与该档案合并。')) {
+    document.getElementById('gist-archive').value = getGistId(); return;
+  }
+  if (!resetCloudConfiguration(id)) {
+    document.getElementById('gist-archive').value = getGistId();
+    renderCloudStatus();
+    return;
+  }
+  markSyncPending(); renderCloudStatus(); startAutoPull();
+}
+function refreshCloudArchives() { return runCloudArchiveAction('refreshCloudArchives'); }
 
 
 function clearCloudConfig() { return runCloudArchiveAction("clearCloudConfig"); }
@@ -620,54 +565,20 @@ function loadCache() {
   } catch(e) { return null; }
 }
 
+function slimFundCache(data) {
+  return data.map(d => Object.fromEntries(Object.entries(d).filter(([key]) => !SKIP_CACHE_KEYS.includes(key))));
+}
+
 function saveCache(data) {
+  // Holdings edits update projections, not market acquisition timestamps.
   try {
-    var slim = data.map(function(d) {
-      var out = {};
-      Object.keys(d).forEach(function(k) {
-        if (SKIP_CACHE_KEYS.indexOf(k) === -1) out[k] = d[k];
-      });
-      return out;
-    });
-    const entry = setCached(CACHE_KEY, slim, TTL.INTRADAY, 'fund-estimate');
-    if (entry) {
-      entry.holdingsHash = holdingsHash(holdings);
-      safeSetItem(CACHE_KEY, JSON.stringify(entry));
-    }
-  } catch(e) {}
+    const previous = JSON.parse(safeGetItem(CACHE_KEY));
+    if (!previous || !Array.isArray(previous.data)) return;
+    safeSetItem(CACHE_KEY, JSON.stringify({ ...previous, data: slimFundCache(data), holdingsHash: holdingsHash(holdings) }));
+  } catch (_) {}
 }
 
 
-async function fetchLatestNavMove(code, force, signal) {
-  throwIfAborted(signal);
-  const module = await loadCacheEnvelopeFeature();
-  const key = 'fuyu_nav_move_' + code;
-  let raw;
-  try { raw = JSON.parse(safeGetItem(key)); } catch (_) { raw = null; }
-  const validMove = move => move && isUsableNav(move.nav) && isUsableNav(move.prevNav)
-    && normalizeQuoteDate(move.prevDate) && normalizeQuoteDate(move.date) && move.prevDate < move.date;
-  const cached = module.readCacheEnvelope(raw, { validatePayload: move => Boolean(validMove(move)) })
-    || module.adaptLegacyNavMoveCache(raw, { ttlMs: TTL.OFFICIAL_NAV });
-  const cacheMove = cached && cached.sourceDate === cached.payload.date ? {
-    ...cached.payload, change: (cached.payload.nav / cached.payload.prevNav - 1) * 100,
-    changeAmt: cached.payload.nav - cached.payload.prevNav,
-    sourceTier: 'cache', originalSource: cached.originalSource, originalSourceTier: cached.originalSourceTier,
-    fetchedAt: new Date(cached.fetchedAt).toISOString(), cachedAt: cached.cachedAt, expiresAt: cached.expiresAt,
-    cacheState: cached.cacheState,
-  } : null;
-  if (!force && cacheMove?.cacheState === 'fresh') return cacheMove;
-  const move = await fetchLatestNavMoveRaw(code, signal);
-  throwIfAborted(signal);
-  if (!validMove(move)) return cacheMove;
-  const fetchedAt = Date.now();
-  const envelope = module.createCacheEnvelope(move, {
-    originalSource: 'eastmoney-official-nav', originalSourceTier: 'secondary', sourceDate: move.date,
-    fetchedAt, cachedAt: fetchedAt, ttlMs: TTL.OFFICIAL_NAV,
-  });
-  if (!envelope) return cacheMove;
-  safeSetItem(key, JSON.stringify(envelope));
-  return { ...move, fetchedAt: new Date(fetchedAt).toISOString(), sourceTier: 'secondary' };
-}
 
 async function fetchLatestNavMoveRaw(code, signal) {
   try {
@@ -706,37 +617,16 @@ async function fetchLatestNavMoveRaw(code, signal) {
   }
 }
 
-// ── 合并获取：可信估值主源 + 正式净值降级 ─────────────────
-async function fetchFundFull(code, force, tableEstimate, signal) {
-  if (!force && !signal && fundFullRequests.has(code)) return fundFullRequests.get(code);
-  var request = fetchFundFullRaw(code, force, tableEstimate, signal).finally(function() {
-    if (fundFullRequests.get(code) === request) fundFullRequests.delete(code);
-  });
-  fundFullRequests.set(code, request);
-  return request;
-}
-
-async function fetchFundFullRaw(code, force, tableEstimate, signal) {
-  const primary = tableEstimate || { code, status: 'error', message: '估值表暂无该基金' };
-  // A six-digit fund code is not a security identity.  Never reinterpret it
-  // as an A-share secid: colliding stock codes can silently corrupt NAV and P/L.
-  // Keep the fast proxy result, and use only a validated official-fund series
-  // as the fallback when the proxy has no usable quote.
-  if (primary.status === 'ok') return primary;
-  const navMove = await fetchLatestNavMove(code, force, signal);
-
-  if (navMove) {
-    return {
-      code, name: '', status: 'ok_official', last_nav: navMove.prevNav,
-      est_nav: navMove.nav, est_change: navMove.change, nav_date: navMove.prevDate, est_time: navMove.date,
-      base_nav: navMove.prevNav, base_nav_date: navMove.prevDate, value_date: navMove.date,
-      est_kind: 'official_nav', est_label: '最新正式净值',
-      est_realtime: false,
-      latest_nav_move: navMove,
-      source_quote: normalizeOfficialNavQuote(navMove, { fundCode: code, now: Date.now() }),
-    };
-  }
-  return primary;
+// A six-digit fund code is never reinterpreted as an A-share secid.
+function officialFundFallback(code, navMove) {
+  return {
+    code, name: '', status: 'ok_official', last_nav: navMove.prevNav,
+    est_nav: navMove.nav, est_change: navMove.change, nav_date: navMove.prevDate, est_time: navMove.date,
+    base_nav: navMove.prevNav, base_nav_date: navMove.prevDate, value_date: navMove.date,
+    est_kind: 'official_nav', est_label: '最新正式净值', est_realtime: false,
+    latest_nav_move: navMove,
+    source_quote: normalizeOfficialNavQuote(navMove, { fundCode: code, now: Date.now() }),
+  };
 }
 
 function buildFundData(r, h, modelQuotes) {
@@ -747,9 +637,9 @@ function buildFundData(r, h, modelQuotes) {
     shares: h.shares == null ? 0 : h.shares,
     cost: h.cost == null ? null : h.cost,
   };
-  applyOverseasModelEstimate(d, modelQuotes || {});
-  if (!isUsableNav(d.est_nav) && isUsableNav(d.last_nav) && Number.isFinite(d.est_change)) d.est_nav = d.last_nav * (1 + d.est_change / 100);
   d.updatedAt = Date.now();
+  applyOverseasModelEstimate(d, modelQuotes || {}, { fetchedAt: new Date(d.updatedAt).toISOString() });
+  if (!isUsableNav(d.est_nav) && isUsableNav(d.last_nav) && Number.isFinite(d.est_change)) d.est_nav = d.last_nav * (1 + d.est_change / 100);
   d.market = classifyMarketKind(d.name);
   d.assetKind = classifyAssetKind(d.name, d.market);
   d.quoteCandidates = buildFundQuoteCandidates(d, {
@@ -823,7 +713,7 @@ function scheduleFundRender() {
 function refresh(options) {
   var opts = options || {};
   var trigger = opts.reason || 'data-change';
-  if (serviceWorkerUpdateApplying) {
+  if (pwaUpdateController.isUpdateApplying()) {
     return Promise.resolve({ status: 'skipped', reason: 'service_worker_update_pending', trigger: trigger });
   }
   return refreshCoordinator.request({
@@ -845,21 +735,26 @@ function requireCurrentRefresh(context) {
   if (!context || !context.isCurrent() || context.signal.aborted) throw makeRefreshAbortError();
 }
 
-async function fetchRefreshEstimateRows(snapshot, options, context) {
+async function fetchRefreshEstimateRows(snapshot, options, context, dispatch, observeGate = undefined) {
   var sourceId = 'sinan-estimate-proxy';
   var claim = context.claimSourceAttempt(sourceId);
-  if (!claim.allowed) {
+  var allowed = claim.allowed;
+  if (typeof observeGate === 'function') {
+    try { Promise.resolve(observeGate(allowed)).catch(() => {}); }
+    catch (_) { /* A private observer cannot own source health or acquisition. */ }
+  }
+  if (!allowed) {
     context.recordDiagnostic('source_cooldown', { sourceId: sourceId, reason: 'circuit_breaker_open' });
     return new Map();
   }
   var startedAt = Date.now();
   try {
-    var rows = await fetchEstimateRows(
+    var rows = await dispatch(() => fetchEstimateRows(
       snapshot.map(function(h) { return h.code; }),
       { force: options.force !== false, signal: context.signal }
-    );
+    ));
     var usableCount = Array.from(rows.values()).filter(function(row) {
-      return row && row.status === 'ok' && row.source_quote && row.source_quote.status !== 'unavailable';
+      return row && row.status === 'ok' && row.source_quote && !['stale', 'unavailable'].includes(row.source_quote.status);
     }).length;
     var responseMs = Math.max(0, Date.now() - startedAt);
     if (usableCount === snapshot.length) {
@@ -892,24 +787,34 @@ async function fetchRefreshEstimateRows(snapshot, options, context) {
   }
 }
 
-function commitRefreshedFund(context, holding, built) {
+function updateCurrentFundAccuracy(context, fund) {
+  if (!isOverseasLikeFund(fund)) return;
+  import('./runtime/business-features.js').then(({ updateFundAccuracy }) => {
+    context.commit(() => {
+      // Another enrichment in this generation may already own this fund.
+      if (fundsData.find(row => row.code === fund.code) !== fund) return;
+      updateFundAccuracy(fund);
+      scheduleFundRender();
+    });
+  }).catch(() => {});
+}
+
+function commitRefreshedFund(context, holding, built, trackPendingEdit) {
   return context.commit(function() {
     upsertFundData(holding.code, built.data);
-    if (isOverseasLikeFund(built.data)) {
-      import('./accuracy.js').then(({ updateFundAccuracy }) => {
-        context.commit(() => updateFundAccuracy(built.data));
-      }).catch(() => {});
-    }
+    updateCurrentFundAccuracy(context, built.data);
     if (built.fetchedName) {
       var current = holdings.find(function(item) { return item.code === holding.code; });
       if (current && !isRealFundName(current.name, current.code)) {
         const baseline = holdingsDocument?.holdings.find(row => row.fundCode === current.code);
-        saveHoldingEdit({ code: current.code, baseline, operation: 'name',
+        const pendingEdit = saveHoldingEdit({ code: current.code, baseline, operation: 'name',
           values: { name: built.fetchedName }, signal: context.signal,
-        }).then(saved => { if (saved.ok) scheduleAutoPush(); }).catch(() => {});
+        }, { persistCache: false }).then(saved => {
+          context.commit(() => { if (saved.ok) scheduleAutoPush(); });
+        }).catch(() => {});
+        trackPendingEdit?.(pendingEdit);
       }
     }
-    saveCache(fundsData);
   });
 }
 
@@ -947,204 +852,127 @@ function commitRefreshFailure(context, holding, error) {
   });
 }
 
-function scheduleFundEnrichment(context, holding, rawFund, loadModelQuotes, holdingsEstimatePromise, officialNavPromise) {
-  var officialNavMove = null;
-  var holdingsEstimate = null;
-  var modelQuotes = {};
-  var tasks = [];
-
-  async function commitEnriched() {
-    const module = await loadHoldingsEstimateFeature();
-    requireCurrentRefresh(context);
-    var enrichedRaw = module.composeFundEnrichment(rawFund, {
-      officialNavMove: officialNavMove,
-      holdingsEstimate: holdingsEstimate,
-    });
-    var built = buildFundData(enrichedRaw, holding, modelQuotes);
-    return context.commit(function() {
-      upsertFundData(holding.code, built.data);
-      saveCache(fundsData);
-      updateLatestSourceSummary();
-    });
-  }
-
-  tasks.push(Promise.resolve(officialNavPromise).then(function(move) {
-    if (!move) return;
-    officialNavMove = move;
-    return commitEnriched();
-  }).catch(function(error) {
-    if (!isRefreshAbort(error, context.signal)) context.recordDiagnostic('official_nav_enrichment_failed', { key: holding.code, reason: error.name || error.message || 'request_failed' });
-  }));
-
-  tasks.push(Promise.resolve(holdingsEstimatePromise).then(function(result) {
-    if (result && result.error) {
-      if (!isRefreshAbort(result.error, context.signal)) context.recordDiagnostic('holdings_enrichment_failed', { key: holding.code, reason: result.error.name || result.error.message || 'request_failed' });
-      return;
-    }
-    if (!result || !result.value) return;
-    holdingsEstimate = result.value;
-    return commitEnriched();
-  }).catch(function(error) {
-    if (!isRefreshAbort(error, context.signal)) context.recordDiagnostic('holdings_enrichment_failed', { key: holding.code, reason: error.name || error.message || 'request_failed' });
-  }));
-
-  tasks.push(Promise.resolve(loadModelQuotes(holding)).then(function(quotes) {
-      if (!selectOverseasModel(holding.code, rawFund.name || holding.name)) return;
-      modelQuotes = quotes || {};
-      if (Object.keys(modelQuotes).length) return commitEnriched();
-    }).catch(function(error) {
-      if (!isRefreshAbort(error, context.signal)) context.recordDiagnostic('model_enrichment_failed', { key: holding.code, reason: error.name || error.message || 'request_failed' });
-    }));
-
-  return Promise.allSettled(tasks);
-}
 
 async function runRefresh(context, options) {
-  var opts = options || {};
-
   try {
+    requireCurrentRefresh(context);
+    if (detailRefreshGeneration !== context.generation) detailController?.abort('refresh_started');
     reconcileActiveFundState({ render: false, persistCache: false });
-    if (holdings.filter(h => !h.deleted).length === 0) {
-      context.commit(function() { renderFundList([]); });
-      return { total: 0, refreshed: 0 };
-    }
-
-    const snapshot = holdings.filter(h => !h.deleted).map(h => ({...h}));
-    var estimateTablePromise = fetchRefreshEstimateRows(snapshot, opts, context);
-    var modelQuotesPromise = null;
-    function loadModelQuotes(holding) {
-      if (!modelRuntime) overseasModelsPromise = loadOverseasModels().catch(function() { return getOverseasConfig(); });
-      return Promise.resolve(overseasModelsPromise).then(function() {
-        if (!selectOverseasModel(holding.code, holding.name)) return {};
-        if (!modelQuotesPromise) {
-          var claim = context.claimSourceAttempt('market-model');
-          if (!claim.allowed) return {};
-          var startedAt = Date.now();
-          modelQuotesPromise = fetchOverseasModelQuotes(context.signal).then(function(quotes) {
-            var usable = Object.values(quotes || {}).some(function(quote) { return quote && Number.isFinite(quote.changePct); });
-            if (!usable) throw Object.assign(new Error('海外模型行情不可用'), { code: 'MODEL_QUOTES_UNAVAILABLE' });
-            context.recordSourceSuccess('market-model', { responseMs: Math.max(0, Date.now() - startedAt) });
-            return quotes;
-          }).catch(function(error) {
-            if (isRefreshAbort(error, context.signal)) throw error;
-            context.recordSourceFailure('market-model', { error: error, responseMs: Math.max(0, Date.now() - startedAt) });
-            context.recordDiagnostic('model_source_failed', { sourceId: 'market-model', reason: error.name || error.message || 'request_failed' });
-            return {};
-          });
-        }
-        return modelQuotesPromise;
-      });
-    }
-
-    var runHoldingsLimited = createRequestLimiter(2);
-    var hasHoldingsCandidates = snapshot.some(function(h) {
-      return ['cn', 'cn-index', 'hk'].includes(classifyFundMarket(h.name));
-    });
-    var holdingsClaim = hasHoldingsCandidates
-      ? context.claimSourceAttempt('quarterly-holdings-model')
-      : { allowed: false, halfOpen: false };
-    var holdingsProbeUsed = false;
-    var holdingsOutcome = { requested: 0, usable: 0, empty: 0, failed: 0, responseMs: 0 };
-    function loadHoldingsEstimate(h) {
-      var market = classifyFundMarket(h.name);
-      if (!holdingsClaim.allowed || !['cn', 'cn-index', 'hk'].includes(market)) return Promise.resolve({ value: null });
-      if (holdingsClaim.halfOpen && holdingsProbeUsed) return Promise.resolve({ value: null });
-      if (holdingsClaim.halfOpen) holdingsProbeUsed = true;
-      return runHoldingsLimited(async function() {
-        requireCurrentRefresh(context);
-        holdingsOutcome.requested += 1;
-        var startedAt = Date.now();
-        try {
-          var value = await fetchHoldingsEstimateForFund(h.code, h.name, {
-            signal: context.signal,
-            force: opts.force !== false,
-            persist: false,
-          });
-          holdingsOutcome.responseMs = Math.max(holdingsOutcome.responseMs, Date.now() - startedAt);
-          if (value) holdingsOutcome.usable += 1;
-          else holdingsOutcome.empty += 1;
-          return { value: value };
-        } catch (error) {
-          holdingsOutcome.responseMs = Math.max(holdingsOutcome.responseMs, Date.now() - startedAt);
-          if (!isRefreshAbort(error, context.signal)) holdingsOutcome.failed += 1;
-          return { value: null, error: error };
-        }
-      });
-    }
-
-    context.commit(function() {
-      snapshot.forEach(function(h) {
-        var old = fundsData.find(function(item) { return item.code === h.code; });
+    const snapshot = holdings.filter(h => !h.deleted).map(h => ({ ...h }));
+    const pendingNameEdits = [];
+    context.commit(() => {
+      snapshot.forEach(h => {
+        const old = fundsData.find(item => item.code === h.code);
         if (old) updateFundStatus(h.code, { loading: true, error: null });
-        else upsertFundData(h.code, {
-          code: h.code,
-          name: h.name || h.code,
-          shares: h.shares == null ? 0 : h.shares,
-          cost: h.cost == null ? null : h.cost,
-          status: 'loading',
-          loading: true,
-        });
+        else upsertFundData(h.code, { ...h, status: 'loading', loading: true });
       });
       renderFundList(fundsData);
     });
-
-    var enrichmentTasks = [];
-    var tasks = snapshot.map(async function(h) {
-      try {
-        var estimateMap = await estimateTablePromise;
-        requireCurrentRefresh(context);
-        var r = await fetchFundFull(h.code, opts.force !== false, estimateMap.get(h.code), context.signal);
-        requireCurrentRefresh(context);
-        if (r.status !== 'ok' && r.status !== 'ok_fallback' && r.status !== 'ok_official') throw new Error(r.message || '更新失败');
-        var built = buildFundData(r, h, {});
-        var commit = commitRefreshedFund(context, h, built);
-        if (!commit.committed) return { code: h.code, status: 'aborted' };
-        // Primary quote is visible before these detail/model tasks finish.
-        enrichmentTasks.push(scheduleFundEnrichment(
-          context,
-          h,
-          r,
-          loadModelQuotes,
-          loadHoldingsEstimate(h),
-          fetchLatestNavMove(h.code, opts.force !== false, context.signal)
-        ));
-        return { code: h.code, status: 'fulfilled' };
-      } catch (error) {
-        if (isRefreshAbort(error, context.signal)) return { code: h.code, status: 'aborted' };
-        commitRefreshFailure(context, h, error);
-        return { code: h.code, status: 'failed' };
-      }
+    const [execution, holdingModule, estimateModule] = await Promise.all([
+      import('./runtime/business-features.js'), loadFundHoldingsFeature(), loadHoldingsEstimateFeature(),
+    ]);
+    requireCurrentRefresh(context);
+    let previous;
+    try { previous = JSON.parse(safeGetItem(CACHE_KEY)); } catch (_) { previous = null; }
+    const legacyNavMoves = {};
+    snapshot.forEach(h => {
+      try { legacyNavMoves[h.code] = JSON.parse(safeGetItem('fuyu_nav_move_' + h.code)); } catch (_) {}
     });
-
-    var results = await Promise.all(tasks);
-    requireCurrentRefresh(context);
-    context.commit(function() { updateLatestSourceSummary(); });
-    var refreshed = results.filter(function(result) { return result.status === 'fulfilled'; }).length;
-    if (!refreshed) throw Object.assign(new Error('全部基金刷新失败'), { code: 'ALL_FUNDS_FAILED' });
-    await Promise.allSettled(enrichmentTasks);
-    requireCurrentRefresh(context);
-    if (holdingsOutcome.requested > 0) {
-      if (holdingsOutcome.usable === holdingsOutcome.requested) {
-        context.recordSourceSuccess('quarterly-holdings-model', { responseMs: holdingsOutcome.responseMs });
-      } else if (holdingsOutcome.usable > 0 || holdingsOutcome.empty > 0) {
-        context.recordSourcePartial('quarterly-holdings-model', {
-          responseMs: holdingsOutcome.responseMs,
-          reason: 'partial_coverage_' + holdingsOutcome.usable + '_of_' + holdingsOutcome.requested,
-        });
-      } else if (holdingsOutcome.failed > 0) {
-        context.recordSourceFailure('quarterly-holdings-model', {
-          code: 'HOLDINGS_UNAVAILABLE', reason: 'all_holdings_requests_failed', responseMs: holdingsOutcome.responseMs,
-        });
-      }
-    }
-    context.commit(function() { updateLatestSourceSummary(); });
-    return { total: snapshot.length, refreshed: refreshed, results: results };
-  } catch(error) {
+    return await execution.executeRefreshPlan({
+      context, snapshot, options: options || {}, previous, legacyNavMoves,
+      onDiagnostics: refreshDiagnostics.observe,
+      storage: { setItem: (key, value) => safeSetItem(key, value) },
+      clients: {
+        estimates: fetchRefreshEstimateRows,
+        nav: fetchLatestNavMoveRaw,
+        holdings: (code, signal) => holdingModule.fetchFundHoldings(code, { signal }),
+        qualifyHoldings: (holding, items) => items.map(stock => ({
+          ...stock, quoteCode: holdingModule.holdingQuoteCode(stock, {
+            allowMainland: ['cn', 'cn-index'].includes(classifyFundMarket(holding.name)),
+          }),
+        })),
+        models: async active => {
+          await overseasModelsPromise;
+          requireCurrentRefresh(context);
+          return active.map(h => selectOverseasModel(h.code, h.name)).filter(Boolean);
+        },
+        calculateHoldings: (items, reportDate) => estimateModule.calculateHoldingsEstimate(items, {
+          now: Date.now(), reportDate, requireCurrentReport: true,
+        }),
+        normalizeTime: normalizeTencentQuoteTime,
+        eastmoney: fetchSecurityEastmoney,
+        bridge: fetchSecurityBridge,
+        indices: async (codes, signal) => {
+          const bridge = await loadQuoteBridgeFeature();
+          const result = await bridge.indexQuotes(codes, { signal, timeoutMs: TIMING.INDEX_JSONP_TIMEOUT });
+          return result.quotes.map(quote => {
+            const observedAt = normalizeTencentQuoteTime(quote.sourceTimeRaw, quote.code);
+            return { code: quote.code, price: quote.price, changePct: quote.changePct,
+              observedAt, status: indexQuoteStatus(observedAt) };
+          });
+        },
+        gold: fetchGoldFromEastmoney,
+      },
+      ui: {
+        primary: (holding, raw, navMove) => {
+          if (raw?.status === 'ok') return raw;
+          if (!navMove) return null;
+          return officialFundFallback(holding.code, navMove);
+        },
+        publish: (holding, raw) => commitRefreshedFund(context, holding, buildFundData(raw, holding, {}),
+          pending => pendingNameEdits.push(pending)),
+        settlePendingEdits: () => Promise.allSettled(pendingNameEdits),
+        enriched: (holding, raw, officialNavMove, holdingsEstimate, modelQuotes) => {
+          const enriched = estimateModule.composeFundEnrichment(raw, { officialNavMove, holdingsEstimate,
+            fetchedAt: new Date().toISOString() });
+          const built = buildFundData(enriched, holding, modelQuotes);
+          upsertFundData(holding.code, built.data);
+          updateCurrentFundAccuracy(context, built.data);
+          updateLatestSourceSummary();
+        },
+        failure: (holding, error) => commitRefreshFailure(context, holding, error),
+        holdings: (code, payload) => {
+          holdingsCache[code] = payload.items.map(item => ({ ...item }));
+          const { items, ...metadata } = payload;
+          holdingsMetaCache[code] = metadata;
+          scheduleFundRender();
+        },
+        metadata: (code, meta) => {
+          const fund = fundsData.find(item => item.code === code) || holdings.find(item => item.code === code);
+          fundTypeCache[code] = { type: inferFundType(fund?.name), ...meta };
+          fundFeeCache[code] = meta.currentRate || meta.sourceRate ? {
+            buyFee: meta.currentRate ? meta.currentRate + '%' : '',
+            sourceBuyFee: meta.sourceRate ? meta.sourceRate + '%' : '',
+          } : null;
+          scheduleFundRender();
+        },
+        market: (indexEntry, goldEntry, components) => {
+          const quotes = new Map((indexEntry?.payload.quotes || []).map(quote => [quote.code, quote]));
+          indexCache = INDEX_CONFIG.map((cfg, index) => {
+            if (cfg.source === 'gold') {
+              if (!components.gold) return indexCache[index];
+              const quote = goldEntry?.payload;
+              if (!quote) return loadGoldCache() || staleIndexItem(indexCache[index], cfg.name);
+              return { ...quote, name: cfg.name, cached: true,
+                status: Date.now() < goldEntry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' };
+            }
+            if (!components.indices) return indexCache[index];
+            const quote = quotes.get(cfg.code);
+            return quote ? { ...quote, name: cfg.name, cached: true,
+              status: Date.now() < indexEntry.expiresAt ? indexQuoteStatus(quote.observedAt) : 'stale' }
+              : staleIndexItem(indexCache[index], cfg.name);
+          });
+          renderIndexBar(indexCache);
+        },
+        cacheData: () => slimFundCache(fundsData),
+        holdingsHash: () => holdingsHash(holdings),
+        complete: updateLatestSourceSummary,
+      },
+    });
+  } catch (error) {
     if (isRefreshAbort(error, context.signal)) throw error;
-    context.recordDiagnostic('refresh_failed', { reason: error.name || error.message || 'request_failed' });
-    context.commit(function() {
-      if (!fundsData.length && !tryShowCache()) renderFundList([]);
-    });
+    context.recordDiagnostic('refresh_failed', { reason: error.code || error.name || 'request_failed' });
+    context.commit(() => { if (!fundsData.length && !tryShowCache()) renderFundList([]); });
     throw error;
   }
 }
@@ -1175,20 +1003,26 @@ function tryShowCache() {
   const cache = loadCache();
   if (!cache) return false;
   fundsData = cache.data.map(function(d) {
+    const holding = holdings.find(item => item.code === d.code);
+    const identityMismatch = [d.quote, d.source_quote].some(quote => quote && quote.fundCode !== d.code);
+    // A foreign/missing quote identity invalidates the entire cached projection,
+    // including legacy aliases and secondary notes. Never relabel its numbers.
+    if (identityMismatch) d = { code: d.code, name: holding?.name || d.name || d.code };
     var market = d.quote && d.quote.market || d.market || classifyMarketKind(d.name);
     var assetKind = d.quote && d.quote.assetKind || d.assetKind || classifyAssetKind(d.name, market);
     var fallbackIdentity = { fundCode: d.code, fundName: d.name || d.code, market, assetKind };
-    var sourceQuote = d.quote || selectPreferredQuote(buildFundQuoteCandidates(d, {
+    var sourceQuote = identityMismatch
+      ? unavailableQuote({ ...fallbackIdentity, reasonCodes: ['cache_fund_identity_mismatch'] })
+      : d.quote || selectPreferredQuote(buildFundQuoteCandidates(d, {
       ...fallbackIdentity,
       fetchedAt: cache.time ? new Date(cache.time).toISOString() : new Date(0).toISOString(),
     }), fallbackIdentity);
-    var quote = normalizeCachedQuote(sourceQuote, {
+    var quote = normalizeCachedQuote(normalizeFundQuoteFreshness({ ...d, quote: sourceQuote }, { now: Date.now() }), {
       fresh: cache.fresh && navigator.onLine !== false,
       fetchedAt: cache.time ? new Date(cache.time).toISOString() : new Date(0).toISOString(),
       cachedAt: cache.time, expiresAt: cache.expiresAt,
       fallbackIdentity,
     });
-    const holding = holdings.find(item => item.code === d.code);
     return {
       ...d,
       ...holdingQuoteAmounts(quote, holding, Date.now()),
@@ -1285,34 +1119,6 @@ function preferredDailyMove(fund) {
   return null;
 }
 
-async function fetchTencentQuotes(codes, signal) {
-  await loadHoldingsEstimateFeature();
-  const out = Object.fromEntries(codes.map(function(code) { return [code, null]; }));
-  try {
-    const bridge = await loadQuoteBridgeFeature();
-    const result = await bridge.overseasComponents(codes, {
-      signal: signal,
-      timeoutMs: TIMING.INDEX_JSONP_TIMEOUT,
-    });
-    result.quotes.forEach(function(quote) {
-      out[quote.code] = {
-        price: quote.price,
-        changePct: quote.changePct == null ? NaN : quote.changePct,
-        sourceTime: normalizeTencentQuoteTime(quote.sourceTimeRaw, quote.code),
-      };
-    });
-    return out;
-  } catch (error) {
-    if (signal && signal.aborted) {
-      const abort = new Error('行情请求已取消');
-      abort.name = 'AbortError';
-      throw abort;
-    }
-    return out;
-  }
-}
-
-function fetchOverseasModelQuotes(signal) { return modelRuntime.fetchOverseasModelQuotes(signal, { fetchTencentQuotes, fetchGoldPrice }); }
 function applyOverseasModelEstimate(...args) { return modelRuntime?.applyOverseasModelEstimate(...args); }
 
 // ── 排序 ─────────────────────────────────────────────────
@@ -1334,14 +1140,6 @@ function sortFunds(data) {
     switch (sortBy) {
       case 'est_change_desc': return safeN(displayChangeOf(b), -Infinity) - safeN(displayChangeOf(a), -Infinity);
       case 'est_change_asc':  return safeN(displayChangeOf(a),  Infinity) - safeN(displayChangeOf(b),  Infinity);
-      case 'today_profit_desc': return safeN(b.today_profit, -Infinity) - safeN(a.today_profit, -Infinity);
-      case 'today_profit_asc':  return safeN(a.today_profit,  Infinity) - safeN(b.today_profit,  Infinity);
-      case 'curr_value_desc': return safeN(b.curr_value, 0) - safeN(a.curr_value, 0);
-      case 'curr_value_asc':  return safeN(a.curr_value, 0) - safeN(b.curr_value, 0);
-      case 'total_profit_desc': return safeN(b.total_profit, -Infinity) - safeN(a.total_profit, -Infinity);
-      case 'total_profit_asc':  return safeN(a.total_profit,  Infinity) - safeN(b.total_profit,  Infinity);
-      case 'profit_rate_desc': return safeN(b.total_profit_rate, -Infinity) - safeN(a.total_profit_rate, -Infinity);
-      case 'profit_rate_asc':  return safeN(a.total_profit_rate,  Infinity) - safeN(b.total_profit_rate,  Infinity);
       default: return 0;
     }
   });
@@ -1378,6 +1176,7 @@ async function loadFundHoldings(code, options) {
   var request = loadFundHoldingsFeature().then(function(module) {
     return module.fetchFundHoldings(code, { signal: opts.signal, force: opts.force });
   }).then(function(result) {
+    throwIfAborted(opts.signal);
     var metadata = {
       status: result.status,
       reportDate: result.reportDate,
@@ -1405,36 +1204,13 @@ async function loadFundHoldings(code, options) {
   return request;
 }
 
-async function fetchHoldingsEstimateForFund(code, name, options) {
-  var opts = options || {};
-  var market = classifyFundMarket(name);
-  if (!['cn', 'cn-index', 'hk'].includes(market)) return null;
-  throwIfAborted(opts.signal);
-  if (!opts.signal && holdingsEstimateRequests.has(code)) return holdingsEstimateRequests.get(code);
-
-  var request = loadFundHoldings(code, opts).then(async function(result) {
-    if (result.status !== 'ok' || !result.items.length) return null;
-    var items = result.items.map(function(stock) { return { ...stock }; });
-    items.forEach(function(stock) {
-      delete stock.change;
-      delete stock.quoteTime;
-    });
-    await fetchHoldingsQuotes(code, items, opts.signal);
-    const module = await loadHoldingsEstimateFeature();
-    return module.calculateHoldingsEstimate(items, {
-      now: Date.now(),
-      reportDate: result.reportDate,
-      requireCurrentReport: true,
-    });
-  }).finally(function() {
-    if (holdingsEstimateRequests.get(code) === request) holdingsEstimateRequests.delete(code);
-  });
-  if (!opts.signal) holdingsEstimateRequests.set(code, request);
-  return request;
-}
 
 async function toggleFundDetail(code) {
   const generation = ++detailToggleGeneration;
+  detailController?.abort('detail_changed');
+  detailController = new AbortController();
+  detailRefreshGeneration = refreshCoordinator.snapshot().currentGeneration;
+  const signal = detailController.signal;
   if (expandedFund === code) {
     expandedFund = null;
     loadingDetails = null;
@@ -1443,7 +1219,7 @@ async function toggleFundDetail(code) {
   }
   try {
     if (!quoteDiagnosticsPromise) quoteDiagnosticsPromise = import('./runtime/quote-diagnostics.js');
-    quoteDiagnosticsRuntime = await quoteDiagnosticsPromise;
+    [quoteDiagnosticsRuntime] = await Promise.all([quoteDiagnosticsPromise, loadSecurityQuoteFeature()]);
   } catch (_) {
     quoteDiagnosticsPromise = null;
     showToast('数据说明暂不可用，请重试');
@@ -1456,29 +1232,45 @@ async function toggleFundDetail(code) {
   }
   expandedFund = code;
   renderFundList(fundsData);
-  if (loadingDetails !== code) fetchFundDetails(code);
+  fetchFundDetails(code, signal).catch(error => {
+    if (!isRefreshAbort(error, signal)) showToast('基金详情暂不可用，请重试');
+  });
 }
 
 // ── 顺序加载基金详情（重仓股 → 基金类型 → 费率） ──
-async function fetchFundDetails(code) {
+async function fetchFundDetails(code, signal) {
   loadingDetails = code;
   try {
+    // A detail opened during refresh consumes that generation's disclosure and
+    // quote union, instead of racing it with a second set of provider requests.
+    if (refreshCoordinator.activePromise) await refreshCoordinator.activePromise;
+    throwIfAborted(signal);
+    if (expandedFund !== code) return;
     // 1. 重仓股：通过服务端代理补齐东方财富要求的 Referer。
     if (holdingsCache[code] === undefined) {
       try {
-        await loadFundHoldings(code);
+        await loadFundHoldings(code, { signal });
       } catch(e) {
+        throwIfAborted(signal);
         holdingsCache[code] = [];
         holdingsMetaCache[code] = { status: 'error', reportDate: '', source: '' };
       }
+      throwIfAborted(signal);
       if (expandedFund !== code) return;
       renderFundList(fundsData);
-
-      if (holdingsCache[code].length) {
-        await fetchHoldingsQuotes(code, holdingsCache[code]);
-        if (expandedFund !== code) return;
-        renderFundList(fundsData);
-      }
+    }
+    const stocks = holdingsCache[code];
+    if (stocks?.length) {
+      const quotes = await loadSecurityQuoteFeature();
+      throwIfAborted(signal);
+      if (expandedFund !== code) return;
+      const fund = fundsData.find(item => item.code === code) || holdings.find(item => item.code === code);
+      const allowMainland = Boolean(fund?.name) && ['cn', 'cn-index'].includes(classifyFundMarket(fund.name));
+      const missing = stocks.filter(stock => quotes.assessDetailSecurityQuote(stock, { now: Date.now(), allowMainland }).needsRefresh);
+      if (missing.length) await fetchHoldingsQuotes(code, missing, signal);
+      throwIfAborted(signal);
+      if (expandedFund !== code) return;
+      renderFundList(fundsData);
     }
 
     // 2. 基金信息：来自已加载的 pingzhongdata。旧 jjxx 接口目前返回残缺脚本。
@@ -1525,82 +1317,39 @@ function inferFundType(name) {
 
 // ── 重仓股实时涨跌幅（jjcc 接口本身只有「占净值比例」，不含涨跌幅，需额外查一次行情） ──
 async function fetchHoldingsQuotes(code, stocks, signal) {
-  await loadHoldingsEstimateFeature();
-  var module = await loadFundHoldingsFeature();
-  var fund = fundsData.find(function(item) { return item.code === code; }) || holdings.find(function(item) { return item.code === code; });
-  var allowMainland = Boolean(fund?.name) && ['cn', 'cn-index'].includes(classifyFundMarket(fund.name));
-  stocks.forEach(function(stock) {
-    stock.quoteCode = module.holdingQuoteCode(stock, { allowMainland: allowMainland });
-    if (!stock.quoteCode) { delete stock.change; delete stock.quoteTime; }
-  });
-  await fetchAStockHoldingQuotes(stocks, signal);
-  var missing = stocks.filter(function(stock) {
-    return !Number.isFinite(stock.change) || !stock.quoteTime;
-  });
-  if (missing.length) await fetchTencentHoldingQuotes(missing, signal);
-}
-
-async function fetchAStockHoldingQuotes(stocks, signal) {
-  var aStocks = stocks.filter(function(s) { return /^(sh|sz)\d{6}$/.test(s.quoteCode); });
-  if (!aStocks.length) return;
-  var secids = aStocks.map(function(s) { return (s.quoteCode.startsWith('sh') ? '1.' : '0.') + s.code; });
-  try {
-    var resp = await fetchWithTimeout(
-      'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f3,f124&secids=' + secids.join(',') + '&_=' + Date.now(),
-      { signal: signal },
-      TIMING.INDEX_JSONP_TIMEOUT);
-    if (!resp.ok) return;
-    var json = await resp.json();
-    var diff = json && json.data && json.data.diff;
-    if (!diff) return;
-    var list = Array.isArray(diff) ? diff : Object.keys(diff).map(function(k) { return diff[k]; });
-    var changeMap = {};
-    list.forEach(function(item) {
-      changeMap[item.f12] = {
-        change: parseNav(item.f3),
-        quoteTime: formatChinaQuoteTime(item.f124)
-      };
-    });
-    aStocks.forEach(function(s) {
-      var quote = changeMap[s.code];
-      if (quote && Number.isFinite(quote.change)) {
-        s.change = quote.change;
-        s.quoteTime = quote.quoteTime;
-      }
-    });
-  } catch(e) {
-    if (signal && signal.aborted) throw e;
-    // 静默失败，涨跌幅列保持 '--'
-  }
-}
-
-async function fetchTencentHoldingQuotes(stocks, signal) {
-  var items = stocks.map(function(s) {
-    return { stock: s, quoteCode: s.quoteCode };
-  }).filter(function(item) { return item.quoteCode; });
-
-  if (!items.length) return;
-  try {
-    const bridge = await loadQuoteBridgeFeature();
-    const result = await bridge.securityQuotes(items.map(function(item) { return item.quoteCode; }), {
-      signal: signal,
-      timeoutMs: TIMING.INDEX_JSONP_TIMEOUT,
-    });
-    const byCode = new Map(result.quotes.map(function(quote) { return [quote.code, quote]; }));
-    items.forEach(function(item) {
-      const quote = byCode.get(item.quoteCode);
-      if (quote && quote.changePct != null) {
-        item.stock.change = quote.changePct;
-        item.stock.quoteTime = normalizeTencentQuoteTime(quote.sourceTimeRaw, item.quoteCode);
-      }
-    });
-  } catch (error) {
-    if (signal && signal.aborted) {
-      const abort = new Error('重仓行情请求已取消');
-      abort.name = 'AbortError';
-      throw abort;
+  const [module, quotes] = await Promise.all([loadFundHoldingsFeature(), loadSecurityQuoteFeature(), loadHoldingsEstimateFeature()]);
+  throwIfAborted(signal);
+  const fund = fundsData.find(item => item.code === code) || holdings.find(item => item.code === code);
+  const allowMainland = Boolean(fund?.name) && ['cn', 'cn-index'].includes(classifyFundMarket(fund.name));
+  const items = stocks.map(stock => ({ ...stock, quoteCode: module.holdingQuoteCode(stock, { allowMainland }) }));
+  const acquired = await quotes.executeDetailSecurityQuotes({ items, signal, now: Date.now,
+    fetchEastmoney: fetchSecurityEastmoney, fetchBridge: fetchSecurityBridge, normalizeTime: normalizeTencentQuoteTime });
+  throwIfAborted(signal);
+  items.forEach((item, index) => {
+    const stock = stocks[index];
+    const prior = quotes.assessDetailSecurityQuote(stock, { now: Date.now(), allowMainland });
+    const next = acquired[item.quoteCode];
+    stock.quoteCode = item.quoteCode;
+    if (prior.displayChange == null) {
+      delete stock.change;
+      delete stock.quoteTime;
     }
-  }
+    if (next && (prior.sourceTime == null || parseQuoteTimestamp(next.quoteTime) >= parseQuoteTimestamp(stock.quoteTime))) Object.assign(stock, next);
+  });
+}
+
+async function fetchSecurityEastmoney(codes, signal) {
+  const secids = codes.map(code => (code.startsWith('sh') ? '1.' : '0.') + code.slice(2));
+  const response = await fetchWithTimeout(
+    'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f13,f2,f3,f124&secids=' + secids.join(',') + '&_=' + Date.now(),
+    { signal }, TIMING.INDEX_JSONP_TIMEOUT);
+  if (!response.ok) throw new Error('证券行情 HTTP ' + response.status);
+  return response.json();
+}
+
+async function fetchSecurityBridge(operation, codes, signal) {
+  const bridge = await loadQuoteBridgeFeature();
+  return bridge[operation](codes, { signal, timeoutMs: TIMING.INDEX_JSONP_TIMEOUT });
 }
 
 function fmtQuoteNav(value) {
@@ -1610,6 +1359,10 @@ function fmtQuoteNav(value) {
 function renderQuoteDiagnostics(presentation) { return quoteDiagnosticsRuntime.renderQuoteDiagnostics(presentation, esc); }
 
 // ── 渲染基金列表 ─────────────────────────────────────────
+function ruleRow(label, value) {
+  return '<div class="rules-row"><span class="rules-label">' + label + '</span><span class="rules-val">' + esc(value) + '</span></div>';
+}
+
 function renderFundList(data) {
   var list = document.getElementById('fund-list');
   var focusedToggleCode = document.activeElement && document.activeElement.getAttribute
@@ -1622,7 +1375,7 @@ function renderFundList(data) {
 
   const now = Date.now();
   data.forEach(function(fund) {
-    fund.quote = normalizeExistingQuoteFreshness(fund.quote, { now });
+    fund.quote = normalizeFundQuoteFreshness(fund, { now });
     Object.assign(fund, holdingQuoteAmounts(fund.quote, holdings.find(holding => holding.code === fund.code), now));
   });
   var sorted = sortFunds(data);
@@ -1668,10 +1421,14 @@ function renderFundList(data) {
     html += '</span></button>';
 
     if (isExpanded) {
-      var estimateNote = f.est_note && !f.today_is_latest_nav ? '<div class="cache-note">' + esc(f.est_note) + '</div>' : '';
+      var selectedNote = ['model_estimate', 'holding_lookthrough_estimate'].includes(f.quote.valueKind)
+        ? modelNoteForQuote(f, f.quote) : f.est_note;
+      var estimateNote = selectedNote && !f.today_is_latest_nav ? '<div class="cache-note">' + esc(selectedNote) + '</div>' : '';
       var primaryNote = f.primary_note && f.primary_note !== f.est_note ? '<div class="cache-note">' + esc(f.primary_note) + '</div>' : '';
-      var modelNote = f.today_is_latest_nav && f.est_model && Number.isFinite(f.est_change)
-        ? '<div class="cache-note">下一净值模型：' + (f.est_change >= 0 ? '+' : '') + fmt(f.est_change) + '%，估算净值 ' + fmt4(f.est_nav) + '。' + esc(f.est_note || '') + '</div>'
+      var secondaryModel = f.today_is_latest_nav && f.est_model
+        ? normalizeMarketModelQuote(f, { now, fetchedAt: f.quote.fetchedAt }) : null;
+      var modelNote = secondaryModel?.status === 'model'
+        ? '<div class="cache-note">下一净值模型：' + (secondaryModel.changePct >= 0 ? '+' : '') + fmt(secondaryModel.changePct) + '%，估算净值 ' + fmt4(secondaryModel.value) + '。' + esc(modelNoteForQuote(f, secondaryModel)) + '</div>'
         : '';
       var officialMove = latestNavMoveOf(f);
       var officialNote = !f.today_is_latest_nav && officialMove && Number.isFinite(officialMove.change)
@@ -1715,8 +1472,11 @@ function renderFundList(data) {
         if (reportDate) html += '<div class="holdings-report-date">十大重仓 · 截止 ' + esc(reportDate) + '</div>';
         html += '<div class="holdings-header"><span>股票名称</span><span>占比</span><span>涨跌幅</span></div>';
         holdingsCache[f.code].forEach(function(s) {
-          var sc = Number.isFinite(s.change) ? (s.change >= 0 ? 'up' : 'down') : '';
-          html += '<div class="holdings-row"><span class="stock-name">' + esc(s.name) + '<em>' + esc(s.code) + '</em></span><span>' + fmt(s.ratio) + '%</span><span class="' + sc + '">' + (Number.isFinite(s.change) ? (s.change >= 0 ? '+' : '') + fmt(s.change) + '%' : '--') + '</span></div>';
+          var state = securityQuoteRuntime?.assessDetailSecurityQuote(s, { now,
+            allowMainland: Boolean(f.name) && ['cn', 'cn-index'].includes(classifyFundMarket(f.name)) });
+          var change = state?.displayChange;
+          var sc = change != null ? (change >= 0 ? 'up' : 'down') : '';
+          html += '<div class="holdings-row"><span class="stock-name">' + esc(s.name) + '<em>' + esc(s.code) + '</em></span><span>' + fmt(s.ratio) + '%</span><span class="' + sc + '">' + (change != null ? (change >= 0 ? '+' : '') + fmt(change) + '%' : '--') + '</span><small class="stock-quote-time">' + esc(state?.caption || '行情暂不可用') + '</small></div>';
         });
         html += '</div>';
       }
@@ -1740,22 +1500,22 @@ function renderFundList(data) {
         if (fundTypeCache[f.code]) {
           var ti = fundTypeCache[f.code];
           html += '<div class="rules-table">';
-          if (ti.type) html += '<div class="rules-row"><span class="rules-label">基金类型</span><span class="rules-val">' + esc(ti.type) + '</span></div>';
-          if (ti.setupDate) html += '<div class="rules-row"><span class="rules-label">成立日期</span><span class="rules-val">' + esc(ti.setupDate) + '</span></div>';
-          if (ti.scale) html += '<div class="rules-row"><span class="rules-label">基金规模</span><span class="rules-val">' + esc(ti.scale) + '</span></div>';
-          if (ti.manager) html += '<div class="rules-row"><span class="rules-label">基金经理</span><span class="rules-val">' + esc(ti.manager + (ti.managerWorkTime ? ' · ' + ti.managerWorkTime : '')) + '</span></div>';
-          if (ti.company) html += '<div class="rules-row"><span class="rules-label">管理人</span><span class="rules-val">' + esc(ti.company) + '</span></div>';
-          if (ti.benchmark) html += '<div class="rules-row"><span class="rules-label">跟踪标的</span><span class="rules-val">' + esc(ti.benchmark) + '</span></div>';
+          if (ti.type) html += ruleRow('基金类型', ti.type);
+          if (ti.setupDate) html += ruleRow('成立日期', ti.setupDate);
+          if (ti.scale) html += ruleRow('基金规模', ti.scale);
+          if (ti.manager) html += ruleRow('基金经理', ti.manager + (ti.managerWorkTime ? ' · ' + ti.managerWorkTime : ''));
+          if (ti.company) html += ruleRow('管理人', ti.company);
+          if (ti.benchmark) html += ruleRow('跟踪标的', ti.benchmark);
           html += '</div>';
         }
         if (fundFeeCache[f.code]) {
           var fi = fundFeeCache[f.code];
           html += '<div class="rules-table" style="margin-top:6px">';
-          if (fi.buyFee) html += '<div class="rules-row"><span class="rules-label">申购费率</span><span class="rules-val">' + esc(fi.buyFee) + '</span></div>';
-          if (fi.sourceBuyFee && fi.sourceBuyFee !== fi.buyFee) html += '<div class="rules-row"><span class="rules-label">原申购费率</span><span class="rules-val">' + esc(fi.sourceBuyFee) + '</span></div>';
-          if (fi.sellFee) html += '<div class="rules-row"><span class="rules-label">赎回费率</span><span class="rules-val">' + esc(fi.sellFee) + '</span></div>';
-          if (fi.manageFee) html += '<div class="rules-row"><span class="rules-label">管理费率</span><span class="rules-val">' + esc(fi.manageFee) + '</span></div>';
-          if (fi.custodyFee) html += '<div class="rules-row"><span class="rules-label">托管费率</span><span class="rules-val">' + esc(fi.custodyFee) + '</span></div>';
+          if (fi.buyFee) html += ruleRow('申购费率', fi.buyFee);
+          if (fi.sourceBuyFee && fi.sourceBuyFee !== fi.buyFee) html += ruleRow('原申购费率', fi.sourceBuyFee);
+          if (fi.sellFee) html += ruleRow('赎回费率', fi.sellFee);
+          if (fi.manageFee) html += ruleRow('管理费率', fi.manageFee);
+          if (fi.custodyFee) html += ruleRow('托管费率', fi.custodyFee);
           html += '</div>';
         }
         html += '</div>';
@@ -1906,6 +1666,9 @@ async function delFund(code) {
 // ── 页面切换 ─────────────────────────────────────────────
 let lastEditPull = 0;
 function switchPage(name) {
+  pageNavigation.navigate(name);
+}
+function showPagePanel(name) {
   var page = document.getElementById('page-' + name);
   var nav = document.getElementById('nav-' + name);
   if (!page || !nav) return;
@@ -1923,6 +1686,7 @@ function switchPage(name) {
   }
   // Switching panels preserves the draft and its original conflict baseline.
 }
+const pageNavigation = createPageNavigation({ window, showPage: showPagePanel });
 
 // ── 指数行情条（腾讯 JSONP 仅在无同源存储权限的隔离 Bridge 内执行） ────
 // ── 黄金 AU9999 实时金价（复刻司南基金：东方财富 push2 + 持久缓存兜底） ──
@@ -1940,11 +1704,6 @@ function loadGoldCache() {
   } catch(e) { return null; }
 }
 
-function saveGoldCache(result) {
-  if (!result || !Number.isFinite(result.price)) return;
-  goldCache = { price: result.price, changePct: result.changePct, observedAt: result.observedAt, time: Date.now() };
-  safeSetItem(GOLD_CACHE_KEY, JSON.stringify(goldCache));
-}
 
 async function fetchGoldFromEastmoneySecid(secid, signal) {
   try {
@@ -1962,34 +1721,15 @@ async function fetchGoldFromEastmoneySecid(secid, signal) {
   }
 }
 
-async function fetchGoldFromEastmoney(signal) {
+async function fetchGoldFromEastmoney(signal, dispatch = operation => operation(signal)) {
   var secids = ['118.AU9999', '113.AU9999', '114.AU9999'];
   for (var i = 0; i < secids.length; i++) {
-    var result = await fetchGoldFromEastmoneySecid(secids[i], signal);
+    var result = await dispatch(requestSignal => fetchGoldFromEastmoneySecid(secids[i], requestSignal));
     if (result && Number.isFinite(result.price)) return result;
   }
   return null;
 }
 
-async function fetchGoldPrice(signal) {
-  var result = await fetchGoldFromEastmoney(signal);
-  if (result && Number.isFinite(result.price)) {
-    var current = result;
-    saveGoldCache(current);
-    return current;
-  }
-
-  var cached = loadGoldCache();
-  if (cached) return cached;
-  if (Number.isFinite(goldCache.price)) {
-    return {
-      name: '黄金9999', price: goldCache.price, changePct: goldCache.changePct,
-      observedAt: goldCache.observedAt || null,
-      status: 'stale', cached: true,
-    };
-  }
-  return { name: '黄金9999', price: NaN, changePct: NaN, observedAt: null, status: 'unavailable', cached: false };
-}
 
 function staleIndexItem(item, fallbackName) {
   if (!item || !Number.isFinite(item.price)) {
@@ -1998,51 +1738,6 @@ function staleIndexItem(item, fallbackName) {
   return { ...item, name: item.name || fallbackName, status: 'stale', cached: true };
 }
 
-async function fetchIndices() {
-  try { await loadHoldingsEstimateFeature(); } catch (_) { return; }
-  // 金价：独立 fetch，与下方腾讯指数行情并行，互不阻塞
-  fetchGoldPrice().then(function(gold) {
-    if (!Number.isFinite(gold.price)) return;
-    for (var i = 0; i < INDEX_CONFIG.length; i++) {
-      if (INDEX_CONFIG[i].source === 'gold') {
-        indexCache[i] = gold;
-        renderIndexBar(indexCache);
-        break;
-      }
-    }
-  });
-
-  const tencentItems = INDEX_CONFIG.filter(function(cfg) { return cfg.source !== 'gold'; });
-  const codes = tencentItems.map(function(cfg) { return cfg.code; });
-  if (!codes.length) {
-    if (indexCache.length) renderIndexBar(indexCache);
-    return;
-  }
-  try {
-    const bridge = await loadQuoteBridgeFeature();
-    const result = await bridge.indexQuotes(codes, { timeoutMs: TIMING.INDEX_JSONP_TIMEOUT });
-    const byCode = new Map(result.quotes.map(function(quote) { return [quote.code, quote]; }));
-    const data = INDEX_CONFIG.map(function(cfg, index) {
-      if (cfg.source === 'gold') return indexCache[index];
-      const quote = byCode.get(cfg.code);
-      if (!quote) return staleIndexItem(indexCache[index], cfg.name);
-      return {
-        name: cfg.name,
-        price: quote.price,
-        changePct: quote.changePct == null ? NaN : quote.changePct,
-        observedAt: normalizeTencentQuoteTime(quote.sourceTimeRaw, cfg.code),
-        status: indexQuoteStatus(normalizeTencentQuoteTime(quote.sourceTimeRaw, cfg.code)),
-        cached: false,
-      };
-    });
-    if (data.some(function(item) { return Number.isFinite(item.price); })) indexCache = data;
-  } catch (_) {
-    indexCache = INDEX_CONFIG.map(function(cfg, index) {
-      return cfg.source === 'gold' ? indexCache[index] : staleIndexItem(indexCache[index], cfg.name);
-    });
-  }
-  renderIndexBar(indexCache);
-}
 
 function renderIndexBar(data) {
   var el = document.getElementById('index-bar-inner');
@@ -2068,23 +1763,6 @@ function fmtIndexPrice(n) {
   return Math.round(n).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
 }
 
-function startIndexRefresh() {
-  fetchIndices();
-  // 指数行情跟随市场状态动态调整刷新间隔
-  function scheduleNext() {
-    var interval = getRefreshInterval();
-    if (interval > 0) {
-      setTimeout(function() {
-        fetchIndices();
-        scheduleNext();
-      }, interval);
-    } else {
-      // 非交易时段：每 5 分钟检查一次是否进入交易时段，不浪费请求
-      setTimeout(scheduleNext, 300000);
-    }
-  }
-  scheduleNext();
-}
 
 // ── 市场状态 ─────────────────────────────────────────────
 function updateMktStatus() {
@@ -2168,6 +1846,7 @@ async function runDiagnostics(action) {
   try {
     if (!diagnosticsFeature) diagnosticsFeature = import('./runtime/diagnostics-ui.js').then(module => module.createDiagnosticsCenter({
       getHoldings: () => holdings, getHoldingsDocument: () => holdingsDocument,
+      getRefreshDiagnostics: refreshDiagnostics.snapshot,
       refreshCoordinator, showToast, esc,
     }));
     return await (await diagnosticsFeature)[action]();
@@ -2202,126 +1881,19 @@ function hasUnsavedHoldingEditorInput() {
 function hasUnsavedPageInput() {
   var tokenInput = document.getElementById('gist-token');
   var tokenChanged = tokenInput
-    ? String(tokenInput.value || '').trim() !== String(safeGetItem(GIST_TOKEN_KEY) || '').trim()
+    ? String(tokenInput.value || '').trim() !== getGistToken()
     : false;
-  return hasUnsavedHoldingEditorInput() || tokenChanged;
+  const remember = document.getElementById('gist-remember-token');
+  const persistenceChanged = Boolean(remember?.checked) !== (gistCredentialStore?.read().mode === 'persistent');
+  return hasUnsavedHoldingEditorInput() || tokenChanged || persistenceChanged;
 }
 
 function hasServiceWorkerUpdateBlocker() {
-  return hasUnsavedPageInput() || isSyncing || isSavingHolding;
+  return pwaUpdateController.hasServiceWorkerUpdateBlocker();
 }
 
-function setupServiceWorkerUpdateChannel() {
-  if (typeof BroadcastChannel !== 'function') return null;
-  try {
-    var channel = new BroadcastChannel('fuyu_sw_update_v1');
-    channel.addEventListener('message', function(event) {
-      var message = event.data || {};
-      if (message.type !== 'prepare' || !message.requestId || !hasServiceWorkerUpdateBlocker()) return;
-      channel.postMessage({ type: 'blocked', requestId: message.requestId });
-    });
-    return channel;
-  } catch (_) {
-    return null;
-  }
-}
-
-async function otherPageBlocksServiceWorkerUpdate() {
-  if (!serviceWorkerUpdateChannel) return false;
-  var requestId = 'sw-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
-  var blocked = false;
-  function onMessage(event) {
-    var message = event.data || {};
-    if (message.type === 'blocked' && message.requestId === requestId) blocked = true;
-  }
-  serviceWorkerUpdateChannel.addEventListener('message', onMessage);
-  serviceWorkerUpdateChannel.postMessage({ type: 'prepare', requestId: requestId });
-  await new Promise(function(resolve) { setTimeout(resolve, 450); });
-  serviceWorkerUpdateChannel.removeEventListener('message', onMessage);
-  return blocked;
-}
-
-function showServiceWorkerUpdate(worker) {
-  if (worker) pendingServiceWorker = worker;
-  var banner = document.getElementById('update-banner');
-  var text = document.getElementById('update-banner-text');
-  var button = document.getElementById('update-now-btn');
-  if (!banner || !text || !button || !pendingServiceWorker) return;
-  banner.hidden = false;
-  text.textContent = serviceWorkerReloadPending
-    ? '新版本已激活；保存当前输入后重新载入'
-    : (hasServiceWorkerUpdateBlocker()
-      ? (isSyncing ? '新版本已就绪；云同步完成后即可更新' : '新版本已就绪；请先保存或清空当前输入')
-      : '新版本已就绪，可安全更新');
-  button.disabled = false;
-  button.textContent = serviceWorkerReloadPending ? '重新载入' : '安全更新';
-}
-
-function handleActivatedServiceWorker(worker) {
-  if (reloadingForServiceWorkerUpdate) return;
-  if (hasServiceWorkerUpdateBlocker()) {
-    serviceWorkerReloadPending = true;
-    serviceWorkerUpdateApplying = false;
-    pendingServiceWorker = worker || navigator.serviceWorker.controller;
-    showServiceWorkerUpdate(pendingServiceWorker);
-    showToast('新版本已激活；当前输入已保留，请保存后重新载入', 7000);
-    return;
-  }
-  reloadingForServiceWorkerUpdate = true;
-  pendingServiceWorker = null;
-  location.reload();
-}
-
-async function applyPendingServiceWorkerUpdate() {
-  var worker = pendingServiceWorker;
-  if ((!worker && !serviceWorkerReloadPending) || serviceWorkerUpdateApplying) return;
-  var text = document.getElementById('update-banner-text');
-  var button = document.getElementById('update-now-btn');
-  if (hasServiceWorkerUpdateBlocker()) {
-    if (text) text.textContent = isSyncing
-      ? '云同步仍在进行，完成后才能安全更新'
-      : '为避免丢失，请先保存或清空当前输入';
-    showToast(isSyncing ? '云同步进行中，已暂停更新' : '当前页面有未保存输入，已暂停更新');
-    return;
-  }
-
-  if (serviceWorkerReloadPending) {
-    serviceWorkerUpdateApplying = true;
-    location.reload();
-    return;
-  }
-  if (await otherPageBlocksServiceWorkerUpdate()) {
-    if (text) text.textContent = '其他已打开页面有未保存输入，更新已暂停';
-    showToast('请先处理其他页面中的未保存输入');
-    return;
-  }
-
-  serviceWorkerUpdateApplying = true;
-  if (autoRefreshTimer) {
-    clearTimeout(autoRefreshTimer);
-    autoRefreshTimer = null;
-  }
-  if (text) text.textContent = '正在停止旧刷新任务并更新…';
-  if (button) {
-    button.disabled = true;
-    button.textContent = '更新中';
-  }
-  try {
-    await refreshCoordinator.stopAndDrain('service-worker-update');
-    if (hasServiceWorkerUpdateBlocker()) {
-      serviceWorkerUpdateApplying = false;
-      showServiceWorkerUpdate(worker);
-      if (text) text.textContent = '检测到未保存编辑，更新仍已暂停';
-      startAutoRefresh();
-      return;
-    }
-    worker.postMessage({ type: 'SKIP_WAITING' });
-  } catch (_) {
-    serviceWorkerUpdateApplying = false;
-    showServiceWorkerUpdate(worker);
-    if (text) text.textContent = '安全更新未完成，可稍后重试';
-    startAutoRefresh();
-  }
+function applyPendingServiceWorkerUpdate() {
+  return pwaUpdateController.applyPendingServiceWorkerUpdate();
 }
 
 function consumeOcrImportReturn() {
@@ -2340,31 +1912,22 @@ function consumeOcrImportReturn() {
 }
 
 // ── Service Worker（含自动更新检测） ──────────────────────
-if ('serviceWorker' in navigator) {
-  serviceWorkerUpdateChannel = setupServiceWorkerUpdateChannel();
-  navigator.serviceWorker.register('sw.js').then(function(reg) {
-    if (reg.waiting && navigator.serviceWorker.controller) showServiceWorkerUpdate(reg.waiting);
-    // 监听新版本安装完成
-    reg.addEventListener('updatefound', function() {
-      var newWorker = reg.installing;
-      if (!newWorker) return;
-      newWorker.addEventListener('statechange', function() {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          showServiceWorkerUpdate(newWorker);
-        }
-      });
-    });
-    // 每 30 分钟主动检查更新
-    setInterval(function() { reg.update(); }, TIMING.SW_UPDATE_MS);
-  }).catch(function() {});
-  navigator.serviceWorker.addEventListener('message', function(event) {
-    var message = event.data || {};
-    if (message.type === 'UPDATE_ACTIVATED') handleActivatedServiceWorker(event.source);
-  });
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    handleActivatedServiceWorker(navigator.serviceWorker.controller);
-  });
-}
+const pwaUpdateController = createPwaUpdateController({
+  hasUnsavedPageInput,
+  isSyncing: () => syncController.isSyncing(),
+  isSavingHolding: () => isSavingHolding,
+  clearAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearTimeout(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  },
+  startAutoRefresh,
+  stopAndDrain: reason => refreshCoordinator.stopAndDrain(reason),
+  showToast,
+  updateIntervalMs: TIMING.SW_UPDATE_MS,
+});
+pwaUpdateController.start();
 
 // ── 页面可见性：切回标签页立即拉取（30s 冷却） ──────────
 let lastVisibilityPull = 0;
@@ -2395,6 +1958,7 @@ function handleAppAction(event) {
   else if (action === 'cancel-edit') cancelEdit();
   else if (action === 'cloud-upload') uploadToCloud();
   else if (action === 'cloud-download') downloadFromCloud();
+  else if (action === 'cloud-discover') refreshCloudArchives();
   else if (action === 'restore-backup') restoreLatestBackup();
   else if (action === 'clear-cloud') clearCloudConfig();
   else if (action === 'export-data') exportData();
@@ -2411,6 +1975,9 @@ function handleAppAction(event) {
 function initActionBindings() {
   document.addEventListener('click', handleAppAction);
   document.getElementById('imp-file')?.addEventListener('change', importData);
+  document.getElementById('gist-archive')?.addEventListener('change', selectCloudArchive);
+  document.getElementById('gist-token')?.addEventListener('input', () => { cloudInputRevision += 1; });
+  document.getElementById('gist-remember-token')?.addEventListener('change', () => { cloudInputRevision += 1; });
   document.getElementById('diagnostics-center')?.addEventListener('toggle', function(event) {
     if (event.currentTarget.open) refreshDiagnosticsCenter();
   });
@@ -2425,7 +1992,10 @@ window.addEventListener('beforeunload', function(event) {
 });
 
 window.addEventListener('pagehide', function(event) {
-  if (!event.persisted && quoteBridge) quoteBridge.destroy();
+  if (!event.persisted) {
+    pageNavigation.dispose();
+    if (quoteBridge) quoteBridge.destroy();
+  }
 }, { once: true });
 
 window.addEventListener('online', function() {
@@ -2435,6 +2005,7 @@ window.addEventListener('online', function() {
 
 var returnedFromOcrImport = consumeOcrImportReturn();
 await loadHoldings();
+pageNavigation.start();
 document.documentElement.dataset.appReady = 'true';
 if (holdingsStorageError) {
   showToast('持仓存储校验失败，已停止写入，请先使用备份恢复');
@@ -2454,9 +2025,27 @@ if (returnedFromOcrImport) {
   refresh({ force: true, reason: 'startup' });
 }
 startAutoRefresh();
-startIndexRefresh();
 initPullToRefresh();
 scheduleNotificationFeature();
-autoPullOnLoad();
-startAutoPull();
-if (getGistToken()) document.getElementById('gist-token').value = getGistToken();
+renderCredentialStatus();
+setArchiveCandidates([]);
+// No credential module or cloud request on the default, unconfigured startup.
+// Only a prior session or explicitly consented persistent token enables it.
+if (safeGetItem(GIST_TOKEN_KEY, sessionStore()) || safeGetItem(GIST_CONSENT_KEY) === 'true') {
+  const initialTokenInput = document.getElementById('gist-token').value;
+  const initialRememberChoice = document.getElementById('gist-remember-token').checked;
+  const initialCloudInputRevision = cloudInputRevision;
+  loadGistCredentials().then(() => {
+    const token = getGistToken();
+    const input = document.getElementById('gist-token');
+    const remember = document.getElementById('gist-remember-token');
+    const untouched = cloudInputRevision === initialCloudInputRevision
+      && input.value === initialTokenInput && remember.checked === initialRememberChoice;
+    if (untouched && token) {
+      input.value = token;
+      remember.checked = gistCredentialStore.read().mode === 'persistent';
+    }
+    renderCredentialStatus(); renderCloudStatus();
+    if (untouched) { autoPullOnLoad(); startAutoPull(); }
+  }).catch(() => showToast('会话凭证暂不可用，请重新输入 Token'));
+}

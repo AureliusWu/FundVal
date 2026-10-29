@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { canonicalModelAssetSignature } from '../js/ocr/asset-manifest.js';
 import {
   RELEASE_CRITICAL_PATHS,
@@ -79,7 +80,7 @@ async function createAppChunkFixture(root) {
     path,
     role,
     bytes: Buffer.byteLength(content),
-    gzipBytes: 1,
+    gzipBytes: gzipSync(content).length,
     sha256: digest(content),
   }));
   const manifest = {
@@ -160,6 +161,8 @@ test('deployed app chunk verification binds every lazy and cold chunk byte', asy
     assert.deepEqual(await listAppChunkPaths(manifestPath), definitions.map(([path]) => path));
     const verified = await verifyAppChunkReleaseDirectory(root);
     assert.equal(verified.chunkCount, definitions.length);
+    assert.equal(verified.actualColdStartGzipBytes, gzipSync(definitions[0][2]).length);
+    assert.equal(verified.actualAllNonOcrGzipBytes, definitions.reduce((sum, [, , content]) => sum + gzipSync(content).length, 0));
     await writeFile(join(root, definitions[1][0]), 'changed-feature-code', 'utf8');
     await assert.rejects(() => verifyAppChunkReleaseDirectory(root), /failed manifest verification/);
   } finally {

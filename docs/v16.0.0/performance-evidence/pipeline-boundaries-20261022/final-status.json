@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "at": "2026-10-22T06:09:07.242Z",
+  "checks": [
+    {
+      "name": "root270 complete set unchanged after docs",
+      "pass": true
+    },
+    {
+      "name": "root127 whole site unchanged after docs",
+      "pass": true
+    },
+    {
+      "name": "installed68 explicit unchanged",
+      "pass": true
+    },
+    {
+      "name": "archive exact identity unchanged",
+      "pass": true
+    },
+    {
+      "name": "full916 extracted members unchanged",
+      "pass": true
+    },
+    {
+      "name": "archive parent readme exact prefix before documented addendum",
+      "pass": true
+    },
+    {
+      "name": "native git head",
+      "pass": true
+    },
+    {
+      "name": "native git branch",
+      "pass": true
+    },
+    {
+      "name": "native git index",
+      "pass": true
+    },
+    {
+      "name": "native git diff-check",
+      "pass": true
+    }
+  ],
+  "natives": [
+    {
+      "label": "head",
+      "args": [
+        "rev-parse",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "bytes": 41,
+        "sha256": "5ff51b303b8d2f2c3109b0cbf2285c888565e4d19245e67b1fbe8a13bc5eb55a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "branch",
+      "args": [
+        "branch",
+        "--show-current"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "bytes": 30,
+        "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "index",
+      "args": [
+        "diff",
+        "--cached",
+        "--binary"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "args": [
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1097,
+        "sha256": "b2ef30ab02827f407e8f8e249ee588c756b8a69177252c7471d02a08eb1a3fb9"
+      }
+    }
+  ],
+  "rootProductUnchanged": true,
+  "docsIntentionallyAdded": true,
+  "scope": "Read-only artifact/identity audit, not new product QA/build/performance",
+  "appVersion": "15.0.2",
+  "M3": "IN_PROGRESS",
+  "adopted": false,
+  "released": false
+}

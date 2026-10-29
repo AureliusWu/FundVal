@@ -1,0 +1,43 @@
+{
+  "status": "POST_ARCHIVE_FROZEN_TOOL_BYTES_PASS",
+  "checks": [
+    {
+      "path": "tools/common.mjs.txt",
+      "sha256": "b991fa3b0eaa89a6789b914596f24f90fc339cf759d534d69cd5aaa887cea81d",
+      "matchesFrozen": true
+    },
+    {
+      "path": "parent/run.mjs",
+      "sha256": "386e787ad710707b228fd3af3fed88682e66068549c83221fc3f2b3121f3e69a",
+      "matchesFrozen": true
+    },
+    {
+      "path": "parent/independent-audit.mjs",
+      "sha256": "312820ab11d7ddb22ac62784e435f2b64a690b182020f49f4813f624cfc14f9d",
+      "matchesFrozen": true
+    },
+    {
+      "path": "frozen-inputs/QA_SOURCE_V3.json",
+      "sha256": "e30ff4b47e44ee7808a11b0610cf0a035dfbe605e30de4eb2af5c80eee01c9be",
+      "matchesFrozen": true
+    },
+    {
+      "path": "final-source/scripts/measure-performance-pair.mjs",
+      "sha256": "2ca754524871b72c3c41f17ec2b6052ac74e3334ad034bf522a933cd9df295d7",
+      "matchesFrozen": true
+    },
+    {
+      "path": "final-source/scripts/collect-baseline.mjs",
+      "sha256": "8a98f57980cfcde94e4035987c974b149c80bc27b51a1ca2309d3aed9d85bdd0",
+      "matchesFrozen": true
+    }
+  ],
+  "archive": {
+    "bytes": 14955988,
+    "sha256": "38bfa2efa4ac7bde5cc82654dfe4ac13a270d0e6b82024bec99eee0aba1c72d7"
+  },
+  "protocolSha256": "ec131ab0f098a3b6bae6fe746efe0efc4b92bea207a719b69bcaae38d66e5e77",
+  "limitation": "Archive addendum created after packaging; not an original tar member or new performance/CI proof",
+  "release": false,
+  "m3Exit": false
+}

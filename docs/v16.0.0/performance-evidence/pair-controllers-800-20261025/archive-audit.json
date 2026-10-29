@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "status": "ARCHIVE_VERIFIED_NOT_M3_EXIT_OR_RELEASE",
+  "archive": {
+    "bytes": 14955988,
+    "sha256": "38bfa2efa4ac7bde5cc82654dfe4ac13a270d0e6b82024bec99eee0aba1c72d7"
+  },
+  "members": 509,
+  "expandedBytes": 108670719,
+  "rowsSha256": "431b27656d0069c5029a1248d6fcee3d0920ce285c42fe18eda3adfbeebe1c12",
+  "raw": {
+    "path": "parent/PAIR.json",
+    "bytes": 88027817,
+    "sha256": "c0586a69852c8415090f46384ca1e1483ad41371adae4af3306bff85fdf1b4e7"
+  },
+  "nativeCreate": {
+    "label": "tar-create",
+    "command": "tar.exe",
+    "args": [
+      "-czf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\pair-controllers-800-20261025\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-controllers-archive-20261025-child\\stage",
+      "."
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-controllers-archive-20261025-child",
+    "startedAt": "2026-10-25T07:09:06.324Z",
+    "finishedAt": "2026-10-25T07:09:08.648Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "nativeExtract": {
+    "label": "tar-extract",
+    "command": "tar.exe",
+    "args": [
+      "-xzf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\pair-controllers-800-20261025\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-controllers-archive-20261025-child\\extract"
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-controllers-archive-20261025-child",
+    "startedAt": "2026-10-25T07:09:08.649Z",
+    "finishedAt": "2026-10-25T07:09:09.046Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "checks": {
+    "freshExtractionEveryRow": true,
+    "raw88MbRoundTripExactAndSingleCopy": true,
+    "allThreeOriginalWorkspacesUnchanged": true,
+    "protocolOriginalBytesPreserved": true,
+    "source281Unchanged": true,
+    "selectedSource257": true,
+    "site129Unchanged": true,
+    "selectedSite105": true,
+    "installed68Unchanged": true,
+    "headBranchIndexAndSamePhaseTrackedDiffUnchanged": true,
+    "linkedControllerArchiveHashUnchanged": true,
+    "terminalReviewIncluded": true
+  },
+  "timingVerdict": "PASS",
+  "independentOriginalHelperAudit": "12883 checks / 0 failures; not a second independently implemented statistical algorithm",
+  "limitations": [
+    "hermetic desktop Chrome only; no physical devices or real financial/production network",
+    "warm HTTP no-store reload, not warm HTTP cache",
+    "navigation renderer is post-commit PARTIAL, not full startup/OS CPU",
+    "console count is retained; equal count does not establish every root cause",
+    "internal managed reference build native logs not preserved by unmodified sampler",
+    "no exact immutable CI or later M4-M6 evidence"
+  ],
+  "release": false,
+  "m3Exit": false,
+  "immutableCommitCI": false
+}

@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "observedDate": "2026-10-11",
+  "binding": {
+    "parentCommit": "414958bbcbf75a87fa9fc97837cadc803abc9944",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "currentVersion": "15.0.2",
+    "scope": "Uncommitted local source on the fixed parent, synthetic verification. Not the future commit, CI or production artifact.",
+    "appLfSha256": "422ee408e1f6aa072779a63a6d9b84a2b27a295d3f782a98fea8bd1b8e9b9bbe",
+    "sourceChanges": [
+      "js/app.js"
+    ],
+    "sourceDiff": {
+      "additions": 9,
+      "deletions": 3
+    },
+    "testLfSha256": {
+      "test/cache-fund-identity-v16.test.js": "8eae828ec1f5614bb7bd059f70ab6a7e394aeb5138f81936afbfe678e506c6de",
+      "test/estimate-http-characterization-v16.test.js": "0550ba74673a39f2f2beeb2f8230837a5d236b61a098babb060af48bb50b6fb1",
+      "e2e/v16-cache-identity.spec.js": "bee85c23546ea2f5fa7a174af14e2f292db50fca73258d7fbf9c54578efde24c"
+    },
+    "publicRefreshCoordinatorLfSha256": "088cf558a229731d64e0e824ccbb6319f91e9d0b678af7c651575d5468ce36c4"
+  },
+  "correctnessFix": {
+    "severity": "P1",
+    "location": "js/app.js:tryShowCache",
+    "issue": "An aggregate row's outer code could be valid while quote/source_quote contained a different or absent fundCode. The prior cache projection could display foreign NAV, pct, profit and secondary/legacy notes against current holding amounts.",
+    "incidentScope": "Reproduced with synthetic malformed persisted JSON; no claim of an observed incident in actual personal holdings.",
+    "implementation": "Check both present quote identities against the outer code. On mismatch, rebuild the local row with code/current holding name only and unavailableQuote before cached normalization. Discard every inherited financial/model/legacy/secondary field, including future arbitrary fields, rather than maintaining a blacklist.",
+    "unchanged": [
+      "Generic Quote/Worker validators and public API",
+      "Matching canonical cache and raw legacy rows without either quote",
+      "Current holding shares, cost, nulls and genuine zero",
+      "Persisted cache and holdings bytes; no repair writes or timestamp renewal",
+      "Migration, Schema 3, tombstones, Web Locks, Bridge and source time guards"
+    ],
+    "boundary": "Actual native JSON data from loadCache. The earlier holding lookup and new guard can change arbitrary getter/Proxy traces; no whole-tryShowCache equivalence is claimed for adversarial objects.",
+    "normalizedReason": "CACHE_FUND_IDENTITY_MISMATCH"
+  },
+  "regression": {
+    "unitOldActualSource": {
+      "tests": 23,
+      "pass": 6,
+      "fail": 17,
+      "scope": "Actual old tryShowCache extracted by AST, executed with real financial helpers. Legal controls pass; mismatches fail."
+    },
+    "pageOldActualSite": {
+      "criticalFingerprint": "c1cdcf007093012beb6fcd9f5db562d0a5ae7eb88198ea91e307b3c5f7921dee",
+      "tests": 4,
+      "pass": 1,
+      "fail": 3,
+      "durationSeconds": 33.9,
+      "exitCode": 1,
+      "observedMismatch": {
+        "expectedNav": "--",
+        "receivedNav": "999.1234"
+      },
+      "fixture": "Disposable synthetic Schema-3 holdings, frozen clock, real bootstrap/Bridge/renderer, every external provider blocked, local proxy returns 503.",
+      "redDiagnosticsPreservedOutsideRepository": true,
+      "diagnosticsFiles": 10
+    },
+    "scopedFinal": {
+      "tests": 51,
+      "pass": 51,
+      "fail": 0,
+      "durationMs": 226.7111
+    },
+    "httpCharacterization": {
+      "tests": 28,
+      "oldActualSourcePass": 28,
+      "finalPass": 28,
+      "businessHttpChanged": false,
+      "scope": "Full literal wire rows/quotes, key/JSON/freeze/reference order, accounting, official intervals, null/NaN/zero, model/QDII, error/timeout/abort/late fetch, getter and changing-Date negative paths."
+    },
+    "independentReview": {
+      "blockers": 0,
+      "cacheUnit": "23/23 GREEN",
+      "cacheAmountsEdges": "63/63 GREEN",
+      "legalNativeJsonOldNewCompleteOutputs": 20,
+      "arbitraryFutureFieldsIsolated": 51,
+      "note": "Groups overlap; do not sum them. Reviewers did not build or repeat browser E2E."
+    }
+  },
+  "localGates": {
+    "unit": {
+      "tests": 943,
+      "pass": 940,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 3,
+      "durationMs": 6181.0861,
+      "exitCode": 0,
+      "skipScope": "Windows symlink privilege condition; exact Linux CI must separately establish zero skip."
+    },
+    "syntax": {
+      "files": 195,
+      "exitCode": 0
+    },
+    "audit": {
+      "registry": "https://registry.npmjs.org",
+      "vulnerabilities": 0,
+      "exitCode": 0
+    },
+    "e2e": {
+      "tests": 27,
+      "pass": 27,
+      "durationSeconds": 48.1,
+      "exitCode": 0,
+      "ownPort": 12437,
+      "serverListenerGone": true,
+      "scope": "Synthetic desktop Chromium, including 4 new real cache-identity UI cases. No physical-device or production acceptance."
+    },
+    "cacheE2eWrites": "No external non-GET/HEAD attempts; synthetic context cache/Schema-3 bytes unchanged in invalid cases.",
+    "readinessSamples": [
+      {
+        "coldReadyMs": 160.19999998807907,
+        "warmReadyMs": 109.2000000178814,
+        "saveUiMs": 86.5659999999998
+      },
+      {
+        "coldReadyMs": 194.69999998807907,
+        "warmReadyMs": 176.59999999403954,
+        "saveUiMs": 78.22440000000006
+      },
+      {
+        "coldReadyMs": 174.30000001192093,
+        "warmReadyMs": 160,
+        "saveUiMs": 86.36569999999847
+      }
+    ],
+    "readinessScope": "All three retained, descriptive current-only absolute interaction checks. Not paired latency or a new relative performance PASS."
+  },
+  "actualBuilds": {
+    "sourceDateEpoch": 1791690151,
+    "consecutiveBuilds": 2,
+    "fingerprint": "e7f2f6483d640fb64e1e4282f78e45bc9ea9844cf380f8eb9acd8ef3104f249c",
+    "identical": true,
+    "app": {
+      "chunkCount": 16,
+      "totalBytes": 238020,
+      "actualColdStartGzipBytes": 43015,
+      "actualAllNonOcrGzipBytes": 81263
+    },
+    "ocr": {
+      "assetCount": 23,
+      "totalBytes": 88196906,
+      "executed": false
+    },
+    "bytesShaVerification": "PASS on both actual builds using the existing official script, including all app chunks and OCR assets.",
+    "buildGraphGate": "PASS using unchanged Vite 8.2.2 / oxc / es2022 / chunk grouping and startup/on-demand isolation.",
+    "differenceFromParent": {
+      "appRawBytes": 167,
+      "allGzipBytes": 68,
+      "coldGzipBytes": 71
+    },
+    "interpretation": "Correctness cost, not a bundle reduction. Local critical-set fingerprint is not a whole-site inventory, CI fingerprint or future commit fingerprint."
+  },
+  "budget": {
+    "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "baselineAllNonOcrGzipBytes": 70207,
+    "actualAllNonOcrGzipBytes": 81263,
+    "actualColdStartGzipBytes": 43015,
+    "coldBudgetBytes": 52241,
+    "allBudgetNumerator": 772277,
+    "allBudgetDenominator": 10,
+    "allBudgetBytes": 77227.7,
+    "coldPass": true,
+    "allPass": false,
+    "pass": false,
+    "verdict": "FAIL",
+    "cliExitCode": 1,
+    "remainingWholeBytes": 4036,
+    "importClosureVerified": false
+  },
+  "rejectedReductionInvestigations": [
+    {
+      "candidate": "Quote-first wholesale internal projection",
+      "result": "NOT_ADOPTED",
+      "reason": "Raw legacy aggregate rows still require generic candidate normalization. Wire and cache alias/trust boundaries differ; a direct HTTP path alone cannot remove that dependency chain."
+    },
+    {
+      "parentOnlyVirtualRunsPerSide": 3,
+      "parentBaseline": {
+        "allGzipBytes": 81195,
+        "coldGzipBytes": 42944,
+        "rawBytes": 237853
+      },
+      "result": "REJECTED_NOT_APPLIED",
+      "reason": "A changing Date causes the real existing second validation to resolve a safe unavailable/error row; the private candidate rejects instead. The new characterization preserves this actual negative behavior. Initial Windows virtual-path probe did not apply the transform and is excluded.",
+      "candidateName": "Private HTTP row helper without the generic WORKER_ROW_INVALID rescue",
+      "candidateBytes": {
+        "allGzipBytes": 81067,
+        "coldGzipBytes": 42941,
+        "rawBytes": 237442
+      }
+    },
+    {
+      "candidate": "Private fixed health path duplicated beside public source registry",
+      "parentOnlyVirtualRunsPerSide": 3,
+      "parentBaseline": {
+        "allGzipBytes": 81195,
+        "coldGzipBytes": 42944,
+        "rawBytes": 237853
+      },
+      "candidateBytes": {
+        "allGzipBytes": 81138,
+        "coldGzipBytes": 42885,
+        "rawBytes": 237643
+      },
+      "result": "REJECTED_NOT_APPLIED",
+      "reason": "Only 57 B all reduction. Registry access/reassignment/getter/error equivalence and dual-maintenance safety were not established; do not trade the existing validation surface for that gain."
+    },
+    {
+      "candidate": "Repeated UI templates",
+      "result": "NOT_ADOPTED_NOT_MEASURED_THIS_ROUND",
+      "reason": "Raw repeated fragments are already highly gzip-compressed. Raw/source-alone gzip is not a whole-bundle saving; no claimed >=1 KB benefit."
+    }
+  ],
+  "parentCi": {
+    "sha": "414958bbcbf75a87fa9fc97837cadc803abc9944",
+    "runId": 38109263679,
+    "status": "completed",
+    "conclusion": "failure",
+    "candidateJobId": 114381222413,
+    "onlyFailedStep": "Enforce actual M3 app bundle budget",
+    "linuxUnit": {
+      "tests": 892,
+      "pass": 892,
+      "fail": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 192,
+    "auditVulnerabilities": 0,
+    "e2e": {
+      "tests": 23,
+      "pass": 23,
+      "durationSeconds": 42.6
+    },
+    "buildArtifactVerificationSealUpload": "SUCCESS",
+    "allGzipBytes": 81195,
+    "coldGzipBytes": 42944,
+    "codeql": {
+      "jobId": 114381222292,
+      "workflowConclusion": "success",
+      "analysisId": 1930493220,
+      "results": 3,
+      "independentCheck": "NOT_OBSERVED; commit checks only candidate/codeql",
+      "warning": "Successful scan is not zero alerts."
+    },
+    "reviewArtifact": {
+      "id": 11691287219,
+      "name": "fundval-candidate-414958bbcbf75a87fa9fc97837cadc803abc9944-1",
+      "siteFilesDeclared": 126,
+      "uploadZipBytes": 92623258,
+      "uploadZipDigest": "c46c65f80639bb5ab4d0f2d45e39d02e3db58f3dc46279bb005155b853f83bed",
+      "declaredSiteInventorySha256": "a1dce0bb0de390b4a1af7d93ce36902c3bc0e983cda8d981c676670cacec2c49",
+      "downloadedAndIndependentlyVerified": false
+    },
+    "warning": "Exact parent CI only. Never inherited to the new source/tests or future checkpoint commit."
+  },
+  "historicalRawLfSha256Rechecked": {
+    "m3-pair-60.json": "88b927752e589553cea18dba88e3d2233c780f208beeb1ea77a1de6902a4611d",
+    "m3-pair-200.json": "b7abe1b6f9409a8ebf5543b0b380acbb252bc2db60676db5ead7d75491813ad9",
+    "m3-counter-probe.json": "94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707",
+    "m3-pair-v2-200.json": "323ff4087da0a1a836fe8147ef305cd8f315e3e0d10e706cbc4d25abfba74236"
+  },
+  "unverified": {
+    "currentPairedLatency": "NOT_RUN; old d9fdabc PASS does not transfer",
+    "currentPublicDataIngestion": "NOT_RUN; prior clock/future metadata failures not reclassified",
+    "physicalAndroidIos": "NOT_RUN",
+    "productionAcceptance": "NOT_RUN",
+    "actualPersonalCloudWrites": "NOT_RUN"
+  },
+  "release": {
+    "mainCommit": "abfb6313f12efb66b9096b60472b6dd457094485",
+    "mainChanged": false,
+    "m3Exit": false,
+    "m4Started": false,
+    "m5Started": false,
+    "m6Started": false,
+    "mergeMain": false,
+    "deploy": false,
+    "versionBump": false,
+    "status": "NOT_RELEASED"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "status": "LOCAL_CHECKS_PASS_EXISTING_ALL_BUDGET_FAIL",
+  "sourceHead": "2a9f83090a4620ba86c8037f8c83bfdf077bfb4a",
+  "startedAt": "2026-10-18T05:08:45.304Z",
+  "sourceDateEpoch": "1792046773",
+  "sourceBefore": {
+    "files": 214,
+    "bytes": 4948865,
+    "sha256": "3a44cb407c2049411d701125f1c891bfd07c2c5921821964f5934e518e6ccd59"
+  },
+  "catalogBefore": "f18f3a34d8425ffffd3bc9d9cbbe95fe564bcf01e1605278a38b685313e6304d",
+  "commands": [
+    {
+      "name": "test",
+      "command": "npm test -- --test-reporter=tap",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 7946.3597,
+      "log": "test.log"
+    },
+    {
+      "name": "check",
+      "command": "npm run check",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 17095.2167,
+      "log": "check.log"
+    },
+    {
+      "name": "build-before-e2e",
+      "command": "npm run build",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 4521.5121,
+      "log": "build-before-e2e.log"
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 60052.7877,
+      "log": "e2e.log"
+    },
+    {
+      "name": "build-final-1",
+      "command": "npm run build",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 5222.956300000005,
+      "log": "build-final-1.log"
+    },
+    {
+      "name": "build-final-2",
+      "command": "npm run build",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 2061.3445000000065,
+      "log": "build-final-2.log"
+    },
+    {
+      "name": "build-final-3",
+      "command": "npm run build",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 2210.693499999994,
+      "log": "build-final-3.log"
+    },
+    {
+      "name": "budget",
+      "command": "node scripts/release-fingerprint.mjs --assert-app-bundle-budget site",
+      "exit": 1,
+      "expected": 1,
+      "durationMs": 454.70269999999437,
+      "log": "budget.log"
+    },
+    {
+      "name": "audit",
+      "command": "npm audit --registry=https://registry.npmjs.org --audit-level=high",
+      "exit": 0,
+      "expected": 0,
+      "durationMs": 9247.646000000008,
+      "log": "audit.log"
+    }
+  ],
+  "finalBuilds": [
+    {
+      "round": 1,
+      "critical": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725",
+      "site": {
+        "files": 127,
+        "bytes": 92507487,
+        "sha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93"
+      }
+    },
+    {
+      "round": 2,
+      "critical": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725",
+      "site": {
+        "files": 127,
+        "bytes": 92507487,
+        "sha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93"
+      }
+    },
+    {
+      "round": 3,
+      "critical": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725",
+      "site": {
+        "files": 127,
+        "bytes": 92507487,
+        "sha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93"
+      }
+    }
+  ],
+  "notProductionOrDeviceEvidence": true,
+  "noNewPairedLatencyRun": true,
+  "tests": {
+    "tests": 1059,
+    "pass": 1056,
+    "fail": 0,
+    "skipped": 3
+  },
+  "syntaxLog": "Syntax checked 205 JavaScript source and test files.",
+  "e2eSummary": "30 passed (57.8s)",
+  "budgetLog": "{\"baselineCommit\":\"40e68edab9cb3fba0b17338dc3672a82d13ad17e\",\"baselineAllNonOcrGzipBytes\":70207,\"actualColdStartGzipBytes\":42992,\"actualAllNonOcrGzipBytes\":80477,\"coldBudgetBytes\":52241,\"allBudgetNumerator\":772277,\"allBudgetDenominator\":10,\"allBudgetBytes\":77227.7,\"coldPass\":true,\"allPass\":false,\"pass\":false,\"verdict\":\"FAIL\",\"importClosureVerified\":false}\nApp bundle exceeds all non-OCR gzip budget: 80477 > 77227.7 bytes.\n",
+  "auditLog": "found 0 vulnerabilities\n",
+  "sourceAfter": {
+    "files": 214,
+    "bytes": 4948865,
+    "sha256": "3a44cb407c2049411d701125f1c891bfd07c2c5921821964f5934e518e6ccd59"
+  },
+  "catalogAfter": "f18f3a34d8425ffffd3bc9d9cbbe95fe564bcf01e1605278a38b685313e6304d",
+  "sourceUnchanged": true,
+  "catalogUnchanged": true,
+  "completedAt": "2026-10-18T05:10:38.711Z"
+}

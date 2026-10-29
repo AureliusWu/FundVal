@@ -1,0 +1,80 @@
+import { createHash } from 'node:crypto';
+import { execFileSync, spawn } from 'node:child_process';
+import { closeSync, openSync } from 'node:fs';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { dirname, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createServer } from 'node:net';
+const root = 'D:/AI项目/FundVal';
+const directory = dirname(fileURLToPath(import.meta.url));
+const npmCli = 'C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js';
+const epoch = '1792046773';
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+async function inventory(base) {
+  const rows = [];
+  async function walk(path) {
+    for (const item of await readdir(path, { withFileTypes: true })) {
+      const target = resolve(path, item.name);
+      if (item.isDirectory()) await walk(target);
+      else if (item.isFile()) { const bytes = await readFile(target); rows.push({ path: relative(base, target).replaceAll('\\', '/'), bytes: bytes.length, sha256: hash(bytes) }); }
+      else throw Error('Unexpected inventory object');
+    }
+  }
+  await walk(base); rows.sort((a, b) => a.path.localeCompare(b.path));
+  return { files: rows.length, bytes: rows.reduce((n, r) => n + r.bytes, 0), jsonInventorySha256: hash(JSON.stringify(rows)) };
+}
+async function sourceIdentity() {
+  const paths = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' }).trim().split(/\r?\n/)
+    .filter(path => /^(?:js\/|scripts\/|test\/|e2e\/|\.github\/|package(?:-lock)?\.json$|playwright\.config\.mjs$)/.test(path)).sort();
+  const rows = [];
+  for (const path of paths) rows.push({ path, sha256: hash((await readFile(resolve(root, path), 'utf8')).replaceAll('\r\n', '\n')) });
+  return { count: rows.length, lfSha256: hash(JSON.stringify(rows)), rows };
+}
+const record = { schema: 1, businessCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
+  sourceDateEpoch: epoch, startedAtHost: new Date().toISOString(), before: { site: await inventory(resolve(root, 'site')), source: await sourceIdentity() }, commands: [] };
+async function persist() { await writeFile(resolve(directory, 'qa-receipt.json'), JSON.stringify(record, null, 2) + '\n'); }
+await persist();
+async function run(id, args, expectedExit = 0) {
+  const log = resolve(directory, id + '.log'); const fd = openSync(log, 'wx');
+  const startedAt = new Date().toISOString(), start = performance.now();
+  const child = spawn(process.execPath, args, { cwd: root, env: { ...process.env, SOURCE_DATE_EPOCH: epoch, FUNDVAL_E2E_PORT: '12437' },
+    stdio: ['ignore', fd, fd], windowsHide: true });
+  const result = await new Promise((accept, reject) => { child.on('error', reject); child.on('close', (code, signal) => accept({ code, signal })); });
+  closeSync(fd); const bytes = await readFile(log);
+  const row = { id, executable: process.execPath, args, startedAtHost: startedAt, exitCode: result.code, signal: result.signal,
+    elapsedMs: performance.now() - start, expectedExit, log: { path: relative(directory, log), bytes: bytes.length, sha256: hash(bytes) } };
+  record.commands.push(row); await persist(); process.stdout.write(JSON.stringify(row) + '\n');
+  if (result.code !== expectedExit) throw Error(id + ' unexpected exit');
+  return bytes.toString('utf8');
+}
+try {
+  await run('unit', [npmCli, 'test']);
+  await run('syntax', [npmCli, 'run', 'check']);
+  await run('build-before-e2e', [npmCli, 'run', 'build']);
+  await new Promise((accept, reject) => {
+    const server = createServer(); server.once('error', reject); server.listen({ host: '127.0.0.1', port: 12437, exclusive: true }, () => server.close(accept));
+  });
+  record.e2ePortAvailableBefore = true; await persist();
+  await run('e2e', [npmCli, 'run', 'test:e2e']);
+  record.finalBuildInventories = [];
+  for (let i = 1; i <= 2; i++) {
+    await run('build-final-' + i, [npmCli, 'run', 'build']);
+    record.finalBuildInventories.push(await inventory(resolve(root, 'site')));
+    await run('fingerprint-final-' + i, ['scripts/release-fingerprint.mjs', '--directory', 'site']);
+    await persist();
+  }
+  await run('app-bytes', ['scripts/release-fingerprint.mjs', '--verify-app-chunks-directory', 'site']);
+  record.actualGraph = JSON.parse(await run('module-graph', ['scripts/release-fingerprint.mjs', '--verify-app-module-graph', 'site']));
+  record.nativeBindings = JSON.parse(await run('static-bindings', ['scripts/release-fingerprint.mjs', '--verify-app-static-bindings', 'site']));
+  await run('ocr-bytes', ['scripts/release-fingerprint.mjs', '--verify-ocr-directory', 'site/assets/ocr']);
+  const budget = await run('budget', ['scripts/release-fingerprint.mjs', '--assert-app-bundle-budget', 'site'], 1);
+  record.budget = JSON.parse(budget.split(/\r?\n/)[0]);
+  record.audit = JSON.parse(await run('audit', [npmCli, 'audit', '--registry=https://registry.npmjs.org', '--json']));
+  record.after = { site: await inventory(resolve(root, 'site')), source: await sourceIdentity() };
+  if (JSON.stringify(record.before.source) !== JSON.stringify(record.after.source)) throw Error('Source changed during regression');
+  if (JSON.stringify(record.before.site) !== JSON.stringify(record.after.site)) throw Error('Site changed from baseline');
+  if (record.finalBuildInventories.some(inventory => JSON.stringify(inventory) !== JSON.stringify(record.after.site))) throw Error('Final build inventories disagree');
+  record.regression = 'PASS';
+} catch (error) { record.regression = 'FAIL'; record.error = error.message; process.exitCode = 1; }
+record.finishedAtHost = new Date().toISOString(); await persist();
+process.stdout.write(JSON.stringify({ regression: record.regression, commands: record.commands.length, budget: record.budget?.verdict, error: record.error }) + '\n');

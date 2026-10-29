@@ -377,6 +377,9 @@ html, body {
   margin-top: 4px;
 }
 
+.offline-banner { display: none; }
+html[data-network="offline"] .offline-banner { display: block; font-size: 12px; color: var(--text); }
+
 .last-upd {
   text-align: center;
   padding: 5px 16px;
@@ -834,6 +837,12 @@ html, body {
   white-space: nowrap;
 }
 
+.stock-quote-time {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .stock-name em {
   color: var(--muted);
   font-style: normal;
@@ -917,6 +926,10 @@ html, body {
 .cancel-edit-btn:active { background: var(--line); }
 
 /* ── cloud sync ──────────────────────────────────── */
+.cloud-consent { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.cloud-consent input { width: 18px; height: 18px; accent-color: var(--accent); }
+.cloud-consent input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cloud-section select { max-width: 100%; text-overflow: ellipsis; }
 .cloud-section {
   background: var(--bg2);
   border: 1px solid var(--line);

@@ -1,0 +1,92 @@
+{
+  "status": "READ_ONLY_VIRTUAL_PROBE",
+  "head": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+  "sourceSha256": "1172d217cd4bd00e700aeb0a07507c85fc102f0beedef30678b6c75525485130",
+  "candidateSha256": "ff651d44b83e0464f8b83a72ab340e211db6999c996d8c3aff3983977cadac64",
+  "measurements": [
+    {
+      "round": 1,
+      "original": {
+        "chunks": 16,
+        "raw": 237665,
+        "allGzip": 81158,
+        "coldGzip": 42907
+      },
+      "candidate": {
+        "chunks": 16,
+        "raw": 237631,
+        "allGzip": 81166,
+        "coldGzip": 42912
+      },
+      "delta": {
+        "raw": -34,
+        "allGzip": 8,
+        "coldGzip": 5
+      }
+    },
+    {
+      "round": 2,
+      "original": {
+        "chunks": 16,
+        "raw": 237665,
+        "allGzip": 81158,
+        "coldGzip": 42907
+      },
+      "candidate": {
+        "chunks": 16,
+        "raw": 237631,
+        "allGzip": 81166,
+        "coldGzip": 42912
+      },
+      "delta": {
+        "raw": -34,
+        "allGzip": 8,
+        "coldGzip": 5
+      }
+    },
+    {
+      "round": 3,
+      "original": {
+        "chunks": 16,
+        "raw": 237665,
+        "allGzip": 81158,
+        "coldGzip": 42907
+      },
+      "candidate": {
+        "chunks": 16,
+        "raw": 237631,
+        "allGzip": 81166,
+        "coldGzip": 42912
+      },
+      "delta": {
+        "raw": -34,
+        "allGzip": 8,
+        "coldGzip": 5
+      }
+    }
+  ],
+  "equivalence": {
+    "nativeChecks": 192,
+    "getterChecks": 192,
+    "throwChecks": 192,
+    "realQuoteAndAmountHelpers": true,
+    "boundary": "Instrumented getters, Date traces, exact options own-key/descriptors and same thrown sentinel observed. Optional model boundary injected; no full app/E2E/latency/device proof, no universal JS stack/alias proof."
+  },
+  "sourceAndSiteUnchanged": true,
+  "siteSha256": "624e1caf0d5e8ffa6f60616942fbd4fa0104d89f922f3c2377f09473681e3ca0",
+  "exactPatch": {
+    "before1": "d.quoteCandidates = buildFundQuoteCandidates(d, {\n    fundCode: d.code,\n    fundName: d.name,\n    market: d.market,\n    assetKind: d.assetKind,\n    fetchedAt: new Date(d.updatedAt).toISOString(),\n    now: d.updatedAt,\n  });",
+    "after1": "d.quoteCandidates = buildFundQuoteCandidates(d, {\n    ...fundQuoteIdentity(d),\n    fetchedAt: new Date(d.updatedAt).toISOString(),\n    now: d.updatedAt,\n  });",
+    "before2": "d.quote = selectPreferredQuote(d.quoteCandidates, {\n    fundCode: d.code,\n    fundName: d.name,\n    market: d.market,\n    assetKind: d.assetKind,\n  }, { now: d.updatedAt });",
+    "after2": "d.quote = selectPreferredQuote(d.quoteCandidates, fundQuoteIdentity(d), { now: d.updatedAt });",
+    "helper": "function fundQuoteIdentity(d) {\n  return { fundCode: d.code, fundName: d.name, market: d.market, assetKind: d.assetKind };\n}\n\n"
+  },
+  "policy": {
+    "dependenciesInstalledOrChanged": false,
+    "repositoryFilesEdited": false,
+    "siteWritten": false,
+    "network": false,
+    "latency": false,
+    "thresholdChanged": false
+  }
+}

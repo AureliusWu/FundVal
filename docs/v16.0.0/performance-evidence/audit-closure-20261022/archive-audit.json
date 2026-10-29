@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "archive": "original-evidence.tar.gz",
+  "files": 19,
+  "uncompressedBytes": 111975,
+  "bytes": 38932,
+  "sha256": "90f523aebdf0d8780532e5f256f28442605d943c44bf7274475d89d4d1f9ba47",
+  "inventorySha256": "70d208cf206b2b63ff8a9540a9b8aaf7fe17a0433dbbf5cd6d31a3bd783e1e3f",
+  "extractionVerified": true,
+  "cohorts": [
+    [
+      "probe",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-m3-audit-recheck-20261022-65c22cb471b2"
+    ],
+    [
+      "independent-audit-review",
+      "C:/Users/84046/AppData/Local/Temp/fundval-audit-recheck-independent-20261022-112647-825"
+    ],
+    [
+      "diagnostics-review",
+      "C:/Users/84046/AppData/Local/Temp/fundval-diagnostics-structure-review-20261022-112112-922"
+    ],
+    [
+      "cross-group-review",
+      "C:/Users/84046/AppData/Local/Temp/fundval-m3-cross-group-readonly-20261022-execution-contract.md"
+    ],
+    [
+      "storage-review",
+      "C:/Users/84046/AppData/Local/Temp/fundval-storage-boundary-review-20261022-39ad715e"
+    ]
+  ],
+  "rows": [
+    {
+      "path": "cross-group-review",
+      "bytes": 5798,
+      "sha256": "f62c9ff5405a3f4902b9a6bbb6676b8953d52510317f07a37519752132b945c3"
+    },
+    {
+      "path": "diagnostics-review/review.json",
+      "bytes": 1666,
+      "sha256": "1c80bafab147af8d4f61c5e36ef5e8c821efabbb56d4140d8a5c26174d11f90c"
+    },
+    {
+      "path": "diagnostics-review/REVIEW.txt",
+      "bytes": 8608,
+      "sha256": "4990a11c0eab01d413c85f67cbb305b35b27ab030b766655d8c9c5f108c7d4c1"
+    },
+    {
+      "path": "independent-audit-review/exit-code.txt",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "independent-audit-review/read-only-review.mjs",
+      "bytes": 9356,
+      "sha256": "405faeb5833c5d661502cbd4aff73541905a30ae457a84725bc3aaa430b02bf6"
+    },
+    {
+      "path": "independent-audit-review/REPORT.txt",
+      "bytes": 2639,
+      "sha256": "e5a559efb83cc7398c44e4e67d033806056cf9f32ac390f2f59796a3451093d9"
+    },
+    {
+      "path": "independent-audit-review/review-result.json",
+      "bytes": 5536,
+      "sha256": "2164c3d0c1d69aef8c56184891474e881774d0472e86d89584e397a7f2434408"
+    },
+    {
+      "path": "independent-audit-review/review.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "probe/archive.mjs",
+      "bytes": 2917,
+      "sha256": "37826d828c8e8bb30d82685531e15c1a19b7f43d1c870a8c27b7c2aebaaf5767"
+    },
+    {
+      "path": "probe/budget-native.json",
+      "bytes": 772,
+      "sha256": "3b02a54f6776037430aaccde20935104ecbd03df144c14ba953c21d7a2f29f60"
+    },
+    {
+      "path": "probe/final-status.json",
+      "bytes": 13548,
+      "sha256": "e79e8eb0a3c45a343cee5b4ae3ad01eae6000aedb75252b9527b448a99e1a4c6"
+    },
+    {
+      "path": "probe/finalize.mjs",
+      "bytes": 4049,
+      "sha256": "7d2309142a333ef6025ce1325f2b04d2bc133ca669ff8dcd9cce7c909d92de5c"
+    },
+    {
+      "path": "probe/native-receipt-local.json",
+      "bytes": 895,
+      "sha256": "98dacc2b463200779e1a5320e722b2a6d24521508b561a24a8945d280202b926"
+    },
+    {
+      "path": "probe/probe.mjs",
+      "bytes": 3359,
+      "sha256": "fcc90d3dcf2d6fe984c4c0b82bfa7a81f90360c6aa7b1ffa69bd2da63f2f2f5d"
+    },
+    {
+      "path": "probe/PROTOCOL.md",
+      "bytes": 1714,
+      "sha256": "4d74e20c0bfefde8c14840ab8004c52216b57b6d3bccebfd24fd58f2158e66a9"
+    },
+    {
+      "path": "probe/result.json",
+      "bytes": 1664,
+      "sha256": "c5b736f6949d487446a64c16118351178ef60ad4d691cff68a8cb153925ac931"
+    },
+    {
+      "path": "storage-review/inventory.json",
+      "bytes": 27371,
+      "sha256": "0e7d7ef02c51370c7c06a8cfbbbacaffb621bdcf86a0fa4f6a56eb96a26d8093"
+    },
+    {
+      "path": "storage-review/inventory.mjs",
+      "bytes": 5622,
+      "sha256": "cd5edd9f5758b267e917a0411ba6ac924130fb97b24985bebc7c542368d7489c"
+    },
+    {
+      "path": "storage-review/README.md",
+      "bytes": 16459,
+      "sha256": "2d2a54b974872d1dd0ffa2934dfa3fc1689c20a80f01afb4dac9dca97a556df2"
+    }
+  ]
+}

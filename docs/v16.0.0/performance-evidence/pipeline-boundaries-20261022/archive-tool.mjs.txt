@@ -1,0 +1,131 @@
+import {readFileSync,writeFileSync,readdirSync,lstatSync,mkdirSync,cpSync,existsSync} from 'node:fs';
+import {resolve,relative} from 'node:path';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {gzipSync} from 'node:zlib';
+import assert from 'node:assert/strict';
+
+const root='D:/AI项目/FundVal', dir=import.meta.dirname;
+const out=resolve(root,'docs/v16.0.0/performance-evidence/pipeline-boundaries-20261022');
+const old='C:/Users/84046/AppData/Local/Temp/fundval-pair824-extract-07zGKl/postflight/postflight.json';
+const sources=[
+ 'C:/Users/84046/AppData/Local/Temp/fundval-private-pipeline-20261022-ab87350b1b',
+ 'C:/Users/84046/AppData/Local/Temp/fundval-old-resource-writers-20261022-32facc8b8e',
+ 'C:/Users/84046/AppData/Local/Temp/fundval-old-resource-writers-corrected-20261022-72dc06aa67',
+ 'C:/Users/84046/AppData/Local/Temp/FundVal-A08-M04-C01-old-20261022-a1',
+];
+const stage=resolve(dir,'stage'),extract=resolve(dir,'extract'),archive=resolve(out,'original-evidence.tar.gz');
+const sha=b=>createHash('sha256').update(b).digest('hex');
+const json=p=>JSON.parse(readFileSync(p,'utf8'));
+const checks=[],natives=[];
+function check(name,fn){fn();checks.push({name,pass:true});}
+function save(p,b){writeFileSync(p,b,{flag:'wx'});}
+function inv(base,exclude=new Set(),part=''){
+ const rows=[];
+ for(const e of readdirSync(resolve(base,part),{withFileTypes:true})){
+  if(!part&&exclude.has(e.name))continue;
+  const path=part?part+'/'+e.name:e.name,p=resolve(base,path);
+  assert.equal(lstatSync(p).isSymbolicLink(),false,'No linked archive input: '+p);
+  if(e.isDirectory())rows.push(...inv(base,exclude,path));else{
+   assert.ok(e.isFile());const b=readFileSync(p);rows.push({path,bytes:b.length,sha256:sha(b)});
+  }
+ }
+ return rows.sort((a,b)=>a.path.localeCompare(b.path));
+}
+function execute(label,command,args,cwd){
+ const r=spawnSync(command,args,{cwd,windowsHide:true,encoding:null,maxBuffer:8_000_000});
+ const stdout=r.stdout||Buffer.alloc(0),stderr=r.stderr||Buffer.alloc(0);
+ for(const [k,b]of [['stdout',stdout],['stderr',stderr]])save(resolve(dir,label+'.'+k),b);
+ const receipt={label,command,args,cwd,exitCode:r.status,signal:r.signal,error:r.error?.message??null,
+  stdout:{bytes:stdout.length,sha256:sha(stdout)},stderr:{bytes:stderr.length,sha256:sha(stderr)}};
+ natives.push(receipt);assert.equal(r.error,undefined);assert.equal(r.signal,null);assert.equal(r.status,0,label);
+ return stdout;
+}
+const baseline=json(old);
+function rootState(label){
+ const rows=inv(root,new Set(['.git','node_modules','site','Temp','.claude','docs']));
+ for(const r of baseline.source.rows.filter(r=>r.path==='docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md')){
+  const b=readFileSync(resolve(root,r.path));rows.push({path:r.path,bytes:b.length,sha256:sha(b)});
+ }
+ rows.sort((a,b)=>a.path.localeCompare(b.path));
+ check(label+' root full270 input identity',()=>assert.deepEqual(rows,baseline.source.rows));
+ const site=inv(resolve(root,'site')).sort((a,b)=>a.path.localeCompare(b.path,'en'));
+ check(label+' root full127 site identity',()=>assert.deepEqual(site,baseline.currentArtifact.files));
+ const installed=baseline.installed.rows.map(r=>{const b=readFileSync(resolve(root,'node_modules',r.path));return{path:r.path,bytes:b.length,sha256:sha(b)};});
+ check(label+' installed explicit68 unchanged',()=>assert.deepEqual(installed,baseline.installed.rows));
+ const head=execute(label+'-head','git',['rev-parse','HEAD'],root).toString().trim();
+ const branch=execute(label+'-branch','git',['branch','--show-current'],root).toString().trim();
+ const index=execute(label+'-index','git',['diff','--cached','--binary'],root);
+ check(label+' Git identity unchanged',()=>{assert.equal(head,baseline.sourceIdentity.head);assert.equal(branch,baseline.sourceIdentity.branch);assert.equal(sha(index),baseline.sourceIdentity.stagedDiffSha256);});
+ const manifest=json(resolve(root,'site/js/app-chunks.json'));
+ const measurements=manifest.chunks.map(r=>({path:r.path,gzipBytes:gzipSync(readFileSync(resolve(root,'site',r.path))).length,cold:manifest.coldStart.includes(r.path)}));
+ const all=measurements.reduce((n,r)=>n+r.gzipBytes,0),cold=measurements.filter(r=>r.cold).reduce((n,r)=>n+r.gzipBytes,0);
+ check(label+' unchanged artifact gzip and version',()=>{assert.equal(all,84187);assert.equal(cold,44699);assert.equal(json(resolve(root,'package.json')).version,'15.0.2');});
+ return{rootInputs:rows.length,siteFiles:site.length,installedRows:installed.length,head,branch,indexSha256:sha(index),allGzip:all,coldGzip:cold};
+}
+const before=rootState('before');
+const sourceInventories=sources.map(path=>({path,files:inv(path)}));
+const publicRaw=json(resolve(sources[0],'wire-public-boundary/result.json'));
+check('partial public64 full records agree',()=>{
+ assert.equal(publicRaw.results.length,64);assert.equal(publicRaw.summary.invocations,131);assert.equal(publicRaw.negativeControls.length,3);
+ for(const r of publicRaw.results){assert.deepEqual(r.freshOld,r.stored);assert.deepEqual(r.candidate,r.stored);}
+ assert.deepEqual(publicRaw.failures,[]);assert.deepEqual(publicRaw.summary.denied,{fetch:0,localStorage:0,sessionStorage:0});
+});
+const candidate=resolve(sources[0],'candidate'),candidateRows=inv(candidate),candidateBefore=json(resolve(sources[0],'source-before.json'));
+check('candidate246 exact single expected source delta',()=>{
+ assert.equal(candidateRows.length,246);assert.deepEqual(candidateRows.map(r=>r.path),candidateBefore.files.map(r=>r.path));
+ const differences=candidateRows.filter((r,i)=>JSON.stringify(r)!==JSON.stringify(candidateBefore.files[i]));
+ assert.equal(differences.length,1);assert.equal(differences[0].path,'js/runtime/worker-contract.js');
+ assert.equal(differences[0].sha256,'268547d8aae0c405b3a8ef6f224f79cbbbb42d23c3933c5151092bd78d85b4bc');
+ const execution=json(resolve(sources[0],'wire-public-boundary/inputs.json'));
+ assert.deepEqual(candidateRows,execution.before.candidate);
+});
+const r234=json(resolve(sources[2],'BASELINE.json'));
+check('resource234 every complete recording agrees',()=>{
+ assert.equal(r234.records.length,234);assert.equal(r234.complete,true);assert.equal(r234.deniedFetch,0);assert.equal(r234.deniedStorage,0);
+ for(const r of r234.records){assert.equal(r.equal,true);assert.deepEqual(r.current,r.frozen);}
+});
+const r34=json(resolve(sources[3],'baseline-01.json'));
+check('acquisition34 every actual OLD recording agrees',()=>{
+ assert.equal(r34.rows.length,34);for(const r of r34.rows){assert.equal(r.same,true);assert.deepEqual(r.root,r.frozen);assert.equal(r.forbiddenZero,true);}
+ const result=json(resolve(sources[3],'RESULT.json'));assert.equal(result.status,'RETAINED_FAILURE');assert.equal(result.expectedPass,33);assert.equal(result.differentialPass,34);
+});
+check('immutable raw SHA and sizes',()=>{
+ for(const [p,n,h] of[
+  [resolve(sources[0],'wire-public-boundary/result.json'),6421240,'53c2700a5768242168d98caf1632311d184765c130610a716dac12d5f9710918'],
+  [resolve(sources[2],'BASELINE.json'),37057036,'54402bff2876697d005b301bc0fc16686c8f88f8a3fbdf2c7d98fb1ac263737c'],
+  [resolve(sources[3],'baseline-01.json'),6704652,'56dfd31b9116842bb21ee59eae31e4631b2e817d2d1947e886bface0869b83d2'],
+ ]){const b=readFileSync(p);assert.equal(b.length,n);assert.equal(sha(b),h);}
+});
+assert.equal(existsSync(stage),false);assert.equal(existsSync(extract),false);assert.equal(existsSync(archive),false);
+mkdirSync(resolve(stage,'evidence'),{recursive:true});
+for(const item of sourceInventories){const name=item.path.split('/').at(-1);cpSync(item.path,resolve(stage,'evidence',name),{recursive:true,errorOnExist:true,force:false});}
+mkdirSync(resolve(stage,'parent'),{recursive:true});
+cpSync(import.meta.filename,resolve(stage,'parent/archive.mjs'),{errorOnExist:true,force:false});
+cpSync(old,resolve(stage,'parent/root-control.json'),{errorOnExist:true,force:false});
+cpSync(resolve(out,'README.md'),resolve(stage,'parent/README.md'),{errorOnExist:true,force:false});
+save(resolve(stage,'parent/source-inventories.json'),JSON.stringify(sourceInventories,null,2)+'\n');
+const staged=inv(stage);
+const inventory={schema:1,files:staged,count:staged.length,bytes:staged.reduce((n,r)=>n+r.bytes,0),inventorySha256:sha(JSON.stringify(staged))};
+save(resolve(out,'inventory.json'),JSON.stringify(inventory,null,2)+'\n');
+execute('tar-create','tar',['-czf',archive,'-C',stage,'.'],dir);
+const list=execute('tar-list','tar',['-tzf',archive],dir).toString('utf8').split(/\r?\n/).filter(Boolean);
+check('archive member safety',()=>{for(const p of list){assert.ok(!/^(?:\/|[A-Za-z]:)/.test(p));assert.ok(!p.split(/[\\/]/).includes('..'));}});
+mkdirSync(extract);
+execute('tar-extract','tar',['-xzf',archive,'-C',extract],dir);
+const extracted=inv(extract);
+check('full fresh extraction byte/SHA/member identity',()=>assert.deepEqual(extracted,staged));
+for(const item of sourceInventories)check('frozen source workspace unchanged '+item.path.split('/').at(-1),()=>assert.deepEqual(inv(item.path),item.files));
+check('stage unchanged after archive',()=>assert.deepEqual(inv(stage),staged));
+const after=rootState('after');
+check('root before/after state unchanged',()=>assert.deepEqual(after,before));
+execute('diff-check','git',['diff','--check'],root);
+const b=readFileSync(archive);
+const result={schema:1,status:'PASS',at:new Date().toISOString(),checks,natives,before,after,
+ archive:{path:archive,bytes:b.length,sha256:sha(b)},inventory:{count:inventory.count,bytes:inventory.bytes,sha256:inventory.inventorySha256},extract,
+ preservedBusinessFailures:['234 first freezer native1/completed0','34 baseline HK forecast native1','34 analysis model kind forecast native1'],
+ scope:{rootProductUnchanged:true,docsIntentionallyAdded:true,candidateOnlyPartialWireFactor:true,rootAdoption:false,build:'NOT_RUN',fullQA:'NOT_RUN',performance:'NOT_RUN',CI:'NOT_RUN',production:'NOT_RUN',M3:'IN_PROGRESS'}};
+save(resolve(out,'archive-audit.json'),JSON.stringify(result,null,2)+'\n');
+cpSync(import.meta.filename,resolve(out,'archive-tool.mjs.txt'),{errorOnExist:true,force:false});
+for(const n of natives)for(const k of['stdout','stderr'])cpSync(resolve(dir,n.label+'.'+k),resolve(out,n.label+'.'+k),{errorOnExist:true,force:false});
+console.log(JSON.stringify({status:result.status,checks:checks.length,archive:result.archive,inventory:result.inventory,before,after}));

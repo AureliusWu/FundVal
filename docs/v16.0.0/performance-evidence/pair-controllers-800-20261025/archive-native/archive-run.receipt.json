@@ -1,0 +1,22 @@
+{
+  "label": "archive-run",
+  "command": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "C:/Users/84046/AppData/Local/Temp/FundVal-pair-controllers-archive-20261025-child/archive.mjs",
+    "C:/Users/84046/AppData/Local/Temp/FundVal-pair-terminal-review-20261025-child"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+  "startedAt": "2026-10-25T07:09:03.713Z",
+  "finishedAt": "2026-10-25T07:09:12.875Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 3393,
+    "sha256": "0d01fb191c2889d23a84a2171048aaf9dddd797c13f56ee2734ef5598e5be5f0"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

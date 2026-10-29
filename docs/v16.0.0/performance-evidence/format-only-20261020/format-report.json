@@ -1,0 +1,1116 @@
+{
+  "protocol": {
+    "schema": 1,
+    "kind": "FORMAT_ONLY_PREQUALIFICATION_NOT_A_VITE_BUILD",
+    "original": {
+      "all": 80494,
+      "cold": 42985,
+      "raw": 235647
+    },
+    "inputManifestSha256": "f0f72a2d088bb1a015cc658a317953fcf45637aa0e99cfa58ae4cffa2faf958e",
+    "sourceBusinessCommit": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "tool": "Existing isolated Terser 5.51.2; no new installation",
+    "minifyOptions": {
+      "ecma": 2022,
+      "module": true,
+      "compress": false,
+      "mangle": false,
+      "format": {
+        "comments": false
+      }
+    },
+    "onlyVariable": "format.ascii_only false versus true",
+    "order": [
+      [
+        false,
+        true
+      ],
+      [
+        true,
+        false
+      ],
+      [
+        false,
+        true
+      ]
+    ],
+    "rounds": 3,
+    "adoption": false,
+    "graphVerificationToolSha256": "6647961ec3800df7a8ab3da6f3f0dfe75de3abca768f7af10f26594f9b83b678",
+    "filenameScope": "Original chunk identifiers retained for in-memory linking; not content-hashed Vite output",
+    "decision": "Measure formatting benefit only; no build-recipe adoption or runtime/latency qualification from this probe"
+  },
+  "runs": [
+    {
+      "round": 1,
+      "asciiOnly": false,
+      "all": 80465,
+      "cold": 42980,
+      "raw": 235622,
+      "fingerprint": "043d0a2c4ec1a683cc7300f7a129013271ff6619fee0e04e32db16385f9f6b50",
+      "astDifferences": [
+        "js/app-shell.js",
+        "js/chunks/business-runtime-63t7lKdA.js",
+        "js/chunks/cloud-CLK5Spot.js",
+        "js/chunks/post-integrity-LZsxxjFJ.js",
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "linked": {
+        "chunkCount": 16,
+        "staticEdgeCount": 18,
+        "dynamicEdgeCount": 10,
+        "actualColdChunkCount": 6,
+        "literalImportClosureVerified": true,
+        "staticBindingsVerified": true,
+        "evaluated": false,
+        "startupOrderVerified": false,
+        "dynamicNamespaceMembersVerified": false
+      },
+      "rows": [
+        {
+          "path": "js/app-shell.js",
+          "role": "cold",
+          "bytes": 5055,
+          "gzip": 2233,
+          "sha256": "5d0fc7e68a59a97e3f33e839d40b8f78129896a20b4dbdc3165f2abdfed8c8d2",
+          "astSha256": "b2009128a0850ec80bdaba601129c5a81de2ed5f20ba27182a563365c05498fd"
+        },
+        {
+          "path": "js/chunks/accuracy-AV5UnMZT.js",
+          "role": "lazy",
+          "bytes": 77,
+          "gzip": 92,
+          "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+          "astSha256": "77c065bcc64d63163bb2ab5c387b2def5f2bb72e0c5b7a861e06d94a9a2b9413"
+        },
+        {
+          "path": "js/chunks/app-C1KeC5Vr.js",
+          "role": "cold",
+          "bytes": 37,
+          "gzip": 57,
+          "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+          "astSha256": "152047a67bed7b6ea396608f4c50bca79318afc2734c8935b74e46cc31d61ffb"
+        },
+        {
+          "path": "js/chunks/business-features-BxmeGblZ.js",
+          "role": "lazy",
+          "bytes": 665,
+          "gzip": 374,
+          "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+          "astSha256": "fe963dc15900c17ecd8cf73db2d5cb8003bab7b0bfc2eba4b9feb464b0a6c3a9"
+        },
+        {
+          "path": "js/chunks/business-runtime-63t7lKdA.js",
+          "role": "lazy",
+          "bytes": 80935,
+          "gzip": 27162,
+          "sha256": "f715d2e76b4dcb689a85a09258003dc51c172c669342cc34e96c012ade8c0a4d",
+          "astSha256": "470191fe5bcf7a25e6e004d117413652f26d3e1ee7c49fc58895d41a6800368b"
+        },
+        {
+          "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+          "role": "lazy",
+          "bytes": 79,
+          "gzip": 92,
+          "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+          "astSha256": "e0a7220a5c622378e27e621b2120c2cba2eadddd592fa34f7039cdf301586780"
+        },
+        {
+          "path": "js/chunks/cloud-CLK5Spot.js",
+          "role": "lazy",
+          "bytes": 18694,
+          "gzip": 6382,
+          "sha256": "1ca20d04e256c997066b43d11689d2c56a71f9118f9ad6775b5baa6a207377ae",
+          "astSha256": "84b3829fa8f1ac24c22228c1dffff1e2348ce57762f5377376ed7dd6c1cedea2"
+        },
+        {
+          "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+          "role": "lazy",
+          "bytes": 254,
+          "gzip": 184,
+          "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+          "astSha256": "16eceb853625b116421f8ebf60910e12521d16056eb667e1a7c40f6143b29b21"
+        },
+        {
+          "path": "js/chunks/diagnostics-DLmiIP_p.js",
+          "role": "lazy",
+          "bytes": 5629,
+          "gzip": 2883,
+          "sha256": "3542c08d7a6e2c103887b299fd9755d67d16641c3060651b2ffc40c4727e3970",
+          "astSha256": "215467a1951ea5366b0929a20f3a39890e18cabb52fd906a0248b0018ed7d3b9"
+        },
+        {
+          "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+          "role": "lazy",
+          "bytes": 83,
+          "gzip": 90,
+          "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+          "astSha256": "485857c539bd9be344b2f59cf1d55e2b416d4d058cb1418c71ef3ca292e15ef7"
+        },
+        {
+          "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+          "role": "lazy",
+          "bytes": 141,
+          "gzip": 137,
+          "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+          "astSha256": "2e9d2180907eba17ae6ed3821cfd034d64738d5e97fe6e8ab1a9c25cd4e23e0c"
+        },
+        {
+          "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+          "role": "cold",
+          "bytes": 96338,
+          "gzip": 32203,
+          "sha256": "92ff7143bbaf7e80be48eead80822d58fa6ed0b78a9127bd776a64814134c9e8",
+          "astSha256": "fc36916af2f5b58b02965829e206a0a28f47774b01486948a3f7c0409e0efc2e"
+        },
+        {
+          "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+          "role": "lazy",
+          "bytes": 82,
+          "gzip": 89,
+          "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+          "astSha256": "2f029a629d0e0d84ca0e3c7d64744006c4c327c88756220ad5a9c1b277d774d4"
+        },
+        {
+          "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+          "role": "cold",
+          "bytes": 79,
+          "gzip": 94,
+          "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+          "astSha256": "aea713180ce2666da023fd78f4c9119548657c6707f0d1fcf883af2c31bef613"
+        },
+        {
+          "path": "js/chunks/startup-pure-v6vu1dD4.js",
+          "role": "cold",
+          "bytes": 27349,
+          "gzip": 8262,
+          "sha256": "abb38bab8ce7896202e32fde8246878fbb058f22aa2dca81ffc89724d6528ddf",
+          "astSha256": "69db6c02935c91a12caed7214b8f21307fd479e823d71fe108d4a58b6a0f4a71"
+        },
+        {
+          "path": "js/chunks/startup-repository-B04CzfgI.js",
+          "role": "cold",
+          "bytes": 125,
+          "gzip": 131,
+          "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+          "astSha256": "5bf35f05c941276dd0046bb2d53a95b1688e121b71ddc6c6b6aa1038f29a79d9"
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "asciiOnly": true,
+      "all": 80224,
+      "cold": 42887,
+      "raw": 244683,
+      "fingerprint": "42a58e1f03c966f4ef5a115e4f4332d51a603ea72dd50eab4a611c121603008d",
+      "astDifferences": [
+        "js/app-shell.js",
+        "js/chunks/business-runtime-63t7lKdA.js",
+        "js/chunks/cloud-CLK5Spot.js",
+        "js/chunks/post-integrity-LZsxxjFJ.js",
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "linked": {
+        "chunkCount": 16,
+        "staticEdgeCount": 18,
+        "dynamicEdgeCount": 10,
+        "actualColdChunkCount": 6,
+        "literalImportClosureVerified": true,
+        "staticBindingsVerified": true,
+        "evaluated": false,
+        "startupOrderVerified": false,
+        "dynamicNamespaceMembersVerified": false
+      },
+      "rows": [
+        {
+          "path": "js/app-shell.js",
+          "role": "cold",
+          "bytes": 5604,
+          "gzip": 2216,
+          "sha256": "e96eb453720f4af3b1745e886a2ddab32ed296915e2d32f7dae136a8d08927a4",
+          "astSha256": "b2009128a0850ec80bdaba601129c5a81de2ed5f20ba27182a563365c05498fd"
+        },
+        {
+          "path": "js/chunks/accuracy-AV5UnMZT.js",
+          "role": "lazy",
+          "bytes": 77,
+          "gzip": 92,
+          "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+          "astSha256": "77c065bcc64d63163bb2ab5c387b2def5f2bb72e0c5b7a861e06d94a9a2b9413"
+        },
+        {
+          "path": "js/chunks/app-C1KeC5Vr.js",
+          "role": "cold",
+          "bytes": 37,
+          "gzip": 57,
+          "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+          "astSha256": "152047a67bed7b6ea396608f4c50bca79318afc2734c8935b74e46cc31d61ffb"
+        },
+        {
+          "path": "js/chunks/business-features-BxmeGblZ.js",
+          "role": "lazy",
+          "bytes": 665,
+          "gzip": 374,
+          "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+          "astSha256": "fe963dc15900c17ecd8cf73db2d5cb8003bab7b0bfc2eba4b9feb464b0a6c3a9"
+        },
+        {
+          "path": "js/chunks/business-runtime-63t7lKdA.js",
+          "role": "lazy",
+          "bytes": 82306,
+          "gzip": 27060,
+          "sha256": "d5a360eda8af7ff3467a96b8cc5d535e37a614d2d12f5ef7751051d3ca3b40f9",
+          "astSha256": "470191fe5bcf7a25e6e004d117413652f26d3e1ee7c49fc58895d41a6800368b"
+        },
+        {
+          "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+          "role": "lazy",
+          "bytes": 79,
+          "gzip": 92,
+          "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+          "astSha256": "e0a7220a5c622378e27e621b2120c2cba2eadddd592fa34f7039cdf301586780"
+        },
+        {
+          "path": "js/chunks/cloud-CLK5Spot.js",
+          "role": "lazy",
+          "bytes": 19456,
+          "gzip": 6318,
+          "sha256": "4d4b23d4dd0434e1323992ae2d5530394fab426f3d4244f079763418605a735c",
+          "astSha256": "84b3829fa8f1ac24c22228c1dffff1e2348ce57762f5377376ed7dd6c1cedea2"
+        },
+        {
+          "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+          "role": "lazy",
+          "bytes": 254,
+          "gzip": 184,
+          "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+          "astSha256": "16eceb853625b116421f8ebf60910e12521d16056eb667e1a7c40f6143b29b21"
+        },
+        {
+          "path": "js/chunks/diagnostics-DLmiIP_p.js",
+          "role": "lazy",
+          "bytes": 6560,
+          "gzip": 2901,
+          "sha256": "385c986fbec22df5517d082e619969043ba5b2490fa340e200281bcceccdde5b",
+          "astSha256": "215467a1951ea5366b0929a20f3a39890e18cabb52fd906a0248b0018ed7d3b9"
+        },
+        {
+          "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+          "role": "lazy",
+          "bytes": 83,
+          "gzip": 90,
+          "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+          "astSha256": "485857c539bd9be344b2f59cf1d55e2b416d4d058cb1418c71ef3ca292e15ef7"
+        },
+        {
+          "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+          "role": "lazy",
+          "bytes": 141,
+          "gzip": 137,
+          "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+          "astSha256": "2e9d2180907eba17ae6ed3821cfd034d64738d5e97fe6e8ab1a9c25cd4e23e0c"
+        },
+        {
+          "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+          "role": "cold",
+          "bytes": 101786,
+          "gzip": 32127,
+          "sha256": "dc9c50641cfd368ee4063225787e0a8025cf19b4c26b6f2101f6e107c5d24373",
+          "astSha256": "ce75c9efbc724f586a436ae13ec6801da678330c61749c0f25d5938dae8d06e3"
+        },
+        {
+          "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+          "role": "lazy",
+          "bytes": 82,
+          "gzip": 89,
+          "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+          "astSha256": "2f029a629d0e0d84ca0e3c7d64744006c4c327c88756220ad5a9c1b277d774d4"
+        },
+        {
+          "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+          "role": "cold",
+          "bytes": 79,
+          "gzip": 94,
+          "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+          "astSha256": "aea713180ce2666da023fd78f4c9119548657c6707f0d1fcf883af2c31bef613"
+        },
+        {
+          "path": "js/chunks/startup-pure-v6vu1dD4.js",
+          "role": "cold",
+          "bytes": 27349,
+          "gzip": 8262,
+          "sha256": "abb38bab8ce7896202e32fde8246878fbb058f22aa2dca81ffc89724d6528ddf",
+          "astSha256": "69db6c02935c91a12caed7214b8f21307fd479e823d71fe108d4a58b6a0f4a71"
+        },
+        {
+          "path": "js/chunks/startup-repository-B04CzfgI.js",
+          "role": "cold",
+          "bytes": 125,
+          "gzip": 131,
+          "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+          "astSha256": "5bf35f05c941276dd0046bb2d53a95b1688e121b71ddc6c6b6aa1038f29a79d9"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "asciiOnly": true,
+      "all": 80224,
+      "cold": 42887,
+      "raw": 244683,
+      "fingerprint": "42a58e1f03c966f4ef5a115e4f4332d51a603ea72dd50eab4a611c121603008d",
+      "astDifferences": [
+        "js/app-shell.js",
+        "js/chunks/business-runtime-63t7lKdA.js",
+        "js/chunks/cloud-CLK5Spot.js",
+        "js/chunks/post-integrity-LZsxxjFJ.js",
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "linked": {
+        "chunkCount": 16,
+        "staticEdgeCount": 18,
+        "dynamicEdgeCount": 10,
+        "actualColdChunkCount": 6,
+        "literalImportClosureVerified": true,
+        "staticBindingsVerified": true,
+        "evaluated": false,
+        "startupOrderVerified": false,
+        "dynamicNamespaceMembersVerified": false
+      },
+      "rows": [
+        {
+          "path": "js/app-shell.js",
+          "role": "cold",
+          "bytes": 5604,
+          "gzip": 2216,
+          "sha256": "e96eb453720f4af3b1745e886a2ddab32ed296915e2d32f7dae136a8d08927a4",
+          "astSha256": "b2009128a0850ec80bdaba601129c5a81de2ed5f20ba27182a563365c05498fd"
+        },
+        {
+          "path": "js/chunks/accuracy-AV5UnMZT.js",
+          "role": "lazy",
+          "bytes": 77,
+          "gzip": 92,
+          "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+          "astSha256": "77c065bcc64d63163bb2ab5c387b2def5f2bb72e0c5b7a861e06d94a9a2b9413"
+        },
+        {
+          "path": "js/chunks/app-C1KeC5Vr.js",
+          "role": "cold",
+          "bytes": 37,
+          "gzip": 57,
+          "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+          "astSha256": "152047a67bed7b6ea396608f4c50bca79318afc2734c8935b74e46cc31d61ffb"
+        },
+        {
+          "path": "js/chunks/business-features-BxmeGblZ.js",
+          "role": "lazy",
+          "bytes": 665,
+          "gzip": 374,
+          "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+          "astSha256": "fe963dc15900c17ecd8cf73db2d5cb8003bab7b0bfc2eba4b9feb464b0a6c3a9"
+        },
+        {
+          "path": "js/chunks/business-runtime-63t7lKdA.js",
+          "role": "lazy",
+          "bytes": 82306,
+          "gzip": 27060,
+          "sha256": "d5a360eda8af7ff3467a96b8cc5d535e37a614d2d12f5ef7751051d3ca3b40f9",
+          "astSha256": "470191fe5bcf7a25e6e004d117413652f26d3e1ee7c49fc58895d41a6800368b"
+        },
+        {
+          "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+          "role": "lazy",
+          "bytes": 79,
+          "gzip": 92,
+          "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+          "astSha256": "e0a7220a5c622378e27e621b2120c2cba2eadddd592fa34f7039cdf301586780"
+        },
+        {
+          "path": "js/chunks/cloud-CLK5Spot.js",
+          "role": "lazy",
+          "bytes": 19456,
+          "gzip": 6318,
+          "sha256": "4d4b23d4dd0434e1323992ae2d5530394fab426f3d4244f079763418605a735c",
+          "astSha256": "84b3829fa8f1ac24c22228c1dffff1e2348ce57762f5377376ed7dd6c1cedea2"
+        },
+        {
+          "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+          "role": "lazy",
+          "bytes": 254,
+          "gzip": 184,
+          "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+          "astSha256": "16eceb853625b116421f8ebf60910e12521d16056eb667e1a7c40f6143b29b21"
+        },
+        {
+          "path": "js/chunks/diagnostics-DLmiIP_p.js",
+          "role": "lazy",
+          "bytes": 6560,
+          "gzip": 2901,
+          "sha256": "385c986fbec22df5517d082e619969043ba5b2490fa340e200281bcceccdde5b",
+          "astSha256": "215467a1951ea5366b0929a20f3a39890e18cabb52fd906a0248b0018ed7d3b9"
+        },
+        {
+          "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+          "role": "lazy",
+          "bytes": 83,
+          "gzip": 90,
+          "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+          "astSha256": "485857c539bd9be344b2f59cf1d55e2b416d4d058cb1418c71ef3ca292e15ef7"
+        },
+        {
+          "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+          "role": "lazy",
+          "bytes": 141,
+          "gzip": 137,
+          "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+          "astSha256": "2e9d2180907eba17ae6ed3821cfd034d64738d5e97fe6e8ab1a9c25cd4e23e0c"
+        },
+        {
+          "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+          "role": "cold",
+          "bytes": 101786,
+          "gzip": 32127,
+          "sha256": "dc9c50641cfd368ee4063225787e0a8025cf19b4c26b6f2101f6e107c5d24373",
+          "astSha256": "ce75c9efbc724f586a436ae13ec6801da678330c61749c0f25d5938dae8d06e3"
+        },
+        {
+          "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+          "role": "lazy",
+          "bytes": 82,
+          "gzip": 89,
+          "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+          "astSha256": "2f029a629d0e0d84ca0e3c7d64744006c4c327c88756220ad5a9c1b277d774d4"
+        },
+        {
+          "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+          "role": "cold",
+          "bytes": 79,
+          "gzip": 94,
+          "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+          "astSha256": "aea713180ce2666da023fd78f4c9119548657c6707f0d1fcf883af2c31bef613"
+        },
+        {
+          "path": "js/chunks/startup-pure-v6vu1dD4.js",
+          "role": "cold",
+          "bytes": 27349,
+          "gzip": 8262,
+          "sha256": "abb38bab8ce7896202e32fde8246878fbb058f22aa2dca81ffc89724d6528ddf",
+          "astSha256": "69db6c02935c91a12caed7214b8f21307fd479e823d71fe108d4a58b6a0f4a71"
+        },
+        {
+          "path": "js/chunks/startup-repository-B04CzfgI.js",
+          "role": "cold",
+          "bytes": 125,
+          "gzip": 131,
+          "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+          "astSha256": "5bf35f05c941276dd0046bb2d53a95b1688e121b71ddc6c6b6aa1038f29a79d9"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "asciiOnly": false,
+      "all": 80465,
+      "cold": 42980,
+      "raw": 235622,
+      "fingerprint": "043d0a2c4ec1a683cc7300f7a129013271ff6619fee0e04e32db16385f9f6b50",
+      "astDifferences": [
+        "js/app-shell.js",
+        "js/chunks/business-runtime-63t7lKdA.js",
+        "js/chunks/cloud-CLK5Spot.js",
+        "js/chunks/post-integrity-LZsxxjFJ.js",
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "linked": {
+        "chunkCount": 16,
+        "staticEdgeCount": 18,
+        "dynamicEdgeCount": 10,
+        "actualColdChunkCount": 6,
+        "literalImportClosureVerified": true,
+        "staticBindingsVerified": true,
+        "evaluated": false,
+        "startupOrderVerified": false,
+        "dynamicNamespaceMembersVerified": false
+      },
+      "rows": [
+        {
+          "path": "js/app-shell.js",
+          "role": "cold",
+          "bytes": 5055,
+          "gzip": 2233,
+          "sha256": "5d0fc7e68a59a97e3f33e839d40b8f78129896a20b4dbdc3165f2abdfed8c8d2",
+          "astSha256": "b2009128a0850ec80bdaba601129c5a81de2ed5f20ba27182a563365c05498fd"
+        },
+        {
+          "path": "js/chunks/accuracy-AV5UnMZT.js",
+          "role": "lazy",
+          "bytes": 77,
+          "gzip": 92,
+          "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+          "astSha256": "77c065bcc64d63163bb2ab5c387b2def5f2bb72e0c5b7a861e06d94a9a2b9413"
+        },
+        {
+          "path": "js/chunks/app-C1KeC5Vr.js",
+          "role": "cold",
+          "bytes": 37,
+          "gzip": 57,
+          "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+          "astSha256": "152047a67bed7b6ea396608f4c50bca79318afc2734c8935b74e46cc31d61ffb"
+        },
+        {
+          "path": "js/chunks/business-features-BxmeGblZ.js",
+          "role": "lazy",
+          "bytes": 665,
+          "gzip": 374,
+          "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+          "astSha256": "fe963dc15900c17ecd8cf73db2d5cb8003bab7b0bfc2eba4b9feb464b0a6c3a9"
+        },
+        {
+          "path": "js/chunks/business-runtime-63t7lKdA.js",
+          "role": "lazy",
+          "bytes": 80935,
+          "gzip": 27162,
+          "sha256": "f715d2e76b4dcb689a85a09258003dc51c172c669342cc34e96c012ade8c0a4d",
+          "astSha256": "470191fe5bcf7a25e6e004d117413652f26d3e1ee7c49fc58895d41a6800368b"
+        },
+        {
+          "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+          "role": "lazy",
+          "bytes": 79,
+          "gzip": 92,
+          "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+          "astSha256": "e0a7220a5c622378e27e621b2120c2cba2eadddd592fa34f7039cdf301586780"
+        },
+        {
+          "path": "js/chunks/cloud-CLK5Spot.js",
+          "role": "lazy",
+          "bytes": 18694,
+          "gzip": 6382,
+          "sha256": "1ca20d04e256c997066b43d11689d2c56a71f9118f9ad6775b5baa6a207377ae",
+          "astSha256": "84b3829fa8f1ac24c22228c1dffff1e2348ce57762f5377376ed7dd6c1cedea2"
+        },
+        {
+          "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+          "role": "lazy",
+          "bytes": 254,
+          "gzip": 184,
+          "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+          "astSha256": "16eceb853625b116421f8ebf60910e12521d16056eb667e1a7c40f6143b29b21"
+        },
+        {
+          "path": "js/chunks/diagnostics-DLmiIP_p.js",
+          "role": "lazy",
+          "bytes": 5629,
+          "gzip": 2883,
+          "sha256": "3542c08d7a6e2c103887b299fd9755d67d16641c3060651b2ffc40c4727e3970",
+          "astSha256": "215467a1951ea5366b0929a20f3a39890e18cabb52fd906a0248b0018ed7d3b9"
+        },
+        {
+          "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+          "role": "lazy",
+          "bytes": 83,
+          "gzip": 90,
+          "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+          "astSha256": "485857c539bd9be344b2f59cf1d55e2b416d4d058cb1418c71ef3ca292e15ef7"
+        },
+        {
+          "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+          "role": "lazy",
+          "bytes": 141,
+          "gzip": 137,
+          "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+          "astSha256": "2e9d2180907eba17ae6ed3821cfd034d64738d5e97fe6e8ab1a9c25cd4e23e0c"
+        },
+        {
+          "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+          "role": "cold",
+          "bytes": 96338,
+          "gzip": 32203,
+          "sha256": "92ff7143bbaf7e80be48eead80822d58fa6ed0b78a9127bd776a64814134c9e8",
+          "astSha256": "fc36916af2f5b58b02965829e206a0a28f47774b01486948a3f7c0409e0efc2e"
+        },
+        {
+          "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+          "role": "lazy",
+          "bytes": 82,
+          "gzip": 89,
+          "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+          "astSha256": "2f029a629d0e0d84ca0e3c7d64744006c4c327c88756220ad5a9c1b277d774d4"
+        },
+        {
+          "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+          "role": "cold",
+          "bytes": 79,
+          "gzip": 94,
+          "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+          "astSha256": "aea713180ce2666da023fd78f4c9119548657c6707f0d1fcf883af2c31bef613"
+        },
+        {
+          "path": "js/chunks/startup-pure-v6vu1dD4.js",
+          "role": "cold",
+          "bytes": 27349,
+          "gzip": 8262,
+          "sha256": "abb38bab8ce7896202e32fde8246878fbb058f22aa2dca81ffc89724d6528ddf",
+          "astSha256": "69db6c02935c91a12caed7214b8f21307fd479e823d71fe108d4a58b6a0f4a71"
+        },
+        {
+          "path": "js/chunks/startup-repository-B04CzfgI.js",
+          "role": "cold",
+          "bytes": 125,
+          "gzip": 131,
+          "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+          "astSha256": "5bf35f05c941276dd0046bb2d53a95b1688e121b71ddc6c6b6aa1038f29a79d9"
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "asciiOnly": false,
+      "all": 80465,
+      "cold": 42980,
+      "raw": 235622,
+      "fingerprint": "043d0a2c4ec1a683cc7300f7a129013271ff6619fee0e04e32db16385f9f6b50",
+      "astDifferences": [
+        "js/app-shell.js",
+        "js/chunks/business-runtime-63t7lKdA.js",
+        "js/chunks/cloud-CLK5Spot.js",
+        "js/chunks/post-integrity-LZsxxjFJ.js",
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "linked": {
+        "chunkCount": 16,
+        "staticEdgeCount": 18,
+        "dynamicEdgeCount": 10,
+        "actualColdChunkCount": 6,
+        "literalImportClosureVerified": true,
+        "staticBindingsVerified": true,
+        "evaluated": false,
+        "startupOrderVerified": false,
+        "dynamicNamespaceMembersVerified": false
+      },
+      "rows": [
+        {
+          "path": "js/app-shell.js",
+          "role": "cold",
+          "bytes": 5055,
+          "gzip": 2233,
+          "sha256": "5d0fc7e68a59a97e3f33e839d40b8f78129896a20b4dbdc3165f2abdfed8c8d2",
+          "astSha256": "b2009128a0850ec80bdaba601129c5a81de2ed5f20ba27182a563365c05498fd"
+        },
+        {
+          "path": "js/chunks/accuracy-AV5UnMZT.js",
+          "role": "lazy",
+          "bytes": 77,
+          "gzip": 92,
+          "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+          "astSha256": "77c065bcc64d63163bb2ab5c387b2def5f2bb72e0c5b7a861e06d94a9a2b9413"
+        },
+        {
+          "path": "js/chunks/app-C1KeC5Vr.js",
+          "role": "cold",
+          "bytes": 37,
+          "gzip": 57,
+          "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+          "astSha256": "152047a67bed7b6ea396608f4c50bca79318afc2734c8935b74e46cc31d61ffb"
+        },
+        {
+          "path": "js/chunks/business-features-BxmeGblZ.js",
+          "role": "lazy",
+          "bytes": 665,
+          "gzip": 374,
+          "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+          "astSha256": "fe963dc15900c17ecd8cf73db2d5cb8003bab7b0bfc2eba4b9feb464b0a6c3a9"
+        },
+        {
+          "path": "js/chunks/business-runtime-63t7lKdA.js",
+          "role": "lazy",
+          "bytes": 80935,
+          "gzip": 27162,
+          "sha256": "f715d2e76b4dcb689a85a09258003dc51c172c669342cc34e96c012ade8c0a4d",
+          "astSha256": "470191fe5bcf7a25e6e004d117413652f26d3e1ee7c49fc58895d41a6800368b"
+        },
+        {
+          "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+          "role": "lazy",
+          "bytes": 79,
+          "gzip": 92,
+          "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+          "astSha256": "e0a7220a5c622378e27e621b2120c2cba2eadddd592fa34f7039cdf301586780"
+        },
+        {
+          "path": "js/chunks/cloud-CLK5Spot.js",
+          "role": "lazy",
+          "bytes": 18694,
+          "gzip": 6382,
+          "sha256": "1ca20d04e256c997066b43d11689d2c56a71f9118f9ad6775b5baa6a207377ae",
+          "astSha256": "84b3829fa8f1ac24c22228c1dffff1e2348ce57762f5377376ed7dd6c1cedea2"
+        },
+        {
+          "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+          "role": "lazy",
+          "bytes": 254,
+          "gzip": 184,
+          "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+          "astSha256": "16eceb853625b116421f8ebf60910e12521d16056eb667e1a7c40f6143b29b21"
+        },
+        {
+          "path": "js/chunks/diagnostics-DLmiIP_p.js",
+          "role": "lazy",
+          "bytes": 5629,
+          "gzip": 2883,
+          "sha256": "3542c08d7a6e2c103887b299fd9755d67d16641c3060651b2ffc40c4727e3970",
+          "astSha256": "215467a1951ea5366b0929a20f3a39890e18cabb52fd906a0248b0018ed7d3b9"
+        },
+        {
+          "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+          "role": "lazy",
+          "bytes": 83,
+          "gzip": 90,
+          "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+          "astSha256": "485857c539bd9be344b2f59cf1d55e2b416d4d058cb1418c71ef3ca292e15ef7"
+        },
+        {
+          "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+          "role": "lazy",
+          "bytes": 141,
+          "gzip": 137,
+          "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+          "astSha256": "2e9d2180907eba17ae6ed3821cfd034d64738d5e97fe6e8ab1a9c25cd4e23e0c"
+        },
+        {
+          "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+          "role": "cold",
+          "bytes": 96338,
+          "gzip": 32203,
+          "sha256": "92ff7143bbaf7e80be48eead80822d58fa6ed0b78a9127bd776a64814134c9e8",
+          "astSha256": "fc36916af2f5b58b02965829e206a0a28f47774b01486948a3f7c0409e0efc2e"
+        },
+        {
+          "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+          "role": "lazy",
+          "bytes": 82,
+          "gzip": 89,
+          "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+          "astSha256": "2f029a629d0e0d84ca0e3c7d64744006c4c327c88756220ad5a9c1b277d774d4"
+        },
+        {
+          "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+          "role": "cold",
+          "bytes": 79,
+          "gzip": 94,
+          "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+          "astSha256": "aea713180ce2666da023fd78f4c9119548657c6707f0d1fcf883af2c31bef613"
+        },
+        {
+          "path": "js/chunks/startup-pure-v6vu1dD4.js",
+          "role": "cold",
+          "bytes": 27349,
+          "gzip": 8262,
+          "sha256": "abb38bab8ce7896202e32fde8246878fbb058f22aa2dca81ffc89724d6528ddf",
+          "astSha256": "69db6c02935c91a12caed7214b8f21307fd479e823d71fe108d4a58b6a0f4a71"
+        },
+        {
+          "path": "js/chunks/startup-repository-B04CzfgI.js",
+          "role": "cold",
+          "bytes": 125,
+          "gzip": 131,
+          "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+          "astSha256": "5bf35f05c941276dd0046bb2d53a95b1688e121b71ddc6c6b6aa1038f29a79d9"
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "asciiOnly": true,
+      "all": 80224,
+      "cold": 42887,
+      "raw": 244683,
+      "fingerprint": "42a58e1f03c966f4ef5a115e4f4332d51a603ea72dd50eab4a611c121603008d",
+      "astDifferences": [
+        "js/app-shell.js",
+        "js/chunks/business-runtime-63t7lKdA.js",
+        "js/chunks/cloud-CLK5Spot.js",
+        "js/chunks/post-integrity-LZsxxjFJ.js",
+        "js/chunks/startup-pure-v6vu1dD4.js"
+      ],
+      "linked": {
+        "chunkCount": 16,
+        "staticEdgeCount": 18,
+        "dynamicEdgeCount": 10,
+        "actualColdChunkCount": 6,
+        "literalImportClosureVerified": true,
+        "staticBindingsVerified": true,
+        "evaluated": false,
+        "startupOrderVerified": false,
+        "dynamicNamespaceMembersVerified": false
+      },
+      "rows": [
+        {
+          "path": "js/app-shell.js",
+          "role": "cold",
+          "bytes": 5604,
+          "gzip": 2216,
+          "sha256": "e96eb453720f4af3b1745e886a2ddab32ed296915e2d32f7dae136a8d08927a4",
+          "astSha256": "b2009128a0850ec80bdaba601129c5a81de2ed5f20ba27182a563365c05498fd"
+        },
+        {
+          "path": "js/chunks/accuracy-AV5UnMZT.js",
+          "role": "lazy",
+          "bytes": 77,
+          "gzip": 92,
+          "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb",
+          "astSha256": "77c065bcc64d63163bb2ab5c387b2def5f2bb72e0c5b7a861e06d94a9a2b9413"
+        },
+        {
+          "path": "js/chunks/app-C1KeC5Vr.js",
+          "role": "cold",
+          "bytes": 37,
+          "gzip": 57,
+          "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b",
+          "astSha256": "152047a67bed7b6ea396608f4c50bca79318afc2734c8935b74e46cc31d61ffb"
+        },
+        {
+          "path": "js/chunks/business-features-BxmeGblZ.js",
+          "role": "lazy",
+          "bytes": 665,
+          "gzip": 374,
+          "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988",
+          "astSha256": "fe963dc15900c17ecd8cf73db2d5cb8003bab7b0bfc2eba4b9feb464b0a6c3a9"
+        },
+        {
+          "path": "js/chunks/business-runtime-63t7lKdA.js",
+          "role": "lazy",
+          "bytes": 82306,
+          "gzip": 27060,
+          "sha256": "d5a360eda8af7ff3467a96b8cc5d535e37a614d2d12f5ef7751051d3ca3b40f9",
+          "astSha256": "470191fe5bcf7a25e6e004d117413652f26d3e1ee7c49fc58895d41a6800368b"
+        },
+        {
+          "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+          "role": "lazy",
+          "bytes": 79,
+          "gzip": 92,
+          "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d",
+          "astSha256": "e0a7220a5c622378e27e621b2120c2cba2eadddd592fa34f7039cdf301586780"
+        },
+        {
+          "path": "js/chunks/cloud-CLK5Spot.js",
+          "role": "lazy",
+          "bytes": 19456,
+          "gzip": 6318,
+          "sha256": "4d4b23d4dd0434e1323992ae2d5530394fab426f3d4244f079763418605a735c",
+          "astSha256": "84b3829fa8f1ac24c22228c1dffff1e2348ce57762f5377376ed7dd6c1cedea2"
+        },
+        {
+          "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+          "role": "lazy",
+          "bytes": 254,
+          "gzip": 184,
+          "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a",
+          "astSha256": "16eceb853625b116421f8ebf60910e12521d16056eb667e1a7c40f6143b29b21"
+        },
+        {
+          "path": "js/chunks/diagnostics-DLmiIP_p.js",
+          "role": "lazy",
+          "bytes": 6560,
+          "gzip": 2901,
+          "sha256": "385c986fbec22df5517d082e619969043ba5b2490fa340e200281bcceccdde5b",
+          "astSha256": "215467a1951ea5366b0929a20f3a39890e18cabb52fd906a0248b0018ed7d3b9"
+        },
+        {
+          "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+          "role": "lazy",
+          "bytes": 83,
+          "gzip": 90,
+          "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c",
+          "astSha256": "485857c539bd9be344b2f59cf1d55e2b416d4d058cb1418c71ef3ca292e15ef7"
+        },
+        {
+          "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+          "role": "lazy",
+          "bytes": 141,
+          "gzip": 137,
+          "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208",
+          "astSha256": "2e9d2180907eba17ae6ed3821cfd034d64738d5e97fe6e8ab1a9c25cd4e23e0c"
+        },
+        {
+          "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+          "role": "cold",
+          "bytes": 101786,
+          "gzip": 32127,
+          "sha256": "dc9c50641cfd368ee4063225787e0a8025cf19b4c26b6f2101f6e107c5d24373",
+          "astSha256": "ce75c9efbc724f586a436ae13ec6801da678330c61749c0f25d5938dae8d06e3"
+        },
+        {
+          "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+          "role": "lazy",
+          "bytes": 82,
+          "gzip": 89,
+          "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd",
+          "astSha256": "2f029a629d0e0d84ca0e3c7d64744006c4c327c88756220ad5a9c1b277d774d4"
+        },
+        {
+          "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+          "role": "cold",
+          "bytes": 79,
+          "gzip": 94,
+          "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd",
+          "astSha256": "aea713180ce2666da023fd78f4c9119548657c6707f0d1fcf883af2c31bef613"
+        },
+        {
+          "path": "js/chunks/startup-pure-v6vu1dD4.js",
+          "role": "cold",
+          "bytes": 27349,
+          "gzip": 8262,
+          "sha256": "abb38bab8ce7896202e32fde8246878fbb058f22aa2dca81ffc89724d6528ddf",
+          "astSha256": "69db6c02935c91a12caed7214b8f21307fd479e823d71fe108d4a58b6a0f4a71"
+        },
+        {
+          "path": "js/chunks/startup-repository-B04CzfgI.js",
+          "role": "cold",
+          "bytes": 125,
+          "gzip": 131,
+          "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc",
+          "astSha256": "5bf35f05c941276dd0046bb2d53a95b1688e121b71ddc6c6b6aa1038f29a79d9"
+        }
+      ]
+    }
+  ],
+  "before": [
+    {
+      "path": "js/app-shell.js",
+      "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d"
+    },
+    {
+      "path": "js/chunks/accuracy-AV5UnMZT.js",
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "js/chunks/app-C1KeC5Vr.js",
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "js/chunks/business-features-BxmeGblZ.js",
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "js/chunks/business-runtime-63t7lKdA.js",
+      "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5"
+    },
+    {
+      "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "js/chunks/cloud-CLK5Spot.js",
+      "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574"
+    },
+    {
+      "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "js/chunks/diagnostics-DLmiIP_p.js",
+      "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858"
+    },
+    {
+      "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+      "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96"
+    },
+    {
+      "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "js/chunks/startup-pure-v6vu1dD4.js",
+      "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4"
+    },
+    {
+      "path": "js/chunks/startup-repository-B04CzfgI.js",
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    }
+  ],
+  "after": [
+    {
+      "path": "js/app-shell.js",
+      "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d"
+    },
+    {
+      "path": "js/chunks/accuracy-AV5UnMZT.js",
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "js/chunks/app-C1KeC5Vr.js",
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "js/chunks/business-features-BxmeGblZ.js",
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "js/chunks/business-runtime-63t7lKdA.js",
+      "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5"
+    },
+    {
+      "path": "js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "js/chunks/cloud-CLK5Spot.js",
+      "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574"
+    },
+    {
+      "path": "js/chunks/cloud-runtime-CB3MWviH.js",
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "js/chunks/diagnostics-DLmiIP_p.js",
+      "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858"
+    },
+    {
+      "path": "js/chunks/diagnostics-ui-BarnPzjK.js",
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "js/chunks/gist-runtime-BB2WMPEu.js",
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "js/chunks/post-integrity-LZsxxjFJ.js",
+      "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96"
+    },
+    {
+      "path": "js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "js/chunks/startup-migrations-CEzhCYv4.js",
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "js/chunks/startup-pure-v6vu1dD4.js",
+      "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4"
+    },
+    {
+      "path": "js/chunks/startup-repository-B04CzfgI.js",
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    }
+  ],
+  "probeInputChunksAndManifestUnchanged": true,
+  "qualifier": "Printing-only comparison. AST hash ignores positions/raw/comments; unequal hashes are not silently declared equivalent. Native links only, no evaluation, Vite build, runtime/E2E or latency qualification.",
+  "adoption": false
+}

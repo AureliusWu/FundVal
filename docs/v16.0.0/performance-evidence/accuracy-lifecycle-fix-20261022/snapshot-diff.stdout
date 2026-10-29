@@ -1,0 +1,2264 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 674ac87..5f83586 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -87,6 +87,7 @@ jobs:
+           test -f site/assets/ocr/paddle/ort/ort-wasm-simd-threaded.jsep.wasm
+           test -f site/THIRD_PARTY_NOTICES.md
+           node scripts/release-fingerprint.mjs --verify-app-chunks-directory site
++          node scripts/release-fingerprint.mjs --verify-app-module-graph site
+           node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr
+       - name: Install Chrome for E2E
+         run: npx --no-install playwright install --with-deps chrome
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index 79e9453..5cc61d1 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -76,6 +76,7 @@ jobs:
+             if (manifest.releaseFingerprint !== process.argv[2]) throw new Error("Candidate release fingerprint mismatch.");
+           ' "$RUNNER_TEMP/candidate/candidate.json" "$fingerprint"
+           node scripts/release-fingerprint.mjs --verify-app-chunks-directory site
++          node scripts/release-fingerprint.mjs --verify-app-static-bindings site
+           node scripts/release-fingerprint.mjs --verify-ocr-directory site/assets/ocr
+           node scripts/release-fingerprint.mjs --assert-app-bundle-budget site
+           echo "value=${fingerprint}" >> "$GITHUB_OUTPUT"
+@@ -164,6 +165,7 @@ jobs:
+               "${base}/${path}?run=${GITHUB_RUN_ID}" > "$target"
+           done
+           node scripts/release-fingerprint.mjs --verify-app-chunks-directory "${smoke_dir}/release"
++          node scripts/release-fingerprint.mjs --verify-app-static-bindings "${smoke_dir}/release"
+           deployed_fingerprint="$(node scripts/release-fingerprint.mjs --directory "${smoke_dir}/release")"
+           if [[ -z "$EXPECTED_RELEASE_FINGERPRINT" || "$deployed_fingerprint" != "$EXPECTED_RELEASE_FINGERPRINT" ]]; then
+             echo "Deployed release-critical files do not match the built Pages artifact." >&2
+diff --git a/docs/v16.0.0/M3_STATUS.md b/docs/v16.0.0/M3_STATUS.md
+index 2d49b6c..c8919dc 100644
+--- a/docs/v16.0.0/M3_STATUS.md
++++ b/docs/v16.0.0/M3_STATUS.md
+@@ -1,8 +1,8 @@
+ # M3 刷新图、模块化与性能：阶段检查点
+-> 更新：2026-10-15（Asia/Shanghai）；第30节为本轮实施与独立检查，第28/29节保留此前排除证据。状态：`IN PROGRESS / NOT RELEASED`。
++> 更新：2026-10-22（Asia/Shanghai）；第52节补齐海外模型accuracy自动预测/后续正式净值结算的本地有限生命周期：最终1313 PASS/3 skip、Chrome35/35、三次完整确定性构建通过，但all为85,969 B、预算仍FAIL；第51节来源修复、第50节旧管线边界和第48节修复前800保留各自历史身份，不能继承当前时延资格。状态：`IN PROGRESS / NOT RELEASED`。
+ > M3 原始基点为 `154139d78b0e226fd99ec9a3009c1e63c06925ca`；归并后的 main 为 `abfb6313f12efb66b9096b60472b6dd457094485`。后续分支为 `codex/v16.0.0-m3-continuation`（第 19 节）。
+ > 版本仍为 15.0.2。下列本地工作树证据不是 immutable main candidate、生产发布或真机证据。
+-> 最新：第30节实施通知/刷新计划闭合运行投影及独立SW消息加固。新全量1012 tests（1009 PASS/3 skip）、syntax202、audit0、E2E28/28通过；精确1a02 CI另证Linux1012/1012、E2E28和CodeQL #7 fixed，既存#5仍在。三次实际构建all **80,394 B（−764）/cold42,907 B**，仍 **80,394 > 77,227.7 B FAIL**，至少差 **3,167 B**。真实主源五次0接受；后续单独3次捕获到fetched_at比本机未来约3.3～3.5s并被拒绝，未放宽校验或宣称行情恢复。旧200组pair仍 **INCONCLUSIVE**，不重跑挑PASS；CI不继承到后续文档SHA。M3不能EXIT或进入M4/发布。
++> 最新：第52节保存真实accepted-US-session RED04（有效模型已显示、自动ledger仍0/native1），同字节隔离案例GREEN01/native0；只在第51节基线上改App调度和既有E2E、加12项生命周期单测，273完整输入（272 noDocs+固定v15反馈）/127site的新身份明确区分旧272。自动预测目标为Sep28、不是中国Sep29“今日涨跌”；暖ledger结果幂等和后续合成NAV结算通过，不冒称零Storage写入或真实金融源。当前 **85,969 B** /cold **46,149 B**，比第51节+13/+20 B，原all预算至少还差 **8,742整数B**，预算CLI真实native1。旧失败原件保留；前置A/B和Closure读审仅绑定第51节旧身份，无压缩执行/采用或Java下载。修复前800不继承，当前新时延/精确CI/真机/生产未验证，原五组/ES2022/预算/15.0.2不变，未提交业务/推送/合并/部署。**M3 IN PROGRESS，不能进入M4或发布。**
+ 
+ ## 1. 已实现的刷新边界
+ 
+@@ -921,3 +921,213 @@ orchestration记录230个tracked/126个site文件的专属前后库存；layout
+ 两侧各3次原配方真实build：raw235665→235647（−18 B）、all80477→80494（**+17 B**）、cold42992→42985（−7 B），最终critical均4bda36bc、whole均7d4d8c1e/127files/92507677B。这是可靠性修复，不是减包优化；原budget CLI仍exit1/all FAIL，至少还差**3267 B**。无新pair，旧200组INCONCLUSIVE保留；没有真实金融源/真机/云写入/生产验收。
+ 
+ 较大重复职责与固定全图函数扫描没有发现新材料性删码机会；不证明未来优化不存在，不修改编译器/组/原预算。详见[调度证据与明确局限](performance-evidence/nav-scheduler-20261018/README.md)及机器summary。**M3仍IN PROGRESS /15.0.2，未进入M4/M5/M6，未merge/deploy/bump。** 本次工作树需要新的精确CI，不继承5186结果。
++
++## 36. 新授权下的压缩器独立比较：未采用（2026-10-18）
++
++用户明确允许在Temp独立验证新的JS压缩策略，合格后才采用；与第35节固定压缩器的范围区分，不再把换压缩器称作未授权。冻结170fd源码，取真实build-site AST配方，原5groups/es2022/write:false不变；每系列固定三轮OXC→候选/候选→OXC/OXC→候选，共18次构建。所有16chunks，模块到组/阶段归属hash相同、原阶段隔离与最终AST import路径/metadata一致性通过（未验证named-export绑定或执行ESM），各配方三次chunk指纹重复。
++
++OXC仍all80494/cold42985/raw235647；Terser5.51.2保守p2为80916/43192/237249（all+422），完整esbuild0.28.2为82871/43934/238490（+2377），SWC1.16.18保守p2为80328/42956/233930（−166，仅0.21%）。均未采用：前两者更大，SWC微小收益仍不能填平缺口，不足以启动新工具链采用。Terser/SWC仅装Temp且ignore-scripts，项目package/lock/白名单未动。四配方逐chunk最小值简单相加80288仅是算术筛选、不是hybrid真实构建或形式下界，仍至少差3061整数B；没有继续试混合或扫参数。
++
++原site整个测量期间whole hash7d4d8c1e/127files/92507677B不变；原工作树与Git archive JS原始EOL不同，73文件LF规范化inventory一致，不把raw hash不同隐去。初版审计工具因静态TemplateLiteral误判而未完成有效系列，工具与失败保留，v2只纠正该字面量分类。全部测量完成后仅新增[独立试验报告及原始选项/工具](performance-evidence/minifier-qualification-20261018/README.md)，未采纳源码/构建修改。
++
++当前预算CLI仍exit1：cold42985/52241 PASS、all80494/77227.7 FAIL，至少差3267B。没有候选压缩公开API镜像测试、E2E、新相对时延、OCR真机或生产验收；不可把三次确定性当完整兼容/性能通过。较大Worker投影/cache读写/展示选择与private property审查没有新的合格材料性候选，不代表所有未来优化不存在。**M3 IN PROGRESS /15.0.2，未进入M4/M5/M6，未merge/deploy/bump。** 本轮不因文档归档触发远端CI或继承旧CI。
++
++另对未换压缩器的原配方做完整新回归：1064/1061PASS/3Windows条件skip、syntax205、Chrome31/31（1.1m）、官方audit0，两个真实build同epoch且日志逐字相同；最终whole仍7d4d8c1e/127files/92507677B、critical4bda36bc，app16/OCR23实核通过但未运行OCR。错误传OCR核验根目录的一次调用保留并正确重验。这里只证明现有原产物，不把原配方结果授予候选压缩器；机器收据见报告的baseline-regression.json。
++
++## 37. 当前源码800组独立配对：时延通过，all包门禁仍失败（2026-10-18）
++
++第27节允许先有独立合理的大样本方案再测。本轮三个源码结构方向（registry健康转换、cloud push/pull共同前缀、Quote/期间/收益）未得到值得实施的大闭合减包候选；保留全部既有兼容和声明验证，不凭小段相似改大引擎。随后先写入[800预声明](performance-evidence/m3-pair-security-v15-800-20261018-protocol.md)，经独立只读复核才启动一次测量；未试N选PASS，不追加1000。
++
++固定800 retained/4 warm-up/bootstrap5000/seed160003，原阈值/采样器/fixture不动，804组全部完整、失败0、AB/BA各400。2026-10-18 06:23:05.871→06:57:58.157 UTC一次完成，native exit0；两次独立summarizePairs与raw summary严格deepEqual。参考仍c298安全对齐v15业务，当前170fd原OXC业务（采样窗仅M3证据doc dirty）；Chrome155.0.8059.80，两侧同browser实例。
++
++| 指标ms | 参考median/p95 | 当前median/p95 | median/p95变化 | 判定 |
++| --- | ---: | ---: | ---: | --- |
++| cold | 126.35/154.50 | 117.10/143.50 | −7.321%/−7.120% | PASS |
++| warm | 65.70/90.90 | 57.35/77.70 | −12.709%/−14.521% | PASS |
++| save | 75.3595/85.8120 | 62.8659/71.9219 | −16.579%/−16.187% | PASS |
++
++current p95区间宽度4.390%/7.722%/1.081%，双侧均低于20%；三指标pass fraction1不等于总体通过概率100%。旧200仍INCONCLUSIVE；源码、日期和Chrome均变化，不把本轮稳定性改善全部归因于N，或把速度改善归因于某一小改动。
++
++source Before/After完全相同，原diff bd23762e已在更新本节前归档；两侧库存前后完整数组同、current127文件现场逐项复核，sampler库存739c0fdc、JSON库存7d4d8c1e、critical4bda36bc分别标明算法。reference已清理，只核报告内部库存a18ee3fc，不声称重读已删实体。4824renderer/19296counter重算一致、pageerror/instrumentation/SW0、每侧2412drain全SETTLED；导航counter是PARTIAL，warm部分Script中位数反增10.46%只作描述性WARN，不能说所有CPU都更好。console error全804侧7236/10452非零，数量对应block但无逐条文本因果证据。
++
++完整[结果与局限](performance-evidence/pair-800-20261018/README.md)、机器summary、实际diff/日志/校验工具均已归档；[原raw](performance-evidence/m3-pair-security-v15-800-20261018.json)88029371B、SHA65bfd348cb04b46826b811a521e5acea03086fa2c43b924efdced83459b00d8c。cleanup全PASS，2114/2121及原进程已退出；临时校验器的一次Windows ESM路径错误保留，v2只改file URL并exit0，不是重跑采样。
++
++实际budget仍exit1：cold42985/52241 PASS、all80494/77227.7 FAIL，至少差3267B。**新当前源码桌面合成时延证据已补齐，但M3仍IN PROGRESS /15.0.2；未进入M4/M5/M6、未改预算/依赖/源码/版本、未merge main或部署发布。** 没有新正式CI、真实金融源/真机/Gist/OCR或生产验收；本轮只新增本地证据，不重跑800/1000挑PASS。
++
++采样结束后另跑完整原配方回归：1064/1061PASS/0FAIL/3Windows skip、syntax205、Chrome31/31（1.0m）、官方audit0。E2E后两个连续build同epoch1792046773，critical4bda36bc、whole sampler739c0fdc/JSON7d4d8c1e全同；app16/OCR23实核通过，未运行OCR，budget仍FAIL。详细命令/原日志hash见结果目录post-pair-regression.json；不把这些事后测试混入采样窗口，也不授予未来SHA的正式CI。
++
++## 38. 独立实际ESM闭包及原生静态绑定门禁（2026-10-20）
++
++中断后确认170fd和文档dirty未变，无遗留FundVal Node任务。独立检查确认原字节/SHA/gzip工具的importClosureVerified:false范围真实，build-site元数据检查也没有独立验证最终named bindings；不是发现产品断裂绑定。新增app-module-graph工具及37项测试，先复用同批已核验字节，再由AST检查真实字面依赖、cold精确分区/全部可达，用合成root对全部chunk作原生link，不evaluate。缺失default/named/间接导出、star冲突、循环、仅lazy内的坏绑定与路径/属性/UTF8/限额等正负控均覆盖；TDZ和动态namespace成员反例明确不在证明范围。
++
++初稿review发现部署无解析器依赖与双斜杠规范化误判，均在最终QA前修正。保留原部署不npm install/ci/build的约束：CI用完整AST命令，部署准入与smoke用纯Node native-only命令并返回literalImportClosureVerified:false。无node_modules临时三文件副本真实正/负控通过；未改变旧预算工具false声明，不绕预算。初始29项因新API/命令尚不存在而RED，不是29处旧运行bug；完整RED stdout未归档，不夸大原件。
++
++最终完整1101项/1098PASS/0FAIL/3Windows skip（5948.1245ms）、syntax207、Chrome31/31（53.9s）、audit0。E2E后连续两build同epoch，critical4bda36bc、whole JSON7d4d8c1e/127files/92507677B与原产品完全相同。新实际图16chunks/18静态边/10字面动态边/6cold PASS，native-only亦PASS；app16/OCR23字节通过但未运行OCR。14条完整stdout/stderr、命令/退出码、选择source库存、采集脚本和归档审计见[ESM报告](performance-evidence/esm-link-20261020/README.md)。原all80494/cold42985不变，预算CLI仍exit1、至少差3267B；未重跑性能或继承精确CI。**M3 IN PROGRESS /15.0.2，本轮工具/工作流仍本地未提交，未推送/merge/deploy/bump。**
++
++## 39. 入口默认排除与UTF8/ASCII打印有限探针（2026-10-20）
++
++本地Vite8.2.2普通客户端默认已preserveEntrySignatures:false，项目未覆盖，因此没有重测显式false的no-op。既有façade分组探针保留，不把十个小stub的1340gzip本体当可兑现收益或严格上界。
++
++完整QA结束后，用既存Temp Terser5.51.2作固定三轮离线打印预筛：compress:false/mangle:false/ecma2022/moduletrue，UTF8→ASCII/ASCII→UTF8/UTF8→ASCII，未新装依赖/改产品。原OXC80494/42985/235647（all/cold/raw）；同打印器UTF880465/42980/235622；ASCII80224/42887/244683，三次各自指纹相同。重打印all−29，ASCII相对同打印器再−241，最终仅−270B（约0.34%），raw反增9036B，仍不能填3267B缺口，未采用或继续扫参数。
++
++六次实际字面闭包及原生staticlink通过，但两个打印配方相对原OXC都有同样5chunk规范化AST hash不同；ASCII相对UTF8仅post-integrity一份不同。未掩盖差异或声称完整语义资格。原文件名仅内存标识，不是新Vite content-hash产物；没有实际构建/namespace身份/运行时/E2E/时延资格。输入16chunk和manifest前后实核不变，候选完整JS未落盘；[探针报告、确切脚本/协议/工具锁及归档审计](performance-evidence/format-only-20261020/README.md)明确此边界。**保留产品仍all80494/77227.7 FAIL；M3未退出，未推进M4/M5/M6或发布。**
++
++## 40. Uglify与严格scalar共享的固定有限排除（2026-10-20）
++
++对未窄化dynamic namespace的具体再审没有新死导出，accuracy等已由10/13库存排除，不重复套facade。新的Uglify3.19.3仅在Temp ignore-scripts安装，锁/安装元数据归档；原5组/es2022/write:false配方固定OXC/候选三轮共6次，接收421864B原renderChunk输入，不是OXC二次压缩。原80494/42985/235647；候选80355/42724/229359（all/cold/raw），lazy反增122B，总收益仅139B（约0.17%），未采用。输入/最终96+96文件实核一致，三轮各自指纹重复；Acorn显式ES2022语法、原阶段隔离、最终真实字面闭包/native绑定通过，不授予完整API/时序/E2E/性能资格。
++
++再固定baseline/clock/HMS/combined四变体×三轮真实构建，不改源码：将相同coercing finite clock和三处HMS上界短路分别共享，保留wrapper、getter次数、原regex/日期/时区/异常边界。clock最优仅all80461/cold42982（−33/−3）；HMS80482/43007（−12/+22），合并80472/43007（−22/+22），不可相加，均未采用。16chunk及记录拓扑digest同，各自三轮指纹同，12次实际图/绑定通过；拓扑完整preimage未单独保存，不夸大独立重建。
++
++124clock+4806HMS的4930逐case原/候选trace全保存，primitive输出、访问/调用/coercion、短路与sentinel/name/message相同，不比stack。trace完整归档instrumentation在12次build后补入，再跑一次trace-only产生原件，0次新build；不隐去脚本时间边界、不称完整API等价。全部439原件/8544431B压缩归档已新Temp解压逐文件实核，含18次完整产物、输入、各轮报告、变换源码和工具/锁/4930对trace；没有另存完整原stdout。详见[完整排除证据与局限](performance-evidence/bounded-minifier-scalars-20261020/README.md)。
++
++现73业务JS LF规范化逐字同冻结源（690165B），原site127/92507677B、critical4bda36bc不变。新实际图命令PASS、原预算命令仍exit1/all80494>77227.7，至少差3267B。未重跑全量测试/build/E2E/时延，不把第38节原回归伪称本轮新执行；未修改业务/项目依赖/构建配方/预算/版本，未提交推送/merge/deploy。**M3 IN PROGRESS /15.0.2**；有限失败集不是全程序优化不可能性证明。
++
++## 41. 私有纯字符串池固定离线预筛：gzip反增，未采用（2026-10-20）
++
++原16份OXC chunk实际静态图为DAG/18边、无direct eval/with，固定只合并重复纯字符串值，避开directive/import/export/key/tagged/插值/regex。原v1先预声明，但首次候选重解析因keyword相邻模板值缺少token分隔而失败，0个有效gzip/link样本；保留工具/协议/失败事实，不当作产品故障。获批v2只统一(alias)、每次估算+2B、声明换行分隔，不调scope/阈值/别名顺序。继承stateAtCreation仅表示原v1预声明，不伪称v2也早于首次扫描。
++
++固定baseline/pool、pool/baseline、baseline/pool六次离线核验：原all80494/cold42985/raw235647；唯一池化81135/43337/228068，raw−7579但all **+641**、cold **+352**，各侧三次指纹相同。153组/1117处逐位置AST值/回填与导出名检查、六轮实际字面闭包/native静态绑定通过，不evaluate；独立审查实读96chunk及16对AST复核，无新试验。旧hash路径只作离线标识，不是六次Vite构建或完整运行/时延资格。停止、不采用、不再调参。
++
++全部129原件/2978941B已归档，新Temp解压逐项实核；保留完整候选/轮次字节和测量后精确复制且输入SHA一致的manifest。v1失败候选与单独终端日志没有保存，明确不冒称完整捕获。详见[结果、时间边界及原件](performance-evidence/string-pooling-20261020/README.md)。当前73JS/127file产品site/recipe/graph工具前后相同；新现产物graph命令PASS、原budget仍exit1/all FAIL。未重跑完整test/build/E2E/时延，未改业务/构建/依赖/预算/版本，未提交推送/合并/部署。**M3 IN PROGRESS /15.0.2；原缺口至少3267B，未进入M4或发布。**
++
++## 42. 原计划刷新计数诊断、有界内存Store与代际观察链（2026-10-20）
++
++按计划6.3/M3工作包审查，发现scope已有计数但App未保留/诊断中心未展示的P2交付缺口；不是新报价错误。新增独立observer及最多current/lastSettled/lastCancelled三个内存记录，严格字段/枚举/数值白名单，不含code/name/金额/Token/原文/Quote，不写Storage/云。原coordinator方法/Promise身份/取消日志规则、金融校验和私有plan投影未改，AST护栏只新增闭合forEach聚合并保留逃逸负控。UI显示计划与实际请求、cache hit、dedupe、已进入请求中止、资源取消拒绝、写尝试/成功；未观测null不补0，细粒度fetch原因未记录时明确说明，最终Quote指向原逐基金数据说明。
++
++旧executor7项3PASS/4RED、view2RED、Store缺导出及invalid-final RED、真实旧site缺诊断行RED均保留。3项旧PASS原本未调用observer，不当作旧bug；最初E2E错误locator另存。补late metadata真实挂起取消GREEN，所有任务收敛前不发终结报告，不追加旧UI/cache/coordinator日志；Store同步onError重入另负控1RED再最小调序GREEN。最终定向122/122，全量1133/1130PASS/0FAIL/3既有Windows skip（6780.9319ms）、syntax210、Chrome32/32（1.1m）、官方audit0。
++
++E2E后固定epoch1792046773三次真实build全127file/92528422B相同：critical168ae0c7659a187ce175c5d1b519fd7ffe0d5694be4239754b5be5f4a9b976f6，whole JSON b11fd93f。app16/242222 raw，cold44386/52241 PASS、all83084/77227.7 **FAIL**，相对改前all+2590/cold+1401，至少差5857整数B；这是原功能交付成本，不是减包收益。228选定source/tool/test/config在构建前后同，实际图16/18静态/10动态/6cold及native绑定通过；OCR23/88196906B只核字节、未运行引擎。旧800时延PASS不授予新源码，本轮没有新相对时延/真机/真实金融源或CI。
++
++56原件/1340210B压缩归档后新Temp解压逐项验证，含完整捕获命令、源/测试副本、diff、RED/GREEN和合成浏览器附件。初始executor RED/临时核验器wrong OCR root失败的完整原终端只在工具历史，不冒称全部捕获；核验器修正后重新完整三轮，不把工具错误当产品缺资产。另对Closure作官方源码前提审查，顶层await/ESM条件不合，未安装或压缩。详见[完整实现、口径、失败与证据](performance-evidence/refresh-observability-20261020/README.md)。**M3仍IN PROGRESS /15.0.2，未改原预算/版本，未提交推送/合并/部署，未进入M4/M5/M6。**
++
++## 43. 原决策单次聚合的十项计划原因与AST解构负控（2026-10-20）
++
++私有planner新增显式可选第二参数，原七项input getter顺序/公共plan/core/default投影不变，在原force/skip/同一次cache core上累计十种原因，成功冻结后一次固定DTO通知。executor仅闭合局部赋值，原三个外部报告时点增加planReasons；Store复制白名单/自有描述符/安全整数/null与0/冻结且保持旧记录形状，不增三槽或持久化。UI十标签明确“仅表示计划时决策；实际执行gate细因未记录”，不由source当前health伪造cooldown。原fresh计划消费时过期、三种claim拒绝均由真实scope/coordinator测试，计划原因不回写成实际请求。
++
++新DTO缺失5RED、planner/AST新增契约9RED、浏览器真实旧site缺行RED后均GREEN；独立审查另找到AST解构binding未验证Identifier的测试护栏空白，6真实负控RED后仅修测试三处检查。不是生产已有泄露。新增境内/QDII活动基金冷暖observe开/关的provider/UI/finance/cache逐字相同样本，连同空组合与消费门控两例属于GREEN补覆盖，不冒称原RED或全输入域证明。
++
++最终全量1159/1156PASS/0FAIL/3既有Windows skip（8044.4173ms）、syntax211、原生Chrome32/32（1.1m）、官方audit0。E2E后固定epoch1792046773三次原配方build全127file/92532345B同，229选定source/tool/test/config前后同；critical581f8068961daccbe5afbb60368c87412075e00692e2969ec1176eba333c85e2，whole JSON86d3e5fe。app16/raw243660，图16/18静态/10动态/6cold及native绑定通过；OCR23仅核字节，未运行引擎。
++
++本轮功能all+563/cold+128/raw+1438/whole+3923：cold44514/52241 PASS、all83647/77227.7 **FAIL**，至少还差6420整数B。无新相对时延，旧800不继承；没有新CI/金融源/真机/云写入/生产验收。Store adapter减包想法止于只读前提否决，无可信材料性假设，未写变体或跑参数/构建预筛，不伪称实测收益。
++
++105原件/2208839B归档后新Temp解压逐文件实核，包含完整日志、精确最终源码/测试和16chunks，保留夹具/调用错误边界。详见[实现、口径、原件与限制](performance-evidence/plan-reasons-20261020/README.md)。**M3 IN PROGRESS /15.0.2；未改变预算/分组/目标/依赖/版本，未提交推送/合并/部署，未进入M4/M5/M6。**
++
++## 44. 实际执行拒绝事实、同步估值观察与新Vite告警（2026-10-22）
++
++原6.3需要“为何跳过”，不要求新增全面执行审计系统。本轮只在估值/重仓/模型原拒绝点聚合五键executionSkips，区分claim拒绝与半开本代额度已用；不从当前health反推cooldown，不改registry/两个coordinator/scope/security batch/金融规则。估值私有第五bool seam仅同步首次合法、所有实际client调用均观测才给数值，否则null；默认arity4、原业务参数与claim.allowed单次读取不变。Store严格白名单/复制冻结、started-only终态null及晚drain真实补数；UI说明次数不是唯一资源/请求，原三槽无持久化。
++
++Store/view真实缺实现11RED→39/39（含中断前9项测试，非全本轮新创）；旧真实site缺行RED。新48项AST/VM/collector契约仅GREEN与独立旧函数/call负控，无live实施前App/executor业务RED。真实registry/coordinator六例覆盖三类claim拒绝、两类本代半开额度及混合共享证券仍请求。新非零Chrome例三次失败后公开online第四代，估值请求0/拒绝1、官方1.19→1.2/+0.84%及9-28日期/稳定缓存保持，无私有hook。首次全E2E32/1失败是新夹具标签错写“正式净值”，仅改为既有“最新净值涨跌”，保留原件后全33/33。
++
++最终全量1224/1221PASS/0FAIL/3既有Windows skip（8005.9732ms）、syntax212、Chrome33/33（1.1m）。E2E后三次固定epoch原配方build全127file/92537133B同，230选定输入前后同；critical3103251a7107ebb76d61c0a7131430ccf221e204e6aac931a319649c7608bf55，whole JSON5b946d23。app16/raw245170，图16/18静态/10动态/6cold及native绑定通过；OCR23仅核字节未运行。all84187/cold44699，分别+540/+185；总包预算native1，至少差6960整数B；无新相对时延，不继承旧800。
++
++本轮audit先bulk端点network timeout退出1，限时单次重查收到**1个high依赖项vite@8.2.2（6条GHSA）**再退出1；旧audit0仅历史事实。官方列8.2.4修复，未force升级/安装/改锁，需后续隔离资格。Vite是build工具，serve是自写Node；未证明线上静态PWA已可被利用，也不把依赖告警忽略。本轮另对固定schema共享只读否决：极乐观可替代池约822B minified raw（不是gzip收益），无可信材料性候选，未新变体/扫参数。
++
++93原件/2411303B归档新Temp解压逐项验证；[完整口径、验证、审计与原件](performance-evidence/execution-skips-20261022/README.md)。**15.0.2 /M3 IN PROGRESS；未提交推送/合并/部署/升版，未进M4。** 原M3仍需预算/最终候选性能/精确CI与安全审计；精确gate细因历史并非另加硬门禁，M4云与M6真机不提前扩大M3范围。
++
++## 45. Vite同minor最小安全补丁：隔离资格通过，root审计服务仍UNKNOWN（2026-10-22）
++
++先冻结协议，再复制当前dirty源A8.2.2/B8.2.4，只允许两个依赖文件五标量，其他107锁entry不变；两个独立clean install保持ignore-scripts和原五项白名单，仅显式批准esbuild安装器。全copy270/214510943B含24个.codex-tmp历史输出202403286B，非230所选源范围；A首轮必须复现原root全site锚。57实际装包仅Vite不同，其余56个manifest及三个native文件同；B内联launch-editor/middleware2.14.2实装拒绝newline/%/UNC。
++
++六次实际build顺序A1,B1;B2,A2;A3,B3全127/92537133B字节同，whole JSON5b946d23/critical3103251a，source/lock前后同；A/B各完整1224/1221PASS/3skip、syntax212、Chrome33/33，候选audit一次timeout后唯一限时重查JSON总0含dev。A1工具误读string.sha256有notes，certify只读核原保存报告，无替换build；没有独立捕获原assertion完整堆栈，不夸大归档。
++
++独立最终screen通过后仅回写root package/lock五标量。root再clean install、完整1224/1221PASS/0FAIL/3skip（7234.0174ms）、syntax212、Chrome33/33（1.1m）、三次build全同，actual graph/static binding/OCR23字节通过，未跑OCR引擎。原all84187/cold44699/raw245170不变，预算native1，仍至少差6960整数B；字节身份不是时延实测或旧800资格，原依赖锁比较仍严格不同，没有waiver。
++
++**root官方audit首次503、唯一限时重查timeout，均nativeexit1；本轮已到两次上限，不再试到0。root审计UNKNOWN_REMOTE_SERVICE，补丁已回写保留但最终安全资格未闭合；不继承B0或继续报旧Vite1high为最新root结果。** 503中的短效bot cookie仅公开归档遮盖该header，原件SHA及遮盖范围可审计，本机原件保留。完整[预声明/结果/原件范围](performance-evidence/vite824-security-20261022/README.md)与机器报告区分隔离screen和root状态。
++
++484份成员/16264236B归档后新Temp解压逐项实核，包含246份非历史A输入、B两依赖文件、九轮app字节/全库存及独立root最终审查；24个非构建旧输出仅保留完整库存，不混称原270副本全归档。root独立只读审查确认已回写行为/字节PASS、审计待服务恢复，M3仍FAIL；未重跑测试或网络。
++
++**15.0.2 /M3 IN PROGRESS，未提交推送/合并/部署/升版，未进M4。** 新patch不是新压缩策略，未改变ES2022/五组/安全/金融/缓存/兼容约束。仍需服务恢复后的独立root安全审计，以及最终候选预算/性能/精确CI；无真机/云写/真实金融或生产新资格。
++
++## 46. 独立单次root审计闭合与当前重复职责有界复核（2026-10-22）
++
++前回合完成patch回写/全量QA/归档，属实际进展。本回合先声明独立probe只一次官方audit、不重试，03:20:06.210→03:20:07.814 UTC实际native0，完整JSON vulnerabilities{}、全部severity/total0含dev71，原6GHSA absent。新请求前后270输入和127全site行同上轮B/root3，68安装manifest/native/hidden-lock库存SHA2da11b47及20旧收据SHA全同；独立只读复核也重新hash确认，不用B0替代root。Vite8.2.4本地资格最后缺口现闭合，旧503/timeout/UNKNOWN不覆写，旧全tests/33Chrome/9build不是本轮新执行。
++
++另三路只读审查没有新材料性候选：实际16chunk/1137函数及418大block/8完整常量跨组定位仅既有100B clock；三槽cell只约20行框架，新诊断完整状态机/strict复制仍需保留；storage normalizer多调用不是多副本、migration/getters/notes/tombstone/backup晚枚举不同，公开兼容路径不少已tree-shake。无新源码变体/build/压缩探针，不把raw或整组体积冒充收益，有限否决不证明全程序不可能。详见[完整证据及方法边界](performance-evidence/audit-closure-20261022/README.md)。
++
++原预算CLI新实际native1，all84187/cold44699，仍差6960整数B；无新相对时延/精确CI/设备/金融/云写/生产资格。**应用15.0.2，M3 IN PROGRESS，未进M4或发布**；后续合法新时延对照也不能覆盖all FAIL，不改变ES2022/五组/预算/启动/安全/兼容规则。
++
++## 47. 当前诊断/Vite8.2.4同依赖新参考与一次时延预声明（2026-10-22）
++
++第37节旧800针对诊断前源码/Vite8.2.2/Chrome155.0.8059.80，不能继承给当前源码。先写[新独立协议](performance-evidence/pair-vite824-diagnostics-800-20261022/README.md)，再用单独Temp index建立仅本地新参考057042963a33579c624a41404a6d533dfda29768，父c298，树仅package/lock五个Vite8.2.4字段；所有v15业务对象不动，原预算锚40e/70207B不改。root HEAD/branch/index/工作树未因创建参考而改变；新ref不推送，保留parentepoch是明确的测试元数据，不冒称产品发布日期。
++
++严格normalizedLock同db907972/declared同，原唯一root.engines忽略不变；270输入/127输出/68安装身份新前检同，sampler2ca7545/collector8a98f57不改。固定800/4/5000/seed160003一次，不重试/续补/混样/试N；原managed snapshot、独占loopback和安全cleanup不改。此节仅准备/预声明，不是采样结果；后续以唯一活进程及最终新JSON为准，tracked文档在采样期间冻结。
++
++无论新时延结果如何，**原all84187/77227.7仍FAIL，至少差6960B，M3 IN PROGRESS，不能进入M4/发布**。这是补独立门禁，不是把成功定义缩到时延；仍须最终候选总包/性能/精确CI全部通过。未将旧全量QA称本轮新跑，未提交业务/推送/合并/部署/升版。
++
++## 48. 当前诊断候选800配对通过、精确独立复核与参考构建重现（2026-10-22）
++
++唯一采样2026-10-22T03:41:39.305Z→04:16:50.991Z完成，native0/PASS，完整800retained+4warmup、AB/BA各400，失败/不完整0，无重试/剔样/混样/改参数。原sampler/collector与5000/160003/30000ms不变；strict同依赖参考0570429只在两个package文件补五个Vite8.2.4标量，原40e/70207B预算锚不动。新raw88,032,041B / SHA256 46aeb7a3ad8908bf256ffe4b17e706e59fddd282e5bdcbed994780222a9bf49f。不是旧800的继承结果。
++
++cold median/p95 129.35/167.80→119.85/156.80ms（−7.344%/−6.555%）；warm67.15/96.50→60/86.10（−10.648%/−10.777%）；save75.30155/86.98140→64.54230/72.944（−14.288%/−16.138%）。原ratio及95%上界、p95区间稳定性、<3000ms与bootstrap fraction门禁全通过；current max420.6/196.9/91.0366保留。独立v2共9,663检查0失败，原summarizePairs整个对象精确重算一致，原rendererDelta全部4,824条重算一致；fraction1不是总体100%通过概率。
++
++pageErrors0/instrumentation0、每侧2412drains全SETTLED、原四清理PASS；**consoleErrors17,687**（reference7235/current10452），没有console文本关联，不能由阻断数量相同证明根因。SW event/controller/registration/script0，但registrationAttempts4824是三边界重复观测；导航3216条PARTIAL/save1608条MEASURED，不是完整startup/OS CPU。桌面390×844/Chrome155.0.8059.86、no-store同context暖重载、合成UI保存，不是暖HTTP缓存/真机/生产源/Gist写入/OCR引擎或新CI。
++
++结束后先保留118929B测量窗口tracked patch（SHA c90f6da5），再改本报告；raw前后source/HEAD/branch/index同，独立完整重新枚举270输入无额外/缺失，127当前site/68安装字节同。原reference110成员前后同且已清理，不冒称重读原payload；另先声明新快照重建，原helper/依赖/epoch/命令连续三次native0，全110文件精确等于原before/after库存，完整stdout/stderr/native收据保留，root/site未重建。独立v1唯一错误为跨合法时间阶段强比diff，native3原件保留；v2只删该错误断言，不放宽任何同阶段/source/statistics检查。
++
++详见[完整结果/区间/原件范围/失败口径](performance-evidence/pair-vite824-diagnostics-800-20261022/RESULTS.md)。488原件/23974262B归档（compressed10239633B/SHA133d4326）另新Temp解压逐项验证，246非历史输入及两侧非OCR输出实字节保存，270全库存含24历史Android输出，不能混称全payload；raw在上一级独立保留。本次未重跑旧全量tests/check/E2E/audit；新主postflight7项通过和预算CLI **native1** 单独记录。**all84187>77227.7仍FAIL/至少差6960B，15.0.2/M3 IN PROGRESS，未进M4、未产品提交/推送/合并/部署/发布。**
++
++## 49. Worker同文件边界有限资格通过，但单独拆分增包、不采用（2026-10-22）
++
++先实读实际source-health/Bridge/renderer排除旧通用factory或整个函数的虚假收益池；另真实coordinator/executor/Store双合成案例证明producer稀疏provider键和计划顺序还需Store唯一严格规范化，未写跳过validator候选。更大EvidenceBook设计纠正“公共API保留就必须留在默认bundle”的错误前提，但没有合格≥6960B净gzip预测；旧持久化codec、独立模型证据及不同写入时钟仍要保留。
++
++只在Temp从冻结246输入准备一个三文件候选：Worker同文件header/items/tail+两个固定endpoint入口，原Error/normalizer前缀及public签名/default不变，两客户端仅import/callee切换。主代理648项静态库存/完整源码重构检查通过。旧实现固定64案原root/冻结源全同；候选generic64对stored/fresh旧全同、fixed52对独立旧bound完整全同，235调用和3负控，无候选trace过滤；真/伪class rescue、late sentinel/key/symbol/null/NaN/-0与ChangingDate三钟保留。主代理178项原件独立重算通过，有限合成资格不是全API/输入域证明。
++
++两侧各一次固定六文件接口/HTTP/request-signal测试97/97、native0，0fail/cancel/skip/todo。原生输出实际为spec，虽文件名stdout.tap，不冒称TAP/改reporter重跑。随后原配方/五组/ES2022/epoch1792046773唯一A1 B1 B2 A2 A3 B3六轮全native0；A三轮全127原锚4e8dddb5精确复现，B三轮全127同83ffa409。A all84187/cold44699/raw245170，B **84257/44702/245505**，即all+70/cold+3，候选至少差7030整数B。固定四后检graph两侧native0，budget两侧真实native1/FAIL，不把记录器完成0包装成预算PASS。
++
++主代理再139项逐个重读六份127完整payload、两最终site及root/site，重算每chunk gzip、完整native输出SHA、97项spec footer/成功行及后检收据；通过。每窗口A/B246、root270/127、68安装及Git身份同，最终只读capture05:27:17.303Z后才改root文档。未修改产品源码/依赖/配方/site/版本，**该单独候选不采用、不继续扫参数**。详见[完整方法、原件与限制](performance-evidence/worker-seam-20261022/README.md)；归档审计明确完整本机site与归档selected-site的范围差别。
++
++684成员/88898119B归档为12304770B（SHA2c58de67），新Temp解压全量逐项核验同。完整六份site本机保留，归档只保每轮chunks/manifest/index/SW加全127库存、246baseline源/三文件overlay与完整行为/原生记录，不冒称六份完整payload均在包内。主包后另保存[完整下一HTTP纵切面规格](performance-evidence/worker-seam-20261022/next-http-boundary/README.md)，明确opaque先用后剪、二钟rescue、双Quote/模型碰撞和两writer的topunknown/时钟差异；没有实现或收益承诺。最终独立23项/native0确认270源/127site/68安装和HEAD/branch/index未变，9项规格源码SHA匹配、归档684成员不变，diff-check0；文档有意变化。
++
++root仍all84187/cold44699、原预算FAIL/至少差6960B；第48节800与第46节audit为旧同身份结果，不称本轮新QA或继承给B。无新完整tests/check/E2E/时延/CI/真机/真实金融/OCR引擎/Gist/生产资格，未提交业务/推送/合并/部署。**15.0.2 /M3 IN_PROGRESS，未进M4/M5/M6或发布**；后续只对完整估值管线建立兼容字段/净删图，再独立验证一个有限整边界候选，不把本次功能前置资格冒充减包完成。
++
++## 50. 完整管线前置边界、独立OLD记录与双模型来源缺陷（2026-10-22）
++
++本轮按原升级目标继续推进，属于PROGRESS，不是M3完成或阻塞。先从实际冻结246输入建立一个新Temp候选，仅把Worker原validation与late-spread legacy finisher分开；原公开签名/default、校验读序不变。唯一一次公开边界对照64案stored OLD/fresh OLD/candidate完整同，3负控匹配，共131调用/native0/stderr0，denied网络与真实Storage均0。尚未实现私有HTTP/resource/aggregate importer/模型/App纵切面，**不声明任何默认构造器退役或净gzip收益**。
++
++独立代理另外执行真实OLD→独立frozen OLD：R01/R03/S01/S03固定234/234完整同，native0，599资源子操作/侧；最初冻结缺calendar JSON的native1/completed0原件保留，单独纠正冻结closure而不改case/runner。A08/M04/C01固定34/34实际OLD记录同，但原forecast仅33/34对，HK预计entry而真实rejected，baseline native1保留；后验季度candidate kind推断另native1保留。后续只读核验成功不是洗掉旧失败或候选PASS。HK未来acceptance correction只绑定实际OLD完整rejected，不修改旧case/validator。
++
++主代理完整读两份报告并由独立代理复核：234未测真正inherited顶层五键，scope不是cache-hit/cancel完整矩阵，异常不是全prototype契约；App使用真实AST原文但不启动DOM。M04显式调用accuracy入口，不证明真实App enriched路径已有hook。有限原始控制不替代任意输入/全生命周期/真实金融源或设备测试。
++
++真实沪深300配置使境内cn-index同时合格于重仓和市场模型。重仓先写1.2%/coverage60，市场后写3%/coverage100且遗留双flag，季度wrapper读取后写数值并继承est_model，产出quarterly来源的model_estimate候选。这是可达的候选provenance **P1-M04-PROVENANCE**，不是必须永久兼容的正确行为；本批最终selected是market-model、主Quote/金额与3%一致，未证明线上发生或金额损失。正常缓存已有selected Quote优先，无Quote旧缓存路径未在本批跑。后续来源修复需单独定义两模型独立证据/旧cache缺证据策略，不能只强改kind、悄改旧oracle或以压缩为由改变业务覆盖政策。本轮仅向Temp协议追加纠正说明，**未实现该修复，也未改root业务**。
++
++完整默认图复核发现fresh/旧cache仍回到通用候选器，详情holdings仍回到generic parser，freshness在resource/cache/render仍活；只迁移HTTP不能闭合退役。完整切面还包括静态namespace、第二钟和真类rescue、opaque先消费后剪、presence codec、三路旧aggregate、官方与独立模型投影及两个不同outer writer；新codec本身有成本，不能把搬迁原始字节相加当6960B收益。
++
++详见[完整检查点及覆盖界限](performance-evidence/pipeline-boundaries-20261022/README.md)。四个完整冻结Temp工作区加父级工具/原身份库存共916文件、128278491B，归档13253373B/SHA256 `28d433c676c4fbf33a222ef1a8cd5bf1cfabd698309463dd2f308e7882345960`；新Temp解压全部成员字节/SHA同。主23项原件/库存/root270/site127/安装68/Git复核native0/stderr0；git diff-check0，9条旧LF→CRLF告警原样保留。archive-audit/原生收据等为包外addendum，原root完整site/依赖payload不在包内，库存不能冒称payload。
++
++本轮无build/新完整tests/check/E2E/audit/时延/CI、真机/生产/Gist/OCR。rootall84187/cold44699未变，原all预算仍FAIL/至少差6960整数B；旧800不继承给Temp改源。候选未采用、无业务提交/推送/合并/部署/升版；**15.0.2/M3 IN_PROGRESS，未进M4/M5/M6**。
++
++## 51. 双模型独立来源P1本地修复、消费者回归和新构建身份（2026-10-22）
++
++前回合完成旧控制和可达缺陷定位，属PROGRESS；本回合先写独立正确性协议再修复，不把共享est_*错配当必须兼容oracle，也不冒充压缩等价候选。真实OLD13唯一执行全部完成，7金融来源RED/6控制PASS/native1；固定案例和测试字节不变，早期GREEN与最终green-02均13/13/native0。逐case网络/Storage守卫不覆盖imports，原13没有完整selected生命周期断言，这些有限边界明确保留。
++
++只改五业务文件：holdings-estimate与fund-model-enrichment成功安装时分别冻结独立模型证据；quote-normalizer拒绝新槽换基金/损坏/计算或时钟周期不符、保留unknown/0及旧单模型适配、旧双flag无证据双向不可usable；app传入真实安装采集时间、保留已有selected优先但对绑定/到期失败降stale、说明绑定同源Quote；accuracy入口不再跨源或用旧共享值补未知版本/置信。保留两模型功能和原quality排序，不删除资源验证。旧记录selected市场值正确，未由此证明线上主金额损坏。
++
++最终同源码新门禁：1304 tests中1301 PASS/0 FAIL/3原Windows skip，语法214，Chrome34/34；原配方/五组/oxc/ES2022/固定epoch1792046773三轮build完整127文件逐字节/SHA同（行SHA4182f49e）。新60+20测试覆盖独立槽/identity/accessor/null/0/JSON/时钟/有效期/旧cache/说明及accuracy入口；新增真实App E2E沿bootstrap/Bridge/refresh/render/cache reload，基值1.2、重仓1.2192/1.6%/80%、市场1.236/3%/100%，选择市场、金额123.6/3.6且说明不串源。全部外源合成、固定日期、桌面Chrome/SW blocked，无真实用户Storage/Gist/金融源。
++
++原生失败保留：test-01旧集成源码正则未含新fetchedAt参数，native1；e2e-01新fixture混用股票与指数涨幅，33/1/native1；e2e-02新fixture的??1把显式null变1，32/2/native1。只纠正夹具/对应显式参数文字，未删旧缺值断言；e2e-03为最终34/34，stderr两条NO_COLOR/FORCE_COLOR告警。三轮生成目录在构建前recoverable move到本次Temp，失败trace/screenshot原件全保留。list reporter未落盘成功用例内存attachment，不声称该JSON原件存在。OLD事后postflight因三份源在采样后被修复而native1也原样保留，不篡改为窗口漂移或PASS。
++
++当前16chunks raw252257、**all85956/cold46129**，相对旧84187/44699正确性成本**+1769/+1430 B**。原预算CLI实际native1/FAIL，all上限77227.7，至少还需压减**8729整数B**；cold<52241不能代替all。新graph静态bindings/literal closure通过，evaluated/startupOrder/dynamicNamespace仍未由该CLI证明。第48节修复前800不能继承，未新跑统计时延/精确SHA CI或网络审计；依赖安装/锁身份同只证明本次未变，不冒称新audit。
++
++独立只读终审未确认新的实际App可达P0/P1，但**accuracy自动生命周期未闭合**：现有hook仍在primary publish且只筛海外，enriched仅更新投影；单测显式调用入口，新E2E没有accuracy ledger断言。可称入口归因、0/unknown和过期规则已回归，不能称异步模型预测及正式净值结算全流程已验证。数据判定CONDITIONALLY_TRUSTED仅限本地有限provenance，非全应用/生产TRUSTED。
++
++详见[方法、完整结果和范围](performance-evidence/model-provenance-fix-20261022/README.md)。两完整Temp工作区、最终248份非历史输入payload、selected构建文件及全部272源/127site/68安装库存共**791成员/33481328B**，归档**11490572B / SHA256 0c127a5bb5fec6ab518a4308c9a59d4f6337fd631cf15553f42d4f3cfb75fde1**。全新解压逐项字节/SHA同；主30项native0/stderr0。24历史Android输出和非selected site/安装payload仅保库存；审计结果及事后收据为包外addendum。最终272输入只比前270有预定8文件修改+2新测试，Git HEAD/branch/index及68安装同，既有脏修改保留。
++
++应用仍**15.0.2 / M3 IN_PROGRESS / NOT_RELEASED**，未进M4/M5/M6，未业务提交/推送/合并/部署/升版。后续先把未闭合压缩原型对齐本次正确性基线，完整行为边界和净gzip合格后再谈采用；全v16预算/新性能/精确CI、Gist/OCR/PWA/真机/生产门禁不缩小、不跳过。
++
++## 52. 海外accuracy异步enriched自动预测与正式净值结算的有限闭合（2026-10-22）
++
++第51节的accuracy缺口作为独立正确性修复处理，不混入压缩等价性实验。先保留旧App/E2E字节和协议，再用真实App/Bridge/render/cache的合成US交易日场景定位：OLD `red-04`已满足模型来源/有效期/显示/独立证据断言，Quote为market-model、value1.212/change1/base1.2/Sep25→Sep28、status model，但自动ledger仍0，native1。原accepted-session案例47197B/SHA256 `ad8f19e09deecc4bfaf039b89cbf72336a1d62cb94b6cd02fbf66e1eda7320cb`完全不改，独立重建修复产品后的`green-01`真实1/1/native0；不是两个新wrapper互比，也没有显式调用accuracy入口。
++
++本轮相对第51节只改`js/app.js`、既有`e2e/v16-refresh.spec.js`并新增`test/accuracy-lifecycle-v16.test.js`。primary与enriched共用`updateCurrentFundAccuracy`：仍只筛海外类别，异步import完成后经原generation `context.commit`，并要求该code当前fund对象仍与传入投影同一，防旧代或同代已替换对象写ledger；成功更新后安排原去重渲染，加载/更新异常维持静默降级。enriched不重新走带自动改名/持仓事务的完整primary publication。两模型计算/排序/独立槽与Quote规则、accuracy核心算法/持久化格式/时钟/去重/结算不变，没有新增云写或金融源。
++
++新增12项单测执行实际App scheduler函数体，仅将ESM import换成受控延迟loader，覆盖当前对象、非海外、取消、同代替换/删除、其他基金变化、两个import完成顺序、load/update/render异常，以及两发布路径接线；这不是完整ESM/DOM证明。正式E2E另走真实模块自动链：合成中国Sep29 14:30、最新US close对应Sep28，尚未公布的**目标NAV是Sep28**，不是中国Sep29当日收益。以Sep25正式NAV1.2预测1%/1.212，ledger保留prediction_date Sep29、target_nav_date Sep28、rule-v1/confidence0.35。暖刷新后整条ledger及recorded_at相同，只证明结果幂等/不续时间，不声称零Storage写入。下一中国日公布Sep28 NAV1.224，原预测结算为predicted_change1、actual_change约2、error约−1个百分点、方向正确；selected转为official_nav，旧US行情不得虚构Sep29新目标。以上全部为合成数据，不是实际金融源/生产结算。
++
++原生失败全部保留：`red-01`的CJS fileURL import、`red-02`的完整标题grep均未执行有效测试；`red-03`真实执行但模型交易日PRECONDITION错误，被产品正确拒绝，不能当accuracy RED或改判PASS。另立accepted-session声明后才跑`red-04`，其ledger 0为有效RED。原stdout/stderr/JSON/trace/screenshot和后续GREEN独立输出不覆盖、不筛除。正式`gates/e2e-01`的成功用例另保存`actual-accuracy-lifecycle.json`，不是把旧未落盘attachment补称原件存在。
++
++最终本地门禁已实际执行：`gates/test-01`为1316 total、1313 PASS/0 FAIL/3既有Windows skip/native0；`check-01`语法215/native0；`e2e-01`为桌面Chrome35/35/native0，stderr保留两条NO_COLOR/FORCE_COLOR告警。原配方、五加载组、OXC/ES2022与epoch1792046773不变，`build-02/03/04`各native0，完整127行产物库存相同，行SHA256均为`0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31`；16chunks raw252331、all85969/cold46149。相对第51节正确性成本all+13/cold+20 B。`budget-01`真实native1：all85969>77227.7，至少还需**8742整数B**；cold<52241不替代all。`graph-01`native0只证明literal import closure/static bindings，仍`evaluated:false/startupOrderVerified:false/dynamicNamespaceMembersVerified:false`；预算CLI仍`importClosureVerified:false`。
++
++身份范围明确：各gate收据before/after为272个noDocs输入；加固定`docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md`是273完整输入。`current-control.mjs/CURRENT_CONTROL.json`将其与第51节272完整输入比较，精确为App/E2E两文件修改加一新单测；其余原输入保留。当前raw值以实际chunks/build求和252331为准，不把control继承的旧raw scalar252257当新结果。此前A/B重基线公开64案stored OLD/fresh OLD/candidate三路全同、3 controls/131调用及2×97定向测试，只绑定第51节旧272身份，不是当前273候选资格；其首次filename错误/native1与v2独立原件保留。Closure Java API/metadata报告同样只是旧身份只读前提审查，没有下载Java/JAR、运行压缩器、产出hybrid或采用任何压缩策略。后续完整候选必须重新对齐当前正确性基线。
++
++详见[独立协议、实际原件与覆盖边界](performance-evidence/accuracy-lifecycle-fix-20261022/README.md)。本节不预填尚未完成的归档成员数/SHA或终审计数。第51节来源证据和旧失败保留历史原文；本轮只把上述自动预测/暖结果幂等/一次后续公布结算的本地有限链闭合，数据判定仍为**CONDITIONALLY_TRUSTED（合成、本地有限范围）**，不扩为全应用/真实金融源/生产TRUSTED。
++
++当前仍**15.0.2 / M3 IN_PROGRESS / NOT_RELEASED**，无新统计时延、精确SHA CI、网络安全审计、真实金融源对账、Gist/OCR/PWA/真机/生产资格；第48节旧800不继承，未进M4/M5/M6，未业务提交/推送/合并/部署/升版。总包预算、最终候选新性能及后续v16门禁不缩小、不跳过。
+diff --git a/docs/v16.0.0/performance-evidence/README.md b/docs/v16.0.0/performance-evidence/README.md
+index 58a32e8..c86326c 100644
+--- a/docs/v16.0.0/performance-evidence/README.md
++++ b/docs/v16.0.0/performance-evidence/README.md
+@@ -29,6 +29,10 @@ exit $LASTEXITCODE
+ 
+ | 文件 | 结论和范围 |
+ | --- | --- |
++| `accuracy-lifecycle-fix-20261022/README.md` | 独立accuracy异步enriched生命周期修复：真实accepted-US-session RED04→同字节隔离GREEN01，新增12单测；最终1313 PASS/3原Windows skip、语法215、Chrome35/35，三轮完整127行SHA同。预测目标Sep28而非中国Sep29今日涨跌，暖ledger结果幂等（非零写入证明），合成后续NAV1.224结算预测1/实际约2/误差约−1个百分点。all85,969/cold46,149，较第51节+13/+20 B、预算native1/仍差8,742整数B；273完整输入与旧272前置A/B/Closure身份区分，旧失败全保留，无压缩执行/采用、Java下载或新时延/CI/生产资格，15.0.2/M3 IN_PROGRESS |
++| `model-provenance-fix-20261022/README.md` | 独立双模型来源P1本地修复：真实OLD13有7 RED/6控制，同字节最终13 GREEN；正式新80测试、最终1301 PASS/3 skip、Chrome34/34及三轮完整127构建相同。all85,956/cold46,129，正确性成本+1,769/+1,430 B、预算native1/仍差8,729 B；791成员全解压同、主30项native0。旧失败保留，accuracy完整生命周期未闭合；无新时延/CI/真机/生产或压缩采用，15.0.2/M3 IN_PROGRESS |
++| `pipeline-boundaries-20261022/README.md` | 完整管线原型仅wire64公开边界一致；另234/34是独立OLD控制，不是完整候选，保留首次冻结器与两个forecast native1。发现可达双模型候选来源P1、未证明主金额错；916成员全量归档/新解压同、主23项native0，root产品不变/仍超6960B，无新build/时延/CI/采用或发布 |
++| `worker-seam-20261022/README.md` | 原输入三文件Worker同文件解析边界：generic64/fixed52完整独立旧对照相同，2×97定向测试，原配方六轮全127成员确定；候选all84,257/cold44,702反增70/3 B，不采用。两侧graph native0、budget真实native1，root仍84,187/44,699、差6,960 B；非完整QA/新时延/CI/生产或M3 EXIT。完整行为raw、source/原件/方法及有限归档见目录 |
+ | `m3-pair-60.json` | 第一轮 60 retained +4 warm-up；统计 INCONCLUSIVE，harness pageerror 和请求记录问题使完整性证据不足；原样保存，SHA256 `88b927752e589553cea18dba88e3d2233c780f208beeb1ea77a1de6902a4611d` |
+ | `m3-pair-200.json` | 修正 harness 后预设 200 retained +4 warm-up；health/instrumentation/integrity/cleanup PASS，统计 INCONCLUSIVE（旧版 p95 区间宽、保存额外 p95 观察不稳定）；SHA256 `b7abe1b6f9409a8ebf5543b0b380acbb252bc2db60676db5ead7d75491813ad9` |
+ | `m3-counter-probe.json` | 新同文档 counter 协议的 3 次 current-only 桌面实际采集兼容性预检；COMPATIBILITY_PASS，不是 v15 相对性能/p95；SHA256 `94f658237181e97021f64881bd550522e7f05796842aa324fe05bb975448e707` |
+@@ -88,3 +92,23 @@ exit $LASTEXITCODE
+ 10月15日正式闭合运行投影与SW加固见第30节及[71份完整原件说明](m3-runtime-projections-20261015.md)。新all80394是三次组合构建的实值，不是两候选收益相加；whole-site明文实际增长6824 B。原件中五次0接受的allRowsPredicatesEqual:true与无条件条件可信标签已明确否决，不作为真实源/通知等价验收。
+ 
+ 10月18日105基金真实Bridge队列溢出与独立官方2-slot修复见第35节及[原始RED/GREEN、Chrome与三次构建证据](nav-scheduler-20261018/README.md)。新all80494（+17B）/cold42985，仍差3267B；是刷新可靠性修复，不是减包收益。最终1064/1061PASS/3skip、E2E31/31；原pair仍INCONCLUSIVE，不进入M4或发布。
++
++10月18日压缩器独立比较与新800配对分别见第36/37节；后者当前源时延PASS，旧200不改判，all包门禁仍FAIL。10月20日第38节补[独立实际字面闭包/原生静态绑定门禁](esm-link-20261020/README.md)：完整1101/1098PASS/3skip、syntax207、E2E31/31、两次确定性build/audit0，产品库存不变；预算工具仍诚实返回importClosureVerified:false，不能混用新命令的有限证明范围。第39节[UTF8/ASCII打印预筛](format-only-20261020/README.md)最终仅−270B且有未闭合AST差异，未采用，不是实际Vite候选。当前M3仍IN PROGRESS /15.0.2，未提交推送、部署或发布本轮工具工作。
++
++第40节另补[Uglify与clock/HMS共享的固定有限排除](bounded-minifier-scalars-20261020/README.md)：6+12次实际write:false构建，Uglify仅−139B且lazy增122B，scalar最优仅−33B；无采用。439原件含全部产物/输入/4930对primitive trace，压缩归档后新Temp解压逐文件验证；不声称完整API、重复执行历史测试/时延或全程序无法优化。原产品与3267B缺口未变。
++
++第41节补[私有纯字符串池固定离线预筛](string-pooling-20261020/README.md)：153组/1117处，raw−7579B但实际all gzip+641/cold+352B，三轮固定结果，停止且不采用。129原件含全部候选/轮次字节已新Temp解压实核；保留v1零测量词法失败及获批v2修正，不能当作实际Vite构建或完整运行资格。原all80494/77227.7 FAIL及M3状态不变。
++
++第42节按原M3交付补[刷新计数诊断与有界内存观察链](refresh-observability-20261020/README.md)：1133/1130PASS/3skip、syntax210、Chrome32/32、3确定性build/audit0，56原件完整解压实核。当前all83084/cold44386，功能增加all2590B，原预算仍FAIL/至少差5857B；旧800组时延不继承给新源码，无新CI/设备/生产资格，版本15.0.2/M3 IN PROGRESS。
++
++第43节继续补[固定十项计划原因和解构逃逸负控](plan-reasons-20261020/README.md)：最终1159/1156PASS/3skip、syntax211、Chrome32/32、3次确定性build/audit0，105原件解压逐项实核。新all83647/cold44514，相对前轮功能all+563B、原预算仍FAIL/至少差6420B；原决策单次观察不是实际请求/gate历史。无新时延/CI/真机/生产资格，原版本与M3状态不变，未推送发布。
++
++第44节补[实际执行拒绝事实及新安全阻断](execution-skips-20261022/README.md)：1224/1221PASS/3skip、syntax212、Chrome33/33、3次确定性build，93原件解压实核。all84187/cold44699，原预算仍FAIL/至少差6960B；当前官方audit已返回Vite8.2.2的1个high，不能沿用旧0。无force升级/新时延/CI/真机/发布；版本15.0.2/M3 IN PROGRESS，精确gate细因历史不新增为硬退出条件。
++
++第45节补[Vite8.2.4最小安全patch隔离资格及root服务阻断](vite824-security-20261022/README.md)：A/B各完整1224/1221PASS/3skip、syntax212、Chrome33/33及六次全127file字节同，候选audit0后独立screen通过，仅回写两个文件五scalar；root完整回归与三次全产物同一也通过。root audit503→唯一timeout，最新为UNKNOWN，不用隔离0或旧1high覆盖。all84187仍FAIL/至少差6960B，无新相对时延或锁比较例外，应用15.0.2/M3 IN PROGRESS，未推送发布。原件隐私遮盖/完整copy与构建输入范围见新报告，不夸大根目录最终验收完成。
++
++第46节[独立root安全审计闭合与三路有界只读审查](audit-closure-20261022/README.md)：先声明单次probe，实际root完整JSON audit0含dev，前后270输入/127输出/68安装库存及20历史收据全同，经独立hash复核，Vite本地资格已闭合；旧503/timeout与第45节UNKNOWN为历史事实保留。三路未发现新合格材料性候选，无新源码/压缩变体/全量QA；原预算CLI新native1仍84187/77227.7 FAIL，M3未退出，无新时延/CI或发布资格。
++
++第47节[当前诊断+Vite824独立800配对预声明](pair-vite824-diagnostics-800-20261022/README.md)：创建仅本地同依赖v15安全参考05704296，原业务不动/预算锚不改，strict锁同不waive；固定原800/4/5000/seed一次，原sampler不改。预声明本身不是结果，等待唯一新进程/JSON，任何时延结果均不能覆盖all84187预算FAIL或进入M4/发布。
++
++第48节[同一新800配对最终结果](pair-vite824-diagnostics-800-20261022/RESULTS.md)：唯一native0/PASS，完整800+4/ABBA400+400/0failed，独立v2原bootstrap整对象重算及9,663项0失败。cold/warm/save median分别改善7.344%/10.648%/14.288%；raw88,032,041B/SHA46aeb7a3完整保留，v1跨阶段diff错误与native3也保留。结束后完整重枚举270输入/127当前产物/68安装同，先冻结测量patch；新参考三次实际重建全部110成员等于原库存，不冒称已清理旧snapshot重读。console17,687、导航renderer PARTIAL、no-store暖重载与合成桌面限制明确；无新全量QA/精确CI/真机/生产。all84,187/77,227.7仍FAIL/至少差6,960整数B，M3未退出，未推送发布；归档范围和新Temp解压核验见该结果页及机器清单。
+diff --git a/e2e/v16-refresh.spec.js b/e2e/v16-refresh.spec.js
+index c5977b1..7010127 100644
+--- a/e2e/v16-refresh.spec.js
++++ b/e2e/v16-refresh.spec.js
+@@ -1,4 +1,5 @@
+ import { expect, test } from '@playwright/test';
++import { writeFileSync } from 'node:fs';
+ 
+ // Real app/bootstrap/Bridge, synthetic inputs only. This suite is discovered by
+ // the existing Playwright configuration; it is not an opt-in Node test or a
+@@ -32,18 +33,19 @@ function estimateRow(code, value = 1.21) {
+   };
+ }
+ 
+-function tencentScript(url, omitCodes = []) {
++function tencentScript(url, omitCodes = [], modelChange = 1) {
+   const codes = decodeURIComponent(url.pathname.match(/\/q=([^&]+)/)?.[1] || '').split(',')
+     .filter(code => code && !omitCodes.includes(code));
+   return codes.map(code => {
+     const fields = Array(34).fill('');
+     fields[1] = 'Synthetic security';
+     fields[3] = '10.1'; fields[4] = '10';
++    if (code === 'sh000300' && Number.isFinite(modelChange)) fields[3] = String(10 * (1 + modelChange / 100));
+     // Tencent timestamps are exchange-local, not the request's China clock.
+     // At CN 2026-09-29 14:30, the latest US close was Sep 28 16:00 EDT
+     // (Sep 29 04:00 in China). Keep that actual source date/time visible.
+     fields[30] = code.startsWith('us') ? '20260928160000' : '20260929143000';
+-    fields[32] = '1';
++    fields[32] = code === 'sh000300' ? Number.isFinite(modelChange) ? String(modelChange) : '' : '1';
+     const variable = /^(?:kr|jp)/.test(code) ? `v_${code.slice(0, 2)}_${code.slice(2)}` : `v_${code}`;
+     return `var ${variable}=${JSON.stringify(fields.join('~'))};`;
+   }).join('\n');
+@@ -53,6 +55,7 @@ async function installHarness(context, options = {}) {
+   const state = {
+     phase: 'cold', requests: [], gistWrites: [], failEstimates: Boolean(options.failEstimates),
+     failAll: false, estimateValue: 1.21, estimateRequests: 0, heldEstimate: null, heldRequest: null,
++    navPoints: options.navPoints,
+   };
+   const pending = new Set();
+   const requestFacts = new WeakMap();
+@@ -112,7 +115,8 @@ async function installHarness(context, options = {}) {
+     if (category === 'estimates') {
+       state.estimateRequests += 1;
+       const codes = (url.searchParams.get('codes') || '').split(',').filter(code => /^\d{6}$/.test(code));
+-      if (options.holdFirstEstimate && state.estimateRequests === 1) {
++      if (options.holdFirstEstimate && state.estimateRequests === 1 || state.holdNextEstimate) {
++        state.holdNextEstimate = false;
+         state.heldRequest = route.request();
+         await new Promise(resolve => {
+           state.heldEstimate = async () => {
+@@ -134,7 +138,7 @@ async function installHarness(context, options = {}) {
+     if (category === 'nav') {
+       if (state.failAll) return route.abort('failed');
+       const code = url.pathname.match(/(\d{6})\.js$/)[1];
+-      const points = [
++      const points = state.navPoints || [
+         { x: Date.parse('2026-09-25T00:00:00+08:00'), y: 1.19 },
+         { x: Date.parse('2026-09-28T00:00:00+08:00'), y: 1.2 },
+       ];
+@@ -144,9 +148,13 @@ async function installHarness(context, options = {}) {
+     if (category === 'eastmoneySecurities') {
+       if (state.failAll) return route.abort('failed');
+       const identities = (url.searchParams.get('secids') || '').split(',').map(secid => secid.split('.'));
+-      return json({ data: { diff: identities.map(([market, code]) => ({ f12: code, f13: Number(market),
+-        f2: 10.1, f3: Object.hasOwn(options, 'securityChange') ? options.securityChange : 1,
+-        f124: Date.parse(FIXED_TIME) / 1000 })) } });
++      return json({ data: { diff: identities.map(([market, code]) => {
++        // Explicit null/undefined are missing quotes, not the default +1%.
++        const change = market === '1' && code === '000300' && Object.hasOwn(options, 'modelChange')
++          ? options.modelChange : Object.hasOwn(options, 'securityChange') ? options.securityChange : 1;
++        return { f12: code, f13: Number(market), f2: Number.isFinite(change) ? 10 * (1 + change / 100) : 10.1,
++          f3: change, f124: Date.parse(FIXED_TIME) / 1000 };
++      }) } });
+     }
+     if (category === 'gold') {
+       if (state.failAll) return route.abort('failed');
+@@ -154,7 +162,8 @@ async function installHarness(context, options = {}) {
+     }
+     if (category === 'tencent') {
+       if (state.failAll) return route.abort('failed');
+-      return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: tencentScript(url, options.omitTencentCodes) });
++      return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: tencentScript(url, options.omitTencentCodes,
++        Object.hasOwn(options, 'modelChange') ? options.modelChange : 1) });
+     }
+     if (category === 'static') return route.continue();
+     // Never send any request to a live provider or a user's Gist.
+@@ -220,6 +229,105 @@ function navValue(page, code = HOLDINGS[0].code) {
+   return page.locator(`#fund-toggle-${code} .nav-cur`);
+ }
+ 
++test('overseas accuracy automatically records enrichment, deduplicates warm refresh and settles published NAV', async ({ context, page, browser }, testInfo) => {
++  const code = '110022';
++  const harness = await installHarness(context, { failEstimates: true,
++    rows: [{ ...HOLDINGS[0], code, name: '合成纳斯达克QDII基金A' }],
++    navPoints: [{ x: Date.parse('2026-09-24T00:00:00+08:00'), y: 1.19 },
++      { x: Date.parse('2026-09-25T00:00:00+08:00'), y: 1.2 }] });
++  const read = () => page.evaluate(({ code, key }) => {
++    const aggregate = JSON.parse(localStorage.getItem(key) || 'null');
++    return { fund: aggregate?.data?.find(row => row.code === code),
++      ledger: JSON.parse(localStorage.getItem('fuyu_overseas_accuracy_v1') || '[]').filter(row => row.code === code) };
++  }, { code, key: FUND_CACHE });
++  await page.goto('/'); await harness.settle(page);
++  await expect.poll(async () => (await read()).fund?.quote?.sourceId).toBe('market-model');
++  await expect(navValue(page, code)).toHaveText('1.2120');
++  const cold = await read();
++  expect(cold.fund.quote).toMatchObject({ valueKind: 'model_estimate', status: 'model', changePct: 1,
++    baseNavDate: '2026-09-25', targetDate: '2026-09-28', modelVersion: 'rule-v1', confidence: 0.35 });
++  await expect.poll(async () => (await read()).ledger.length).toBe(1);
++  const predicted = (await read()).ledger;
++  expect(predicted[0]).toMatchObject({ code, prediction_date: '2026-09-29', base_nav_date: '2026-09-25',
++    target_nav_date: '2026-09-28', predicted_change: 1, model_version: 'rule-v1', confidence: 0.35,
++    model_label: '纳指100代理', actual_change: null, error: null, direction_correct: null });
++
++  await harness.refresh(page, 'accuracyWarm');
++  expect((await read()).ledger, 'same date/version prediction cannot be duplicated or timestamp-renewed').toEqual(predicted);
++  expect(harness.requests('accuracyWarm', 'nav'), 'warm prediction does not force the stable NAV resource').toHaveLength(0);
++
++  // The next China day publishes the underlying Sep28 NAV. The unchanged US
++  // fixture is then insufficient for a new Sep29 target and must not fabricate one.
++  harness.state.navPoints = [{ x: Date.parse('2026-09-25T00:00:00+08:00'), y: 1.2 },
++    { x: Date.parse('2026-09-28T00:00:00+08:00'), y: 1.224 }];
++  await page.evaluate(() => { globalThis.__refreshTestClockAdvance = 24 * 60 * 60_000; });
++  await harness.refresh(page, 'accuracySettlement');
++  await expect.poll(async () => (await read()).ledger[0]?.actual_change).not.toBeNull();
++  const settled = await read();
++  expect(settled.ledger).toHaveLength(1);
++  expect(settled.ledger[0].actual_change).toBeCloseTo(2, 10);
++  expect(settled.ledger[0].error).toBeCloseTo(-1, 10);
++  expect(settled.ledger[0].direction_correct).toBe(true);
++  expect(settled.ledger[0].settled_at).toMatch(/^2026-09-30T/);
++  expect(settled.fund.quote).toMatchObject({ valueKind: 'official_nav', value: 1.224, targetDate: '2026-09-28' });
++  expect(harness.state.gistWrites).toEqual([]);
++  expect(harness.state.requests.filter(row => row.category === 'gist')).toEqual([]);
++  writeFileSync(testInfo.outputPath('actual-accuracy-lifecycle.json'), JSON.stringify({
++    scope: 'synthetic real App/Bridge automatic prediction, warm dedup and next publication settlement; not real providers/devices',
++    browser: browser.version(), cold, predicted, settled, noCloudWrites: true,
++  }, null, 2) + '\n', { flag: 'wx' });
++});
++
++test('independent holdings and market models survive the real refresh, renderer and cache reload', async ({ context, page, browser }, testInfo) => {
++  const row = { ...HOLDINGS[0], name: '合成沪深300指数基金' };
++  const harness = await installHarness(context, { rows: [row], failEstimates: true, securityChange: 2, modelChange: 3 });
++  await page.goto('/');
++  await harness.settle(page);
++  const cached = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)).data[0], FUND_CACHE);
++  await expect.poll(async () => (await cached())?.market_model_evidence?.changePct).toBe(3);
++  const fund = await cached();
++  expect(fund.holdings_model_evidence.fundCode).toBe(row.code);
++  expect(fund.holdings_model_evidence.changePct).toBeCloseTo(1.6, 10);
++  expect(fund.holdings_model_evidence.value).toBeCloseTo(1.2192, 10);
++  expect(fund.holdings_model_evidence.coverage).toBe(80);
++  expect(fund.market_model_evidence.value).toBeCloseTo(1.236, 10);
++  expect(fund.market_model_evidence.coverage).toBe(100);
++  expect(fund.quote.sourceId).toBe('market-model');
++  expect(fund.quote.valueKind).toBe('model_estimate');
++  expect(fund.quote.changePct).toBe(3);
++  expect(fund.curr_value).toBeCloseTo(123.6, 8);
++  expect(fund.today_profit).toBeCloseTo(3.6, 8);
++  await expect(navValue(page)).toHaveText('1.2360');
++  await page.locator(`#fund-toggle-${row.code}`).click();
++  await expect(page.locator(`#fund-detail-${row.code}`)).toContainText('可用权重100.00%');
++  await expect(page.locator(`#fund-detail-${row.code}`)).not.toContainText('覆盖净值80.0%');
++  const identities = { quote: fund.quote, holdings: fund.holdings_model_evidence, market: fund.market_model_evidence };
++  harness.state.failAll = true;
++  harness.state.holdNextEstimate = true;
++  await page.reload();
++  await harness.ready(page);
++  await expect.poll(() => Boolean(harness.state.heldEstimate)).toBe(true);
++  try {
++    // Hold the new primary acquisition so this observes the real cache restore,
++    // not a later, legitimately different official/failed-refresh projection.
++    await expect(navValue(page)).toHaveText('1.2360');
++    const restored = await cached();
++    expect(restored.holdings_model_evidence).toEqual(identities.holdings);
++    expect(restored.market_model_evidence).toEqual(identities.market);
++    expect(restored.quote.value).toBe(identities.quote.value);
++    expect(restored.quote.fetchedAt).toBe(identities.quote.fetchedAt);
++  } finally {
++    await harness.state.heldEstimate();
++    await harness.settle(page);
++  }
++  expect(harness.state.gistWrites).toEqual([]);
++  await testInfo.attach('model-provenance-synthetic-refresh', { contentType: 'application/json', body: JSON.stringify({
++    scope: 'local Chrome real app/Bridge/refresh/render/reload; synthetic providers only; not production/device proof',
++    browser: browser.version(), holdings: identities.holdings, market: identities.market,
++    selected: identities.quote, noCloudWrites: true,
++  }) });
++});
++
+ test('one generation shares official NAV between fallback and enrichment', async ({ context, page }) => {
+   // Keep this case on official NAV: a successful holdings enrichment would
+   // legitimately select today's model and make its visible quote time 14:30.
+@@ -428,3 +536,250 @@ test('a non-cooperative late response cannot overwrite the current generation UI
+     if (harness.state.heldEstimate) await harness.state.heldEstimate();
+   }
+ });
++
++test('refresh diagnostics reconcile real cold and warm requests without renewing data or loading private features', async ({ context, page }, testInfo) => {
++  const harness = await installHarness(context);
++  const dataCategories = ['estimates', 'holdings', 'nav', 'eastmoneySecurities', 'gold', 'tencent'];
++  const requestCounts = phase => Object.fromEntries(dataCategories.map(category =>
++    [category, harness.requests(phase, category).length]));
++  const requestTotal = phase => Object.values(requestCounts(phase)).reduce((sum, value) => sum + value, 0);
++  const diagnosticValue = label => page.locator('#diagnostics-content .diagnostics-row')
++    .filter({ has: page.getByText(label, { exact: true }) }).locator('strong');
++  const counter = async label => {
++    const text = await diagnosticValue('刷新请求').innerText();
++    const match = new RegExp(`${label}\\s*[:：=]?\\s*(\\d+)`).exec(text);
++    expect(match, `structured refresh request summary must expose ${label}`).not.toBeNull();
++    return Number(match[1]);
++  };
++  const planReasonLabels = ['缓存新鲜', '缓存缺失', '元数据无效', '缓存质量不可用', '缓存过期',
++    '强制实时', '强制稳定', '市场不适用', '阶段待定', '无活动持仓'];
++  const assertPlanReasons = async counts => {
++    const row = diagnosticValue('计划原因');
++    await expect(row, 'planning reasons must be visible in the real diagnostics center').toHaveCount(1);
++    await expect(row).toBeVisible();
++    await expect(row).toHaveText(planReasonLabels.map((label, index) => `${label} ${counts[index]}`)
++      .concat('仅表示计划时决策；实际执行 gate 细因未记录').join('；'));
++    return row.innerText();
++  };
++  const executionSkipLabels = ['估值源拒绝', '重仓源拒绝', '重仓半开额度已用', '模型源拒绝', '模型半开额度已用'];
++  const assertExecutionSkips = async counts => {
++    const row = diagnosticValue('执行跳过');
++    await expect(row, 'execution gate observations must be visible in the real diagnostics center').toHaveCount(1);
++    await expect(row).toBeVisible();
++    await expect(row).toHaveText(executionSkipLabels.map((label, index) => `${label} ${counts[index]}`)
++      .concat('按门控检查次数统计，非请求或唯一资源数；拒绝细因未记录').join('；'));
++    return row.innerText();
++  };
++  const readCache = () => page.evaluate(key => {
++    const raw = localStorage.getItem(key);
++    const cache = raw && JSON.parse(raw);
++    return { raw, holdingsHash: cache?.holdingsHash,
++      stable: Object.fromEntries(Object.entries(cache?.refreshResources || {})
++        .filter(([resource]) => /^(?:nav|holdings|meta):/.test(resource))) };
++  }, FUND_CACHE);
++  const openDiagnostics = async phase => {
++    await harness.phase(page, phase);
++    await page.locator('#nav-edit').click();
++    await page.locator('#diagnostics-center > summary').click();
++    await expect(page.locator('#diagnostics-center')).toHaveAttribute('open', '');
++    await expect(diagnosticValue('刷新诊断'), 'completed refresh must be observable through the real diagnostics center').toHaveCount(1);
++    await expect(diagnosticValue('刷新诊断')).toContainText(/completed|已完成/);
++    await expect(diagnosticValue('刷新诊断')).toContainText(/observed\s*[:：=]?\s*true/i);
++    await harness.settle(page);
++  };
++  const assertPrivateFeaturesAbsent = () => {
++    expect(harness.state.requests.filter(row => row.category === 'gist'), 'diagnostics must not initiate even read-only Gist requests').toEqual([]);
++    expect(harness.state.requests.filter(row => /(?:\/assets\/ocr\/|ocr-import\.html|paddle|tesseract|\.wasm(?:$|\?))/i.test(row.url)),
++      'opening or refreshing diagnostics must not load OCR assets or an OCR document').toEqual([]);
++    expect(harness.state.gistWrites).toEqual([]);
++  };
++
++  await page.goto('/');
++  await harness.settle(page);
++  await expect(navValue(page)).not.toHaveText('--');
++  const cold = await readCache();
++  expect(cold.raw).not.toBeNull();
++  expect(typeof cold.holdingsHash).toBe('string');
++  expect(Object.keys(cold.stable)).toHaveLength(3);
++  expect(harness.requests('cold', 'holdings')).toHaveLength(1);
++  expect(harness.requests('cold', 'nav')).toHaveLength(1);
++  const coldRequests = requestCounts('cold');
++  await testInfo.attach('cold-refresh-network-categories', {
++    contentType: 'application/json', body: JSON.stringify({ scope: 'real app and opaque Bridge; synthetic network only', counts: coldRequests }),
++  });
++  await openDiagnostics('coldDiagnostics');
++  expect(await counter('实际请求')).toBe(requestTotal('cold'));
++  expect(await counter('已进入请求中止')).toBe(0);
++  expect(await counter('资源取消拒绝')).toBe(0);
++  expect(await counter('写尝试')).toBe(1);
++  expect(await counter('缓存写入')).toBe(1);
++  await expect(diagnosticValue('刷新计划')).toContainText(/estimates/);
++  await expect(diagnosticValue('刷新计划')).toContainText(/fetch/);
++  // Startup forces the three volatile resources. The three stable resources
++  // miss their cache; the two phase-B resources remain pending at plan time.
++  const coldPlanReasons = await assertPlanReasons([0, 3, 0, 0, 0, 3, 0, 0, 2, 0]);
++  const coldExecutionSkips = await assertExecutionSkips([0, 0, 0, 0, 0]);
++  await expect(diagnosticValue('请求来源')).toContainText('sinan-estimate-proxy');
++  await expect(diagnosticValue('最终报价')).toContainText(/基金详情.*数据说明/);
++  expect(await readCache(), 'reading diagnostics must preserve all cache acquisition bytes and holdings identity').toEqual(cold);
++  expect(requestTotal('coldDiagnostics')).toBe(0);
++  expect(await harness.writes(page, 'coldDiagnostics')).toEqual([]);
++  assertPrivateFeaturesAbsent();
++
++  await page.locator('#diagnostics-center > summary').click();
++  await page.locator('#nav-market').click();
++  await page.evaluate(() => window.scrollTo(0, 0));
++  await harness.refresh(page);
++  expect(harness.requests('warm', 'holdings')).toHaveLength(0);
++  expect(harness.requests('warm', 'nav')).toHaveLength(0);
++  const warm = await readCache();
++  expect(warm.holdingsHash).toBe(cold.holdingsHash);
++  expect(warm.stable, 'warm refresh cannot renew NAV, disclosure or metadata acquisition envelopes').toEqual(cold.stable);
++  await openDiagnostics('warmDiagnostics');
++  expect(await counter('实际请求')).toBe(requestTotal('warm'));
++  expect(await counter('缓存命中')).toBeGreaterThan(0);
++  expect(await counter('已进入请求中止')).toBe(0);
++  expect(await counter('资源取消拒绝')).toBe(0);
++  expect(await counter('写尝试')).toBe(1);
++  expect(await counter('缓存写入')).toBe(1);
++  await expect(diagnosticValue('刷新计划')).toContainText(/cache/);
++  await expect(diagnosticValue('跳过原因')).not.toBeEmpty();
++  // A warm manual refresh still forces live data; only NAV, disclosure and
++  // metadata become fresh-cache decisions, without renewing their envelopes.
++  const warmPlanReasons = await assertPlanReasons([3, 0, 0, 0, 0, 3, 0, 0, 2, 0]);
++  const warmExecutionSkips = await assertExecutionSkips([0, 0, 0, 0, 0]);
++  const summary = (await Promise.all(['刷新诊断', '刷新计划', '计划原因', '执行跳过', '刷新请求', '跳过原因', '请求来源', '最终报价']
++    .map(label => diagnosticValue(label).innerText()))).join('\n');
++  expect(summary).not.toMatch(/005844|合成境内混合基金A|ghp_|Authorization|https?:|source_quote|baseNav|shares|cost/);
++  expect(await readCache(), 'opening warm diagnostics must not change aggregate dates, hash or stored data').toEqual(warm);
++  expect(requestTotal('warmDiagnostics')).toBe(0);
++  expect(await harness.writes(page, 'warmDiagnostics')).toEqual([]);
++  assertPrivateFeaturesAbsent();
++  await testInfo.attach('refresh-diagnostics-cold-warm', {
++    contentType: 'application/json', body: JSON.stringify({ scope: 'synthetic completed generations only; no cancellation or production acceptance',
++      cold: coldRequests, warm: requestCounts('warm'), coldPlanReasons, warmPlanReasons,
++      coldExecutionSkips, warmExecutionSkips, summary }),
++  });
++});
++
++test('refresh diagnostics observe a real estimate source gate rejection without requesting or renewing official NAV', async ({ context, page }, testInfo) => {
++  // Keep disclosure acquisition healthy, but leave its securities unpriced so
++  // neither holdings enrichment nor the model's index leg replaces official NAV.
++  const harness = await installHarness(context, { failEstimates: true, securityChange: null,
++    omitTencentCodes: ['sh000300', ...Array.from({ length: 10 }, (_, i) => `sz${String(i + 1).padStart(6, '0')}`)] });
++  await context.addInitScript(origin => {
++    if (window !== window.top || location.origin !== origin) return;
++    globalThis.__diagnosticsStorageMutations = [];
++    for (const method of ['setItem', 'removeItem', 'clear']) {
++      const native = Storage.prototype[method];
++      Storage.prototype[method] = function(...args) {
++        const result = native.apply(this, args);
++        if (this === localStorage) globalThis.__diagnosticsStorageMutations.push({ method, phase: globalThis.__refreshTestPhase });
++        return result;
++      };
++    }
++  }, ORIGIN);
++  const diagnosticValue = label => page.locator('#diagnostics-content .diagnostics-row')
++    .filter({ has: page.getByText(label, { exact: true }) }).locator('strong');
++  const refreshDiagnostics = () => page.getByRole('button', { name: '刷新诊断', exact: true }).click();
++  const dataCategories = ['estimates', 'holdings', 'nav', 'eastmoneySecurities', 'gold', 'tencent'];
++  const requestCounts = phase => Object.fromEntries(dataCategories.map(category =>
++    [category, harness.requests(phase, category).length]));
++  const readCache = () => page.evaluate(({ key, code }) => {
++    const raw = localStorage.getItem(key);
++    const cache = raw && JSON.parse(raw);
++    const quote = cache?.data?.find(row => row.code === code)?.quote;
++    return { raw, holdingsHash: cache?.holdingsHash,
++      stable: Object.fromEntries(Object.entries(cache?.refreshResources || {})
++        .filter(([resource]) => /^(?:nav|holdings|meta):/.test(resource))),
++      official: quote && { value: quote.value, valueKind: quote.valueKind, baseNav: quote.baseNav,
++        baseNavDate: quote.baseNavDate, targetDate: quote.targetDate, officialNavDate: quote.officialNavDate } };
++  }, { key: FUND_CACHE, code: HOLDINGS[0].code });
++  const assertOfficialNav = async () => {
++    const row = page.locator(`#fund-toggle-${HOLDINGS[0].code}`);
++    await expect(row.locator('.nav-cur')).toHaveText('1.2000');
++    await expect(row.locator('.nav-prev')).toHaveText('1.1900');
++    await expect(row.locator('.fund-pct')).toHaveText('+0.84%');
++    await expect(row.locator('.quote-kind')).toHaveText('最新净值涨跌');
++    await expect(row.locator('.quote-time')).toHaveText('2026-09-28');
++    expect((await readCache()).official).toEqual({ value: 1.2, valueKind: 'official_nav', baseNav: 1.19,
++      baseNavDate: '2026-09-25', targetDate: '2026-09-28', officialNavDate: '2026-09-28' });
++  };
++
++  await page.goto('/');
++  await harness.settle(page);
++  await assertOfficialNav();
++  const cold = await readCache();
++  expect(harness.requests('cold', 'estimates')).toHaveLength(1);
++  expect(harness.requests('cold', 'nav')).toHaveLength(1);
++  for (const phase of ['secondFailure', 'thirdFailure']) {
++    await harness.refresh(page, phase);
++    expect(harness.requests(phase, 'estimates')).toHaveLength(1);
++    expect(harness.requests(phase, 'nav')).toHaveLength(0);
++    expect(harness.requests(phase, 'holdings')).toHaveLength(0);
++    await assertOfficialNav();
++  }
++  expect(harness.state.estimateRequests, 'three real failures must reach the unchanged default circuit threshold').toBe(3);
++  const beforeDenied = await readCache();
++  expect(beforeDenied.stable, 'failed estimates cannot renew official NAV, metadata or disclosure acquisition dates').toEqual(cold.stable);
++  expect(beforeDenied.holdingsHash).toBe(cold.holdingsHash);
++
++  // Public diagnostics expose the real third-generation cooldown; do not read
++  // or mutate the private coordinator, registry, observer or source policy.
++  await harness.phase(page, 'thresholdDiagnostics');
++  await page.locator('#nav-edit').click();
++  await page.locator('#diagnostics-center > summary').click();
++  await expect(diagnosticValue('刷新诊断')).toHaveText('第3代 / 已完成 / observed=true');
++  await expect(diagnosticValue('数据源健康')).toContainText('sinan-estimate-proxy cooldown / 连续失败 3');
++  await harness.settle(page);
++
++  // The existing online handler starts generation four. Unlike manual helper
++  // refresh(), this path must not wait for an estimate request that is denied.
++  await harness.phase(page, 'sourceDenied');
++  await page.evaluate(() => window.dispatchEvent(new Event('online')));
++  await expect.poll(async () => {
++    await refreshDiagnostics();
++    return diagnosticValue('刷新诊断').innerText();
++  }, { message: 'the real online generation must complete through public diagnostics' })
++    .toBe('第4代 / 已完成 / observed=true');
++  await harness.settle(page);
++  expect(harness.state.estimateRequests).toBe(3);
++  expect(harness.requests('sourceDenied', 'estimates'), 'a denied estimate claim is not a dispatched network request').toHaveLength(0);
++  expect(harness.requests('sourceDenied', 'nav')).toHaveLength(0);
++  expect(harness.requests('sourceDenied', 'holdings')).toHaveLength(0);
++  const executionSkips = { estimate_claim_denied: 1, holdings_claim_denied: 0, holdings_probe_used: 0,
++    model_claim_denied: 0, model_probe_used: 0 };
++  await expect(diagnosticValue('执行跳过')).toHaveText('估值源拒绝 1；重仓源拒绝 0；重仓半开额度已用 0；模型源拒绝 0；模型半开额度已用 0；按门控检查次数统计，非请求或唯一资源数；拒绝细因未记录');
++  await expect(diagnosticValue('请求来源')).not.toContainText(/sinan-estimate-proxy=[1-9]\d*/);
++  await assertOfficialNav();
++  const denied = await readCache();
++  expect(denied.stable).toEqual(beforeDenied.stable);
++  expect(denied.official).toEqual(beforeDenied.official);
++  expect(denied.holdingsHash).toBe(beforeDenied.holdingsHash);
++
++  // Once completed, re-reading diagnostics must be entirely read-only across
++  // every request category and every localStorage mutation API, not only Gist.
++  await harness.phase(page, 'deniedDiagnostics');
++  const requestsBeforeRead = harness.state.requests.length;
++  const storageBeforeRead = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
++  await refreshDiagnostics();
++  await expect(diagnosticValue('刷新诊断')).toHaveText('第4代 / 已完成 / observed=true');
++  await harness.settle(page);
++  expect(harness.state.requests.length).toBe(requestsBeforeRead);
++  expect(await harness.writes(page, 'deniedDiagnostics')).toEqual([]);
++  expect(await page.evaluate(() => globalThis.__diagnosticsStorageMutations
++    .filter(row => row.phase === 'deniedDiagnostics'))).toEqual([]);
++  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(storageBeforeRead);
++  expect(await readCache()).toEqual(denied);
++  expect(harness.state.requests.filter(row => row.category === 'gist')).toEqual([]);
++  expect(harness.state.requests.filter(row => /(?:\/assets\/ocr\/|ocr-import\.html|paddle|tesseract|\.wasm(?:$|\?))/i.test(row.url))).toEqual([]);
++  expect(harness.state.gistWrites).toEqual([]);
++  const summary = (await Promise.all(['刷新诊断', '执行跳过', '刷新请求', '请求来源', '最终报价']
++    .map(label => diagnosticValue(label).innerText()))).join('\n');
++  expect(summary).not.toMatch(/005844|合成境内混合基金A|ghp_|Authorization|https?:|source_quote|baseNav|shares|cost/);
++  await testInfo.attach('refresh-diagnostics-real-source-gate-denied', {
++    contentType: 'application/json', body: JSON.stringify({ scope: 'real default source-health cooldown and public online handler; synthetic network only; no half-open or production acceptance',
++      completedGeneration: 4, executionSkips, cold: requestCounts('cold'), secondFailure: requestCounts('secondFailure'),
++      thirdFailure: requestCounts('thirdFailure'), sourceDenied: requestCounts('sourceDenied'), summary }),
++  });
++});
+diff --git a/js/accuracy.js b/js/accuracy.js
+index 64f30b1..fc4094e 100644
+--- a/js/accuracy.js
++++ b/js/accuracy.js
+@@ -1,4 +1,5 @@
+ import { safeGetItem, safeSetItem } from './storage.js';
++import { modelNoteForQuote, normalizeFundQuoteFreshness } from './runtime/quote-normalizer.js';
+ 
+ const KEY = 'fuyu_overseas_accuracy_v1';
+ 
+@@ -63,14 +64,18 @@ export function updateFundAccuracy(fund, { now = Date.now(), storage = defaultSt
+   }
+   const china = new Date(now + 8 * 3600_000);
+   const minute = china.getUTCHours() * 60 + china.getUTCMinutes();
+-  const quote = fund.quote;
+-  if (quote?.valueKind === 'model_estimate' && quote.status === 'model' && fund.est_model && !fund.est_model_stale
++  const independent = Object.hasOwn(fund, 'market_model_evidence');
++  const quote = independent ? normalizeFundQuoteFreshness(fund, { now }) : fund.quote;
++  const source = quote?.sourceTier === 'cache' ? quote.originalSource : quote?.sourceId;
++  if (quote?.fundCode === fund.code && source === 'market-model'
++      && quote?.valueKind === 'model_estimate' && quote.status === 'model' && fund.est_model && !fund.est_model_stale
+       && quote.baseNavDate && quote.targetDate && Number.isFinite(quote.changePct) && minute >= 870) {
+     rows = recordPrediction(rows, {
+       code: fund.code, prediction_date: china.toISOString().slice(0, 10),
+       target_nav_date: quote.targetDate, base_nav_date: quote.baseNavDate,
+-      model_version: fund.est_model_version || 'unknown', model_label: fund.est_model_label || '',
+-      predicted_change: quote.changePct, confidence: fund.est_confidence || 'unknown', recorded_at: recordedAt,
++      model_version: quote.modelVersion ?? (independent ? 'unknown' : fund.est_model_version ?? 'unknown'),
++      model_label: modelNoteForQuote(fund, quote, 'label'),
++      predicted_change: quote.changePct, confidence: quote.confidence ?? (independent ? 'unknown' : fund.est_confidence ?? 'unknown'), recorded_at: recordedAt,
+     });
+   }
+   saveAccuracy(rows, storage);
+diff --git a/js/app.js b/js/app.js
+index ca79ba5..e16c970 100644
+--- a/js/app.js
++++ b/js/app.js
+@@ -6,9 +6,12 @@ import { classifyFundMarket, refreshDelayForMarkets } from './freshness.js';
+ import {
+   buildFundQuoteCandidates,
+   legacyFreshnessFromQuote,
++  modelNoteForQuote,
+   normalizeCachedQuote,
+   normalizeExistingQuoteFreshness,
++  normalizeFundQuoteFreshness,
+   normalizeOfficialNavQuote,
++  normalizeMarketModelQuote,
+   selectPreferredQuote,
+ } from './runtime/quote-normalizer.js';
+ import { normalizeQuoteDate, nullableNumber, parseQuoteTimestamp, quoteStatusRank, unavailableQuote } from './runtime/quote-contract.js';
+@@ -19,7 +22,7 @@ import { indexQuoteStatus, normalizeGoldQuote } from './runtime/index-quote.js';
+ import { createQuotePresentation } from './runtime/quote-presentation.js';
+ import { classifyAssetKind, classifyMarketKind } from './runtime/market-session.js';
+ import { RefreshCoordinator } from './runtime/refresh-runtime.js';
+-import { isRefreshAbort } from './runtime/refresh-generation.js';
++import { isRefreshAbort, createRefreshDiagnosticsStore } from './runtime/refresh-generation.js';
+ import { createRequestSignal, throwIfAborted } from './runtime/request-signal.js';
+ import { activeHoldingCodes, retainActiveFundData } from './runtime/active-holdings.js';
+ import {
+@@ -72,10 +75,14 @@ let loadingDetails = null;   // 当前正在加载详情的基金代码（防重
+ let quoteBridge = null;
+ let quoteBridgePromise = null;
+ let isRefreshing = false;
++const refreshDiagnostics = createRefreshDiagnosticsStore();
+ const refreshCoordinator = new RefreshCoordinator({
+   withBuiltinSources: true,
+   execute: runRefresh,
+-  onStateChange: function(snapshot) { isRefreshing = Boolean(snapshot.active); },
++  onStateChange: function(snapshot) {
++    isRefreshing = Boolean(snapshot.active);
++    refreshDiagnostics.observeState(snapshot);
++  },
+ });
+ let autoRefreshTimer = null;
+ let syncPending = false;       // 是否有待推送的本地变更
+@@ -657,9 +664,9 @@ function buildFundData(r, h, modelQuotes) {
+     shares: h.shares == null ? 0 : h.shares,
+     cost: h.cost == null ? null : h.cost,
+   };
+-  applyOverseasModelEstimate(d, modelQuotes || {});
+-  if (!isUsableNav(d.est_nav) && isUsableNav(d.last_nav) && Number.isFinite(d.est_change)) d.est_nav = d.last_nav * (1 + d.est_change / 100);
+   d.updatedAt = Date.now();
++  applyOverseasModelEstimate(d, modelQuotes || {}, { fetchedAt: new Date(d.updatedAt).toISOString() });
++  if (!isUsableNav(d.est_nav) && isUsableNav(d.last_nav) && Number.isFinite(d.est_change)) d.est_nav = d.last_nav * (1 + d.est_change / 100);
+   d.market = classifyMarketKind(d.name);
+   d.assetKind = classifyAssetKind(d.name, d.market);
+   d.quoteCandidates = buildFundQuoteCandidates(d, {
+@@ -755,10 +762,15 @@ function requireCurrentRefresh(context) {
+   if (!context || !context.isCurrent() || context.signal.aborted) throw makeRefreshAbortError();
+ }
+ 
+-async function fetchRefreshEstimateRows(snapshot, options, context, dispatch) {
++async function fetchRefreshEstimateRows(snapshot, options, context, dispatch, observeGate = undefined) {
+   var sourceId = 'sinan-estimate-proxy';
+   var claim = context.claimSourceAttempt(sourceId);
+-  if (!claim.allowed) {
++  var allowed = claim.allowed;
++  if (typeof observeGate === 'function') {
++    try { Promise.resolve(observeGate(allowed)).catch(() => {}); }
++    catch (_) { /* A private observer cannot own source health or acquisition. */ }
++  }
++  if (!allowed) {
+     context.recordDiagnostic('source_cooldown', { sourceId: sourceId, reason: 'circuit_breaker_open' });
+     return new Map();
+   }
+@@ -802,14 +814,22 @@ async function fetchRefreshEstimateRows(snapshot, options, context, dispatch) {
+   }
+ }
+ 
++function updateCurrentFundAccuracy(context, fund) {
++  if (!isOverseasLikeFund(fund)) return;
++  import('./runtime/business-features.js').then(({ updateFundAccuracy }) => {
++    context.commit(() => {
++      // Another enrichment in this generation may already own this fund.
++      if (fundsData.find(row => row.code === fund.code) !== fund) return;
++      updateFundAccuracy(fund);
++      scheduleFundRender();
++    });
++  }).catch(() => {});
++}
++
+ function commitRefreshedFund(context, holding, built) {
+   return context.commit(function() {
+     upsertFundData(holding.code, built.data);
+-    if (isOverseasLikeFund(built.data)) {
+-      import('./runtime/business-features.js').then(({ updateFundAccuracy }) => {
+-        context.commit(() => updateFundAccuracy(built.data));
+-      }).catch(() => {});
+-    }
++    updateCurrentFundAccuracy(context, built.data);
+     if (built.fetchedName) {
+       var current = holdings.find(function(item) { return item.code === holding.code; });
+       if (current && !isRealFundName(current.name, current.code)) {
+@@ -883,6 +903,7 @@ async function runRefresh(context, options) {
+     });
+     return await execution.executeRefreshPlan({
+       context, snapshot, options: options || {}, previous, legacyNavMoves,
++      onDiagnostics: refreshDiagnostics.observe,
+       storage: { setItem: (key, value) => safeSetItem(key, value) },
+       clients: {
+         estimates: fetchRefreshEstimateRows,
+@@ -923,8 +944,11 @@ async function runRefresh(context, options) {
+         },
+         publish: (holding, raw) => commitRefreshedFund(context, holding, buildFundData(raw, holding, {})),
+         enriched: (holding, raw, officialNavMove, holdingsEstimate, modelQuotes) => {
+-          const enriched = estimateModule.composeFundEnrichment(raw, { officialNavMove, holdingsEstimate });
+-          upsertFundData(holding.code, buildFundData(enriched, holding, modelQuotes).data);
++          const enriched = estimateModule.composeFundEnrichment(raw, { officialNavMove, holdingsEstimate,
++            fetchedAt: new Date().toISOString() });
++          const built = buildFundData(enriched, holding, modelQuotes);
++          upsertFundData(holding.code, built.data);
++          updateCurrentFundAccuracy(context, built.data);
+           updateLatestSourceSummary();
+         },
+         failure: (holding, error) => commitRefreshFailure(context, holding, error),
+@@ -1014,7 +1038,7 @@ function tryShowCache() {
+       ...fallbackIdentity,
+       fetchedAt: cache.time ? new Date(cache.time).toISOString() : new Date(0).toISOString(),
+     }), fallbackIdentity);
+-    var quote = normalizeCachedQuote(sourceQuote, {
++    var quote = normalizeCachedQuote(normalizeFundQuoteFreshness({ ...d, quote: sourceQuote }, { now: Date.now() }), {
+       fresh: cache.fresh && navigator.onLine !== false,
+       fetchedAt: cache.time ? new Date(cache.time).toISOString() : new Date(0).toISOString(),
+       cachedAt: cache.time, expiresAt: cache.expiresAt,
+@@ -1372,7 +1396,7 @@ function renderFundList(data) {
+ 
+   const now = Date.now();
+   data.forEach(function(fund) {
+-    fund.quote = normalizeExistingQuoteFreshness(fund.quote, { now });
++    fund.quote = normalizeFundQuoteFreshness(fund, { now });
+     Object.assign(fund, holdingQuoteAmounts(fund.quote, holdings.find(holding => holding.code === fund.code), now));
+   });
+   var sorted = sortFunds(data);
+@@ -1418,10 +1442,14 @@ function renderFundList(data) {
+     html += '</span></button>';
+ 
+     if (isExpanded) {
+-      var estimateNote = f.est_note && !f.today_is_latest_nav ? '<div class="cache-note">' + esc(f.est_note) + '</div>' : '';
++      var selectedNote = ['model_estimate', 'holding_lookthrough_estimate'].includes(f.quote.valueKind)
++        ? modelNoteForQuote(f, f.quote) : f.est_note;
++      var estimateNote = selectedNote && !f.today_is_latest_nav ? '<div class="cache-note">' + esc(selectedNote) + '</div>' : '';
+       var primaryNote = f.primary_note && f.primary_note !== f.est_note ? '<div class="cache-note">' + esc(f.primary_note) + '</div>' : '';
+-      var modelNote = f.today_is_latest_nav && f.est_model && Number.isFinite(f.est_change)
+-        ? '<div class="cache-note">下一净值模型：' + (f.est_change >= 0 ? '+' : '') + fmt(f.est_change) + '%，估算净值 ' + fmt4(f.est_nav) + '。' + esc(f.est_note || '') + '</div>'
++      var secondaryModel = f.today_is_latest_nav && f.est_model
++        ? normalizeMarketModelQuote(f, { now, fetchedAt: f.quote.fetchedAt }) : null;
++      var modelNote = secondaryModel?.status === 'model'
++        ? '<div class="cache-note">下一净值模型：' + (secondaryModel.changePct >= 0 ? '+' : '') + fmt(secondaryModel.changePct) + '%，估算净值 ' + fmt4(secondaryModel.value) + '。' + esc(modelNoteForQuote(f, secondaryModel)) + '</div>'
+         : '';
+       var officialMove = latestNavMoveOf(f);
+       var officialNote = !f.today_is_latest_nav && officialMove && Number.isFinite(officialMove.change)
+@@ -1835,6 +1863,7 @@ async function runDiagnostics(action) {
+   try {
+     if (!diagnosticsFeature) diagnosticsFeature = import('./runtime/diagnostics-ui.js').then(module => module.createDiagnosticsCenter({
+       getHoldings: () => holdings, getHoldingsDocument: () => holdingsDocument,
++      getRefreshDiagnostics: refreshDiagnostics.snapshot,
+       refreshCoordinator, showToast, esc,
+     }));
+     return await (await diagnosticsFeature)[action]();
+diff --git a/js/holdings-estimate.js b/js/holdings-estimate.js
+index 7c920bd..b833b38 100644
+--- a/js/holdings-estimate.js
++++ b/js/holdings-estimate.js
+@@ -153,7 +153,7 @@ export function latestOfficialNavBase(fund) {
+     .sort((left, right) => right.date.localeCompare(left.date))[0];
+ }
+ 
+-export function applyHoldingsEstimate(fund, estimate) {
++export function applyHoldingsEstimate(fund, estimate, options = {}) {
+   if (!fund || !estimate || !estimate.available || !Number.isFinite(estimate.change)) return fund;
+   if (fund.est_realtime === true && fund.est_kind !== 'official_nav') return fund;
+ 
+@@ -180,6 +180,20 @@ export function applyHoldingsEstimate(fund, estimate) {
+   fund.est_holdings_report_date = String(estimate.reportDate || '');
+   fund.est_note = `按已披露十大重仓${estimate.reportDate ? `（截至${estimate.reportDate}）` : ''}的当日行情估算；覆盖净值${estimate.coverage.toFixed(1)}%，未披露资产、汇率与调仓影响为未知误差，不是基金公司官方估值`;
+   fund.source = 'quarterly-holdings-model';
++  // Aggregate-only evidence, not a Worker/resource row. A later market model
++  // may overwrite legacy est_* aliases, but must not rewrite this contribution.
++  const completeEvidence = normalizeQuoteDate(fund.est_holdings_report_date)
++    && Number.isInteger(estimate.quoteCount) && estimate.quoteCount >= 5 && estimate.quoteCount <= 10
++    && Number.isFinite(estimate.coverage) && estimate.coverage >= 50 && estimate.coverage <= 100;
++  if (/^\d{6}$/.test(String(fund.code || '')) && completeEvidence) fund.holdings_model_evidence = Object.freeze({
++    fundCode: fund.code, value: fund.est_nav, changePct: estimate.change,
++    baseNav: official.nav, baseNavDate: official.date, targetDate,
++    observedAt: estimate.sourceTime, coverage: estimate.coverage,
++    fetchedAt: options.fetchedAt ?? estimate.fetchedAt ?? fund.fetched_at ?? fund.fetchedAt ?? null,
++    confidence: null, modelVersion: null, note: fund.est_note,
++    reportDate: fund.est_holdings_report_date, quoteCount: estimate.quoteCount,
++  });
++  else if (Object.hasOwn(fund, 'holdings_model_evidence')) fund.holdings_model_evidence = null;
+   return fund;
+ }
+ 
+@@ -195,7 +209,7 @@ export function composeFundEnrichment(rawFund, options = {}) {
+     fund.latest_nav_move = { ...options.officialNavMove };
+   }
+   if (options.holdingsEstimate) {
+-    applyHoldingsEstimate(fund, options.holdingsEstimate);
++    applyHoldingsEstimate(fund, options.holdingsEstimate, { fetchedAt: options.fetchedAt });
+   }
+   return fund;
+ }
+diff --git a/js/runtime/diagnostics-ui.js b/js/runtime/diagnostics-ui.js
+index 9c4ec3b..9eff924 100644
+--- a/js/runtime/diagnostics-ui.js
++++ b/js/runtime/diagnostics-ui.js
+@@ -5,7 +5,7 @@ import { HOLDINGS_BACKUP_LATEST_KEY } from '../storage/holdings-repository.js';
+ import { classifyMarketKind } from './market-session.js';
+ import { marketClock } from './market-clock.js';
+ 
+-export function createDiagnosticsCenter({ getHoldings, getHoldingsDocument, refreshCoordinator, showToast, esc, now = Date.now }) {
++export function createDiagnosticsCenter({ getHoldings, getHoldingsDocument, refreshCoordinator, getRefreshDiagnostics, showToast, esc, now = Date.now }) {
+ let diagnosticsLastSummary = '';
+ 
+ function diagnosticJson(key, fallback) {
+@@ -91,6 +91,63 @@ function requestServiceWorkerVersion() {
+   });
+ }
+ 
++function refreshDiagnosticRows() {
++  if (typeof getRefreshDiagnostics !== 'function') return [];
++  try {
++    var snapshot = getRefreshDiagnostics();
++    var record = snapshot && snapshot.current;
++    if (!record) return [['刷新诊断', '暂无记录 / observed=false']];
++    var labels = { running: '执行中', completed: '已完成', failed: '失败', cancelled: '已取消' };
++    var count = value => Number.isSafeInteger(value) && value >= 0 ? String(value) : '未观测';
++    var identity = row => '第' + count(row.generation) + '代 / ' + (labels[row.status] || '未知')
++      + ' / observed=' + (row.observed === true ? 'true' : 'false');
++    var requests = row => {
++      var c = row.observed === true && row.counters;
++      if (!c) return '未观测';
++      return [['实际请求', c.requests], ['缓存命中', c.cacheHits], ['去重', c.deduped],
++        ['已进入请求中止', c.abortedRequests], ['资源取消拒绝', c.cancelledResources],
++        ['失败请求', c.failedRequests], ['写尝试', c.writeAttempts], ['缓存写入', c.cacheWrites]]
++        .map(item => item[0] + ' ' + count(item[1])).join('；');
++    };
++    var kinds = ['estimates', 'nav', 'holdings', 'meta', 'indices', 'gold', 'securities', 'model-quotes'];
++    var plan = Array.isArray(record.plan) ? record.plan.filter(row => kinds.includes(row.kind)).slice(0, 8)
++      .map(row => row.kind + ' cache=' + count(row.cache) + ' fetch=' + count(row.fetch) + ' skip=' + count(row.skip)).join('；') : '';
++    var reasons = record.skipReasons;
++    var planReasons = record.planReasons;
++    var reasonSummary = planReasons && [
++      ['fresh_cache', '缓存新鲜'], ['cache_miss', '缓存缺失'], ['cache_metadata_invalid', '元数据无效'],
++      ['cache_quality_unusable', '缓存质量不可用'], ['cache_expired', '缓存过期'], ['force_live', '强制实时'],
++      ['force_stable', '强制稳定'], ['market_ineligible', '市场不适用'], ['phase_pending', '阶段待定'],
++      ['no_active_holdings', '无活动持仓'],
++    ].map(item => item[1] + ' ' + count(planReasons[item[0]])).join('；');
++    var executionSkips = record.observed === true && record.executionSkips;
++    var executionSummary = executionSkips && [
++      ['estimate_claim_denied', '估值源拒绝'], ['holdings_claim_denied', '重仓源拒绝'],
++      ['holdings_probe_used', '重仓半开额度已用'], ['model_claim_denied', '模型源拒绝'],
++      ['model_probe_used', '模型半开额度已用'],
++    ].map(item => item[1] + ' ' + count(executionSkips[item[0]])).join('；');
++    var providers = record.counters && record.counters.providers;
++    var providerNames = ['sinan-estimate-proxy', 'sinan-holdings-proxy', 'eastmoney-official-nav',
++      'eastmoney-security-quote', 'tencent-market-quote', 'gold', 'model-config'];
++    var providerSummary = providers && providerNames.filter(name => Object.prototype.hasOwnProperty.call(providers, name))
++      .map(name => name + '=' + count(providers[name])).join('；');
++    var rows = [
++      ['刷新诊断', identity(record)],
++      ['刷新计划', plan || '未观测'],
++      ['计划原因', reasonSummary ? reasonSummary + '；仅表示计划时决策；实际执行 gate 细因未记录' : '未观测'],
++      ['执行跳过', executionSummary ? executionSummary + '；按门控检查次数统计，非请求或唯一资源数；拒绝细因未记录' : '未观测'],
++      ['刷新请求', requests(record)],
++      ['跳过原因', reasons ? '不适用市场 ' + count(reasons.market_ineligible) + '；无活动持仓 ' + count(reasons.no_active_holdings) : '未观测'],
++      ['请求来源', providerSummary || (providers ? '无已派发请求' : '未观测')],
++      ['最终报价', '请查看各基金详情 → 数据说明；本摘要不复制报价或金额'],
++    ];
++    if (snapshot.lastCancelled && snapshot.lastCancelled.generation !== record.generation) {
++      rows.push(['最近取消代', identity(snapshot.lastCancelled) + '；' + requests(snapshot.lastCancelled)]);
++    }
++    return rows;
++  } catch (_) { return [['刷新诊断', '读取失败 / observed=false']]; }
++}
++
+ function diagnosticRows(swVersion) {
+   var holdingsDocument = getHoldingsDocument();
+   var snapshot = refreshCoordinator.snapshot();
+@@ -118,7 +175,7 @@ function diagnosticRows(swVersion) {
+     ['OCR 能力', ocrDiagnosticSummary()],
+     ['OCR 账本条目', String(Array.isArray(ledger) ? ledger.length : 0)],
+     ['运行错误条目', String(recentSafeDiagnostics().length)],
+-  ];
++  ].concat(refreshDiagnosticRows());
+ }
+ 
+ async function refreshDiagnosticsCenter() {
+diff --git a/js/runtime/fund-model-enrichment.js b/js/runtime/fund-model-enrichment.js
+index 690fbaf..623e3f5 100644
+--- a/js/runtime/fund-model-enrichment.js
++++ b/js/runtime/fund-model-enrichment.js
+@@ -9,7 +9,7 @@ function chooseOverseasModel(fund) {
+   return selectOverseasModel(String(fund && fund.code || ''), String(fund && fund.name || ''));
+ }
+ 
+-export function applyOverseasModelEstimate(fund, quotes) {
++export function applyOverseasModelEstimate(fund, quotes, options = {}) {
+   if (!fund || fund.est_realtime !== false) return;
+   var model = chooseOverseasModel(fund);
+   if (!model) return;
+@@ -49,4 +49,14 @@ export function applyOverseasModelEstimate(fund, quotes) {
+   fund.est_model_quarter = model.quarter || '';
+   fund.est_confidence = result.confidence;
+   fund.est_note = fund.est_model_label + ' · ' + fund.est_model_version + ' · 可用权重' + fmt(result.usableWeight) + '% · 行情时间' + (result.sourceTime || '未知') + ' · 下一净值自建模型估算，不是基金公司官方净值';
++  if (/^\d{6}$/.test(String(fund.code || ''))) fund.market_model_evidence = Object.freeze({
++    fundCode: fund.code, value: fund.est_nav, changePct,
++    baseNav: modelBaseNav, baseNavDate: modelBaseDate, targetDate: period.targetDate,
++    observedAt: result.sourceTime, coverage: result.usableWeight,
++    fetchedAt: options.fetchedAt ?? fund.fetched_at ?? fund.fetchedAt ?? null,
++    confidence: result.confidence, modelVersion: fund.est_model_version,
++    note: fund.est_note, label: fund.est_model_label,
++    quarter: model.quarter || '', validUntil: model.valid_until || '',
++    minimumWeight: model.min_weight,
++  });
+ }
+diff --git a/js/runtime/quote-normalizer.js b/js/runtime/quote-normalizer.js
+index 4281525..b24de30 100644
+--- a/js/runtime/quote-normalizer.js
++++ b/js/runtime/quote-normalizer.js
+@@ -2,13 +2,15 @@ import {
+   compareQuotesByQuality,
+   createQuoteEnvelope,
+   normalizeQuoteDate,
++  nextWeekdayDate,
++  normalizeConfidence,
+   nullableNumber,
+   parseQuoteTimestamp,
+   quoteToLegacyFreshness,
+   unavailableQuote,
+ } from './quote-contract.js';
+ import { classifyAssetKind, classifyMarketKind, normalizeMarketKind } from './market-session.js';
+-import { marketClock, zonedTimeParts } from './market-clock.js';
++import { chinaDateKey, isSingleMarketSession, marketClock, zonedTimeParts } from './market-clock.js';
+ import { canonicalSourceId, sourceTierFor } from './source-registry.js';
+ 
+ const DAY_MS = 24 * 60 * 60 * 1000;
+@@ -239,7 +241,91 @@ export function normalizeOfficialNavQuote(move = {}, options = {}) {
+   }, { now: options.now });
+ }
+ 
++// New aggregate evidence is independent of legacy aliases. Persisted evidence
++// remains untrusted: never relabel a foreign fund or rescue a damaged new slot
++// with whichever model last wrote est_*. Old single-model rows stay compatible.
++function modelEvidenceQuote(fund, options, key, valueKind, sourceId) {
++  const slot = Object.getOwnPropertyDescriptor(fund, key);
++  const flag = name => {
++    const descriptor = Object.getOwnPropertyDescriptor(fund, name);
++    return descriptor?.enumerable && Object.hasOwn(descriptor, 'value') && descriptor.value;
++  };
++  if (!slot && !(flag('est_model') && flag('est_holdings_model'))) return null;
++  const item = identity(fund, options);
++  const missing = reason => unavailableQuote({ ...item, reasonCodes: [reason] }, options);
++  if (!slot) return missing('legacy_model_provenance_ambiguous');
++  let evidence;
++  try {
++    if (!Object.hasOwn(slot, 'value')) return missing('model_evidence_invalid');
++    const raw = slot.value;
++    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return missing('model_evidence_invalid');
++    const fields = ['fundCode', 'value', 'changePct', 'baseNav', 'baseNavDate', 'targetDate',
++      'observedAt', 'fetchedAt', 'coverage', 'confidence', 'modelVersion', 'note',
++      ...(valueKind === 'holding_lookthrough_estimate' ? ['reportDate', 'quoteCount']
++        : ['label', 'quarter', 'validUntil', 'minimumWeight'])];
++    const descriptors = Object.getOwnPropertyDescriptors(raw);
++    if (fields.some(field => !Object.hasOwn(descriptors, field)
++      || !Object.hasOwn(descriptors[field], 'value'))) return missing('model_evidence_invalid');
++    evidence = Object.fromEntries(fields.map(field => [field, descriptors[field].value]));
++  } catch (_) { return missing('model_evidence_invalid'); }
++  const number = value => typeof value === 'number' && Number.isFinite(value);
++  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)
++    || typeof evidence.fundCode !== 'string' || !/^\d{6}$/.test(evidence.fundCode) || evidence.fundCode !== item.fundCode
++    || evidence.fundCode !== String(fund.code ?? fund.fundCode ?? '')
++    || !number(evidence.value) || evidence.value <= 0 || !number(evidence.changePct)
++    || !number(evidence.baseNav) || evidence.baseNav <= 0
++    || Math.abs(evidence.value - evidence.baseNav * (1 + evidence.changePct / 100)) > 1e-7
++    || typeof evidence.baseNavDate !== 'string' || typeof evidence.targetDate !== 'string'
++    || typeof evidence.observedAt !== 'string' || evidence.fetchedAt !== null && typeof evidence.fetchedAt !== 'string'
++    || !normalizeQuoteDate(evidence.baseNavDate) || !normalizeQuoteDate(evidence.targetDate)
++    || evidence.baseNavDate >= evidence.targetDate || parseQuoteTimestamp(evidence.observedAt) == null
++    || !number(evidence.coverage) || evidence.coverage < 0 || evidence.coverage > 100
++    || typeof evidence.note !== 'string' || evidence.note.length > 1000
++    || evidence.modelVersion !== null && (typeof evidence.modelVersion !== 'string' || evidence.modelVersion.length > 80)
++    || evidence.confidence !== null && !(number(evidence.confidence) && evidence.confidence >= 0 && evidence.confidence <= 1)
++      && !['low', 'medium', 'high'].includes(evidence.confidence)) return missing('model_evidence_invalid');
++  const nowNumber = options.now instanceof Date ? options.now.getTime() : Number(options.now);
++  const now = Number.isFinite(nowNumber) ? nowNumber : Date.now();
++  let expired = false;
++  if (valueKind === 'holding_lookthrough_estimate') {
++    if (typeof evidence.reportDate !== 'string') return missing('model_evidence_invalid');
++    const report = normalizeQuoteDate(evidence.reportDate);
++    if (!report || report > chinaDateKey(now) || evidence.coverage < 50
++      || !Number.isInteger(evidence.quoteCount) || evidence.quoteCount < 5 || evidence.quoteCount > 10
++      || chinaDateKey(parseQuoteTimestamp(evidence.observedAt)) !== evidence.targetDate
++      || !isSingleMarketSession(evidence.baseNavDate, evidence.targetDate, item.market)) return missing('model_evidence_invalid');
++    expired = now - Date.parse(`${report}T23:59:59+08:00`) > 185 * DAY_MS;
++  } else {
++    if (!number(evidence.minimumWeight) || evidence.minimumWeight <= 0
++      || evidence.coverage < evidence.minimumWeight || evidence.targetDate !== nextWeekdayDate(evidence.baseNavDate)
++      || typeof evidence.label !== 'string' || evidence.label.length > 160
++      || typeof evidence.quarter !== 'string' || typeof evidence.validUntil !== 'string') return missing('model_evidence_invalid');
++    const until = evidence.validUntil ? normalizeQuoteDate(evidence.validUntil) : null;
++    const quarter = String(evidence.quarter || '').match(/^(\d{4})Q([1-4])$/i);
++    if (evidence.validUntil && !until || evidence.quarter && !quarter) return missing('model_evidence_invalid');
++    if (until) expired = now > Date.parse(`${until}T23:59:59+08:00`);
++    else if (quarter) expired = now >= Date.UTC(Number(quarter[1]), (Number(quarter[2]) + 1) * 3, 1) - 8 * 3600_000;
++  }
++  const fetchedAt = evidence.fetchedAt ?? options.fetchedAt;
++  if (fetchedAt != null && (typeof fetchedAt !== 'string' || parseQuoteTimestamp(fetchedAt) == null
++    || parseQuoteTimestamp(fetchedAt) < parseQuoteTimestamp(evidence.observedAt)
++    || parseQuoteTimestamp(fetchedAt) > now)) return missing('model_evidence_invalid');
++  const future = parseQuoteTimestamp(evidence.observedAt) > now;
++  return normalizeExistingQuoteFreshness(createQuoteEnvelope({
++    ...item, valueKind, sourceId, sourceTier: 'model',
++    value: evidence.value, changePct: evidence.changePct, baseNav: evidence.baseNav,
++    baseNavDate: evidence.baseNavDate, targetDate: evidence.targetDate,
++    observedAt: evidence.observedAt, fetchedAt,
++    coverage: evidence.coverage, confidence: evidence.confidence, modelVersion: evidence.modelVersion,
++    status: expired || future ? 'stale' : 'model',
++    reasonCodes: [valueKind === 'model_estimate' ? 'model_estimate' : 'holdings_lookthrough',
++      ...(expired ? ['model_evidence_expired'] : []), ...(future ? ['source_time_in_future'] : [])],
++  }, { now }), { now });
++}
++
+ export function normalizeMarketModelQuote(fund = {}, options = {}) {
++  const evidence = modelEvidenceQuote(fund, options, 'market_model_evidence', 'model_estimate', 'market-model');
++  if (evidence) return evidence;
+   return normalizeEstimateQuote({
+     ...fund,
+     kind: 'model_estimate',
+@@ -260,6 +346,8 @@ export function normalizeMarketModelQuote(fund = {}, options = {}) {
+ }
+ 
+ export function normalizeHoldingLookthroughQuote(fund = {}, options = {}) {
++  const evidence = modelEvidenceQuote(fund, options, 'holdings_model_evidence', 'holding_lookthrough_estimate', 'quarterly-holdings-model');
++  if (evidence) return evidence;
+   return normalizeEstimateQuote({
+     ...fund,
+     kind: 'holding_lookthrough_estimate',
+@@ -278,6 +366,48 @@ export function normalizeHoldingLookthroughQuote(fund = {}, options = {}) {
+   }, options);
+ }
+ 
++/** Only attach a model explanation to the same source/value/period evidence. */
++export function modelNoteForQuote(fund, quote, field = 'note') {
++  if (!['note', 'label'].includes(field) || !quote || quote.status !== 'model' || quote.fundCode !== String(fund?.code ?? '')) return '';
++  const source = quote.sourceTier === 'cache' ? quote.originalSource : quote.sourceId;
++  const key = source === 'market-model' ? 'market_model_evidence'
++    : source === 'quarterly-holdings-model' ? 'holdings_model_evidence' : '';
++  if (!key) return '';
++  try {
++    const slot = Object.getOwnPropertyDescriptor(fund, key);
++    if (!slot) {
++      const value = field === 'label' && source === 'market-model' ? fund.est_model_label : field === 'note' ? fund.est_note : null;
++      return !(fund.est_model && fund.est_holdings_model) && typeof value === 'string' ? value.slice(0, 1000) : '';
++    }
++    if (!Object.hasOwn(slot, 'value')) return '';
++    const binding = ['fundCode', 'value', 'changePct', 'baseNav', 'baseNavDate', 'targetDate', 'observedAt', 'coverage'];
++    const fields = [...binding, 'modelVersion', 'confidence', field];
++    const descriptors = Object.getOwnPropertyDescriptors(slot.value);
++    if (fields.some(key => !Object.hasOwn(descriptors, key) || !Object.hasOwn(descriptors[key], 'value'))) return '';
++    const evidence = Object.fromEntries(fields.map(key => [key, descriptors[key].value]));
++    return binding.every(key => evidence[key] === quote[key])
++      && (evidence.modelVersion || null) === quote.modelVersion
++      && normalizeConfidence(evidence.confidence) === quote.confidence
++      && typeof evidence[field] === 'string' && evidence[field].length <= 1000 ? evidence[field] : '';
++  } catch (_) { return ''; }
++}
++
++/** Preserve the selected/cache winner, but do not bypass its model expiry. */
++export function normalizeFundQuoteFreshness(fund, options = {}) {
++  const quote = normalizeExistingQuoteFreshness(fund.quote, options);
++  const source = quote.sourceTier === 'cache' ? quote.originalSource : quote.sourceId;
++  const key = source === 'market-model' ? 'market_model_evidence'
++    : source === 'quarterly-holdings-model' ? 'holdings_model_evidence' : '';
++  if (!key || !Object.hasOwn(fund, key) || ['stale', 'unavailable'].includes(quote.status)) return quote;
++  const candidate = modelEvidenceQuote(fund, { ...options, fetchedAt: quote.fetchedAt,
++    fundCode: quote.fundCode, fundName: quote.fundName, market: quote.market, assetKind: quote.assetKind },
++  key, source === 'market-model' ? 'model_estimate' : 'holding_lookthrough_estimate', source);
++  const same = ['fundCode', 'valueKind', 'value', 'changePct', 'baseNav', 'baseNavDate', 'targetDate',
++    'observedAt', 'coverage', 'confidence', 'modelVersion'].every(field => quote[field] === candidate[field]);
++  return same && candidate.status === 'model' ? quote : createQuoteEnvelope({ ...quote, status: 'stale',
++    reasonCodes: [...quote.reasonCodes, ...candidate.reasonCodes, 'model_evidence_not_current'] }, options);
++}
++
+ function dedupeQuotes(quotes) {
+   const seen = new Set();
+   return quotes.filter(quote => {
+diff --git a/js/runtime/refresh-execution.js b/js/runtime/refresh-execution.js
+index 766e0eb..4ed85b6 100644
+--- a/js/runtime/refresh-execution.js
++++ b/js/runtime/refresh-execution.js
+@@ -25,11 +25,17 @@ function limited(maximum) {
+ // Provider clients are read-only. The generation scope owns every refresh
+ // dispatch and the only final aggregate cache mutation; UI callbacks stay in app.
+ export async function executeRefreshPlan({ context, snapshot, options = {}, previous, legacyNavMoves,
+-  clients, ui, storage, now = Date.now } = {}) {
++  clients, ui, storage, onDiagnostics, now = Date.now } = {}) {
+   const cached = readRefreshResources(previous, { now: now(), activeCodes: snapshot.map(h => h.code), legacyNavMoves });
++  const observing = typeof onDiagnostics === 'function';
++  const executionSkips = { estimate_claim_denied: null, holdings_claim_denied: 0, holdings_probe_used: 0,
++    model_claim_denied: 0, model_probe_used: 0 };
++  let estimateVisited = 0, estimateObserved = 0, estimateDenied = 0;
++  let diagnosticPlanReasons = null;
+   const plan = createRefreshPlan({ generation: context.generation, trigger: context.trigger, now: now(),
+     activeHoldings: snapshot, cacheIndex: cached.cacheIndex, forceLive: options.force !== false,
+-    forceStable: options.forceStable });
++    forceStable: options.forceStable }, typeof onDiagnostics === 'function'
++      ? reasons => { diagnosticPlanReasons = reasons; } : undefined);
+   const scope = createGenerationResourceScope({ context, plan, now });
+   // Keep portfolio fan-out outside the Bridge's bounded, serial queue. NAV
+   // fallback and metadata share this lane, independently of disclosure work.
+@@ -44,6 +50,34 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
+   };
+   const valid = (key, value) => Boolean(validateRefreshResourceEntry(key, value, { now: now() }));
+ 
++  let diagnosticPlan, diagnosticSkips;
++  function report(phase, status) {
++    if (!observing) return;
++    try {
++      if (!diagnosticPlan) {
++        const kinds = Object.create(null);
++        diagnosticSkips = { market_ineligible: 0, no_active_holdings: 0 };
++        plan.resources.forEach(resource => {
++          const row = kinds[resource.kind] ||= { kind: resource.kind, cache: 0, fetch: 0, skip: 0 };
++          row[resource.action]++;
++          if (resource.action === 'skip') {
++            if (resource.kind === 'holdings') diagnosticSkips.market_ineligible++;
++            else if (!plan.activeCodes.length && ['securities', 'model-quotes'].includes(resource.kind)) diagnosticSkips.no_active_holdings++;
++          }
++        });
++        diagnosticPlan = Object.freeze(Object.values(kinds).map(Object.freeze));
++        Object.freeze(diagnosticSkips);
++      }
++      const result = onDiagnostics(Object.freeze({ generation: context.generation, phase,
++        status: context.isCurrent() && !context.signal.aborted ? status : 'cancelled',
++        counters: scope.snapshot(), plan: diagnosticPlan, skipReasons: diagnosticSkips,
++        planReasons: diagnosticPlanReasons,
++        executionSkips: Object.freeze({ ...executionSkips, estimate_claim_denied:
++          phase !== 'started' && estimateVisited > 0 && estimateObserved === estimateVisited ? estimateDenied : null }) }));
++      Promise.resolve(result).catch(() => {});
++    } catch (_) { /* Observers never own refresh results, UI or persistence. */ }
++  }
++
+   function acquireEntry(key, loader) {
+     const old = cached.entries[key];
+     return scope.acquire(key, async () => {
+@@ -104,9 +138,21 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
+     return task;
+   }
+ 
++  report('started', 'running');
+   const estimateBatches = plan.resources.filter(resource => resource.kind === 'estimates').map(estimateResource => acquireEntry(estimateResource.key, async () => {
+-    const rows = await clients.estimates(snapshot.filter(holding => estimateResource.codes.includes(holding.code)), options, context,
+-      operation => scope.dispatch('sinan-estimate-proxy', operation));
++    // A legacy injected client may not support this private, synchronous
++    // boolean seam. Partial/missing observations must remain null, not zero.
++    let synchronous = true, seen = false, acquisition;
++    if (observing) estimateVisited++;
++    try {
++      acquisition = clients.estimates(snapshot.filter(holding => estimateResource.codes.includes(holding.code)), options, context,
++        operation => scope.dispatch('sinan-estimate-proxy', operation), ...(observing ? [allowed => {
++          if (synchronous && !seen && typeof allowed === 'boolean') {
++            seen = true; estimateObserved++; if (!allowed) estimateDenied++;
++          }
++        }] : []));
++    } finally { synchronous = false; }
++    const rows = await acquisition;
+     const usable = [...rows.values()].filter(row => row?.status === 'ok' && row.source_quote
+       && !['stale', 'unavailable'].includes(row.source_quote.status));
+     if (!usable.length) return null;
+@@ -155,7 +201,8 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
+           holdingsClaim = context.claimSourceAttempt('quarterly-holdings-model');
+           if (holdingsClaim.halfOpen) probeAt = context.sourceHealth('quarterly-holdings-model')?.halfOpenProbeAt;
+         }
+-        if (!holdingsClaim.allowed || (holdingsClaim.halfOpen && probeUsed)) return null;
++        if (!holdingsClaim.allowed) { if (observing) executionSkips.holdings_claim_denied++; return null; }
++        if (holdingsClaim.halfOpen && probeUsed) { if (observing) executionSkips.holdings_probe_used++; return null; }
+         probeUsed = true;
+         const startedAt = now();
+         holdingsOutcome.requested++;
+@@ -215,7 +262,8 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
+             modelStartedAt = now();
+             if (modelClaim.halfOpen) modelProbeAt = context.sourceHealth('market-model')?.halfOpenProbeAt;
+           }
+-          if (!modelClaim.allowed || modelClaim.halfOpen && modelProbeUsed) return false;
++          if (!modelClaim.allowed) { if (observing) executionSkips.model_claim_denied++; return false; }
++          if (modelClaim.halfOpen && modelProbeUsed) { if (observing) executionSkips.model_probe_used++; return false; }
+           modelProbeUsed = true;
+           return true;
+         },
+@@ -276,13 +324,22 @@ export async function executeRefreshPlan({ context, snapshot, options = {}, prev
+   // NAV completion may append metadata acquisitions; close that list before
+   // the only cache flush, and keep all cancelled branches observed.
+   await Promise.allSettled(metadataTasks);
+-  current();
+-  const refreshed = results.filter(result => result.status === 'fulfilled').length;
+-  if (snapshot.length && !refreshed) throw Object.assign(new Error('全部基金刷新失败'), { code: 'ALL_FUNDS_FAILED' });
+-  scope.flushCache({ storage, serialize: staged => serializeRefreshAggregate({ previous, staged,
+-    data: ui.cacheData(), holdingsHash: ui.holdingsHash(), now: now(), activeCodes: plan.activeCodes }) });
+-  scope.commitUi(() => ui.complete?.());
+-  const diagnostics = scope.snapshot();
+-  context.recordDiagnostic('refresh_resources', { reason: `requests=${diagnostics.requests};hits=${diagnostics.cacheHits};deduped=${diagnostics.deduped};writes=${diagnostics.cacheWrites}` });
+-  return { total: snapshot.length, refreshed, results, diagnostics };
++  // This separate, payload-free observer may describe an aborted generation;
++  // it must not append old coordinator diagnostics or commit UI/cache state.
++  report('resources_settled', 'running');
++  try {
++    current();
++    const refreshed = results.filter(result => result.status === 'fulfilled').length;
++    if (snapshot.length && !refreshed) throw Object.assign(new Error('全部基金刷新失败'), { code: 'ALL_FUNDS_FAILED' });
++    scope.flushCache({ storage, serialize: staged => serializeRefreshAggregate({ previous, staged,
++      data: ui.cacheData(), holdingsHash: ui.holdingsHash(), now: now(), activeCodes: plan.activeCodes }) });
++    scope.commitUi(() => ui.complete?.());
++    const diagnostics = scope.snapshot();
++    context.recordDiagnostic('refresh_resources', { reason: `requests=${diagnostics.requests};hits=${diagnostics.cacheHits};deduped=${diagnostics.deduped};writes=${diagnostics.cacheWrites}` });
++    report('final', 'completed');
++    return { total: snapshot.length, refreshed, results, diagnostics };
++  } catch (error) {
++    report('final', 'failed');
++    throw error;
++  }
+ }
+diff --git a/js/runtime/refresh-generation.js b/js/runtime/refresh-generation.js
+index 4255839..22aed87 100644
+--- a/js/runtime/refresh-generation.js
++++ b/js/runtime/refresh-generation.js
+@@ -44,3 +44,201 @@ export function createRefreshGeneration({
+     get abortReason() { return controller.signal.reason || null; },
+   });
+ }
++
++// Bounded, private diagnostics only: observation is not a refresh success or a
++// persistence record. A missing measurement must never become a measured zero.
++export function createRefreshDiagnosticsStore() {
++  const kinds = ['estimates', 'nav', 'holdings', 'meta', 'indices', 'gold', 'securities', 'model-quotes'];
++  const providers = ['sinan-estimate-proxy', 'sinan-holdings-proxy', 'eastmoney-official-nav',
++    'eastmoney-security-quote', 'tencent-market-quote', 'gold', 'model-config'];
++  const counterKeys = ['generation', 'planned', 'staged', 'cacheHits', 'deduped', 'requests',
++    'abortedRequests', 'failedRequests', 'cancelledResources', 'writeAttempts', 'cacheWrites'];
++  const phases = ['started', 'resources_settled', 'final'];
++  const statuses = ['running', 'completed', 'cancelled', 'failed'];
++  const planReasonKeys = ['fresh_cache', 'cache_miss', 'cache_metadata_invalid', 'cache_quality_unusable',
++    'cache_expired', 'force_live', 'force_stable', 'market_ineligible', 'phase_pending', 'no_active_holdings'];
++  const executionSkipKeys = ['estimate_claim_denied', 'holdings_claim_denied', 'holdings_probe_used',
++    'model_claim_denied', 'model_probe_used'];
++  let current = null, lastSettled = null, lastCancelled = null, highWater = 0;
++  // Lifecycle finalization and the last real executor report are independent:
++  // a stopped generation may still report actual drain/abort counts later.
++  let currentReportPhase = -1, settledReportPhase = -1, cancelledReportPhase = -1;
++
++  function object(value) {
++    try { return value !== null && typeof value === 'object' && !Array.isArray(value); }
++    catch (_) { return false; }
++  }
++  function own(value, key) {
++    try {
++      if (value === null || typeof value !== 'object') return undefined;
++      const descriptor = Object.getOwnPropertyDescriptor(value, key);
++      return descriptor && Object.hasOwn(descriptor, 'value') ? descriptor.value : undefined;
++    } catch (_) { return undefined; }
++  }
++  const integer = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
++  const generation = value => Number.isSafeInteger(value) && value > 0 ? value : null;
++  const nestedGeneration = value => object(value) ? generation(own(value, 'generation')) : null;
++  const terminal = value => value.status !== 'running';
++
++  function copyCounters(value, expectedGeneration) {
++    if (!object(value)) return null;
++    const suppliedGeneration = own(value, 'generation');
++    if (suppliedGeneration !== undefined && suppliedGeneration !== expectedGeneration) return null;
++    const result = {};
++    for (const key of counterKeys) result[key] = integer(own(value, key));
++    const sourceProviders = own(value, 'providers'), copiedProviders = {};
++    for (const provider of providers) copiedProviders[provider] = integer(own(sourceProviders, provider));
++    result.providers = Object.freeze(copiedProviders);
++    return Object.freeze(result);
++  }
++  function copyPlan(value) {
++    try { if (!Array.isArray(value)) return null; } catch (_) { return null; }
++    const length = integer(own(value, 'length'));
++    if (length === null || length > kinds.length) return null;
++    const rows = new Map();
++    for (let index = 0; index < length; index++) {
++      const row = own(value, String(index));
++      if (!object(row)) continue;
++      const kind = own(row, 'kind');
++      if (!kinds.includes(kind) || rows.has(kind)) continue;
++      rows.set(kind, Object.freeze({ kind, cache: integer(own(row, 'cache')),
++        fetch: integer(own(row, 'fetch')), skip: integer(own(row, 'skip')) }));
++    }
++    return Object.freeze(kinds.filter(kind => rows.has(kind)).map(kind => rows.get(kind)));
++  }
++  function copySkipReasons(value) {
++    if (!object(value)) return null;
++    return Object.freeze({ market_ineligible: integer(own(value, 'market_ineligible')),
++      no_active_holdings: integer(own(value, 'no_active_holdings')) });
++  }
++  function copyPlanReasons(value) {
++    if (!object(value)) return null;
++    const result = {};
++    for (const key of planReasonKeys) result[key] = integer(own(value, key));
++    return Object.freeze(result);
++  }
++  function copyExecutionSkips(report) {
++    let descriptor;
++    try { descriptor = Object.getOwnPropertyDescriptor(report, 'executionSkips'); }
++    catch (_) { return undefined; }
++    // Absence keeps legacy records unchanged; an explicit invalid measurement
++    // opts in as null. Accessors and inherited values are not measurements.
++    if (!descriptor || !Object.hasOwn(descriptor, 'value')) return undefined;
++    if (!object(descriptor.value)) return null;
++    const result = {};
++    for (const key of executionSkipKeys) result[key] = integer(own(descriptor.value, key));
++    return Object.freeze(result);
++  }
++  function blank(number) {
++    return Object.freeze({ generation: number, phase: null, status: 'running', observed: false,
++      counters: null, plan: null, skipReasons: null });
++  }
++  function find(number) {
++    return [current, lastSettled, lastCancelled].find(value => value?.generation === number) || null;
++  }
++  function reportPhase(number) {
++    if (current?.generation === number) return currentReportPhase;
++    if (lastSettled?.generation === number) return settledReportPhase;
++    if (lastCancelled?.generation === number) return cancelledReportPhase;
++    return -1;
++  }
++  function remember(value, rank) {
++    if (current?.generation === value.generation) { current = value; currentReportPhase = rank; }
++    if (lastSettled?.generation === value.generation) { lastSettled = value; settledReportPhase = rank; }
++    if (lastCancelled?.generation === value.generation) { lastCancelled = value; cancelledReportPhase = rank; }
++    if (value.status === 'cancelled' && (!lastCancelled || value.generation >= lastCancelled.generation)) {
++      lastCancelled = value; cancelledReportPhase = rank;
++    }
++    if (['completed', 'failed'].includes(value.status) && (!lastSettled || value.generation >= lastSettled.generation)) {
++      lastSettled = value; settledReportPhase = rank;
++    }
++  }
++  function settle(value, status) {
++    if (terminal(value)) return;
++    const rank = reportPhase(value.generation);
++    remember(Object.freeze({ ...value, phase: 'final', status,
++      // Started counts describe scope creation, not all work before an early
++      // throw/stop. Only a real drain/final report qualifies terminal counts.
++      counters: rank < 1 ? null : value.counters,
++      ...(Object.hasOwn(value, 'executionSkips')
++        ? { executionSkips: rank < 1 ? null : value.executionSkips } : {}) }), rank);
++  }
++  function advance(number) {
++    if (number <= highWater) return;
++    if (current && !terminal(current)) settle(current, 'cancelled');
++    highWater = number;
++    current = blank(number);
++    currentReportPhase = -1;
++  }
++  function history(number, status) {
++    if (number === null) return;
++    if (number > highWater) advance(number);
++    const known = find(number);
++    if (known) settle(known, status);
++    else if (!lastSettled || number > lastSettled.generation) {
++      remember(Object.freeze({ ...blank(number), phase: 'final', status }), -1);
++    }
++  }
++
++  function observeState(snapshot) {
++    if (!object(snapshot)) return;
++    const activeValue = own(snapshot, 'active');
++    const activeGeneration = nestedGeneration(activeValue);
++    const currentValue = own(snapshot, 'currentGeneration');
++    const currentGeneration = generation(currentValue);
++    if (activeGeneration === null && activeValue !== null) return;
++    if (currentGeneration === null && currentValue !== null) return;
++    if (activeGeneration !== null && currentGeneration !== null && activeGeneration !== currentGeneration) return;
++    const completed = nestedGeneration(own(snapshot, 'lastCompleted'));
++    const failed = nestedGeneration(own(snapshot, 'lastFailure'));
++    // Process explicit historical identities without allowing an old finish to
++    // replace a newer current. Active health events never finalize that active.
++    // A synchronous onError callback can start the next generation before the
++    // failed one's final emitState. Its explicit failure must win over the
++    // provisional cancellation otherwise inferred by advance(new).
++    const explicitGeneration = activeGeneration ?? currentGeneration;
++    const endings = [[completed, 'completed'], [failed, 'failed']]
++      .filter(([number]) => number !== null && number !== activeGeneration
++        && (explicitGeneration === null || number <= explicitGeneration))
++      .sort(([left], [right]) => left - right);
++    for (const [number, status] of endings) history(number, status);
++    if (activeGeneration !== null) advance(activeGeneration);
++    else if (currentGeneration !== null) advance(currentGeneration);
++    if (activeGeneration !== null || !current || terminal(current)) return;
++    if (currentGeneration !== null && currentGeneration < current.generation) return;
++    // This consumes the coordinator's SYNCHRONOUS onStateChange sequence.
++    // An idle stop snapshot has no sequence/generation: it cannot safely be
++    // asynchronously replayed after a newer start via an event bus.
++    settle(current, completed === current.generation ? 'completed'
++      : failed === current.generation ? 'failed' : 'cancelled');
++  }
++  function observe(report) {
++    if (!object(report)) return;
++    const number = generation(own(report, 'generation'));
++    const phase = own(report, 'phase'), status = own(report, 'status');
++    const rank = phases.indexOf(phase);
++    if (number === null || rank < 0 || !statuses.includes(status) || (phase === 'final' && status === 'running')) return;
++    advance(number);
++    const known = find(number);
++    // Forgotten old results cannot resurrect a cancelled generation. Only an
++    // explicitly cancelled old report may improve the bounded cancel summary.
++    if (!known && (status !== 'cancelled' || (lastCancelled && number <= lastCancelled.generation))) return;
++    const before = known || blank(number), beforeRank = reportPhase(number);
++    if (rank < beforeRank) return;
++    const finalStatus = terminal(before) ? before.status : status;
++    const counters = copyCounters(own(report, 'counters'), number);
++    const planReasons = copyPlanReasons(own(report, 'planReasons')) ?? before.planReasons;
++    const executionSkips = copyExecutionSkips(report);
++    remember(Object.freeze({ generation: number,
++      phase: finalStatus === 'running' ? phase : 'final', status: finalStatus, observed: true,
++      counters: finalStatus !== 'running' && rank < 1 ? null : counters,
++      plan: copyPlan(own(report, 'plan')) ?? before.plan,
++      skipReasons: copySkipReasons(own(report, 'skipReasons')) ?? before.skipReasons,
++      ...(planReasons ? { planReasons } : {}),
++      ...(executionSkips !== undefined || Object.hasOwn(before, 'executionSkips')
++        ? { executionSkips: finalStatus !== 'running' && rank < 1 ? null : executionSkips ?? null } : {}) }), rank);
++  }
++  return Object.freeze({ observeState, observe,
++    snapshot() { return Object.freeze({ current, lastSettled, lastCancelled }); },
++  });
++}
+diff --git a/js/runtime/refresh-plan.js b/js/runtime/refresh-plan.js
+index 0710e26..f2d35a0 100644
+--- a/js/runtime/refresh-plan.js
++++ b/js/runtime/refresh-plan.js
+@@ -227,8 +227,9 @@ export function createRuntimeSecurityQuotePlan({ generation, snapshots = [], sel
+ }
+ 
+ // Private page planning projection; public contracts remain above unchanged.
+-function runtimeCacheDecision(cacheIndex, key, ttlMs, now) {
++function runtimeCacheDecision(cacheIndex, key, ttlMs, now, reasons) {
+   const decision = cacheDecisionCore(cacheIndex, key, ttlMs, now);
++  if (reasons) reasons[['cache_miss', 'cache_metadata_invalid', 'cache_quality_unusable', 'cache_expired', 'fresh_cache'][decision[0]]]++;
+   return decision[0] === 4 ? { action: 'cache', cacheExpiresAt: decision[1] } : { action: 'fetch' };
+ }
+ export function createRuntimeRefreshPlan({
+@@ -239,22 +240,35 @@ export function createRuntimeRefreshPlan({
+   cacheIndex = {},
+   forceLive = false,
+   forceStable = [],
+-} = {}) {
++} = {}, observePlanReasons) {
+   requireGeneration(generation);
+   if (!isEpoch(now)) throw new TypeError('Refresh plan now must be an explicit safe epoch.');
+   const planTrigger = typeof trigger === 'string' ? trigger.trim().slice(0, 40) || 'unknown' : 'unknown';
+   const activeCodes = activeHoldingCodes(activeHoldings);
+   const forcedStable = new Set(planTrigger === 'diagnostic' && Array.isArray(forceStable) ? forceStable : []);
+   const resources = [];
++  // A closed observer receives only fixed aggregate counts. It never sees the
++  // resource identity, cache input, holding or the private execution plan.
++  const reasons = typeof observePlanReasons === 'function' ? {
++    fresh_cache: 0, cache_miss: 0, cache_metadata_invalid: 0, cache_quality_unusable: 0,
++    cache_expired: 0, force_live: 0, force_stable: 0, market_ineligible: 0,
++    phase_pending: 0, no_active_holdings: 0,
++  } : null;
+ 
+   function add(key, isStable, eligible = true) {
+     const policy = refreshResourcePolicy(key);
+     const resource = { key, kind: policy.kind, codes: policy.codes, ttlMs: policy.ttlMs };
+     let decision;
+-    if (!eligible) decision = { action: 'skip' };
+-    else if (isStable && forcedStable.has(resource.key)) decision = { action: 'fetch' };
+-    else if (!isStable && forceLive === true) decision = { action: 'fetch' };
+-    else decision = runtimeCacheDecision(cacheIndex, resource.key, resource.ttlMs, now);
++    if (!eligible) {
++      decision = { action: 'skip' };
++      if (reasons) reasons.market_ineligible++;
++    } else if (isStable && forcedStable.has(resource.key)) {
++      decision = { action: 'fetch' };
++      if (reasons) reasons.force_stable++;
++    } else if (!isStable && forceLive === true) {
++      decision = { action: 'fetch' };
++      if (reasons) reasons.force_live++;
++    } else decision = runtimeCacheDecision(cacheIndex, resource.key, resource.ttlMs, now, reasons);
+     resources.push({ key: resource.key, kind: resource.kind, codes: resource.codes, cacheExpiresAt: null, ...decision });
+   }
+ 
+@@ -281,7 +295,13 @@ export function createRuntimeRefreshPlan({
+   // to determine the actual demand union. These are never global cache hits.
+   for (const [key, kind] of [['securities:union', 'securities'], ['models:active', 'model-quotes']]) {
+     resources.push({ key, kind, action: activeCodes.length ? 'fetch' : 'skip', cacheExpiresAt: null });
++    if (reasons) reasons[activeCodes.length ? 'phase_pending' : 'no_active_holdings']++;
+   }
+ 
+-  return freeze({ generation, activeCodes, resources });
++  const plan = freeze({ generation, activeCodes, resources });
++  if (reasons) {
++    try { Promise.resolve(observePlanReasons(Object.freeze(reasons))).catch(() => {}); }
++    catch (_) { /* Observation never owns planning results or input failures. */ }
++  }
++  return plan;
+ }
+diff --git a/package-lock.json b/package-lock.json
+index 2eb3084..aa18e2a 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -17,7 +17,7 @@
+       "devDependencies": {
+         "@playwright/test": "1.62.1",
+         "esbuild": "0.28.2",
+-        "vite": "8.2.2"
++        "vite": "8.2.4"
+       },
+       "engines": {
+         "node": "24.14.0",
+@@ -1557,9 +1557,9 @@
+       "license": "MIT"
+     },
+     "node_modules/vite": {
+-      "version": "8.2.2",
+-      "resolved": "https://registry.npmjs.org/vite/-/vite-8.2.2.tgz",
+-      "integrity": "sha512-cFKLV/PRgAUlIRm5WjMjJ86jrftzpqcgH+Us+DS8mI3CDNiH30Whrz8uHL3+MOLPAgqbMBAqWdAHAphOAM+z/Q==",
++      "version": "8.2.4",
++      "resolved": "https://registry.npmjs.org/vite/-/vite-8.2.4.tgz",
++      "integrity": "sha512-lfauXnrf2x0p+UoA+wXh0dgFWnUjCyG6Js95KBkgaCwUU9k0DAHI4W6Q0WCx+h+5g+Alce1y4Zi2QjjK0UvGBw==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
+diff --git a/package.json b/package.json
+index d8f3eb2..44348fb 100644
+--- a/package.json
++++ b/package.json
+@@ -28,6 +28,6 @@
+   "devDependencies": {
+     "@playwright/test": "1.62.1",
+     "esbuild": "0.28.2",
+-    "vite": "8.2.2"
++    "vite": "8.2.4"
+   }
+ }
+diff --git a/scripts/release-fingerprint.mjs b/scripts/release-fingerprint.mjs
+index 8130723..0e012e9 100644
+--- a/scripts/release-fingerprint.mjs
++++ b/scripts/release-fingerprint.mjs
+@@ -190,7 +190,7 @@ export async function listAppChunkPaths(manifestPath) {
+   return (await readValidatedAppChunkManifest(manifestPath)).chunks.map(chunk => chunk.path);
+ }
+ 
+-export async function verifyAppChunkReleaseDirectory(directory) {
++async function readVerifiedAppChunks(directory, includeModules = false) {
+   const root = resolve(String(directory || ''));
+   const rootRealPath = await realpath(root);
+   const manifestBytes = await readRegularFileInsideRoot(root, rootRealPath, 'js/app-chunks.json');
+@@ -217,6 +217,7 @@ export async function verifyAppChunkReleaseDirectory(directory) {
+   let totalBytes = 0;
+   let actualColdStartGzipBytes = 0;
+   let actualAllNonOcrGzipBytes = 0;
++  const modules = [];
+   for (const chunk of manifest.chunks) {
+     const content = await readRegularFileInsideRoot(root, rootRealPath, chunk.path);
+     if (content.length !== chunk.bytes || hashBytes(content) !== chunk.sha256) {
+@@ -229,10 +230,38 @@ export async function verifyAppChunkReleaseDirectory(directory) {
+     totalBytes += content.length;
+     actualAllNonOcrGzipBytes += gzipBytes;
+     if (chunk.role === 'cold') actualColdStartGzipBytes += gzipBytes;
++    if (includeModules) modules.push({ path: chunk.path, code: new TextDecoder('utf-8', { fatal: true }).decode(content) });
+   }
+   // This verifies byte accounting and the complete declared partition. The real
+   // import/static closure and startup isolation still require build-site's graph verifier.
+-  return { chunkCount: manifest.chunks.length, totalBytes, actualColdStartGzipBytes, actualAllNonOcrGzipBytes };
++  return { manifest, modules, measurements: {
++    chunkCount: manifest.chunks.length, totalBytes, actualColdStartGzipBytes, actualAllNonOcrGzipBytes,
++  } };
++}
++
++export async function verifyAppChunkReleaseDirectory(directory) {
++  return (await readVerifiedAppChunks(directory)).measurements;
++}
++
++export async function verifyAppModuleGraphReleaseDirectory(directory) {
++  // Link exactly the buffers just checked against the manifest. Do not re-open
++  // paths after validation or let the native linker read dependency files.
++  const { manifest, modules } = await readVerifiedAppChunks(directory, true);
++  const { verifyAppModuleGraph } = await import('./app-module-graph.mjs');
++  return verifyAppModuleGraph(manifest, modules);
++}
++
++export async function verifyAppStaticBindingsReleaseDirectory(directory) {
++  const { modules } = await readVerifiedAppChunks(directory, true);
++  const { verifyNativeModuleBindings } = await import('./app-module-graph.mjs');
++  return Object.freeze({
++    ...await verifyNativeModuleBindings(modules),
++    // Deploy jobs intentionally install no dependencies and never rebuild.
++    // Their native-only pass does not independently parse dynamic imports.
++    literalImportClosureVerified: false,
++    startupOrderVerified: false,
++    dynamicNamespaceMembersVerified: false,
++  });
+ }
+ 
+ export function analyzeAppChunkBudgets(result) {
+@@ -296,6 +325,20 @@ async function main(args) {
+     process.stdout.write(`${RELEASE_CRITICAL_PATHS.join('\n')}\n`);
+     return;
+   }
++  const verifyModuleGraphIndex = args.indexOf('--verify-app-module-graph');
++  if (verifyModuleGraphIndex >= 0) {
++    const directory = args[verifyModuleGraphIndex + 1];
++    if (!directory) throw new Error('Usage: release-fingerprint.mjs --verify-app-module-graph <path>');
++    process.stdout.write(`${JSON.stringify(await verifyAppModuleGraphReleaseDirectory(directory))}\n`);
++    return;
++  }
++  const verifyStaticBindingsIndex = args.indexOf('--verify-app-static-bindings');
++  if (verifyStaticBindingsIndex >= 0) {
++    const directory = args[verifyStaticBindingsIndex + 1];
++    if (!directory) throw new Error('Usage: release-fingerprint.mjs --verify-app-static-bindings <path>');
++    process.stdout.write(`${JSON.stringify(await verifyAppStaticBindingsReleaseDirectory(directory))}\n`);
++    return;
++  }
+   const assertAppBudgetIndex = args.indexOf('--assert-app-bundle-budget');
+   if (assertAppBudgetIndex >= 0) {
+     const directory = args[assertAppBudgetIndex + 1];
+diff --git a/test/accuracy.test.js b/test/accuracy.test.js
+index 0b51a6d..e4a8712 100644
+--- a/test/accuracy.test.js
++++ b/test/accuracy.test.js
+@@ -24,6 +24,7 @@ test('the accuracy ledger binds the selected model period and never records a st
+   const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; } };
+   const fund = { code: '012920', est_model: true, est_model_stale: false, est_change: 99,
+     nav_date: '2026-09-01', est_model_version: 'test', quote: {
++      fundCode: '012920', sourceId: 'market-model', sourceTier: 'model',
+       valueKind: 'model_estimate', status: 'model', changePct: 1.5,
+       baseNavDate: '2026-09-21', targetDate: '2026-09-22',
+     } };
+diff --git a/test/holdings-integration-regression.test.js b/test/holdings-integration-regression.test.js
+index 65b8629..69a15aa 100644
+--- a/test/holdings-integration-regression.test.js
++++ b/test/holdings-integration-regression.test.js
+@@ -16,7 +16,7 @@ test('refresh renders the primary quote before asynchronously enriching it with
+   const enrichment = execution.indexOf('const enrichment = Promise.all([getNav(holding), securityTask])');
+   assert.ok(publication >= 0 && enrichment > publication, 'primary must be published before waiting for NAV/security enrichment');
+   assert.match(execution, /const estimate = row \? await clients\.calculateHoldings\(items, row\.payload\.reportDate\) : null/);
+-  assert.match(source, /composeFundEnrichment\(raw, \{ officialNavMove, holdingsEstimate \}\)/);
++  assert.match(source, /composeFundEnrichment\(raw, \{ officialNavMove, holdingsEstimate,\s+fetchedAt: new Date\(\)\.toISOString\(\) \}\)/);
+   assert.match(source, /buildFundData\(enriched, holding, modelQuotes\)/);
+   assert.match(execution, /await Promise\.allSettled\(\[\.\.\.enrichments, marketTask, securityTask, \.\.\.navTasks\.values\(\)\]\)/);
+   assert.match(execution, /await Promise\.allSettled\(metadataTasks\)/);
+diff --git a/test/refresh-execution-v16.test.js b/test/refresh-execution-v16.test.js
+index b47e1e0..297e41e 100644
+--- a/test/refresh-execution-v16.test.js
++++ b/test/refresh-execution-v16.test.js
+@@ -4,7 +4,7 @@ import { TTL } from '../js/config.js';
+ import { executeRefreshPlan } from '../js/runtime/refresh-execution.js';
+ import { RefreshCoordinator } from '../js/runtime/refresh-coordinator.js';
+ import { makeRefreshResourceEntry } from '../js/runtime/refresh-resource-cache.js';
+-import { getSourceHealth, listDataSources, recordSourceFailure } from '../js/runtime/source-registry.js';
++import { claimSourceAttempt, getSourceHealth, listDataSources, recordSourceFailure } from '../js/runtime/source-registry.js';
+ import { calculateOverseasEstimate } from '../js/overseas-model.js';
+ import { QuoteBridgeClient } from '../js/runtime/quote-bridge-client.js';
+ 
+@@ -110,7 +110,8 @@ function cacheFixture(at = NOW - 1000, { holdingAt = at } = {}) {
+     source: 'fund-estimate', holdingsHash: 'synthetic' };
+ }
+ 
+-function harness({ snapshot = [HOLDING], previous = null, options = {}, clients: overrides = {}, halfOpen = false } = {}) {
++function harness({ snapshot = [HOLDING], previous = null, options = {}, clients: overrides = {}, halfOpen = false,
++  onDiagnostics } = {}) {
+   let clock = NOW;
+   const calls = { estimates: 0, nav: 0, holdings: 0, indices: 0, gold: 0, eastmoney: 0, bridge: 0 };
+   const events = [];
+@@ -160,7 +161,7 @@ function harness({ snapshot = [HOLDING], previous = null, options = {}, clients:
+         claims.push(source);
+         return realContext.claimSourceAttempt(source);
+       } });
+-      return executeRefreshPlan({ context, snapshot, options, previous, clients, ui,
++      return executeRefreshPlan({ context, snapshot, options, previous, clients, ui, onDiagnostics,
+         storage: { setItem(key, bytes) { writes.push({ key, value: JSON.parse(bytes) }); return true; } }, now: () => clock });
+     },
+   });
+@@ -176,6 +177,44 @@ function harness({ snapshot = [HOLDING], previous = null, options = {}, clients:
+   };
+ }
+ 
++for (const market of ['domestic', 'QDII']) {
++  test(`plan-reason observation preserves real active ${market} provider/cache/UI/finance results cold and warm`, async () => {
++    const snapshot = [{ ...HOLDING, name: market === 'QDII' ? 'Synthetic QDII' : HOLDING.name, shares: 100, cost: 1 }];
++    const reports = [];
++    const observed = harness({ snapshot, onDiagnostics: row => reports.push(row) });
++    const silent = harness({ snapshot });
++    assert.deepEqual(await observed.run(), await silent.run());
++    assert.equal(observed.events.filter(event => event[0] === 'publish').length, 1);
++    assert.equal(observed.events.filter(event => event[0] === 'enriched').length, 1);
++    assert.equal(observed.calls.nav, 1);
++    assert.equal(observed.calls.holdings, market === 'domestic' ? 1 : 0);
++    assert.deepEqual(observed.calls, silent.calls);
++    assert.deepEqual(observed.events, silent.events);
++    assert.deepEqual(observed.claims, silent.claims);
++    assert.deepEqual(observed.diagnostics, silent.diagnostics);
++    assert.deepEqual(observed.health(), silent.health());
++    assert.equal(JSON.stringify(observed.writes), JSON.stringify(silent.writes));
++    assert.deepEqual(reports.map(row => row.phase), ['started', 'resources_settled', 'final']);
++    assert.equal(reports[0].planReasons.market_ineligible, market === 'QDII' ? 1 : 0);
++    assert.equal(reports[0].planReasons.force_live, 3);
++    const previous = observed.writes[0].value, bytes = JSON.stringify(previous);
++    const warmReports = [];
++    const warmObserved = harness({ snapshot, previous, options: { force: false }, onDiagnostics: row => warmReports.push(row) });
++    const warmSilent = harness({ snapshot, previous, options: { force: false } });
++    assert.deepEqual(await warmObserved.run(), await warmSilent.run());
++    assert.deepEqual(warmObserved.calls, warmSilent.calls);
++    assert.equal(warmObserved.calls.nav, 0);
++    assert.equal(warmObserved.calls.holdings, 0);
++    assert.deepEqual(warmObserved.events, warmSilent.events);
++    assert.deepEqual(warmObserved.claims, warmSilent.claims);
++    assert.deepEqual(warmObserved.diagnostics, warmSilent.diagnostics);
++    assert.equal(JSON.stringify(warmObserved.writes), JSON.stringify(warmSilent.writes));
++    assert.equal(JSON.stringify(previous), bytes);
++    assert.equal(warmReports[0].planReasons.fresh_cache, market === 'domestic' ? 6 : 5);
++    assert.equal(warmReports[0].planReasons.market_ineligible, market === 'QDII' ? 1 : 0);
++  });
++}
++
+ test('all primary and NAV failures cannot persist or renew the fund aggregate when indices succeed', async () => {
+   const old = cacheFixture();
+   delete old.refreshResources[`estimates:${CODE}`];
+@@ -365,6 +404,76 @@ test('cancelling a pending late-added metadata task produces no unhandled reject
+   }
+ });
+ 
++test('cancelled resource diagnostics wait for late metadata to drain without adding old UI, cache or coordinator logs', async () => {
++  const previous = cacheFixture();
++  delete previous.refreshResources[`meta:${CODE}`];
++  const before = clone(previous);
++  const entered = deferred();
++  const pending = deferred();
++  const reports = [];
++  const requested = [];
++  const next = { ...nav(), date: '2026-09-30', prevDate: '2026-09-29',
++    meta: { manager: 'Synthetic late cancelled manager', currentRate: '0.25' } };
++  const h = harness({ previous, options: { force: false }, onDiagnostics: report => reports.push(report), clients: {
++    nav: async code => {
++      requested.push(code);
++      entered.resolve();
++      // Ignore abort deliberately: only a settled provider proves that the
++      // late-added metadata branch has drained, rather than just being stopped.
++      return pending.promise;
++    },
++  } });
++  let finished = false;
++  const task = h.run('timer').then(result => { finished = true; return result; });
++  await entered.promise;
++  try {
++    for (let turn = 0; turn < 3; turn++) await tick();
++    assert.deepEqual(requested, [CODE], 'Warm NAV needs no official request; missing metadata owns this one');
++    assert.equal(h.events.filter(event => event[0] === 'publish').length, 1);
++    assert.equal(h.events.filter(event => event[0] === 'enriched').length, 1,
++      'The main NAV and other enrichment finish independently of the pending metadata provider');
++    assert.deepEqual(reports.map(report => report.phase), ['started']);
++    h.coordinator.stop('synthetic late metadata observation stop');
++    const committedAtStop = h.events.length;
++    const diagnosticCountAtStop = h.coordinator.snapshot().diagnosticCount;
++    const coordinatorLogsAtStop = h.diagnostics.length;
++    for (let turn = 0; turn < 3; turn++) await tick();
++    assert.equal(finished, false, 'Cancellation must still await the unresolved metadata provider');
++    assert.deepEqual(reports.map(report => report.phase), ['started'],
++      'Neither resources_settled nor final may describe an undrained metadata branch');
++    assert.equal(h.events.length, committedAtStop);
++    assert.equal(h.writes.length, 0);
++    pending.resolve(next);
++    const result = await task;
++    await tick();
++    assert.ok(['aborted', 'superseded'].includes(result.status));
++    assert.deepEqual(reports.map(report => report.phase), ['started', 'resources_settled', 'final']);
++    for (const report of reports.slice(1)) {
++      assert.equal(report.generation, result.generation);
++      assert.equal(report.status, 'cancelled');
++      assert.equal(report.counters.requests, 2);
++      assert.equal(report.counters.abortedRequests, 1);
++      assert.equal(report.counters.failedRequests, 0);
++      assert.equal(report.counters.cancelledResources, 1);
++      assert.equal(report.counters.writeAttempts, 0);
++      assert.equal(report.counters.cacheWrites, 0);
++      assert.deepEqual(report.counters.providers, { 'eastmoney-official-nav': 1, 'eastmoney-security-quote': 1 });
++      assert.deepEqual(report.plan.find(row => row.kind === 'nav'), { kind: 'nav', cache: 1, fetch: 0, skip: 0 });
++      assert.deepEqual(report.plan.find(row => row.kind === 'meta'), { kind: 'meta', cache: 0, fetch: 1, skip: 0 });
++    }
++    assert.equal(h.coordinator.snapshot().diagnosticCount, diagnosticCountAtStop,
++      'The late cancelled observation must not append the old generation coordinator log');
++    assert.equal(h.diagnostics.length, coordinatorLogsAtStop);
++    assert.equal(h.events.length, committedAtStop);
++    assert.equal(h.events.some(event => event[0] === 'metadata' || event[0] === 'complete'), false);
++    assert.equal(h.writes.length, 0);
++    assert.deepEqual(previous, before);
++  } finally {
++    pending.resolve(next);
++    await task;
++  }
++});
++
+ test('NAV fallback and enrichment share one actual request and one metadata acquisition', async () => {
+   const h = harness({ clients: {
+     estimates: async (_snapshot, _options, _context, dispatch) => dispatch(async () => new Map()),
+@@ -1089,3 +1198,81 @@ test('cancelled background branches are observed and cannot write or commit late
+     process.off('unhandledRejection', onUnhandled);
+   }
+ });
++
++for (const mode of ['cooldown', 'unavailable', 'occupied_probe']) {
++  test(`execution skip facts record a real ${mode} claim rejection without relabelling it or retrying`, async () => {
++    const reports = [];
++    const h = harness({ onDiagnostics: row => reports.push(row) });
++    h.coordinator.registry = recordSourceFailure(h.coordinator.registry, SOURCE,
++      { reason: 'synthetic gate test', unavailable: mode === 'unavailable' }, mode === 'occupied_probe' ? NOW - 10 : NOW - 1);
++    if (mode === 'occupied_probe') {
++      const probe = claimSourceAttempt(h.coordinator.registry, SOURCE, NOW);
++      assert.equal(probe.allowed, true);
++      h.coordinator.registry = probe.registry;
++    }
++    const before = h.health();
++    const result = await h.run();
++    assert.equal(result.status, 'completed');
++    assert.equal(h.calls.holdings, 0);
++    assert.equal(h.claims.filter(source => source === SOURCE).length, 1);
++    assert.deepEqual(h.health(), before);
++    assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
++      holdings_claim_denied: 1, holdings_probe_used: 0, model_claim_denied: 0, model_probe_used: 0 });
++    assert.equal(reports[0].executionSkips.holdings_claim_denied, 0, 'Started is an immutable earlier sample.');
++    assert.ok(reports.every(row => Object.isFrozen(row.executionSkips)));
++    assert.doesNotMatch(JSON.stringify(reports.at(-1).executionSkips), /cooldown|unavailable|occupied_probe|005844/);
++  });
++}
++
++test('execution skip facts count the real holdings half-open generation budget, not a second source claim', async () => {
++  const reports = [];
++  const h = harness({ snapshot: [HOLDING, { ...HOLDING, code: '005845' }], halfOpen: true,
++    onDiagnostics: row => reports.push(row) });
++  assert.equal((await h.run()).status, 'completed');
++  assert.equal(h.calls.holdings, 1);
++  assert.equal(h.claims.filter(source => source === SOURCE).length, 1);
++  assert.equal(h.health().halfOpenProbeActive, false);
++  assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
++    holdings_claim_denied: 0, holdings_probe_used: 1, model_claim_denied: 0, model_probe_used: 0 });
++});
++
++test('model claim rejection is observed while a shared domestic security still dispatches and stays usable', async () => {
++  const reports = [];
++  const h = harness({ onDiagnostics: row => reports.push(row), clients: {
++    models: async () => [{ min_weight: 50, legs: [{ code: 'sh600001', weight: 50 }, { code: 'jp7203', weight: 50 }] }],
++  } });
++  h.failSource(MODEL_SOURCE, NOW - 1);
++  const health = h.health(MODEL_SOURCE);
++  assert.equal((await h.run()).status, 'completed');
++  assert.equal(h.calls.eastmoney, 1);
++  assert.equal(h.calls.bridge, 0);
++  assert.equal(h.claims.filter(source => source === MODEL_SOURCE).length, 1);
++  assert.deepEqual(h.health(MODEL_SOURCE), health);
++  const enriched = h.events.find(event => event[0] === 'enriched')[2];
++  assert.equal(enriched.estimate.items[0].change, 0);
++  assert.equal(enriched.models.sh600001.changePct, 0);
++  assert.equal(enriched.models.jp7203, undefined);
++  assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
++    holdings_claim_denied: 0, holdings_probe_used: 0, model_claim_denied: 1, model_probe_used: 0 });
++});
++
++test('model half-open budget rejects a later real provider batch without counting it as a request', async () => {
++  const reports = [], batches = [];
++  const legs = Array.from({ length: 65 }, (_, index) => ({ code: `jp${1000 + index}`, weight: 100 / 65 }));
++  const h = harness({ onDiagnostics: row => reports.push(row), clients: {
++    models: async () => [{ min_weight: 1, legs }],
++    bridge: async (operation, codes) => {
++      batches.push({ operation, codes });
++      return { quotes: codes.map(code => ({ code, price: 100, changePct: 0, sourceTimeRaw: '2026-09-30 14:00:00' })) };
++    },
++  } });
++  h.failSource(MODEL_SOURCE);
++  assert.equal((await h.run()).status, 'completed');
++  assert.equal(batches.length, 1);
++  assert.equal(batches[0].codes.length, 64);
++  assert.equal(h.claims.filter(source => source === MODEL_SOURCE).length, 1);
++  assert.equal(h.health(MODEL_SOURCE).halfOpenProbeActive, false);
++  assert.deepEqual(reports.at(-1).executionSkips, { estimate_claim_denied: null,
++    holdings_claim_denied: 0, holdings_probe_used: 0, model_claim_denied: 0, model_probe_used: 1 });
++  assert.equal(reports.at(-1).counters.providers['tencent-market-quote'], 2, 'One indices dispatch and one admitted model batch.');
++});
+diff --git a/test/runtime-plan-characterization-v16.test.js b/test/runtime-plan-characterization-v16.test.js
+index f66e8e4..5810de3 100644
+--- a/test/runtime-plan-characterization-v16.test.js
++++ b/test/runtime-plan-characterization-v16.test.js
+@@ -223,6 +223,7 @@ function assertClosedPlanUses(call, parents, kind, localName) {
+   const declaration = parents.at(-1);
+   assert.equal(declaration.type, 'VariableDeclarator', 'Private plan results must stay in a named local binding.');
+   assert.equal(declaration.init, call);
++  assert.equal(declaration.id?.type, 'Identifier', 'Private plan results cannot be destructured before use scanning.');
+   const binding = declaration.id.name;
+   const enclosing = [...parents].reverse().find(node => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type));
+   assert.ok(enclosing, localName);
+@@ -270,7 +271,10 @@ function assertResourceBindingUses(scope, binding, declaration) {
+ }
+ 
+ function assertClosedResourceReads(call, parents) {
+-  const binding = parents.at(-1).id.name;
++  const declaration = parents.at(-1);
++  assert.equal(declaration?.type, 'VariableDeclarator');
++  assert.equal(declaration.id?.type, 'Identifier', 'Private resource roots cannot be destructured before use scanning.');
++  const binding = declaration.id.name;
+   const scope = [...parents].reverse().find(node => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type));
+   const fromResources = node => node?.type === 'MemberExpression' && !node.computed
+     && node.object?.type === 'Identifier' && node.object.name === binding && node.property.name === 'resources'
+@@ -282,7 +286,7 @@ function assertClosedResourceReads(call, parents) {
+       assert.equal(parent?.type, 'MemberExpression', 'Private resource arrays must not escape.');
+       assert.equal(parent.object, node);
+       assert.equal(parent.computed, false);
+-      assert.ok(['filter', 'map', 'find'].includes(parent.property.name));
++      assert.ok(['filter', 'map', 'find', 'forEach'].includes(parent.property.name));
+       assert.equal(invocation?.type, 'CallExpression');
+       assert.equal(invocation.callee, parent);
+       const callback = invocation.arguments[0];
+@@ -294,6 +298,7 @@ function assertClosedResourceReads(call, parents) {
+       || node.callee.computed || node.callee.property.name !== 'find' || !fromResources(node.callee.object)) return;
+     const parent = ancestors.at(-1);
+     if (parent?.type === 'VariableDeclarator' && parent.init === node) {
++      assert.equal(parent.id?.type, 'Identifier', 'A found resource must stay in a checked named local, not a destructured alias.');
+       const localScope = [...ancestors].reverse().find(item => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(item.type));
+       assertResourceBindingUses(localScope, parent.id.name, parent);
+     } else {
+@@ -305,6 +310,54 @@ function assertClosedResourceReads(call, parents) {
+   });
+ }
+ 
++function assertClosedReasonCollector(call, parents, kind, file) {
++  if (call.arguments.length === 1) return;
++  assert.equal(kind, 'refresh', 'Only the private refresh planner has an optional reason observer.');
++  assert.equal(file, 'runtime/refresh-execution.js');
++  assert.equal(call.arguments.length, 2);
++  const enclosing = [...parents].reverse().find(node => ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type));
++  assert.equal(enclosing?.type, 'FunctionDeclaration');
++  assert.equal(enclosing.id?.name, 'executeRefreshPlan');
++  assert.equal(parents.at(-3), enclosing.body, 'Observed plan creation must remain a direct executor local.');
++  const locals = enclosing.body.body.filter(node => node.type === 'VariableDeclaration')
++    .flatMap(declaration => declaration.declarations.map(binding => ({ declaration, binding })))
++    .filter(({ binding }) => binding.id?.name === 'diagnosticPlanReasons');
++  assert.equal(locals.length, 1);
++  const [{ declaration, binding }] = locals;
++  assert.equal(declaration.kind, 'let');
++  assert.equal(binding.init?.type, 'Literal');
++  assert.equal(binding.init.value, null);
++  assert.ok(binding.start < call.start, 'The collector local must be initialized before planning.');
++  const observer = call.arguments[1];
++  assert.equal(observer.type, 'ConditionalExpression');
++  assert.equal(observer.test.type, 'BinaryExpression');
++  assert.equal(observer.test.operator, '===');
++  assert.equal(observer.test.left.type, 'UnaryExpression');
++  assert.equal(observer.test.left.operator, 'typeof');
++  assert.equal(observer.test.left.argument?.type, 'Identifier');
++  assert.equal(observer.test.left.argument.name, 'onDiagnostics');
++  assert.equal(observer.test.right.type, 'Literal');
++  assert.equal(observer.test.right.value, 'function');
++  assert.equal(observer.alternate.type, 'Identifier');
++  assert.equal(observer.alternate.name, 'undefined');
++  const collector = observer.consequent;
++  assert.equal(collector.type, 'ArrowFunctionExpression');
++  assert.equal(collector.async, false);
++  assert.equal(collector.params.length, 1);
++  assert.equal(collector.params[0].type, 'Identifier');
++  assert.equal(collector.params[0].name, 'reasons');
++  assert.equal(collector.body.type, 'BlockStatement');
++  assert.equal(collector.body.body.length, 1);
++  assert.equal(collector.body.body[0].type, 'ExpressionStatement');
++  const assignment = collector.body.body[0].expression;
++  assert.equal(assignment.type, 'AssignmentExpression');
++  assert.equal(assignment.operator, '=');
++  assert.equal(assignment.left.type, 'Identifier');
++  assert.equal(assignment.left.name, 'diagnosticPlanReasons');
++  assert.equal(assignment.right.type, 'Identifier');
++  assert.equal(assignment.right.name, 'reasons');
++}
++
+ function auditPrivatePlanModule(program, file, imported) {
+   const privateBindings = new Map(), auditedCalls = new Set();
+   for (const node of program.body) {
+@@ -327,7 +380,7 @@ function auditPrivatePlanModule(program, file, imported) {
+     if (node.type !== 'CallExpression' || !privateBindings.has(node.callee?.name)) return;
+     const name = privateBindings.get(node.callee.name), kind = name === 'createRuntimeSecurityQuotePlan' ? 'security' : 'refresh';
+     imported.get(name).calls++;
+-    assert.equal(node.arguments.length, 1);
++    assertClosedReasonCollector(node, parents, kind, file);
+     const options = node.arguments[0];
+     assert.equal(options.type, 'ObjectExpression', 'Private factory options must be a local literal.');
+     const allowed = new Set(kind === 'security' ? ['generation', 'snapshots', 'selectedModels']
+@@ -408,8 +461,95 @@ test('closed-consumer guards reject factory aliases, namespace/reexport/dynamic
+   assert.throws(() => checkRefresh(refresh.replace('row.key ===', 'row.reason ===')), { name: 'AssertionError' });
+   assert.throws(() => checkRefresh(refresh.replace('const resource =', 'const resources = plan.resources; const resource =')),
+     { name: 'AssertionError' });
++  checkRefresh(refresh.replace('const resource =',
++    'plan.resources.forEach(row => report({ kind: row.kind, action: row.action })); const resource ='));
++  for (const body of ['report(row)', 'report(row.reason)', 'report({ ...row })']) {
++    assert.throws(() => checkRefresh(refresh.replace('const resource =',
++      `plan.resources.forEach(row => { ${body}; }); const resource =`)), { name: 'AssertionError' });
++  }
++});
++
++test('optional plan-reason collector is accepted only as the exact closed executor callback', () => {
++  const source = `import { createRuntimeRefreshPlan as makePlan } from './refresh-plan.js';
++    function executeRefreshPlan({ context, onDiagnostics }) {
++      let diagnosticPlanReasons = null;
++      const plan = makePlan({ generation: context.generation, now: 1 },
++        typeof onDiagnostics === 'function' ? reasons => { diagnosticPlanReasons = reasons; } : undefined);
++      return createGenerationResourceScope({ context, plan, now: Date.now });
++    }`;
++  const check = (value, file = 'runtime/refresh-execution.js') => {
++    const parsed = parseSync(file, value);
++    assert.equal(parsed.errors.length, 0);
++    auditPrivatePlanModule(parsed.program, file, privateImportContracts());
++  };
++  check(source);
++  const invalid = [
++    source.replace('executeRefreshPlan', 'otherExecute'),
++    source.replace('let diagnosticPlanReasons = null;', 'const diagnosticPlanReasons = null;'),
++    source.replace('let diagnosticPlanReasons = null;', 'let diagnosticPlanReasons = {};'),
++    source.replace('let diagnosticPlanReasons = null;', ''),
++    source.replace('let diagnosticPlanReasons = null;', '')
++      .replace('return createGenerationResourceScope', 'let diagnosticPlanReasons = null; return createGenerationResourceScope'),
++    source.replace("typeof onDiagnostics === 'function'", 'onDiagnostics'),
++    source.replace("typeof onDiagnostics === 'function'", "typeof arbitrary === 'function'"),
++    source.replace('reasons =>', 'async reasons =>'),
++    source.replace('reasons =>', '(reasons, raw) =>'),
++    source.replace('reasons => { diagnosticPlanReasons = reasons; }', 'onDiagnostics'),
++    source.replace('reasons => { diagnosticPlanReasons = reasons; }', 'reasons => diagnosticPlanReasons = reasons'),
++    source.replace('diagnosticPlanReasons = reasons;', 'diagnosticPlanReasons = { ...reasons };'),
++    source.replace('diagnosticPlanReasons = reasons;', 'diagnosticPlanReasons = reasons; report(reasons);'),
++    source.replace('diagnosticPlanReasons = reasons;', 'target.reasons = reasons;'),
++    source.replace(': undefined', ': null'),
++    source.replace(': undefined)', ': undefined, onDiagnostics)'),
++    source.replace('createRuntimeRefreshPlan', 'createRuntimeSecurityQuotePlan'),
++  ];
++  for (const value of invalid) assert.throws(() => check(value), { name: 'AssertionError' });
++  assert.throws(() => check(source, 'runtime/security-quote-batch.js'), { name: 'AssertionError' });
+ });
+ 
++for (const pattern of ['{ resources }', '[resources]']) {
++  const source = `import { createRuntimeRefreshPlan as makePlan } from './refresh-plan.js';
++    function executeRefreshPlan({ context, onDiagnostics }) {
++      let diagnosticPlanReasons = null;
++      const ${pattern} = makePlan({ generation: context.generation, now: 1 },
++        typeof onDiagnostics === 'function' ? reasons => { diagnosticPlanReasons = reasons; } : undefined);
++      report(resources);
++      return null;
++    }`;
++  test(`closed plan root rejects destructured ${pattern} binding before use scanning`, () => {
++    const parsed = parseSync('runtime/refresh-execution.js', source);
++    assert.equal(parsed.errors.length, 0);
++    assert.throws(() => auditPrivatePlanModule(parsed.program, 'runtime/refresh-execution.js', privateImportContracts()),
++      { name: 'AssertionError' });
++  });
++  test(`closed resource root independently rejects destructured ${pattern} binding`, () => {
++    const parsed = parseSync('runtime/refresh-execution.js', source);
++    assert.equal(parsed.errors.length, 0);
++    let target = null;
++    walk(parsed.program, (node, parents) => {
++      if (node.type === 'CallExpression' && node.callee?.name === 'makePlan') target = { node, parents };
++    });
++    assert.ok(target);
++    assert.throws(() => assertClosedResourceReads(target.node, target.parents), { name: 'AssertionError' });
++  });
++}
++
++for (const pattern of ['{ reason }', '[reason]']) {
++  test(`closed find-resource reader rejects destructured ${pattern} aliases`, () => {
++    const source = `import { createRuntimeRefreshPlan as makePlan } from './refresh-plan.js';
++      function execute(context) {
++        const plan = makePlan({ generation: context.generation, now: 1 });
++        const ${pattern} = plan.resources.find(row => row.key === 'nav:005844');
++        report(reason);
++        return createGenerationResourceScope({ context, plan, now: Date.now });
++      }`;
++    const parsed = parseSync('runtime/refresh-execution.js', source);
++    assert.equal(parsed.errors.length, 0);
++    assert.throws(() => auditPrivatePlanModule(parsed.program, 'runtime/refresh-execution.js', privateImportContracts()),
++      { name: 'AssertionError' });
++  });
++}
++
+ test('real generation scope exposes only counters, not the private execution plan or public metadata', () => {
+   const controller = new AbortController();
+   const context = { generation: 1, signal: controller.signal, isCurrent: () => true,

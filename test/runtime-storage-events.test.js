@@ -112,6 +112,18 @@ function fakeBrowser(t) {
   };
 }
 
+test('M4 runtime startup removes old diagnostic payloads without touching holdings', t => {
+  fakeBrowser(t);
+  const values = storageValues(snapshot(200, 2, T1));
+  values.fuyu_diagnostics_v1 = JSON.stringify([{ time: T1, type: 'window_error',
+    message: 'synthetic-private-holdings', stack: 'github_pat_SYNTHETIC12345678901234567890' }]);
+  const fixture = delayedRendererStorage(values);
+  installRuntimeGuards(fixture.storage);
+  assert.deepEqual(JSON.parse(fixture.renderer.get('fuyu_diagnostics_v1')), [{ time: T1, type: 'window_error' }]);
+  assert.deepEqual(fixture.mutations.map(row => row.key), ['fuyu_diagnostics_v1']);
+  assert.equal(fixture.renderer.get(HOLDINGS_V3_KEY), values[HOLDINGS_V3_KEY]);
+});
+
 for (const key of HOLDINGS_EVENT_KEYS) {
   test(`runtime ${key} notification must not read, recover or write the holdings repository`, async t => {
     const browser = fakeBrowser(t);

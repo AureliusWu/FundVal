@@ -1,0 +1,518 @@
+{
+  "schema": 1,
+  "archivedRawFiles": [
+  {
+    "original": "final-five-old-source.tap",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/final-five-old-source.tap.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "final-five-current-source.tap",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/final-five-current-source.tap.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "executor-final40.tap",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/executor-final40.tap.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "browser-red.log",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/browser-red.log.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "browser-green.log",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/browser-green.log.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "e2e-full.log",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/e2e-full.log.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "budget.log",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/budget.log.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "check-final.log",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/check-final.log.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "audit.log",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/audit.log.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  },
+  {
+    "original": "measure-builds.mjs",
+    "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/measure-builds.mjs.txt",
+    "normalization": "CRLF to LF; Get-Content adds one display newline which is retained"
+  }
+],
+  "status": "WIP_M3_IN_PROGRESS_NOT_RELEASED",
+  "hostRecordedAt": "2026-10-18T05:41:34.157Z",
+  "sourceObservedCommit": "5186c75b8c646e3a8425e00e93f52adb0f4a8f7a",
+  "version": "15.0.2",
+  "scope": "Official NAV refresh scheduling; no provider schema, dates, cache TTL, compiler, dependencies, budgets, version or production changes.",
+  "baselineSource": {
+    "path": "js/runtime/refresh-execution.js",
+    "lfSha256": "6ce61199e3c8dc32e9b23f03f758afd2f0a745a21707ce4365f01d6e49f53583",
+    "matchesFrozenCopy": true
+  },
+  "sourceBindings": [
+    {
+      "path": "js/runtime/refresh-execution.js",
+      "bytes": 17548,
+      "sha256": "7c3f94c09d08d15e8661b1981003c0faa16d4f9b6f916d5babb533b126751219",
+      "lfSha256": "7c3f94c09d08d15e8661b1981003c0faa16d4f9b6f916d5babb533b126751219"
+    },
+    {
+      "path": "test/refresh-execution-v16.test.js",
+      "bytes": 58204,
+      "sha256": "2b7bd3653e38c0aa1af18e266d14ee2cb059cb51be0c58d976705ff70645cc45",
+      "lfSha256": "2b7bd3653e38c0aa1af18e266d14ee2cb059cb51be0c58d976705ff70645cc45"
+    },
+    {
+      "path": "test/refresh-regression.test.js",
+      "bytes": 3014,
+      "sha256": "9def35513754a10ef0420cf7fa4193820c14571da20e3111fbdc040478bffa25",
+      "lfSha256": "df2d67190053caed6489f645d1b571425b4d5b4caad6335b4f85f65c7e118d66"
+    },
+    {
+      "path": "e2e/v16-refresh.spec.js",
+      "bytes": 24130,
+      "sha256": "0a3907f411d59426c2dc7c6ac3ef86536d97351f3ce6887782076689baa524b0",
+      "lfSha256": "0a3907f411d59426c2dc7c6ac3ef86536d97351f3ce6887782076689baa524b0"
+    }
+  ],
+  "oldSourceFive": {
+    "pass": 0,
+    "fail": 5,
+    "note": "All five include the new bounded-demand invariant; slot/disclosure controls also failed only that new bound. Rewritten absolute imports; actual frozen parent executor, other unchanged dependencies."
+  },
+  "currentSourceFive": {
+    "pass": 5,
+    "fail": 0
+  },
+  "executorTests": {
+    "pass": 40,
+    "fail": 0
+  },
+  "initialFullTests": {
+    "tests": 1064,
+    "pass": 1060,
+    "fail": 1,
+    "skipped": 3,
+    "duration_ms": 6063.9503
+  },
+  "finalFullTests": {
+    "tests": 1064,
+    "pass": 1061,
+    "fail": 0,
+    "skipped": 3,
+    "duration_ms": 6476.4943
+  },
+  "initialFullFailure": "Old source-text assertion required inline clients.nav(holding.code); strengthened to require bounded helper, both entry calls and a unique NAV-client callsite.",
+  "syntax": {
+    "files": 205,
+    "exit": 0
+  },
+  "audit": {
+    "registry": "https://registry.npmjs.org",
+    "vulnerabilities": 0,
+    "exit": 0
+  },
+  "browser": {
+    "oldSourceSingle": {
+      "failed": 1,
+      "missingOfficialNavs": 5,
+      "total": 105
+    },
+    "newSourceSingle": {
+      "passed": 1,
+      "total": 105
+    },
+    "full": {
+      "passed": 31,
+      "failed": 0,
+      "reportedDuration": "1.0m"
+    },
+    "hermetic": true,
+    "physicalDevice": false
+  },
+  "readinessDescriptiveSamples": [
+    {
+      "coldReadyMs": 170.69999998807907,
+      "warmReadyMs": 105.30000001192093,
+      "saveUiMs": 94.89469999999983
+    },
+    {
+      "coldReadyMs": 160.4000000357628,
+      "warmReadyMs": 87.5,
+      "saveUiMs": 89.15779999999995
+    },
+    {
+      "coldReadyMs": 144.29999995231628,
+      "warmReadyMs": 96.5,
+      "saveUiMs": 62.85730000000058
+    }
+  ],
+  "readinessBoundary": "Original absolute desktop smoke only, not a new paired latency result; older 200-pair overall INCONCLUSIVE remains.",
+  "build": {
+    "baseline": {
+      "phase": "baseline",
+      "hostRecordedAt": "2026-10-18T05:33:37.448Z",
+      "node": "v24.14.0",
+      "sourceDateEpoch": "1792046773",
+      "recipe": "Original build-site Vite 8.2.2 / oxc / es2022 / five groups, unchanged",
+      "sourceBefore": {
+        "files": 73,
+        "bytes": 691022,
+        "sha256": "f55197e963e965889234e4e094b1927bd44a21582df4b0e0c48fdd07a4cf410d"
+      },
+      "sourceAfter": {
+        "files": 73,
+        "bytes": 691022,
+        "sha256": "f55197e963e965889234e4e094b1927bd44a21582df4b0e0c48fdd07a4cf410d"
+      },
+      "runs": [
+        {
+          "round": 1,
+          "app": {
+            "chunkCount": 16,
+            "totalBytes": 235665,
+            "actualColdStartGzipBytes": 42992,
+            "actualAllNonOcrGzipBytes": 80477
+          },
+          "ocr": {
+            "assetCount": 23,
+            "totalBytes": 88196906
+          },
+          "critical": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725",
+          "whole": {
+            "files": 127,
+            "bytes": 92507487,
+            "sha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93"
+          },
+          "budget": {
+            "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+            "baselineAllNonOcrGzipBytes": 70207,
+            "actualColdStartGzipBytes": 42992,
+            "actualAllNonOcrGzipBytes": 80477,
+            "coldBudgetBytes": 52241,
+            "allBudgetNumerator": 772277,
+            "allBudgetDenominator": 10,
+            "allBudgetBytes": 77227.7,
+            "coldPass": true,
+            "allPass": false,
+            "pass": false,
+            "verdict": "FAIL",
+            "importClosureVerified": false
+          }
+        },
+        {
+          "round": 2,
+          "app": {
+            "chunkCount": 16,
+            "totalBytes": 235665,
+            "actualColdStartGzipBytes": 42992,
+            "actualAllNonOcrGzipBytes": 80477
+          },
+          "ocr": {
+            "assetCount": 23,
+            "totalBytes": 88196906
+          },
+          "critical": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725",
+          "whole": {
+            "files": 127,
+            "bytes": 92507487,
+            "sha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93"
+          },
+          "budget": {
+            "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+            "baselineAllNonOcrGzipBytes": 70207,
+            "actualColdStartGzipBytes": 42992,
+            "actualAllNonOcrGzipBytes": 80477,
+            "coldBudgetBytes": 52241,
+            "allBudgetNumerator": 772277,
+            "allBudgetDenominator": 10,
+            "allBudgetBytes": 77227.7,
+            "coldPass": true,
+            "allPass": false,
+            "pass": false,
+            "verdict": "FAIL",
+            "importClosureVerified": false
+          }
+        },
+        {
+          "round": 3,
+          "app": {
+            "chunkCount": 16,
+            "totalBytes": 235665,
+            "actualColdStartGzipBytes": 42992,
+            "actualAllNonOcrGzipBytes": 80477
+          },
+          "ocr": {
+            "assetCount": 23,
+            "totalBytes": 88196906
+          },
+          "critical": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725",
+          "whole": {
+            "files": 127,
+            "bytes": 92507487,
+            "sha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93"
+          },
+          "budget": {
+            "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+            "baselineAllNonOcrGzipBytes": 70207,
+            "actualColdStartGzipBytes": 42992,
+            "actualAllNonOcrGzipBytes": 80477,
+            "coldBudgetBytes": 52241,
+            "allBudgetNumerator": 772277,
+            "allBudgetDenominator": 10,
+            "allBudgetBytes": 77227.7,
+            "coldPass": true,
+            "allPass": false,
+            "pass": false,
+            "verdict": "FAIL",
+            "importClosureVerified": false
+          }
+        }
+      ]
+    },
+    "candidate": {
+      "phase": "candidate",
+      "hostRecordedAt": "2026-10-18T05:38:17.791Z",
+      "node": "v24.14.0",
+      "sourceDateEpoch": "1792046773",
+      "recipe": "Original build-site Vite 8.2.2 / oxc / es2022 / five groups, unchanged",
+      "sourceBefore": {
+        "files": 73,
+        "bytes": 691230,
+        "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+      },
+      "sourceAfter": {
+        "files": 73,
+        "bytes": 691230,
+        "sha256": "09fdd47de8c89187217a609ef6767ac66f3b7d9eb24687d77f8cd78ccd4dea0b"
+      },
+      "runs": [
+        {
+          "round": 1,
+          "app": {
+            "chunkCount": 16,
+            "totalBytes": 235647,
+            "actualColdStartGzipBytes": 42985,
+            "actualAllNonOcrGzipBytes": 80494
+          },
+          "ocr": {
+            "assetCount": 23,
+            "totalBytes": 88196906
+          },
+          "critical": "4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948",
+          "whole": {
+            "files": 127,
+            "bytes": 92507677,
+            "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+          },
+          "budget": {
+            "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+            "baselineAllNonOcrGzipBytes": 70207,
+            "actualColdStartGzipBytes": 42985,
+            "actualAllNonOcrGzipBytes": 80494,
+            "coldBudgetBytes": 52241,
+            "allBudgetNumerator": 772277,
+            "allBudgetDenominator": 10,
+            "allBudgetBytes": 77227.7,
+            "coldPass": true,
+            "allPass": false,
+            "pass": false,
+            "verdict": "FAIL",
+            "importClosureVerified": false
+          }
+        },
+        {
+          "round": 2,
+          "app": {
+            "chunkCount": 16,
+            "totalBytes": 235647,
+            "actualColdStartGzipBytes": 42985,
+            "actualAllNonOcrGzipBytes": 80494
+          },
+          "ocr": {
+            "assetCount": 23,
+            "totalBytes": 88196906
+          },
+          "critical": "4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948",
+          "whole": {
+            "files": 127,
+            "bytes": 92507677,
+            "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+          },
+          "budget": {
+            "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+            "baselineAllNonOcrGzipBytes": 70207,
+            "actualColdStartGzipBytes": 42985,
+            "actualAllNonOcrGzipBytes": 80494,
+            "coldBudgetBytes": 52241,
+            "allBudgetNumerator": 772277,
+            "allBudgetDenominator": 10,
+            "allBudgetBytes": 77227.7,
+            "coldPass": true,
+            "allPass": false,
+            "pass": false,
+            "verdict": "FAIL",
+            "importClosureVerified": false
+          }
+        },
+        {
+          "round": 3,
+          "app": {
+            "chunkCount": 16,
+            "totalBytes": 235647,
+            "actualColdStartGzipBytes": 42985,
+            "actualAllNonOcrGzipBytes": 80494
+          },
+          "ocr": {
+            "assetCount": 23,
+            "totalBytes": 88196906
+          },
+          "critical": "4bda36bc3ed361fcbf69d44d96f30af47fc1fff3b75eefd8728a341a45680948",
+          "whole": {
+            "files": 127,
+            "bytes": 92507677,
+            "sha256": "7d4d8c1e0828f09164bf10b8ef64e8be6f06ccb8cdca61ed7dc2f031c0e68e37"
+          },
+          "budget": {
+            "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+            "baselineAllNonOcrGzipBytes": 70207,
+            "actualColdStartGzipBytes": 42985,
+            "actualAllNonOcrGzipBytes": 80494,
+            "coldBudgetBytes": 52241,
+            "allBudgetNumerator": 772277,
+            "allBudgetDenominator": 10,
+            "allBudgetBytes": 77227.7,
+            "coldPass": true,
+            "allPass": false,
+            "pass": false,
+            "verdict": "FAIL",
+            "importClosureVerified": false
+          }
+        }
+      ]
+    },
+    "delta": {
+      "raw": -18,
+      "allGzip": 17,
+      "coldGzip": -7,
+      "wholeSiteBytes": 190
+    },
+    "budgetCliExit": 1,
+    "remainingIntegerGap": 3267,
+    "wholeAlgorithm": "localeCompare sorted [{path,bytes,sha256}] JSON SHA256",
+    "sourceInventory": "js only, same algorithm; not full repository"
+  },
+  "limitations": [
+    "Bridge test uses real request/pump with synthetic dispatch, not real iframe. Browser E2E separately runs actual app/iframe/parser with routed synthetic providers.",
+    "No live provider/NAV independent reconciliation, physical device, cloud write, production deploy or version bump.",
+    "Lane bounds concurrent admitted official work, not total portfolio memory or the number of queued jobs in its scheduler.",
+    "No deadline added for noncooperative injected clients; actual Bridge per-source and queue deadlines remain unchanged.",
+    "No new paired latency acceptance; all-gzip still FAIL."
+  ],
+  "evidenceDirectory": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-nav-scheduler-bba070e079664a38a32355075a582ece\\",
+  "rawLogs": [
+    {
+      "path": "unit-red.tap",
+      "bytes": 2765,
+      "sha256": "9a4d8c0a657e4baf8c13fc844ade7bef87cd7ab121bf277e4fb6123bfbefdb83",
+      "lfSha256": "cac570cec6d56dafb74f21f71a11ae53b87fe43f583513093da1bd56413bd7d9"
+    },
+    {
+      "path": "final-five-old-source.tap",
+      "bytes": 8532,
+      "sha256": "d8fb3744ee8c8c1ad3205bf7f985b8b32dcebaf169e4f60e66276056211fe921",
+      "lfSha256": "9a3280c3210f6b5b67a5ffc238bc034709fe0e9e59dda00f7d4ba93860b8dfbd"
+    },
+    {
+      "path": "final-five-current-source.tap",
+      "bytes": 2562,
+      "sha256": "d9048737fe23a22ec0df72c463478c78e48f554b3ae4ccb929df9a06c7866416",
+      "lfSha256": "150b30a50f8f6ac77cafa98026a54daabdad68f5a9e0405cd5350a574205aff2"
+    },
+    {
+      "path": "executor-final40.tap",
+      "bytes": 10939,
+      "sha256": "6353c8d5bac3da47f44ea9acb0bed62eeb6d47e0cbd74995138532be3a6240dc",
+      "lfSha256": "043f84859ece7d0754faba8bbcd1c790c049e502e62452359c9f0d868754d9e3"
+    },
+    {
+      "path": "browser-red.log",
+      "bytes": 3529,
+      "sha256": "4f5e91e0ca5d96b91b6a49c118bb188d2db1760567dfae6426d516d0d036e8c4",
+      "lfSha256": "2ffefbed673c65b2b2f099ce544dd75d68bcb41997d05299771a36ea35527264"
+    },
+    {
+      "path": "browser-green.log",
+      "bytes": 540,
+      "sha256": "e5180d3baa75a2165d710992d9e6c240fef27fc1f3ad113ce3511ec1b69af7fe",
+      "lfSha256": "9d8a256816de3ddf74844e734ea31a0b0ebbc8ba61a39fcd9a09774bc33c5fa6"
+    },
+    {
+      "path": "e2e-full.log",
+      "bytes": 22104,
+      "sha256": "a777f2583d47c45e582c26fa8a64843ae5f9c012a5048cf6f665103d82e41c1c",
+      "lfSha256": "d61abe390a14bc9ee6bece9b3ab7294e249cdb90b8a2f0a09352f79a91b9832d"
+    },
+    {
+      "path": "tests-full.log",
+      "bytes": 130186,
+      "sha256": "0c82866ae2bc46b4ee273de14743734233a69bff0395859f4ae9ffc2a030b811",
+      "lfSha256": "ff8a9508bf26ddbfa9d108e77ad9bf07cb8042018be2db384c412f1dcd1dda73"
+    },
+    {
+      "path": "tests-final.log",
+      "bytes": 107296,
+      "sha256": "2565f9f432c1794c36df830ce022e439c29b075ceee3d4cb07c6acbf4bb39bc4",
+      "lfSha256": "fdbec066cdf445284e1be814dac28d9cf2649b0a7cfa9958cad7aeb4b9f9d07a"
+    },
+    {
+      "path": "check-final.log",
+      "bytes": 117,
+      "sha256": "0cd38fbbc9b848e018ba246bc56bbb02710f636ac90b0843e2373ff482d14d64",
+      "lfSha256": "93ca1d2414f8749482a490cea7be7881f5340930ce88d3622eced0a7ec539686"
+    },
+    {
+      "path": "audit.log",
+      "bytes": 25,
+      "sha256": "4b02d4a3c23d969c46bd2041360f80bfcb1fe760d9db864009acdd710f9de601",
+      "lfSha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "path": "budget.log",
+      "bytes": 427,
+      "sha256": "60444606439c0b8a7847a50cf1f803a8d381f409cb562f9446fc7a318f5f074b",
+      "lfSha256": "aff0f05876c940888f9129dc29004141a0b5767d57402dd97efa5494da35f0f3"
+    },
+    {
+      "path": "measure-builds.mjs",
+      "bytes": 3093,
+      "sha256": "c56956a09ee27bda2968179839cdb99f2a984047e2445b636bf70914090b820d",
+      "lfSha256": "c56956a09ee27bda2968179839cdb99f2a984047e2445b636bf70914090b820d"
+    },
+    {
+      "path": "executor-baseline.mjs",
+      "bytes": 17823,
+      "sha256": "aa68c64561bac78807d043a6e3514b066c52c53a2ddc33c731737a22c2164f43",
+      "lfSha256": "aa68c64561bac78807d043a6e3514b066c52c53a2ddc33c731737a22c2164f43"
+    },
+    {
+      "path": "tests-baseline.mjs",
+      "bytes": 58417,
+      "sha256": "07326bc262848577025f74821e1569f2fcd97ae5c4c9cfb2b91ba25779592bbb",
+      "lfSha256": "07326bc262848577025f74821e1569f2fcd97ae5c4c9cfb2b91ba25779592bbb"
+    }
+  ]
+}

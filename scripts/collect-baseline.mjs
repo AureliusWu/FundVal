@@ -114,7 +114,7 @@ async function git(args) {
   return result.stdout.trim();
 }
 
-async function createSourceSnapshot(reference) {
+export async function createSourceSnapshot(reference) {
   const directory = await mkdtemp(resolve(tmpdir(), 'fundval-baseline-'));
   await new Promise((resolveArchive, reject) => {
     const archive = spawn('git', ['archive', '--format=tar', reference], { cwd: repository, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -176,7 +176,7 @@ async function portInUse() {
   });
 }
 
-async function configureSnapshotTransport(snapshot) {
+export async function configureSnapshotTransport(snapshot) {
   const port = await new Promise((done, failed) => {
     const server = createServer();
     server.once('error', failed);
@@ -289,7 +289,7 @@ async function measureRefreshNetwork(snapshot) {
   }
 }
 
-async function safeRemoveSnapshot(directory) {
+export async function safeRemoveSnapshot(directory) {
   const resolved = await realpath(directory);
   const parent = await realpath(tmpdir());
   const child = relative(parent, resolved);

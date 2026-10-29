@@ -1,11 +1,10 @@
 import { normalizeQuoteDate } from './quote-contract.js';
 import { canonicalSourceId, getDataSourceDescriptor } from './source-registry.js';
 import { chinaDateKey } from './market-clock.js';
+import { policyEpoch as epoch, policyRecord as record } from './refresh-resource-policy.js';
 
 const SOURCE_TIERS = new Set(['primary', 'secondary', 'model']);
 const CACHE_STATES = new Set(['fresh', 'stale', 'expired']);
-const epoch = value => Number.isSafeInteger(value) && value >= 0 && value <= 8.64e15;
-const record = value => value && typeof value === 'object' && !Array.isArray(value);
 
 function originalSource(value) {
   if (typeof value !== 'string') return null;

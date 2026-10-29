@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "status": "NATIVE_PUBLIC_GET_AND_TEMP_PUBLICATION_PASSED",
+  "attempts": 1,
+  "singleIntegrationNotLatencyBenchmark": true,
+  "sourceSha256": "1a9cf4974a892410e495fe5dc789fef8b9a1badec905cf3f93a52546bfd65ee5",
+  "copiedModuleExact": true,
+  "startedAt": "2026-10-18T05:11:13.957Z",
+  "noRepositoryCatalogWrite": true,
+  "envProxyLaunch": true,
+  "request": {
+    "url": "https://fund.eastmoney.com/js/fundcode_search.js",
+    "headers": {
+      "Accept": "application/javascript"
+    },
+    "method": "GET (fetch default)"
+  },
+  "http": {
+    "status": 200,
+    "url": "https://fund.eastmoney.com/js/fundcode_search.js",
+    "contentLength": "3199055",
+    "contentType": "application/javascript",
+    "contentEncoding": null,
+    "date": "Sat, 17 Oct 2026 04:03:31 GMT"
+  },
+  "output": {
+    "count": 28104,
+    "bytes": 2889244,
+    "sha256": "cfe7519480916bb750488f42ead1ce29661883524374c9f28829e19dbeb79e97",
+    "samples": [
+      {
+        "code": "005844",
+        "name": "东方人工智能主题混合A",
+        "pinyin": "DONGFANGRENGONGZHINENGZHUTIHUNHEA"
+      },
+      {
+        "code": "012920",
+        "name": "易方达全球成长精选混合(QDII)人民币A",
+        "pinyin": "YIFANGDAQUANQIUCHENGZHANGJINGXUANHUNHEQDIIRENMINBIA"
+      }
+    ],
+    "sameAsExistingLocalCatalog": false
+  },
+  "catalogBeforeSha256": "f18f3a34d8425ffffd3bc9d9cbbe95fe564bcf01e1605278a38b685313e6304d",
+  "catalogAfterSha256": "f18f3a34d8425ffffd3bc9d9cbbe95fe564bcf01e1605278a38b685313e6304d",
+  "repositoryCatalogUnchanged": true,
+  "completedAt": "2026-10-18T05:11:14.637Z",
+  "notIndependentIdentityReconciliationOrUpstreamCompletenessProof": true
+}

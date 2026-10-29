@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ownDirectory = dirname(fileURLToPath(import.meta.url));
+const replacementsForStats = [
+  {
+    before: "      html += '<div><div class=\"stat-label\">' + estimateLabel + '</div><div class=\"stat-val\">' + fmtQuoteNav(currentNavValue) + '</div>' + primaryNote + estimateNote + modelNote + officialNote + '</div>';",
+    after: "      html += statCell('' + estimateLabel, '', fmtQuoteNav(currentNavValue), primaryNote + estimateNote + modelNote + officialNote);"
+  },
+  {
+    before: "      html += '<div><div class=\"stat-label\">基准净值</div><div class=\"stat-val\">' + fmtQuoteNav(baseNavValue) + '</div></div>';",
+    after: "      html += statCell('基准净值', '', fmtQuoteNav(baseNavValue));"
+  },
+  {
+    before: "        html += '<div><div class=\"stat-label\">持有份额</div><div class=\"stat-val\">' + fmt(f.shares) + '</div></div>';",
+    after: "        html += statCell('持有份额', '', fmt(f.shares));"
+  },
+  {
+    before: "        html += '<div><div class=\"stat-label\">' + esc(presentation.periodLabel) + '</div><div class=\"stat-val money ' + (hasToday ? (f.today_profit>=0?'up':'down') : '') + '\">' + (hasToday ? fmtM(f.today_profit) : '--') + '</div></div>';",
+    after: "        html += statCell(esc(presentation.periodLabel), ' money ' + (hasToday ? (f.today_profit>=0?'up':'down') : ''), hasToday ? fmtM(f.today_profit) : '--');"
+  },
+  {
+    before: "        html += '<div><div class=\"stat-label\">累计盈亏</div><div class=\"stat-val money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : '') + '\">' + (hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--') + '</div></div>';",
+    after: "        html += statCell('累计盈亏', ' money ' + (hasProfit ? (f.total_profit>=0?'up':'down') : ''), hasProfit ? fmtM(f.total_profit) + profitRateHtml : '--');"
+  }
+];
+const helper = "function statCell(label, classes, value, notes = '') {\n  return '<div><div class=\"stat-label\">' + label + '</div><div class=\"stat-val' + classes + '\">' + value + '</div>' + notes + '</div>';\n}\n\n";
+let harness = await readFile(resolve(ownDirectory, 'probe.mjs'), 'utf8');
+function replaceOne(before, after) {
+  assert.equal(harness.split(before).length, 2, 'Exact one harness replacement');
+  harness = harness.replace(before, after);
+}
+const buildSource = [
+  'let statsSource = app;',
+  'const statsPatches = ' + JSON.stringify(replacementsForStats) + ';',
+  "const statsHelper = " + JSON.stringify(helper) + ';',
+  'for (const patch of statsPatches) { assert.equal(statsSource.split(patch.before).length, 2); statsSource = statsSource.replace(patch.before, patch.after); }',
+  "assert.equal(statsSource.split('function renderFundList(data) {').length, 2);",
+  "statsSource = statsSource.replace('function renderFundList(data) {', statsHelper + 'function renderFundList(data) {');",
+  "assert.ok(parse('app.js', statsSource));",
+  'const variants = { baseline: app, statsCells: statsSource };'
+].join('\n');
+replaceOne("const ownDirectory = dirname(fileURLToPath(import.meta.url));", 'const ownDirectory = ' + JSON.stringify(ownDirectory) + ';');
+replaceOne("const variants = { baseline: app, strictTemplates: variant(true), nativeTemplates: variant(false) };", buildSource);
+replaceOne("transformedExpressions: replacements.length", "transformedExpressions: statsPatches.length");
+replaceOne("strictSemantics: 'Retains dynamic expression evaluation order and default-hint addition coercion inside every interpolation; exact renderer fixtures still required.',", "strictSemantics: 'Private stat-cell HTML only; old estimateLabel addition coercion happens before later argument evaluation. Formatter and escaping calls remain at original call sites and order. Exact renderer fixtures are still required.',");
+replaceOne("nativeSemantics: 'Does not preserve arbitrary object coercion hints; measurement-only negative control, not approved source.',", "nativeSemantics: 'No native template negative control in this run; stat-cell arguments other than estimateLabel are fixed literal or actual formatter/escape string results.',");
+replaceOne("patches: replacements.map(replacement=>({ owner: replacement.owner, before: replacement.before, strictAfter: after(replacement,true), nativeAfter: after(replacement,false) }))", "patches: statsPatches, addedHelper: statsHelper");
+replaceOne("await writeFile(resolve(ownDirectory,'report.json')", "await writeFile(resolve(ownDirectory,'stats-report.json')");
+replaceOne("report:resolve(ownDirectory,'report.json')", "report:resolve(ownDirectory,'stats-report.json')");
+replaceOne("transformedExpressions:replacements.length", "transformedExpressions:statsPatches.length");
+await import('data:text/javascript;base64,' + Buffer.from(harness).toString('base64'));

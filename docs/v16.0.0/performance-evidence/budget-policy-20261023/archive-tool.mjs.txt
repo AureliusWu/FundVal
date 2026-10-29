@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { sha, inv, json, save, native } from 'file:///C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-20261023-parent/common.mjs';
+const here=import.meta.dirname,root='D:/AI项目/FundVal',parent='C:/Users/84046/AppData/Local/Temp/FundVal-budget-policy-20261023-parent';
+const dest=resolve(root,'docs/v16.0.0/performance-evidence/budget-policy-20261023'),stage=resolve(here,'stage'),extract=resolve(here,'extract');
+const frozen=json(resolve(parent,'FINAL_SOURCE_V2.json')),before=json(resolve(parent,'BEFORE.json')),results=json(resolve(parent,'RESULTS.json'));
+assert.equal(existsSync(stage),false);assert.equal(existsSync(extract),false);assert.equal(existsSync(dest),false);
+function guard(){
+  assert.deepEqual(inv(root,new Set(['.git','node_modules','site','Temp','.claude','docs'])),frozen.noDocs);
+  assert.deepEqual(inv(resolve(root,'site')),before.expected.site);
+  for(const r of before.expected.installed){const b=readFileSync(resolve(root,'node_modules',r.path));assert.equal(b.length,r.bytes);assert.equal(sha(b),r.sha256);}
+  const d=before.expected.rows.find(r=>r.path==='docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md');assert.equal(sha(readFileSync(resolve(root,d.path))),d.sha256);
+}
+guard();
+function copyRows(base,rows,prefix){for(const r of rows){const b=readFileSync(resolve(base,r.path));assert.equal(b.length,r.bytes);assert.equal(sha(b),r.sha256);save(resolve(stage,prefix,r.path),b);}}
+const parentRows=inv(parent),sourceRows=frozen.full.filter(r=>!r.path.startsWith('.codex-tmp/'));
+assert.equal(sourceRows.length,250);copyRows(parent,parentRows,'parent');copyRows(root,sourceRows,'final-source');
+const selectedSite=before.expected.site.filter(r=>!r.path.startsWith('assets/ocr/'));copyRows(resolve(root,'site'),selectedSite,'selected-site');
+const e2e=json(resolve(parent,'E2E_ARTIFACTS.json'));copyRows(e2e.target,e2e.rows,'browser-results');
+for(const path of ['docs/v16.0.0/BUNDLE_BUDGET_POLICY_20261023.md','docs/v16.0.0/UPGRADE_PLAN.md'])save(resolve(stage,'policy-docs',path),readFileSync(resolve(root,path)));
+save(resolve(stage,'archive-tool.mjs.txt'),readFileSync(import.meta.filename));
+const rows=inv(stage),plan={schema:1,scope:'Actual policy implementation/RED/v1 failure/V2 local QA receipts and final-source payload; not performance/release evidence',
+  parentWorkspace:parent,source:{full:frozen.full,payloadCount:sourceRows.length,omittedHistoricalAndroidPayloads:24,rowsSha256:frozen.sourceRowsSha256},
+  site:{completeInventory:before.expected.site,selectedPayloadCount:selectedSite.length,omitted:'generated OCR payloads; inventory only'},installedInventory:before.expected.installed,
+  installedPayloadIncluded:false,e2eRows:e2e.rows,rows,count:rows.length,bytes:rows.reduce((n,r)=>n+r.bytes,0),rowsSha256:sha(JSON.stringify(rows))};
+save(resolve(here,'PLAN.json'),JSON.stringify(plan,null,2)+'\n');mkdirSync(dest,{recursive:true});
+save(resolve(dest,'archive-plan.json'),JSON.stringify(plan,null,2)+'\n');
+const packed=native(here,'tar-create','tar.exe',['-czf',resolve(dest,'original-evidence.tar.gz'),'-C',stage,'.'],180000);assert.equal(packed.receipt.nativeExit,0);
+mkdirSync(extract);const unpacked=native(here,'tar-extract','tar.exe',['-xzf',resolve(dest,'original-evidence.tar.gz'),'-C',extract],180000);assert.equal(unpacked.receipt.nativeExit,0);
+assert.deepEqual(inv(extract),rows);assert.deepEqual(inv(parent),parentRows);guard();
+const archive=readFileSync(resolve(dest,'original-evidence.tar.gz'));
+const audit={schema:1,status:'ARCHIVE_BYTES_VERIFIED_NOT_RELEASE',nativeCreate:packed.receipt,nativeExtract:unpacked.receipt,
+  archive:{bytes:archive.length,sha256:sha(archive)},members:plan.count,expandedBytes:plan.bytes,rowsSha256:plan.rowsSha256,
+  checks:{freshExtractionAllRows:true,parentWorkspaceUnchanged:true,finalSource274:true,actualSite127Unchanged:true,installed68Unchanged:true,selectedSource250:true,oldFailurePreserved:true,realBrowserArtifacts:true},
+  resultsSha256:sha(readFileSync(resolve(parent,'RESULTS.json'))),policyPass:results.newReport.pass,release:false,m3Exit:false};
+save(resolve(dest,'archive-audit.json'),JSON.stringify(audit,null,2)+'\n');save(resolve(dest,'archive-tool.mjs.txt'),readFileSync(import.meta.filename));
+process.stdout.write(JSON.stringify(audit)+'\n');

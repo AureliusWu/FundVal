@@ -65,6 +65,7 @@ function isTransferableImageBitmap(image) {
 }
 
 export function createWorkerClient({ signal, timeouts = WORKER_TIMEOUTS } = {}) {
+  if (signal?.aborted) throw toSafeWorkerError('aborted');
   if (typeof Worker !== 'function') {
     throw toSafeWorkerError('unsupported-runtime');
   }
@@ -337,18 +338,29 @@ function createPaddleWorkerBackend({ backend, assets, signal }) {
     },
     async recognize(image, options = {}) {
       assertLocalWorkerInput(image);
-      const imageBitmap = isTransferableImageBitmap(image)
-        ? image
-        : await createImageBitmap(image);
-      const prediction = await client.request('predict', {
-        sources: [{ kind: 'imageBitmap', imageBitmap }],
-        params: { ...DEFAULT_PREDICT_OPTIONS, ...options },
-      }, [imageBitmap]);
-      const metrics = summarizePredictionMetrics(prediction);
-      cumulative.detectionMs += metrics.detectionMs;
-      cumulative.recognitionMs += metrics.recognitionMs;
-      cumulative.blockCount += metrics.blockCount;
-      return prediction;
+      const ownedBitmap = !isTransferableImageBitmap(image);
+      let imageBitmap;
+      try {
+        if (disposed || signal?.aborted) throw toSafeWorkerError('aborted');
+        imageBitmap = ownedBitmap ? await createImageBitmap(image) : image;
+        if (disposed || signal?.aborted) throw toSafeWorkerError('aborted');
+        const prediction = await client.request('predict', {
+          sources: [{ kind: 'imageBitmap', imageBitmap }],
+          params: { ...DEFAULT_PREDICT_OPTIONS, ...options },
+        }, [imageBitmap]);
+        if (disposed || signal?.aborted) throw toSafeWorkerError('aborted');
+        const metrics = summarizePredictionMetrics(prediction);
+        cumulative.detectionMs += metrics.detectionMs;
+        cumulative.recognitionMs += metrics.recognitionMs;
+        cumulative.blockCount += metrics.blockCount;
+        return prediction;
+      } finally {
+        // Borrowed crops remain the image adapter's responsibility. A Blob
+        // decode started here is ours even if it resolves after cancellation,
+        // transfer fails, or the worker rejects. close() is also safe after
+        // a successful transfer has detached the bitmap from this realm.
+        if (ownedBitmap) imageBitmap?.close?.();
+      }
     },
     performance() {
       return Object.freeze({ ...cumulative });
@@ -371,15 +383,17 @@ function createPaddleWorkerBackend({ backend, assets, signal }) {
 
 /**
  * Creates an isolated, same-origin PaddleOCR Worker for a user-selected
- * screenshot. WebGPU is attempted at most once; any initialization or model
- * compatibility failure releases that Worker before one permanent WASM
- * fallback. The page-side module never imports PaddleOCR or OpenCV.
+ * screenshot. WebGPU is attempted at most once; a genuine initialization or
+ * model compatibility failure releases that Worker before one permanent WASM
+ * fallback. Cancellation never starts another backend. The page-side module
+ * never imports PaddleOCR or OpenCV.
  */
 export async function createLocalPaddleOcr({
   onProgress,
   signal,
   createEngine = options => new LocalOcrEngine(options),
 } = {}) {
+  if (signal?.aborted) throw toSafeWorkerError('aborted');
   const workerController = new AbortController();
   const abortWorker = () => workerController.abort();
   signal?.addEventListener('abort', abortWorker, { once: true });
@@ -391,6 +405,7 @@ export async function createLocalPaddleOcr({
   });
   const engine = createEngine({
     runtime: globalThis,
+    signal: workerController.signal,
     validateInput: assertLocalWorkerInput,
     backends: {
       [OCR_BACKEND.WEBGPU]: () => createPaddleWorkerBackend({
@@ -409,6 +424,7 @@ export async function createLocalPaddleOcr({
   emitProgress(onProgress, 'initializing');
   try {
     await engine.initialize();
+    if (workerController.signal.aborted) throw toSafeWorkerError('aborted');
   } catch (_) {
     const performance = enginePerformanceMetadata(engine);
     abortWorker();

@@ -1,0 +1,24 @@
+{
+  "command": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent\\final-audit.mjs"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-model-provenance-archive-20261022-parent",
+  "startedAt": "2026-10-22T07:05:52.065Z",
+  "finishedAt": "2026-10-22T07:05:54.164Z",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "script": {
+    "bytes": 5554,
+    "sha256": "a00c164d6358339734ce6f912299d8c1e35d89f0518352cc3ba3680a578b9013"
+  },
+  "stdout": {
+    "bytes": 252,
+    "sha256": "fd5dc1148f67d39184ceead5612308cd005d5088a90876a385d9f599025dfede"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

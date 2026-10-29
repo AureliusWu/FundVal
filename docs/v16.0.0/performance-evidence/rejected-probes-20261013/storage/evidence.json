@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "status": "REJECTED_NOT_MATERIAL_NOT_IMPLEMENTED",
+  "sourceCommit": "17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1",
+  "sourceBeforeAfterClean": true,
+  "method": {
+    "configuration": "Actual scripts/build-site.mjs buildAppShell viteBuild argument extracted with rolldown/utils AST",
+    "virtualChangesOnly": "plugin.transform enforce:pre, exact source equality checked",
+    "write": false,
+    "version": "Installed Vite 8.2.2, oxc, es2022; actual unchanged APP_CHUNK_GROUPS",
+    "roundsPerVariant": 3,
+    "runtimeBenchmark": "NOT_RUN",
+    "tests": "NOT_RUN - candidates rejected by actual artifact measurements before behavior qualification",
+    "network": "NOT_RUN",
+    "siteOrRepoWrites": "NONE_BY_PROBE",
+    "privacy": "No user holdings, credentials, screenshot or OCR data used"
+  },
+  "recipeLfSha256": "51a4d35902ad2e6510dd3e82fea7198a12a9b722ef3098c791aeb4c8327ac9a4",
+  "sourceLfSha256": {
+    "js/storage/holdings-migration.js": "e32e94aa7959b517b38c2f2cf3619ad7c436ac9c7fbf988fe2b839d1ab96257a",
+    "js/storage/holdings-schema.js": "e434b09df5e024f4a6817241ee1ac88048c70e4a13cf7901295184eeb8df2232",
+    "js/storage/holdings-repository.js": "48772b48eb19d1eddfe7f2385c06847a1b8437835c8d062f7a74442b06680f8d",
+    "js/storage/cloud-sync.js": "411123b806536e68925e1011a3dca8f0488963b92cf34953a6ae45794f295a4f"
+  },
+  "normalizedModuleStaticDynamicColdGraphSha256AllVariants": "60130df135b1706ae8f24d870a65f46aec272760ef12b90c284c4aa7badd433c",
+  "chunkCountAllVariants": 16,
+  "results": {
+    "baseline": {
+      "rawBytesThreeRounds": [237665, 237665, 237665],
+      "allGzipThreeRounds": [81158, 81158, 81158],
+      "coldGzipThreeRounds": [42907, 42907, 42907]
+    },
+    "migrationSuccess": {
+      "description": "One private complete successful parse result literal factory for all three V1/V2/V3 success returns; original public validation remains",
+      "rawBytesThreeRounds": [237493, 237493, 237493],
+      "allGzipThreeRounds": [81171, 81171, 81171],
+      "coldGzipThreeRounds": [42916, 42916, 42916],
+      "delta": { "raw": -172, "all": 13, "cold": 9 },
+      "decision": "Reject: smaller raw source but larger actual gzip"
+    },
+    "schemaPrivateScalar": {
+      "description": "Only closed private text/nonNegativeNumber fixed option objects become scalar parameters; original validation body unchanged",
+      "rawBytesThreeRounds": [237491, 237491, 237491],
+      "allGzipThreeRounds": [81154, 81154, 81154],
+      "coldGzipThreeRounds": [42902, 42902, 42902],
+      "delta": { "raw": -174, "all": -4, "cold": -5 },
+      "decision": "Reject: non-material artifact reduction"
+    },
+    "journalMembership": {
+      "description": "Share two complete previous-or-next membership predicates without changing storage operations, rollback or journal policy",
+      "rawBytesThreeRounds": [237629, 237629, 237629],
+      "allGzipThreeRounds": [81155, 81155, 81155],
+      "coldGzipThreeRounds": [42903, 42903, 42903],
+      "delta": { "raw": -36, "all": -3, "cold": -4 },
+      "decision": "Reject: non-material artifact reduction; arbitrary getter trajectories not qualified"
+    },
+    "combined": {
+      "description": "All three prior virtual variants together; component gzip deltas are not additive",
+      "rawBytesThreeRounds": [237283, 237283, 237283],
+      "allGzipThreeRounds": [81144, 81144, 81144],
+      "coldGzipThreeRounds": [42898, 42898, 42898],
+      "delta": { "raw": -382, "all": -14, "cold": -9 },
+      "decision": "Reject: not a material solution to the 3931 byte gap"
+    },
+    "cloudParsedRead": {
+      "description": "Share complete synchronous remote parse/future-schema result checking between push/pull, preserving distinct future predicate and all async stages",
+      "rawBytesThreeRounds": [237569, 237569, 237569],
+      "allGzipThreeRounds": [81175, 81175, 81175],
+      "coldGzipThreeRounds": [42906, 42906, 42906],
+      "delta": { "raw": -96, "all": 17, "cold": -1 },
+      "decision": "Reject: smaller raw but larger actual total gzip"
+    }
+  },
+  "rejectedWithoutVirtualImplementation": [
+    "Combining cloud push/pull async engines changes read/backup/persist/readback/pending scheduling boundaries; large repeated source is already compressible",
+    "Deleting legacy integrity normalize/merge/repair has no actual browser consumer and would target already tree-shaken exports",
+    "Sharing resilience storage helpers with repository changes optional access, undefined/null/Boolean(storage), key enumeration and error semantics"
+  ],
+  "probeDiagnostics": [
+    "An added probe function was initially placed inside a template string, causing a SyntaxError before any new build; external script corrected with apply_patch and cloud variant then ran successfully three times",
+    "No repository file was touched by either the failed or successful probe"
+  ],
+  "conclusion": "No material safe production bundle opportunity was demonstrated in this audited scope. No source patch recommended or integrated; budget/gates/version unchanged."
+}

@@ -1,0 +1,26 @@
+{
+  "label": "after-tracked-diff",
+  "command": "git",
+  "args": [
+    "-C",
+    "D:/AI项目/FundVal",
+    "diff",
+    "--binary",
+    "HEAD",
+    "--"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-controllers-archive-20261025-child",
+  "startedAt": "2026-10-25T07:09:12.571Z",
+  "finishedAt": "2026-10-25T07:09:12.708Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 279118,
+    "sha256": "3c009a2b5b616589a88c99853cc50a1daf5f00c2e19e6bbfac070199d7e4ee33"
+  },
+  "stderr": {
+    "bytes": 2819,
+    "sha256": "dc9c9e6219d0685f39ac99620b423f0f879d01619306b161799e1cbd1fa2e0ec"
+  }
+}

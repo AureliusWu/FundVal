@@ -2,12 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyHoldingImportPlan,
-  createHoldingImportPlan,
+  createHoldingImportPlan as createStrictHoldingImportPlan,
   resolveCandidateSelectionAction,
   screenshotCostTotal,
   suggestCostFromScreenshot,
   validateHoldingImportPlan,
 } from '../js/holding-import-plan.js';
+
+// These original positive fixtures represent an explicitly trusted layout and
+// known code identity. Unknown/false/ambiguous policies are covered separately
+// by the unchanged M1 contract and holding-import-gate-m5, not defaulted safe.
+const createHoldingImportPlan = (candidates, holdings) => createStrictHoldingImportPlan(candidates.map(candidate => ({
+  ...candidate, semanticReliable: true, match: { strategy: 'code', ...candidate.match },
+})), holdings, { importable: true });
 
 const existing = [
   { code: '000001', name: 'Old Fund', shares: 100, cost: 1.2, updated_at: '2026-08-01T00:00:00.000Z', deleted: false },

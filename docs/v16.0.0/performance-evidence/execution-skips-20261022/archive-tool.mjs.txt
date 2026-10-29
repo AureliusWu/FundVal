@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { readFile, readdir, lstat, writeFile, mkdir, mkdtemp, cp } from 'node:fs/promises';
+import { dirname, resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+const directory=dirname(fileURLToPath(import.meta.url)),root='D:/AI项目/FundVal';
+const output=resolve(root,'docs/v16.0.0/performance-evidence/execution-skips-20261022');
+const sha=b=>createHash('sha256').update(b).digest('hex');
+await mkdir(output,{recursive:true});
+const read=async name=>JSON.parse(await readFile(resolve(directory,name+'.json'),'utf8'));
+const build=await read('build-verification'), unit=await read('unit-complete'), syntax=await read('syntax-complete');
+const e2e=await read('e2e-complete'), budget=await read('budget-final'), audit=await read('audit-bounded'), auditTimeout=await read('audit-final');
+for(const record of [unit,syntax,e2e])assert.equal(record.status,0);
+for(const [pattern,content] of [[/tests 1224/,unit.stdout],[/pass 1221/,unit.stdout],[/fail 0/,unit.stdout],
+  [/skipped 3/,unit.stdout],[/Syntax checked 212/,syntax.stdout],[/33 passed/,e2e.stdout]])assert.match(content,pattern);
+assert.equal(budget.status,1);assert.equal(audit.status,1);assert.equal(auditTimeout.status,1);
+assert.match(audit.stdout,/1 high severity vulnerability/);assert.match(auditTimeout.stderr,/network timeout/);
+const selected=['js/app.js','js/runtime/refresh-execution.js','js/runtime/refresh-generation.js','js/runtime/diagnostics-ui.js',
+ 'test/refresh-execution-skips-contract-v16.test.js','test/refresh-execution-v16.test.js','test/refresh-diagnostics-store-v16.test.js',
+ 'test/refresh-diagnostics-view-v16.test.js','e2e/v16-refresh.spec.js'];
+for(const path of selected){const to=resolve(directory,'sources',path);await mkdir(dirname(to),{recursive:true});await cp(resolve(root,path),to,{force:false,errorOnExist:true});}
+function git(args){const r=spawnSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024});assert.equal(r.status,0,r.stderr);return r.stdout;}
+const untouched=['scripts/build-site.mjs','package.json','package-lock.json','js/version.js','js/runtime/refresh-coordinator.js',
+ 'js/runtime/refresh-runtime.js','js/runtime/source-registry.js','js/runtime/generation-resource-scope.js','js/runtime/refresh-resource-cache.js'];
+assert.equal(git(['diff','--name-only','HEAD','--',...untouched]),'');
+const state={branch:git(['branch','--show-current']).trim(),head:git(['rev-parse','HEAD']).trim(),status:git(['status','--short']),protectedUnchanged:untouched};
+await writeFile(resolve(directory,'tracked-diff.patch'),git(['diff','--binary','HEAD']),{flag:'wx'});
+await writeFile(resolve(directory,'git-state.json'),JSON.stringify(state,null,2)+'\n',{flag:'wx'});
+const qa={schema:1,version:'15.0.2',stage:'M3_IN_PROGRESS',build,state,
+ unit:{tests:1224,pass:1221,fail:0,skipped:3,durationMs:8005.9732,nativeExit:unit.status},syntax:{files:212,nativeExit:syntax.status},
+ e2e:{tests:33,pass:33,summary:'33 passed (1.1m)',nativeExit:e2e.status},
+ budget:{nativeExit:budget.status,...build.runs[0].budget,requiredIntegerReduction:6960},
+ audit:{nativeExit:audit.status,priorNetworkTimeout:true,vulnerableDependency:'vite@8.2.2',highVulnerableDependencies:1,
+   advisoryIds:['GHSA-698v-4r3x-3vcv','GHSA-r825-w8mm-5pxw','GHSA-587h-7wmj-h5pm','GHSA-9jrq-w75r-8gcw','GHSA-rq7h-c2jc-7f22','GHSA-vfpm-58rq-9qcg'],fixApplied:false},
+ delta:{allGzipBytes:540,coldGzipBytes:185,rawBytes:1510,wholeBytes:4788},
+ classification:'CONDITIONALLY_TRUSTED: fixed decision-point synthetic count contract, not exact rejection taxonomy, live finance, physical devices or release acceptance.',
+ relativeLatencyQualified:false,newCi:false,pushed:false,deployed:false};
+await writeFile(resolve(directory,'qa-summary.json'),JSON.stringify(qa,null,2)+'\n',{flag:'wx'});
+await cp(resolve(directory,'qa-summary.json'),resolve(output,'qa-summary.json'),{force:false,errorOnExist:true});
+const cohorts=[['main',directory],
+ ['store','C:/Users/84046/AppData/Local/Temp/fundval-execution-skips-store-20261022-102316-631'],
+ ['contract','C:/Users/84046/AppData/Local/Temp/fundval-execution-skips-contract-20261022'],
+ ['e2e-red','C:/Users/84046/AppData/Local/Temp/fundval-execution-skips-red-20261022-102251-755'],
+ ['e2e-nonzero','C:/Users/84046/AppData/Local/Temp/fundval-execution-skips-nonzero-20261022-102600-506'],
+ ['e2e-correction','C:/Users/84046/AppData/Local/Temp/fundval-execution-skips-nonzero-correction-20261022-103212-339']];
+async function inventory(base){const rows=[];async function visit(path){const f=resolve(base,path),s=await lstat(f);assert.equal(s.isSymbolicLink(),false);
+ if(s.isDirectory())for(const name of await readdir(f))await visit(path==='.'?name:path+'/'+name);
+ else{assert.ok(s.isFile());const b=await readFile(f);rows.push({path,bytes:b.length,sha256:sha(b)});}}
+ await visit('.');rows.sort((a,b)=>a.path.localeCompare(b.path));return rows;}
+const staging=await mkdtemp(join(tmpdir(),'fundval-execution-skips-archive-'));
+for(const [prefix,from] of cohorts)await cp(from,resolve(staging,prefix),{recursive:true,errorOnExist:true,force:false});
+const rows=await inventory(staging),archive=resolve(output,'original-evidence.tar.gz');
+for(const args of [['-czf',archive,'-C',staging,'.']]){const r=spawnSync('tar.exe',args,{encoding:'utf8',windowsHide:true});assert.equal(r.status,0,r.stdout+r.stderr);}
+const extraction=await mkdtemp(join(tmpdir(),'fundval-execution-skips-extract-'));
+const extract=spawnSync('tar.exe',['-xzf',archive,'-C',extraction],{encoding:'utf8',windowsHide:true});assert.equal(extract.status,0,extract.stdout+extract.stderr);
+assert.deepEqual(await inventory(extraction),rows);
+const b=await readFile(archive),record={schema:1,archive:'original-evidence.tar.gz',bytes:b.length,sha256:sha(b),files:rows.length,
+ uncompressedBytes:rows.reduce((sum,row)=>sum+row.bytes,0),inventorySha256:sha(JSON.stringify(rows)),extractionVerified:true,cohorts,rows};
+await writeFile(resolve(output,'archive-audit.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+await cp(fileURLToPath(import.meta.url),resolve(output,'archive-tool.mjs.txt'),{errorOnExist:true,force:false});
+console.log(JSON.stringify({...record,rows:undefined},null,2));

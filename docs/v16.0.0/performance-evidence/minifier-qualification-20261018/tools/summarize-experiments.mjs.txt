@@ -1,0 +1,32 @@
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {dirname,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const directory=dirname(fileURLToPath(import.meta.url));
+const hash=b=>createHash('sha256').update(b).digest('hex');
+const series=['series-v2','series-esbuild-v1','series-swc-v1'];
+const results=[];
+for(const folder of series){
+  const protocolPath=resolve(directory,folder,'protocol.json');
+  const reportPath=resolve(directory,folder,'minifier-report.json');
+  const protocolBytes=await readFile(protocolPath),reportBytes=await readFile(reportPath);
+  const protocol=JSON.parse(protocolBytes),report=JSON.parse(reportBytes);
+  results.push({folder,protocol,protocolSha256:hash(protocolBytes),rawReportSha256:hash(reportBytes),
+    before:report.before,after:report.after,unchanged:JSON.stringify(report.before)===JSON.stringify(report.after),
+    runs:report.runs.map(({variant,round,chunks,raw,all,cold,buildWallMs,chunkFingerprint,moduleRoleHash,isolationVerified,finalImportLinkVerified,capturedInputs})=>({variant,round,chunks,raw,all,cold,buildWallMs,chunkFingerprint,moduleRoleHash,isolationVerified,finalImportLinkVerified,capturedInputs})),
+    representativeChunks:[...new Set(report.runs.map(r=>r.variant))].map(variant=>({variant,rows:report.runs.find(r=>r.variant===variant).rows}))});
+}
+const variants=[results[0].representativeChunks[0],results[0].representativeChunks[1],results[1].representativeChunks[1],results[2].representativeChunks[1]];
+const chunks=variants[0].rows.map(row=>({name:row.name,role:row.role,gzip:Object.fromEntries(variants.map(v=>[v.variant,v.rows.find(r=>r.name===row.name).gzip]))}));
+const bestSum=chunks.reduce((n,r)=>n+Math.min(...Object.values(r.gzip)),0);
+const tools=[];
+for(const path of ['compare-minifiers.mjs','compare-minifiers-v2.mjs','compare-esbuild-v1.mjs','compare-swc-v1.mjs','summarize-experiments.mjs','package.json','package-lock.json','swc-probe/package.json','swc-probe/package-lock.json']){
+  const bytes=await readFile(resolve(directory,path));tools.push({path,bytes:bytes.length,sha256:hash(bytes)});
+}
+process.stdout.write(JSON.stringify({schema:1,sourceCommit:'170fd3eadc6da02750882f8a542904ee2358d0d9',
+  originalBudget:{all:77227.7,cold:52241},originalRecipe:{all:80494,cold:42985,raw:235647,chunks:16},
+  sourceAndSiteUnchanged:results.every(r=>r.unchanged),adopted:false,
+  qualification:{sourceTests:'NOT_RUN_THIS_EXPERIMENT',compressedPublicApi:'NOT_RUN',browserE2e:'NOT_RUN',relativeLatency:'NOT_RUN',production:'NOT_RUN'},
+  failedHarnessAttempt:{file:'compare-minifiers.mjs',reason:'Input auditor rejected a zero-expression static TemplateLiteral dynamic import before valid series completed. Original script and attempt preserved; v2 auditor accepts only StringLiteral or exact single-quasi zero-expression TemplateLiteral. Actual computed imports still reject.'},
+  hybridScreen:{kind:'ARITHMETIC_SCREEN_NOT_BUILD_OR_FORMAL_BOUND',bestChunkSum:bestSum,deltaFromOriginal:bestSum-80494,remainingIntegerBytes:Math.ceil(bestSum-77227.7),chunks},
+  tools,results},null,2)+'\n');

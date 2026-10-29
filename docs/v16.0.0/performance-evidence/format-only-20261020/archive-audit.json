@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "path": "format-protocol.json",
+      "bytes": 1094,
+      "sha256": "6306643b0979f17c0444d0f1275f3e296418c5edf2e78082332f2b7177d51813"
+    },
+    {
+      "path": "format-report.json",
+      "bytes": 42722,
+      "sha256": "48613f6314eaff8c72754b708d890afe20db92f3d4e95de92f2ba7d9924ecf2c"
+    },
+    {
+      "path": "tools/format-probe.mjs.txt",
+      "bytes": 5957,
+      "sha256": "a04f1706932d4a1aa6cd1b1b28cea4f448cb6b44f2dc69aa59355e1cb7ed6ee5"
+    },
+    {
+      "path": "tools/package.json.txt",
+      "bytes": 132,
+      "sha256": "e0054fb8662651ec4182cb82824de9816b389973564b46de6ae525e7c6bdf86f"
+    },
+    {
+      "path": "tools/package-lock.json.txt",
+      "bytes": 4784,
+      "sha256": "abe8da5ec432f8a5f05ea207f88e4fc021e5de2d0332257af683fdb1dca20ffa"
+    },
+    {
+      "path": "tools/installed-terser-package.json.txt",
+      "bytes": 3334,
+      "sha256": "22ac1ee8fda1c4088a9d1615c5aacaa0562939d89dce2ff8bdfae7b3ff029067"
+    },
+    {
+      "path": "input-manifest.json",
+      "bytes": 4195,
+      "sha256": "f0f72a2d088bb1a015cc658a317953fcf45637aa0e99cfa58ae4cffa2faf958e"
+    }
+  ],
+  "candidateJsBytesArchived": false,
+  "actualViteBuild": false,
+  "adoption": false
+}

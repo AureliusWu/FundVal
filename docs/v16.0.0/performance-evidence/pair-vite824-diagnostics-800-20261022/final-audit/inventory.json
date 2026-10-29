@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-10-22T04:37:30.156Z",
+  "files": 7,
+  "bytes": 22372,
+  "inventorySha256": "2c50f8ee95759631c17147828aa8d470dffbe196d573861a079e067fa55f0cd4",
+  "rows": [
+    {
+      "path": "final-audit.v1.mjs.txt",
+      "bytes": 5856,
+      "sha256": "407a6449ca3266609c0a03b7031e36ff3121f04cfe0d07b609986813122da435"
+    },
+    {
+      "path": "final-audit.v2.mjs.txt",
+      "bytes": 5978,
+      "sha256": "c908b45d2ed7c80a01665317135bb6431fb733dce948a428ed5b8138dba23dca"
+    },
+    {
+      "path": "run-final-v2.mjs.txt",
+      "bytes": 805,
+      "sha256": "61f8fe16922c9bf05bf6c103eed2133cbe4fe3911b782d4da94a610f1238c8e8"
+    },
+    {
+      "path": "final-v2.native.json",
+      "bytes": 2043,
+      "sha256": "b75e0885a044d897ffb649d3109ab151726f13d873a8adc1c61b5c95db1e076f"
+    },
+    {
+      "path": "FINAL_AUDIT_CORRECTION.md",
+      "bytes": 1324,
+      "sha256": "e13ee47412fb7310dab084e56450a13deb5f333d8264551704acf459c7185b0a"
+    },
+    {
+      "path": "final-evidence-audit.json",
+      "bytes": 3272,
+      "sha256": "796b32656223f564e321886c57461a423414ab3140d272836afae5c77d8f6738"
+    },
+    {
+      "path": "final-evidence-audit.v2.json",
+      "bytes": 3094,
+      "sha256": "da17b18b0825fb398874a58fb36346df9515b9b1b2cbf3dfeeebc6b990f8e743"
+    }
+  ],
+  "original488MemberArchiveReplaced": false,
+  "rawOrCodeChanged": false,
+  "finalCheckNativeExit": 0
+}

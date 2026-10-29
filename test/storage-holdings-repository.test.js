@@ -85,6 +85,32 @@ test('device id is generated once, persisted, and reused', () => {
   assert.equal(calls, 1);
 });
 
+test('new legacy holdings preserve genuine zero cost without reading a nonexistent prior row', () => {
+  const empty = document([]);
+  for (const cost of [0, '0']) {
+    const result = reconcileLegacyHoldings([{ code: '000007', name: '合成零成本', shares: 10, cost, updated_at: T2 }], empty, { now: T2 });
+    assert.equal(result.holdings[0].costNav, 0);
+    assert.equal(result.holdings[0].fundCode, '000007');
+  }
+});
+
+test('a zero-cost new holding completes the real repository transaction and readback', () => {
+  const storage = memoryStorage({ [HOLDINGS_DEVICE_KEY]: 'device:test' });
+  const empty = document([]);
+  assert.equal(persistHoldingsDocument(storage, empty).ok, true);
+  const saved = saveLegacyHoldingsTransaction(storage, [{ code: '000007', name: '合成零成本', shares: 10, cost: 0, updated_at: T2 }], { expectedDocument: empty, now: T2 });
+  assert.equal(saved.ok, true);
+  const loaded = loadHoldingsRepository(storage);
+  assert.equal(loaded.ok, true);
+  assert.equal(loaded.document.holdings[0].costNav, 0);
+});
+
+test('an older zero projection still cannot replace an existing unknown cost', () => {
+  const current = document([holding('000007', { costNav: null, updatedAt: T2 })]);
+  const reconciled = reconcileLegacyHoldings([{ code: '000007', name: '基金000007', shares: 10, cost: 0, updated_at: T1 }], current, { now: T2 });
+  assert.equal(reconciled.holdings[0].costNav, null);
+});
+
 test('persistence backs up prior state and verifies V3 and V1 readback', () => {
   const priorV3 = canonicalHoldingsDocument(document([holding('001001', { shares: 1 })]));
   const priorV1 = JSON.stringify([{ code: '001001', name: '旧值', shares: 1, cost: 1 }]);

@@ -1,0 +1,665 @@
+{
+  "schema": 1,
+  "sourceDirectory": "C:/Users/84046/AppData/Local/Temp/fundval-m3-string-pool-577fc2a4783c4a26baab563752e9d3d3",
+  "fileCount": 129,
+  "uncompressedBytes": 2978941,
+  "archive": {
+    "path": "original-evidence.tar.gz",
+    "bytes": 634329,
+    "sha256": "886be0611607523dca5c0ec1ab853e7c1acf532d43a07ac7f19bb6295eadf2e1"
+  },
+  "files": [
+    {
+      "path": "artifacts/1-baseline/js/app-shell.js",
+      "bytes": 5056,
+      "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/accuracy-AV5UnMZT.js",
+      "bytes": 77,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/app-C1KeC5Vr.js",
+      "bytes": 37,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/business-features-BxmeGblZ.js",
+      "bytes": 665,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/business-runtime-63t7lKdA.js",
+      "bytes": 80965,
+      "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "bytes": 79,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/cloud-CLK5Spot.js",
+      "bytes": 18694,
+      "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/cloud-runtime-CB3MWviH.js",
+      "bytes": 254,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/diagnostics-DLmiIP_p.js",
+      "bytes": 5628,
+      "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/diagnostics-ui-BarnPzjK.js",
+      "bytes": 83,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/gist-runtime-BB2WMPEu.js",
+      "bytes": 141,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/post-integrity-LZsxxjFJ.js",
+      "bytes": 96333,
+      "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "bytes": 82,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/startup-migrations-CEzhCYv4.js",
+      "bytes": 79,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/startup-pure-v6vu1dD4.js",
+      "bytes": 27349,
+      "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4"
+    },
+    {
+      "path": "artifacts/1-baseline/js/chunks/startup-repository-B04CzfgI.js",
+      "bytes": 125,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    },
+    {
+      "path": "artifacts/1-baseline/measurement.json",
+      "bytes": 3977,
+      "sha256": "89c6c429f469b9f07071783f7f89b8812aece85d7b85e1c0716c64848603c6c9"
+    },
+    {
+      "path": "artifacts/1-pooled/js/app-shell.js",
+      "bytes": 5016,
+      "sha256": "5fcf22c04e4820b8101a142d1d436e5a550ce82a92bd97efafdf8406c002343b"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/accuracy-AV5UnMZT.js",
+      "bytes": 77,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/app-C1KeC5Vr.js",
+      "bytes": 37,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/business-features-BxmeGblZ.js",
+      "bytes": 665,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/business-runtime-63t7lKdA.js",
+      "bytes": 77183,
+      "sha256": "9c187604312891910ab9d972259a953dd0c966840ff301f767add4ab9c8c39be"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "bytes": 79,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/cloud-CLK5Spot.js",
+      "bytes": 18372,
+      "sha256": "2e96f31b2edd5d93bfcb8fdbc33c9072fcd3eaad843511cb9c6de850ddc08494"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/cloud-runtime-CB3MWviH.js",
+      "bytes": 254,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/diagnostics-DLmiIP_p.js",
+      "bytes": 5576,
+      "sha256": "980984749ed9376dbfc97af24638330fc611d8729fa1aefbf3a5e64c82128e16"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/diagnostics-ui-BarnPzjK.js",
+      "bytes": 83,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/gist-runtime-BB2WMPEu.js",
+      "bytes": 141,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/post-integrity-LZsxxjFJ.js",
+      "bytes": 93668,
+      "sha256": "1950cab9508c9eb5e60f33c0f107d5d54b108a1a6a19175a7f133cce28a1447e"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "bytes": 82,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/startup-migrations-CEzhCYv4.js",
+      "bytes": 79,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/startup-pure-v6vu1dD4.js",
+      "bytes": 26631,
+      "sha256": "08368ac2060b605e6f53febddf3ab4856823c7d323b13c5a14dd5a43f126114c"
+    },
+    {
+      "path": "artifacts/1-pooled/js/chunks/startup-repository-B04CzfgI.js",
+      "bytes": 125,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    },
+    {
+      "path": "artifacts/1-pooled/measurement.json",
+      "bytes": 3975,
+      "sha256": "6f710c876ddc236b66ea296d1b3ec74c8365eae74efb29e22998a1bb148f77d8"
+    },
+    {
+      "path": "artifacts/2-baseline/js/app-shell.js",
+      "bytes": 5056,
+      "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/accuracy-AV5UnMZT.js",
+      "bytes": 77,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/app-C1KeC5Vr.js",
+      "bytes": 37,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/business-features-BxmeGblZ.js",
+      "bytes": 665,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/business-runtime-63t7lKdA.js",
+      "bytes": 80965,
+      "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "bytes": 79,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/cloud-CLK5Spot.js",
+      "bytes": 18694,
+      "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/cloud-runtime-CB3MWviH.js",
+      "bytes": 254,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/diagnostics-DLmiIP_p.js",
+      "bytes": 5628,
+      "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/diagnostics-ui-BarnPzjK.js",
+      "bytes": 83,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/gist-runtime-BB2WMPEu.js",
+      "bytes": 141,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/post-integrity-LZsxxjFJ.js",
+      "bytes": 96333,
+      "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "bytes": 82,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/startup-migrations-CEzhCYv4.js",
+      "bytes": 79,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/startup-pure-v6vu1dD4.js",
+      "bytes": 27349,
+      "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4"
+    },
+    {
+      "path": "artifacts/2-baseline/js/chunks/startup-repository-B04CzfgI.js",
+      "bytes": 125,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    },
+    {
+      "path": "artifacts/2-baseline/measurement.json",
+      "bytes": 3977,
+      "sha256": "0118edcde2e2f1d40dca5b7702b126a4c4deb7b76882a03c2dd74f5f44f9712d"
+    },
+    {
+      "path": "artifacts/2-pooled/js/app-shell.js",
+      "bytes": 5016,
+      "sha256": "5fcf22c04e4820b8101a142d1d436e5a550ce82a92bd97efafdf8406c002343b"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/accuracy-AV5UnMZT.js",
+      "bytes": 77,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/app-C1KeC5Vr.js",
+      "bytes": 37,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/business-features-BxmeGblZ.js",
+      "bytes": 665,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/business-runtime-63t7lKdA.js",
+      "bytes": 77183,
+      "sha256": "9c187604312891910ab9d972259a953dd0c966840ff301f767add4ab9c8c39be"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "bytes": 79,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/cloud-CLK5Spot.js",
+      "bytes": 18372,
+      "sha256": "2e96f31b2edd5d93bfcb8fdbc33c9072fcd3eaad843511cb9c6de850ddc08494"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/cloud-runtime-CB3MWviH.js",
+      "bytes": 254,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/diagnostics-DLmiIP_p.js",
+      "bytes": 5576,
+      "sha256": "980984749ed9376dbfc97af24638330fc611d8729fa1aefbf3a5e64c82128e16"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/diagnostics-ui-BarnPzjK.js",
+      "bytes": 83,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/gist-runtime-BB2WMPEu.js",
+      "bytes": 141,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/post-integrity-LZsxxjFJ.js",
+      "bytes": 93668,
+      "sha256": "1950cab9508c9eb5e60f33c0f107d5d54b108a1a6a19175a7f133cce28a1447e"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "bytes": 82,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/startup-migrations-CEzhCYv4.js",
+      "bytes": 79,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/startup-pure-v6vu1dD4.js",
+      "bytes": 26631,
+      "sha256": "08368ac2060b605e6f53febddf3ab4856823c7d323b13c5a14dd5a43f126114c"
+    },
+    {
+      "path": "artifacts/2-pooled/js/chunks/startup-repository-B04CzfgI.js",
+      "bytes": 125,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    },
+    {
+      "path": "artifacts/2-pooled/measurement.json",
+      "bytes": 3975,
+      "sha256": "be890632485cf0ae14eec8d51efa99d191d1cbc37c72295e286cf0b7e02dffe4"
+    },
+    {
+      "path": "artifacts/3-baseline/js/app-shell.js",
+      "bytes": 5056,
+      "sha256": "15b9bd06acdde8656c3b13a0ddbdb57dee86af9cfed917866d70fd907adb035d"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/accuracy-AV5UnMZT.js",
+      "bytes": 77,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/app-C1KeC5Vr.js",
+      "bytes": 37,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/business-features-BxmeGblZ.js",
+      "bytes": 665,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/business-runtime-63t7lKdA.js",
+      "bytes": 80965,
+      "sha256": "8519a58f8523008cdca927b82b25fa5023585357935e171db52547dee0757aa5"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "bytes": 79,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/cloud-CLK5Spot.js",
+      "bytes": 18694,
+      "sha256": "b875c873cb6e6a177cd1518c29c4000505ba26db80517fa4770c5f5f1a035574"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/cloud-runtime-CB3MWviH.js",
+      "bytes": 254,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/diagnostics-DLmiIP_p.js",
+      "bytes": 5628,
+      "sha256": "b44bcd850f531db69638252edb924a7c8a90e726e064ebdda272238541bf0858"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/diagnostics-ui-BarnPzjK.js",
+      "bytes": 83,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/gist-runtime-BB2WMPEu.js",
+      "bytes": 141,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/post-integrity-LZsxxjFJ.js",
+      "bytes": 96333,
+      "sha256": "ce2dcc916da9e088de74d2c76a660d46f01066bbdff37bbe001320e14c091c96"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "bytes": 82,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/startup-migrations-CEzhCYv4.js",
+      "bytes": 79,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/startup-pure-v6vu1dD4.js",
+      "bytes": 27349,
+      "sha256": "7dd48635ddcf9a90188cebbb0478fbb2b8ac6f79f3f09c1a4b8b74b3ee2bcae4"
+    },
+    {
+      "path": "artifacts/3-baseline/js/chunks/startup-repository-B04CzfgI.js",
+      "bytes": 125,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    },
+    {
+      "path": "artifacts/3-baseline/measurement.json",
+      "bytes": 3977,
+      "sha256": "da91954bc996a9fdb79b0ce730089f3cd76a58866d4ddd179dc5f73c67dfe0d6"
+    },
+    {
+      "path": "artifacts/3-pooled/js/app-shell.js",
+      "bytes": 5016,
+      "sha256": "5fcf22c04e4820b8101a142d1d436e5a550ce82a92bd97efafdf8406c002343b"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/accuracy-AV5UnMZT.js",
+      "bytes": 77,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/app-C1KeC5Vr.js",
+      "bytes": 37,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/business-features-BxmeGblZ.js",
+      "bytes": 665,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/business-runtime-63t7lKdA.js",
+      "bytes": 77183,
+      "sha256": "9c187604312891910ab9d972259a953dd0c966840ff301f767add4ab9c8c39be"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "bytes": 79,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/cloud-CLK5Spot.js",
+      "bytes": 18372,
+      "sha256": "2e96f31b2edd5d93bfcb8fdbc33c9072fcd3eaad843511cb9c6de850ddc08494"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/cloud-runtime-CB3MWviH.js",
+      "bytes": 254,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/diagnostics-DLmiIP_p.js",
+      "bytes": 5576,
+      "sha256": "980984749ed9376dbfc97af24638330fc611d8729fa1aefbf3a5e64c82128e16"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/diagnostics-ui-BarnPzjK.js",
+      "bytes": 83,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/gist-runtime-BB2WMPEu.js",
+      "bytes": 141,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/post-integrity-LZsxxjFJ.js",
+      "bytes": 93668,
+      "sha256": "1950cab9508c9eb5e60f33c0f107d5d54b108a1a6a19175a7f133cce28a1447e"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "bytes": 82,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/startup-migrations-CEzhCYv4.js",
+      "bytes": 79,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/startup-pure-v6vu1dD4.js",
+      "bytes": 26631,
+      "sha256": "08368ac2060b605e6f53febddf3ab4856823c7d323b13c5a14dd5a43f126114c"
+    },
+    {
+      "path": "artifacts/3-pooled/js/chunks/startup-repository-B04CzfgI.js",
+      "bytes": 125,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    },
+    {
+      "path": "artifacts/3-pooled/measurement.json",
+      "bytes": 3975,
+      "sha256": "83aa20cee0b8242a8c5e1c8eb176de0a3982f036ceb3955d16addb358e0377a3"
+    },
+    {
+      "path": "failure-v1.json",
+      "bytes": 1506,
+      "sha256": "35992bfe245609d276a993493980582178074d6550839076567747bd8411224c"
+    },
+    {
+      "path": "input-app-chunks.json",
+      "bytes": 4195,
+      "sha256": "f0f72a2d088bb1a015cc658a317953fcf45637aa0e99cfa58ae4cffa2faf958e"
+    },
+    {
+      "path": "prerequisites-v2.json",
+      "bytes": 3742,
+      "sha256": "4618d416eadca6a0cd77d86e3c8fd08994fbfdd18b9d4b7777141655848153f8"
+    },
+    {
+      "path": "prerequisites.json",
+      "bytes": 3742,
+      "sha256": "572920e03768f686e0c68bd5480f0f7e57962ed8c26603aa2d55c80f70360c39"
+    },
+    {
+      "path": "probe-v1.mjs.txt",
+      "bytes": 16559,
+      "sha256": "8df3d88a6e912ee75e7885f3f9bc3fd6a8dd6652c808cc076d94751a67261803"
+    },
+    {
+      "path": "probe.mjs",
+      "bytes": 16843,
+      "sha256": "d45b8efae5a63a8520e4901d796533010ad7f9c860537a3a66d96599dc3122a5"
+    },
+    {
+      "path": "protocol-v1.json",
+      "bytes": 3833,
+      "sha256": "b89430f55300e6d3aa565f4bea10ee30f0dd42f12341c9f9133143e993182691"
+    },
+    {
+      "path": "protocol.json",
+      "bytes": 4511,
+      "sha256": "56d57f660ef7ca8d7800c5d7771b417c8de203f0d8bbf9e26d5147a043d8cf00"
+    },
+    {
+      "path": "qualification-candidates/js/app-shell.js",
+      "bytes": 5016,
+      "sha256": "5fcf22c04e4820b8101a142d1d436e5a550ce82a92bd97efafdf8406c002343b"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/accuracy-AV5UnMZT.js",
+      "bytes": 77,
+      "sha256": "9e985db95b8a669a1cc1858ca687ab999faf268547760b8c1fed05a6e0a5f7cb"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/app-C1KeC5Vr.js",
+      "bytes": 37,
+      "sha256": "1f3b4dcbdbbb04d40a59c405f818d972c3310343427c4718c288d6f69ba6d71b"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/business-features-BxmeGblZ.js",
+      "bytes": 665,
+      "sha256": "d8391633c4fd6127c2c5334ecd4ec2c42db09290f202a0ded6cfd8bdca06d988"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/business-runtime-63t7lKdA.js",
+      "bytes": 77183,
+      "sha256": "9c187604312891910ab9d972259a953dd0c966840ff301f767add4ab9c8c39be"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/cloud-archive-ui-Bkt1Q4Kd.js",
+      "bytes": 79,
+      "sha256": "50a12c69bc8a43e483c7febc33d6d2060ba60afc66a3912f844e308fb2b0759d"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/cloud-CLK5Spot.js",
+      "bytes": 18372,
+      "sha256": "2e96f31b2edd5d93bfcb8fdbc33c9072fcd3eaad843511cb9c6de850ddc08494"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/cloud-runtime-CB3MWviH.js",
+      "bytes": 254,
+      "sha256": "8c80003da17556661bf12388e02b1a33486ac7a98e14c83a6ac3dcdd87975c6a"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/diagnostics-DLmiIP_p.js",
+      "bytes": 5576,
+      "sha256": "980984749ed9376dbfc97af24638330fc611d8729fa1aefbf3a5e64c82128e16"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/diagnostics-ui-BarnPzjK.js",
+      "bytes": 83,
+      "sha256": "d7a9666ebc50a490c5453ed2595af3277488bad8a73417fb67df637fd364d03c"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/gist-runtime-BB2WMPEu.js",
+      "bytes": 141,
+      "sha256": "523c668e36b7cb386fa9e151088db49d734bf774e774c2d803708cbf9fd8b208"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/post-integrity-LZsxxjFJ.js",
+      "bytes": 93668,
+      "sha256": "1950cab9508c9eb5e60f33c0f107d5d54b108a1a6a19175a7f133cce28a1447e"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/quote-diagnostics-DLE2n5e9.js",
+      "bytes": 82,
+      "sha256": "9a2f01f1f997bd89881ea5e47f700ec60454349b8f3c4ff2ad416d4346c8dcbd"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/startup-migrations-CEzhCYv4.js",
+      "bytes": 79,
+      "sha256": "e0c17baca0c43bc6c8dc204c0cb4779c1cacfeca0d3f1104d904b8a8a16b81bd"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/startup-pure-v6vu1dD4.js",
+      "bytes": 26631,
+      "sha256": "08368ac2060b605e6f53febddf3ab4856823c7d323b13c5a14dd5a43f126114c"
+    },
+    {
+      "path": "qualification-candidates/js/chunks/startup-repository-B04CzfgI.js",
+      "bytes": 125,
+      "sha256": "21c78675a8f0c4a93fa2046a5e32fc2e154949e73b7b2008144707264aa0a3cc"
+    },
+    {
+      "path": "README.md",
+      "bytes": 10027,
+      "sha256": "d8daeda9a3f64caf32707ffafa420b47f9fc6775851a5bc44cc69778da063dcf"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 677354,
+      "sha256": "5751324308838bde63b40346de281fd36950c697b9b334d02f3b50efb88cfe1c"
+    },
+    {
+      "path": "transformations.json",
+      "bytes": 593560,
+      "sha256": "0ec284c5b7ee2d9dbb1465ee6810d68dc593400a736708747ce532f4380fd725"
+    }
+  ],
+  "extractionVerified": true,
+  "extractionDirectory": "C:\\Users\\84046\\AppData\\Local\\Temp\\fundval-string-pool-archive-LLj75L",
+  "measurementScope": "Six offline gzip passes over one baseline and one fixed pooled text set, not six actual Vite builds.",
+  "limits": "v1 failed candidate text and complete original terminal stdout were not saved. Native/AST passes do not prove full runtime, reflection, stack or latency equivalence.",
+  "protocolTiming": "Original v1 design was predeclared. v2 inherited stateAtCreation but was approved only after the initial parse failure, before any valid gzip/link measurement.",
+  "adopted": false,
+  "productChanged": false
+}

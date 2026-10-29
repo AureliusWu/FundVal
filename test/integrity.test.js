@@ -8,7 +8,8 @@ import {
   normalizeHoldings,
   reconcileFundCache,
   selectSafeDiagnosticEvents,
-  repairHoldingsState
+  repairHoldingsState,
+  redactDiagnosticText
 } from '../js/integrity.js';
 
 const NOW = '2026-07-15T04:00:00.000Z';
@@ -94,16 +95,18 @@ test('finds only orphan per-fund cache keys', () => {
   );
 });
 
-test('diagnostics redact tokens and local image data while retaining a bounded history', () => {
+test('diagnostics retain bounded metadata only; generic redaction still covers tokens and local image data', () => {
   const raw = JSON.stringify([{ time: NOW, type: 'old', message: 'old', stack: '' }]);
   const result = appendDiagnostic(raw, {
     type: 'error',
     message: 'ghp_abcdefghijklmnopqrstuvwxyz1234 data:image/png;base64,QUJDREVGR0g='
   }, 1);
   assert.equal(result.length, 1);
-  assert.match(result[0].message, /REDACTED_GITHUB_TOKEN/);
-  assert.match(result[0].message, /REDACTED_IMAGE_DATA/);
-  assert.doesNotMatch(result[0].message, /QUJDREVGR0g/);
+  assert.deepEqual(Object.keys(result[0]).sort(), ['time', 'type']);
+  const text = redactDiagnosticText('ghp_abcdefghijklmnopqrstuvwxyz1234 data:image/png;base64,QUJDREVGR0g=');
+  assert.match(text, /REDACTED_GITHUB_TOKEN/);
+  assert.match(text, /REDACTED_IMAGE_DATA/);
+  assert.doesNotMatch(text, /QUJDREVGR0g/);
 });
 
 test('diagnostic summary treats persisted entries as untrusted and emits fixed safe enums only', () => {

@@ -1,0 +1,217 @@
+{
+  "status": "ARCHIVE_AUDIT_PASS_NOT_STRATEGY_PASS",
+  "at": "2026-10-23T02:04:43.167Z",
+  "checks": [
+    {
+      "label": "finite compile/mapping and full descriptor control evidence",
+      "pass": true
+    },
+    {
+      "label": "actual optimizer exception stop not financial behaviour RED",
+      "pass": true
+    },
+    {
+      "label": "initial manifest and every frozen new probe input unchanged",
+      "pass": true
+    },
+    {
+      "label": "compile all actual native bytes SHA preserved",
+      "pass": true
+    },
+    {
+      "label": "abi all actual native bytes SHA preserved",
+      "pass": true
+    },
+    {
+      "label": "probe all actual native bytes SHA preserved",
+      "pass": true
+    },
+    {
+      "label": "outer all actual native bytes SHA preserved",
+      "pass": true
+    },
+    {
+      "label": "old13 DRIVER/fixture payloads exact",
+      "pass": true
+    },
+    {
+      "label": "safe relative tar members",
+      "pass": true
+    },
+    {
+      "label": "every fresh extraction byte SHA path equals inventory",
+      "pass": true
+    },
+    {
+      "label": "archive stage unchanged",
+      "pass": true
+    },
+    {
+      "label": "overlay completed evidence unchanged",
+      "pass": true
+    },
+    {
+      "label": "probe completed evidence unchanged",
+      "pass": true
+    },
+    {
+      "label": "execution completed evidence unchanged",
+      "pass": true
+    },
+    {
+      "label": "assessment completed evidence unchanged",
+      "pass": true
+    },
+    {
+      "label": "integration-review completed evidence unchanged",
+      "pass": true
+    },
+    {
+      "label": "root full273/site127/installed68/Git unchanged",
+      "pass": true
+    }
+  ],
+  "receipts": [
+    {
+      "label": "tar-create",
+      "command": "tar",
+      "args": [
+        "-czf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\closure-overlay-20261023\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-archive-20261023-parent\\stage",
+        "."
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:04:40.700Z",
+      "finishedAt": "2026-10-23T02:04:41.838Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-list",
+      "command": "tar",
+      "args": [
+        "-tzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\closure-overlay-20261023\\original-evidence.tar.gz"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:04:41.838Z",
+      "finishedAt": "2026-10-23T02:04:41.887Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 12532,
+        "sha256": "5b81050d83ec5256409e330c5e45ada5d222648d0074f4889d2716cc1fe00ce8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-extract",
+      "command": "tar",
+      "args": [
+        "-xzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\closure-overlay-20261023\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-archive-20261023-parent\\extract"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:04:41.890Z",
+      "finishedAt": "2026-10-23T02:04:42.078Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "command": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "diff",
+        "--check"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:04:43.014Z",
+      "finishedAt": "2026-10-23T02:04:43.166Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    }
+  ],
+  "before": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "after": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "experiment": {
+    "genericStatus": "SETUP_OR_DRIVER_FAILURE",
+    "preciseStage": "OPTIMIZER_INTERNAL_EXCEPTION",
+    "controllerNativeExit": 2,
+    "F01Original": "PASS",
+    "F01Transformed": "NOT_RUN",
+    "F02ThroughF08": "NOT_RUN",
+    "newProductBuild": "NOT_RUN",
+    "adoption": false,
+    "budget": "FAIL",
+    "allGzip": 85969,
+    "coldGzip": 46149,
+    "release": "NOT_RELEASED"
+  },
+  "archive": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\closure-overlay-20261023\\original-evidence.tar.gz",
+    "bytes": 481029,
+    "sha256": "836d704a1b8519593c6d2102a98bb7697fbdf9839fa3c3999d0d95b54c2c888e"
+  },
+  "inventory": {
+    "count": 241,
+    "bytes": 2224809,
+    "sha256": "23207f2f16c5dd19315b1020f344cd498b1264860c08b25fc8da7a7bbbd68de9"
+  },
+  "extract": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-archive-20261023-parent\\extract",
+  "addendaOutside": true
+}

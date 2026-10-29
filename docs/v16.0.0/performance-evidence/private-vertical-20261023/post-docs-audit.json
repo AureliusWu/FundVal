@@ -1,0 +1,88 @@
+{
+  "status": "POST_DOCS_AUDIT_PASS_NOT_CANDIDATE_PASS",
+  "checks": [
+    {
+      "label": "actual archive audit not candidate pass",
+      "pass": true
+    },
+    {
+      "label": "actual archive bytes hash",
+      "pass": true
+    },
+    {
+      "label": "inventory and fresh extraction all members",
+      "pass": true
+    },
+    {
+      "label": "A frozen source and built complete artifact unchanged",
+      "pass": true
+    },
+    {
+      "label": "B frozen source and built complete artifact unchanged",
+      "pass": true
+    },
+    {
+      "label": "every selected original workspace source receipt report unchanged",
+      "pass": true
+    },
+    {
+      "label": "post-archive docs addendum accurately scoped",
+      "pass": true
+    },
+    {
+      "label": "root273 site127 installed68 Git unchanged after docs",
+      "pass": true
+    },
+    {
+      "label": "diff check native0 warnings preserved",
+      "pass": true
+    }
+  ],
+  "before": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "after": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "diffCheck": {
+    "label": "post-docs-diff-check",
+    "command": "git",
+    "args": [
+      "-C",
+      "D:/AI项目/FundVal",
+      "diff",
+      "--check"
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+    "startedAt": "2026-10-23T02:46:57.921Z",
+    "finishedAt": "2026-10-23T02:46:58.046Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 1822,
+      "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+    }
+  },
+  "candidate": "NOT_QUALIFIED",
+  "adopt": false,
+  "release": "NOT_RELEASED"
+}

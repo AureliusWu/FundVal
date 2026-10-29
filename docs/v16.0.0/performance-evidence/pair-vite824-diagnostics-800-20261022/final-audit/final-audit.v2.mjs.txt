@@ -1,0 +1,58 @@
+import assert from 'node:assert/strict';
+import { readFile,readdir,lstat,writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { dirname,resolve } from 'node:path';
+import { fileURLToPath,pathToFileURL } from 'node:url';
+const here=dirname(fileURLToPath(import.meta.url)),root='D:/AI项目/FundVal',out=resolve(root,'docs/v16.0.0/performance-evidence/pair-vite824-diagnostics-800-20261022');
+const sha=b=>createHash('sha256').update(b).digest('hex'),json=async p=>JSON.parse(await readFile(p,'utf8'));
+const checks=[],failures=[];
+async function check(name,fn){try{await fn();checks.push({name,status:'PASS'});}catch(e){checks.push({name,status:'FAIL',error:e.message});failures.push(name);}}
+const post=await json(resolve(here,'postflight.json')),audit=await json(resolve(out,'archive-audit.json')),summary=await json(resolve(out,'result-summary.json'));
+let diffCheck;
+await check('final native git diff check and unchanged product branch/head/staged contents',async()=>{
+ const r=spawnSync('git',['diff','--check'],{cwd:root,encoding:'utf8',windowsHide:true});
+ diffCheck={command:'git',args:['diff','--check'],status:r.status,signal:r.signal,stdout:r.stdout,stderr:r.stderr};assert.equal(r.status,0);
+ const g=args=>{const t=spawnSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true});assert.equal(t.status,0);return t.stdout;};
+ assert.equal(g(['rev-parse','HEAD']).trim(),post.sourceIdentity.head);assert.equal(g(['branch','--show-current']).trim(),post.sourceIdentity.branch);
+ assert.equal(sha(g(['diff','--cached','--binary'])),post.sourceIdentity.stagedDiffSha256);
+});
+await check('complete final source walk unchanged after documentation and archive writes',async()=>{
+ const rows=[],exclude=new Set(['.git','node_modules','site','Temp','.claude','docs']);
+ async function walk(p){const s=await lstat(resolve(root,p));assert.ok(!s.isSymbolicLink());
+  if(s.isDirectory()){for(const n of await readdir(resolve(root,p)))if(p!=='.'||!exclude.has(n))await walk(p==='.'?n:p+'/'+n);}
+  else{assert.ok(s.isFile());const b=await readFile(resolve(root,p));rows.push({path:p,bytes:b.length,sha256:sha(b)});}}
+ await walk('.');await walk('docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md');rows.sort((a,b)=>a.path.localeCompare(b.path));assert.deepEqual(rows,post.source.rows);
+ for(const row of post.installed.rows)assert.equal(sha(await readFile(resolve(root,'node_modules',row.path))),row.sha256);
+});
+await check('full final site and original raw still unchanged',async()=>{
+ const api=await import(pathToFileURL(resolve(root,'scripts/measure-performance-pair.mjs')));assert.deepEqual(await api.artifactFingerprint(resolve(root,'site')),post.currentArtifact);
+ const b=await readFile(post.raw.path);assert.equal(b.length,post.raw.bytes);assert.equal(sha(b),post.raw.sha256);
+ assert.equal((await json(resolve(root,'package.json'))).version,'15.0.2');
+});
+await check('archived exact bytes and every new extraction member match inventory',async()=>{
+ const packed=await readFile(resolve(out,audit.archive));assert.equal(packed.length,audit.bytes);assert.equal(sha(packed),audit.sha256);
+ const actual=[];async function walk(p){const s=await lstat(resolve(audit.extraction,p));assert.ok(!s.isSymbolicLink());
+  if(s.isDirectory()){for(const n of await readdir(resolve(audit.extraction,p)))await walk(p==='.'?n:p+'/'+n);}
+  else{assert.ok(s.isFile());const b=await readFile(resolve(audit.extraction,p));actual.push({path:p,bytes:b.length,sha256:sha(b)});}}
+ await walk('.');actual.sort((a,b)=>a.path.localeCompare(b.path));assert.deepEqual(actual,audit.rows);
+ assert.equal(audit.files,488);assert.equal(sha(JSON.stringify(actual)),audit.inventorySha256);
+ assert.ok(audit.receipts.every(r=>r.status===0&&!r.signal&&!r.error));
+});
+await check('machine summary preserves original PASS and independent FAIL gates',async()=>{
+ assert.equal(summary.status,'PASS');assert.equal(summary.independent.checks,9663);assert.deepEqual(summary.independent.failures,[]);
+ assert.equal(summary.independent.v1NativeExit,3);assert.equal(summary.independent.v2NativeExit,0);
+ assert.equal(summary.budget.verdict,'FAIL');assert.equal(summary.budget.nativeExit,1);assert.equal(summary.budget.allGzipBytes,84187);assert.equal(summary.budget.minimumIntegerReduction,6960);
+ assert.equal(summary.m3Status,'IN_PROGRESS_NOT_RELEASED');assert.equal(summary.productCommit,false);assert.equal(summary.pushed,false);assert.equal(summary.deployed,false);
+ assert.equal(summary.observational.consoleErrors,17687);assert.equal(summary.referenceReconstruction.rounds.length,3);
+});
+await check('report critical facts and evidence links exist',async()=>{
+ const text=await readFile(resolve(out,'RESULTS.md'),'utf8');for(const s of ['88,032,041','9,663','17,687','6,960','488','10,239,633','PARTIAL','no-store','M3仍IN PROGRESS'])assert.ok(text.includes(s),s);
+ for(const p of ['RESULTS.md','PROTOCOL.md','reference.json','preflight.json','independent-preflight-review.md','result-summary.json','original-evidence.tar.gz','archive-audit.json'])assert.ok((await lstat(resolve(out,p))).isFile());
+});
+const result={schema:1,checkedAt:new Date().toISOString(),verdict:failures.length?'FINAL_EVIDENCE_AUDIT_FAILURE':'FINAL_EVIDENCE_AUDIT_PASS',checks,failures,diffCheck,
+ raw:post.raw,archive:{files:audit.files,bytes:audit.bytes,sha256:audit.sha256,inventorySha256:audit.inventorySha256},
+ sourceUnchanged:checks.find(r=>r.name==='complete final source walk unchanged after documentation and archive writes')?.status==='PASS',version:'15.0.2',m3Status:'IN_PROGRESS',budget:post.budget,codeChangedThisPostflight:false,testsRerun:false,buildRerunInRoot:false,release:false};
+await writeFile(resolve(out,'final-evidence-audit.v2.json'),JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({...result,diffCheck:{status:diffCheck.status,warningBytes:diffCheck.stderr.length}}));
+process.exitCode=failures.length?3:0;

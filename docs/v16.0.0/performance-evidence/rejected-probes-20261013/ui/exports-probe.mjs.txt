@@ -1,0 +1,82 @@
+import assert from 'node:assert/strict';
+import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { relative, resolve, dirname } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { gzipSync } from 'node:zlib';
+
+const root = 'D:/AI项目/FundVal';
+const ownDirectory = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(resolve(root, 'package.json'));
+const { parseSync } = await import(pathToFileURL(require.resolve('rolldown/utils')).href);
+const { build: viteBuild, version: viteVersion } = await import(pathToFileURL(require.resolve('vite')).href);
+const recipePath = resolve(root, 'scripts/build-site.mjs');
+const recipe = (await readFile(recipePath, 'utf8')).replaceAll('\r\n', '\n');
+const sha = text => createHash('sha256').update(text).digest('hex');
+const recipeSha = sha(recipe);
+const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+assert.equal(head, '17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1');
+assert.equal(viteVersion, '8.2.2');
+const program = parseSync('build-site.mjs', recipe).program;
+const buildFunction = program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'buildAppShell');
+const firstDeclaration = buildFunction.body.body[0];
+assert.equal(firstDeclaration.type, 'VariableDeclaration');
+const buildCall = firstDeclaration.declarations[0].init.argument;
+assert.equal(buildCall.callee.name, 'viteBuild');
+const configSource = recipe.slice(buildCall.arguments[0].start, buildCall.arguments[0].end);
+const groupsStart = recipe.indexOf('const APP_SHELL_FILENAME =');
+const groupsEnd = recipe.indexOf('\nfunction resolveSiteSourceDateEpoch');
+assert.ok(groupsStart > 0 && groupsEnd > groupsStart);
+const declarations = recipe.slice(groupsStart, groupsEnd);
+const config = new Function('root', 'relative', 'resolve', `${declarations}\nreturn (${configSource});`)(root, relative, resolve);
+assert.equal(config.configFile, false);
+assert.equal(config.build.write, false);
+assert.equal(config.build.minify, 'oxc');
+assert.equal(config.build.target, 'es2022');
+const result = await viteBuild(config);
+const chunks = result.output.filter(item => item.type === 'chunk');
+const report = {
+  head, viteVersion, recipeSha, configSha: sha(configSource), declarationsSha: sha(declarations),
+  totals: { chunks: chunks.length, raw: chunks.reduce((n, chunk) => n + Buffer.byteLength(chunk.code), 0),
+    allGzip: chunks.reduce((n, chunk) => n + gzipSync(chunk.code).length, 0) },
+  chunks: chunks.map(chunk => ({ fileName: chunk.fileName, name: chunk.name, isEntry: chunk.isEntry,
+    isDynamicEntry: chunk.isDynamicEntry, facadeModuleId: chunk.facadeModuleId,
+    exports: chunk.exports, imports: chunk.imports, dynamicImports: chunk.dynamicImports,
+    raw: Buffer.byteLength(chunk.code), gzip: gzipSync(chunk.code).length,
+    modules: Object.entries(chunk.modules).map(([id, info]) => ({
+      id: relative(root, id).replaceAll('\\', '/'), ...info,
+    }))
+  })),
+};
+assert.equal(report.totals.allGzip, 81158);
+assert.equal(report.totals.raw, 237665);
+for (const chunk of report.chunks) for (const module of chunk.modules) {
+  module.removedExportsProvided = Object.hasOwn(module, 'removedExports');
+  if (!module.id.startsWith('js/') || !module.id.endsWith('.js')) continue;
+  const originalSource = (await readFile(resolve(root, module.id), 'utf8')).replaceAll('\r\n', '\n');
+  module.originalSourceSha = sha(originalSource);
+  const ast = parseSync(module.id, originalSource).program;
+  const names = [];
+  for (const node of ast.body) {
+    if (node.type === 'ExportDefaultDeclaration') names.push('default');
+    if (node.type !== 'ExportNamedDeclaration') continue;
+    for (const specifier of node.specifiers || []) names.push(specifier.exported.name || specifier.exported.value);
+    if (node.declaration?.id?.name) names.push(node.declaration.id.name);
+    for (const declaration of node.declaration?.declarations || []) {
+      assert.equal(declaration.id.type, 'Identifier', 'export binding inventory expects simple identifiers');
+      names.push(declaration.id.name);
+    }
+  }
+  module.declaredPublicExports = names;
+  module.declaredButNotRendered = names.filter(name => !module.renderedExports.includes(name));
+}
+assert.equal(sha((await readFile(recipePath, 'utf8')).replaceAll('\r\n', '\n')), recipeSha);
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), head);
+await writeFile(resolve(ownDirectory, 'exports-report.json'), JSON.stringify(report, null, 2) + '\n');
+console.log(JSON.stringify({ totals: report.totals, chunks: report.chunks.map(chunk => ({
+  file: chunk.fileName, entry: chunk.isEntry, dynamic: chunk.isDynamicEntry,
+  facade: chunk.facadeModuleId, exports: chunk.exports,
+  modules: chunk.modules.map(({id, renderedExports, removedExportsProvided, declaredButNotRendered, renderedLength}) => ({id, renderedExports, removedExportsProvided, declaredButNotRendered, renderedLength})),
+})) }, null, 2));

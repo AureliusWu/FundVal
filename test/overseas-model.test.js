@@ -52,6 +52,71 @@ test('preserves the newest underlying market timestamp and marks old quotes stal
   assert.equal(stale.stale, true);
 });
 
+test('latest overseas source selection preserves every leg order, equal times, and real zero', () => {
+  const now = new Date('2026-07-28T06:00:00Z');
+  const rows = [
+    { code: 'A', weight: 20, change: 0, time: '2026/7/28 13:00', expectedTime: '2026-07-28 13:00:00' },
+    { code: 'B', weight: 30, change: -2, time: '2026-07-28 13:55:12', expectedTime: '2026-07-28 13:55:12' },
+    { code: 'C', weight: 50, change: 2, time: '2026/7/28 13:55:12', expectedTime: '2026-07-28 13:55:12' },
+  ];
+  const orders = [
+    [0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0],
+  ];
+  for (const order of orders) for (const asMap of [false, true]) {
+    const ordered = order.map(index => rows[index]);
+    const pairs = ordered.map(row => [row.code, { change: row.change, time: row.time }]);
+    const quotes = asMap ? new Map(pairs) : Object.fromEntries(pairs);
+    const result = calculateOverseasEstimate({
+      version: 'latest-characterization', label: '合成模型', confidence: 'high', min_weight: 100,
+      legs: ordered.map(({ code, weight }) => ({ code, weight })),
+    }, quotes, now);
+    // Independent expected output; neither production selector nor sort is reused.
+    assert.deepEqual(result, {
+      change: 0.4, usableWeight: 100, excludedWeight: 0,
+      rejected: { missingTime: 0, future: 0, stale: 0 },
+      modelVersion: 'latest-characterization', modelLabel: '合成模型', confidence: 'high',
+      stale: false, sourceTime: '2026-07-28 13:55:12', reason: '模型可用',
+    });
+    assert.deepEqual(Object.keys(result), [
+      'change', 'usableWeight', 'excludedWeight', 'rejected', 'modelVersion', 'modelLabel',
+      'confidence', 'stale', 'sourceTime', 'reason',
+    ]);
+  }
+  const zero = calculateOverseasEstimate({ min_weight: 20, legs: [{ code: 'A', weight: 20 }] }, {
+    A: { change: 0, time: rows[0].time },
+  }, now);
+  assert.equal(zero.change, 0);
+  assert.equal(zero.sourceTime, rows[0].expectedTime);
+});
+
+test('overseas source selection retains quote getter order and the original thrown error', () => {
+  const now = new Date('2026-07-28T06:00:00Z');
+  const model = { min_weight: 100, legs: [{ code: 'A', weight: 50 }, { code: 'B', weight: 50 }] };
+  const expected = ['A.change', 'A.time', 'A.change', 'B.change', 'B.time', 'B.change'];
+  for (const failAt of [null, ...expected.keys()]) {
+    const trace = [];
+    const failure = new TypeError('synthetic accessor failure');
+    const read = (code, field, value) => {
+      trace.push(`${code}.${field}`);
+      if (trace.length - 1 === failAt) throw failure;
+      return value;
+    };
+    const quotes = Object.fromEntries(['A', 'B'].map(code => [code, {
+      get change() { return read(code, 'change', code === 'A' ? 1 : -1); },
+      get time() { return read(code, 'time', '2026-07-28 13:55:12'); },
+    }]));
+    if (failAt == null) {
+      const result = calculateOverseasEstimate(model, quotes, now);
+      assert.equal(result.change, 0);
+      assert.equal(result.sourceTime, '2026-07-28 13:55:12');
+      assert.deepEqual(trace, expected);
+    } else {
+      assert.throws(() => calculateOverseasEstimate(model, quotes, now), error => error === failure);
+      assert.deepEqual(trace, expected.slice(0, failAt + 1));
+    }
+  }
+});
+
 test('ignores malformed model configuration and bad rule patterns without interrupting selection', async () => {
   await loadOverseasModels(async () => ({ ok: true, json: async () => ({
     models: {

@@ -5,6 +5,10 @@ const DESCRIPTORS = [
     timeoutMs: 10000, freshnessPolicy: 'source-observed-time', requiresProxy: true, sourceTier: 'primary',
   },
   {
+    id: 'sinan-holdings-proxy', markets: ['cn', 'hk'], capabilities: ['holdings_snapshot'], priority: 90,
+    timeoutMs: 10000, freshnessPolicy: 'source-observed-time', requiresProxy: true, sourceTier: 'primary',
+  },
+  {
     id: 'eastmoney-official-nav', markets: ['cn', 'hk', 'us', 'jp', 'kr', 'gold', 'qdii'],
     capabilities: ['official_nav'], priority: 80, timeoutMs: 7000,
     freshnessPolicy: 'official-nav-date', requiresProxy: false, sourceTier: 'secondary',
@@ -29,11 +33,7 @@ const DESCRIPTORS = [
     id: 'local-cache', markets: ['cn', 'hk', 'us', 'jp', 'kr', 'gold', 'qdii', 'unknown'], capabilities: ['cached_quote'], priority: 10,
     timeoutMs: 0, freshnessPolicy: 'never-realtime', requiresProxy: false, sourceTier: 'cache',
   },
-].map(descriptor => Object.freeze({
-  ...descriptor,
-  markets: Object.freeze([...descriptor.markets]),
-  capabilities: Object.freeze([...descriptor.capabilities]),
-}));
+].map(freezeDescriptor);
 
 const BY_ID = new Map(DESCRIPTORS.map(descriptor => [descriptor.id, descriptor]));
 
@@ -307,8 +307,7 @@ export function getSourceHealth(registry, sourceId) {
   return index < 0 ? null : registry.sources[index].health;
 }
 
-/** A successful request closes any breaker and restores the source to healthy. */
-export function recordSourceSuccess(registry, sourceId, details = {}, now = 0) {
+function recordSourceResponse(registry, sourceId, details, now, status) {
   requireRegistry(registry);
   const metadata = isRecord(details) ? details : {};
   const at = detailClock(metadata, now);
@@ -318,39 +317,27 @@ export function recordSourceSuccess(registry, sourceId, details = {}, now = 0) {
   const availableAt = optionalTimestamp(metadata.availableAt ?? metadata.quoteTime);
   return replaceHealth(registry, index, {
     ...previous,
-    status: SOURCE_HEALTH.HEALTHY,
+    status,
     consecutiveFailures: 0,
     lastSuccessAt: at,
     lastResponseMs: responseMs ?? previous.lastResponseMs,
     lastAvailableAt: preferredAvailableAt(previous.lastAvailableAt, availableAt),
-    degradationReason: null,
+    degradationReason: status === SOURCE_HEALTH.DEGRADED
+      ? optionalReason(metadata.reason) || 'partial_coverage' : null,
     cooldownUntil: null,
     halfOpenProbeActive: false,
     halfOpenProbeAt: null,
   });
 }
 
+/** A successful request closes any breaker and restores the source to healthy. */
+export function recordSourceSuccess(registry, sourceId, details = {}, now = 0) {
+  return recordSourceResponse(registry, sourceId, details, now, SOURCE_HEALTH.HEALTHY);
+}
+
 /** A structurally valid response with incomplete business coverage stays usable but degraded. */
 export function recordSourcePartial(registry, sourceId, details = {}, now = 0) {
-  requireRegistry(registry);
-  const metadata = isRecord(details) ? details : {};
-  const at = detailClock(metadata, now);
-  const index = requireSourceIndex(registry, sourceId);
-  const previous = registry.sources[index].health;
-  const responseMs = optionalResponseMs(metadata.responseMs);
-  const availableAt = optionalTimestamp(metadata.availableAt ?? metadata.quoteTime);
-  return replaceHealth(registry, index, {
-    ...previous,
-    status: SOURCE_HEALTH.DEGRADED,
-    consecutiveFailures: 0,
-    lastSuccessAt: at,
-    lastResponseMs: responseMs ?? previous.lastResponseMs,
-    lastAvailableAt: preferredAvailableAt(previous.lastAvailableAt, availableAt),
-    degradationReason: optionalReason(metadata.reason) || 'partial_coverage',
-    cooldownUntil: null,
-    halfOpenProbeActive: false,
-    halfOpenProbeAt: null,
-  });
+  return recordSourceResponse(registry, sourceId, details, now, SOURCE_HEALTH.DEGRADED);
 }
 
 /**
@@ -369,26 +356,12 @@ export function recordSourceFailure(registry, sourceId, failure = {}, now = 0) {
   const availableAt = optionalTimestamp(details.availableAt ?? details.quoteTime);
   const consecutiveFailures = previous.consecutiveFailures + 1;
 
-  if (isUnavailableFailure(details) || previous.status === SOURCE_HEALTH.UNAVAILABLE) {
-    return replaceHealth(registry, index, {
-      ...previous,
-      status: SOURCE_HEALTH.UNAVAILABLE,
-      consecutiveFailures,
-      lastFailureAt: at,
-      lastResponseMs: responseMs ?? previous.lastResponseMs,
-      lastAvailableAt: preferredAvailableAt(previous.lastAvailableAt, availableAt),
-      degradationReason: failureReason(details),
-      cooldownUntil: null,
-      halfOpenProbeActive: false,
-      halfOpenProbeAt: null,
-    });
-  }
-
-  const enterCooldown = previous.status === SOURCE_HEALTH.COOLDOWN
-    || consecutiveFailures >= registry.policy.failureThreshold;
+  const unavailable = isUnavailableFailure(details) || previous.status === SOURCE_HEALTH.UNAVAILABLE;
+  const enterCooldown = !unavailable && (previous.status === SOURCE_HEALTH.COOLDOWN
+    || consecutiveFailures >= registry.policy.failureThreshold);
   return replaceHealth(registry, index, {
     ...previous,
-    status: enterCooldown ? SOURCE_HEALTH.COOLDOWN : SOURCE_HEALTH.DEGRADED,
+    status: unavailable ? SOURCE_HEALTH.UNAVAILABLE : enterCooldown ? SOURCE_HEALTH.COOLDOWN : SOURCE_HEALTH.DEGRADED,
     consecutiveFailures,
     lastFailureAt: at,
     lastResponseMs: responseMs ?? previous.lastResponseMs,
@@ -483,4 +456,15 @@ export function selectAvailableSources(registry, criteria = {}, now = 0) {
     .sort((left, right) => right.descriptor.priority - left.descriptor.priority
       || left.descriptor.id.localeCompare(right.descriptor.id))
     .map(entry => entry.descriptor));
+}
+
+// Only fixed, declaration-time validated sources can enter the page runtime.
+// Each coordinator still receives its own descriptor, arrays, health and policy.
+export function createBuiltinSourceRegistry(withBuiltinSources = false) {
+  if (typeof withBuiltinSources !== 'boolean') throw new TypeError('Builtin registry selection must be boolean.');
+  return freezeRegistry(DEFAULT_SOURCE_HEALTH_POLICY, withBuiltinSources ? DESCRIPTORS.map(descriptor => freezeEntry(Object.freeze({
+    ...descriptor,
+    markets: Object.freeze([...descriptor.markets]),
+    capabilities: Object.freeze([...descriptor.capabilities]),
+  }))) : []);
 }

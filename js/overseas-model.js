@@ -1,7 +1,8 @@
 import { MODEL_URL, TIMING } from './config.js';
 import { nextWeekdayDate } from './runtime/quote-contract.js';
+import { zonedTimeParts } from './runtime/market-clock.js';
 
-const MAX_QUOTE_AGE_MS = 36 * 60 * 60 * 1000;
+export const MAX_QUOTE_AGE_MS = 36 * 60 * 60 * 1000;
 const CODE_PATTERN = /^\d{6}$/;
 
 function emptyConfig() {
@@ -172,10 +173,7 @@ export function validateOverseasEstimatePeriod(model, quotes, baseNavDate, { now
         : code.startsWith('jp') ? 'Asia/Tokyo'
           : /^(sh|sz|hk|r_hk)|^au9999$/.test(code) ? 'Asia/Shanghai' : null;
     if (!timeZone) return invalid('行情市场身份不明确');
-    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
-      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(new Date(time.timestamp)).map(part => [part.type, part.value]));
-    const sessionDate = `${parts.year}-${parts.month}-${parts.day}`;
+    const sessionDate = zonedTimeParts(time.timestamp, timeZone)?.dateKey;
     if (sessionDate !== expected) return invalid('行情交易日与净值基期不匹配');
     weight += leg.weight;
   }
@@ -191,7 +189,7 @@ export function calculateOverseasEstimate(model, quotes, now = new Date()) {
   const referenceNow = Number.isFinite(nowMs) ? nowMs : Date.now();
   const legs = normalizedModel.legs;
   let weighted = 0, usableWeight = 0, excludedWeight = 0;
-  const sourceTimes = [];
+  let latestSource = null;
   const rejected = { missingTime: 0, future: 0, stale: 0 };
   for (const leg of legs) {
     const quote = quotes instanceof Map ? quotes.get(leg.code) : quotes?.[leg.code];
@@ -202,7 +200,7 @@ export function calculateOverseasEstimate(model, quotes, now = new Date()) {
     if (ageMs < 0) { excludedWeight += leg.weight; rejected.future += 1; continue; }
     if (ageMs > MAX_QUOTE_AGE_MS) { excludedWeight += leg.weight; rejected.stale += 1; continue; }
     usableWeight += leg.weight; weighted += quote.change * leg.weight;
-    sourceTimes.push(quoteTime);
+    if (!latestSource || quoteTime.timestamp > latestSource.timestamp) latestSource = quoteTime;
   }
   const minimum = normalizedModel.min_weight;
   if (usableWeight < minimum) return {
@@ -219,7 +217,6 @@ export function calculateOverseasEstimate(model, quotes, now = new Date()) {
   let change = weighted / usableWeight;
   change = change * normalizedModel.scale + normalizedModel.bias;
   const oldQuarter = modelIsPastQuarter(normalizedModel, referenceNow);
-  const latestSource = sourceTimes.sort((a, b) => b.timestamp - a.timestamp)[0];
   return {
     change,
     usableWeight,

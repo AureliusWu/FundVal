@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-22T08:23:17.738Z",
+  "scope": "Archive actual stopped single fixed compiler fixture probe, not new execution",
+  "payloads": [
+    "complete probe and execution workspace",
+    "selected toolchain protocols/scripts/native text",
+    "sanitized derived transport results",
+    "current full product inventories only"
+  ],
+  "binaryPayloadsExcluded": [
+    "JDK ZIP/partial/extracted JDK/JAR"
+  ],
+  "rawHttpHeadersAndSignedRedirectsExcluded": true,
+  "addendaOutside": true
+}

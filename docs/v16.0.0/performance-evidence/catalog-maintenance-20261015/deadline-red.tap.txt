@@ -1,0 +1,26 @@
+TAP version 13
+# Subtest: elapsed monotonic deadline rejects before publication even when a blocked timer has not fired
+not ok 1 - elapsed monotonic deadline rejects before publication even when a blocked timer has not fired
+  ---
+  duration_ms: 36.3097
+  type: 'test'
+  location: 'D:\\AI项目\\FundVal\\test\\refresh-fund-catalog-limits-v16.test.js:281:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///D:/AI%E9%A1%B9%E7%9B%AE/FundVal/test/refresh-fund-catalog-limits-v16.test.js:285:3)
+    async Test.run (node:internal/test_runner/test:1125:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 113.6218

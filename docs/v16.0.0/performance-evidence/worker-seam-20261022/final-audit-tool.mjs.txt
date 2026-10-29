@@ -1,0 +1,61 @@
+import { readFileSync,writeFileSync,readdirSync,lstatSync } from 'node:fs';
+import { resolve,relative } from 'node:path';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import assert from 'node:assert/strict';
+const dir=import.meta.dirname,root='D:/AI项目/FundVal';
+const out=resolve(root,'docs/v16.0.0/performance-evidence/worker-seam-20261022');
+const sha=b=>createHash('sha256').update(b).digest('hex'),json=p=>JSON.parse(readFileSync(p,'utf8'));
+const checks=[],check=(name,fn)=>{try{fn();checks.push({name,pass:true});}catch(error){checks.push({name,pass:false,error:error.message});}};
+function inventory(base,exclude=new Set(),part=''){
+ const rows=[];
+ for(const e of readdirSync(resolve(base,part),{withFileTypes:true})){
+  if(!part&&exclude.has(e.name))continue;
+  const p=part?part+'/'+e.name:e.name,absolute=resolve(base,p);assert.equal(lstatSync(absolute).isSymbolicLink(),false);
+  if(e.isDirectory())rows.push(...inventory(base,exclude,p));else{assert.ok(e.isFile());const b=readFileSync(absolute);rows.push({path:p,bytes:b.length,sha256:sha(b)});}
+ }
+ return rows.sort((a,b)=>a.path.localeCompare(b.path));
+}
+const build='C:/Users/84046/AppData/Local/Temp/fundval-worker-seam-builds-20261022-a4bf3fd2';
+const baseline=json(resolve(build,'frozen-receipts/postflight.json'));
+const sources=inventory(root,new Set(['.git','node_modules','site','Temp','.claude','docs']));
+for(const r of baseline.source.rows.filter(r=>r.path==='docs/v15.0.2/IMPLEMENTATION_FEEDBACK.md')){const b=readFileSync(resolve(root,r.path));sources.push({path:r.path,bytes:b.length,sha256:sha(b)});}
+sources.sort((a,b)=>a.path.localeCompare(b.path));
+check('full270 original root source set and SHA',()=>assert.deepEqual(sources,baseline.source.rows));
+const site=inventory(resolve(root,'site')).sort((a,b)=>a.path.localeCompare(b.path,'en'));
+check('whole127 root artifact unchanged',()=>assert.deepEqual(site,baseline.currentArtifact.files));
+const installed=baseline.installed.rows.map(r=>{const b=readFileSync(resolve(root,'node_modules',r.path));return {path:r.path,bytes:b.length,sha256:sha(b)};});
+check('installed68 explicit inventory unchanged',()=>assert.deepEqual(installed,baseline.installed.rows));
+const archiveAudit=json(resolve(out,'archive-audit.json')),archive=readFileSync(resolve(out,'original-evidence.tar.gz'));
+check('primary archive exact identity',()=>{assert.equal(archive.length,archiveAudit.archive.bytes);assert.equal(sha(archive),archiveAudit.archive.sha256);});
+const recorded=json(resolve(out,'inventory.json')),extracted=inventory(archiveAudit.extract);
+check('fresh reenumeration entire extracted684 set',()=>{assert.equal(extracted.length,684);assert.deepEqual(extracted,recorded.files);assert.equal(sha(JSON.stringify(extracted)),recorded.inventorySha256);});
+const ledgerOriginal='C:/Users/84046/AppData/Local/Temp/FundVal-http-vertical-ledger-20261022-a1';
+const next=resolve(out,'next-http-boundary'),derivations=[];
+for(const name of ['REPORT.md','FIELD_LEDGER.json']){
+ const original=readFileSync(resolve(ledgerOriginal,name)),actual=readFileSync(resolve(next,name));
+ let expected=original.toString('utf8').replaceAll('\r\n','\n').trimEnd();
+ if(name==='REPORT.md')expected=expected.replace('[FIELD_LEDGER.json](C:/Users/84046/AppData/Local/Temp/FundVal-http-vertical-ledger-20261022-a1/FIELD_LEDGER.json)','[FIELD_LEDGER.json](FIELD_LEDGER.json)');
+ check('next-boundary exact documented derivation '+name,()=>assert.equal(actual.toString('utf8'),expected+'\n'));
+ if(name.endsWith('.json'))check('next-boundary JSON values unchanged',()=>assert.deepEqual(JSON.parse(actual),JSON.parse(original)));
+ derivations.push({name,originalPath:resolve(ledgerOriginal,name),original:{bytes:original.length,sha256:sha(original)},derived:{bytes:actual.length,sha256:sha(actual)}});
+}
+const report=readFileSync(resolve(next,'REPORT.md'),'utf8');
+const matched=[...report.matchAll(/^\| (js\/[^ |]+) \| ([a-f0-9]{64}) \|$/gm)];
+check('next-boundary selected source table9',()=>assert.equal(matched.length,9));
+for(const [,path,expected]of matched)check('next-boundary actual current source '+path,()=>assert.equal(sha(readFileSync(resolve(root,path))),expected));
+const currentPackage=json(resolve(root,'package.json'));
+check('application still15.0.2',()=>assert.equal(currentPackage.version,'15.0.2'));
+const initial=json(resolve(build,'execution-started.json')).initial.rootGit;
+const natives=[];
+for(const [label,args]of [['head',['rev-parse','HEAD']],['branch',['branch','--show-current']],['index',['diff','--cached','--binary']],['diff-check',['diff','--check']]]){
+ const r=spawnSync('git',args,{cwd:root,windowsHide:true,encoding:null,maxBuffer:2_000_000}),stdout=r.stdout??Buffer.alloc(0),stderr=r.stderr??Buffer.alloc(0);
+ for(const [kind,b]of [['stdout',stdout],['stderr',stderr]])writeFileSync(resolve(dir,'final-'+label+'.'+kind),b,{flag:'wx'});
+ const native={label,command:'git',args,cwd:root,exitCode:r.status,signal:r.signal,error:r.error?.message??null,stdout:{bytes:stdout.length,sha256:sha(stdout)},stderr:{bytes:stderr.length,sha256:sha(stderr)}};natives.push(native);
+ check('native git '+label,()=>{assert.equal(r.status,0);assert.equal(r.signal,null);assert.equal(r.error,undefined);if(initial[label])assert.equal(sha(stdout),initial[label].sha256);});
+}
+const failures=checks.filter(r=>!r.pass),result={schema:1,status:failures.length?'FAIL':'PASS',at:new Date().toISOString(),checks,failures,scope:{rootSources:270,rootSite:127,installedExplicitRows:68,extractedArchiveMembers:684,sourceAndProductUnchanged:true,docsChangedIntentionally:true,headBranchIndexUnchanged:true},archive:archiveAudit.archive,nextBoundaryDerivations:derivations,natives,appVersion:currentPackage.version,M3:'IN_PROGRESS',productAdopted:false,fullQA:'NOT_RUN',performance:'NOT_RUN',release:'NOT_RUN'};
+result.scope.sourceAndProductUnchanged=checks.filter(r=>/root source|root artifact|installed68/.test(r.name)).every(r=>r.pass);
+result.scope.headBranchIndexUnchanged=checks.filter(r=>/^native git (head|branch|index)$/.test(r.name)).every(r=>r.pass);
+for(const p of [resolve(dir,'final-status.json'),resolve(out,'final-status.json')])writeFileSync(p,JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({status:result.status,checks:checks.length,failures,scope:result.scope,archive:result.archive,appVersion:currentPackage.version}));process.exitCode=failures.length?1:0;

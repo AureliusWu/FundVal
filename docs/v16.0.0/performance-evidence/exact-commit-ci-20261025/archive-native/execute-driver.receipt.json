@@ -1,0 +1,22 @@
+{
+  "command": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-exact-ci-archive-20261025-child\\archive.mjs",
+    "execute",
+    "PARENT_FINAL_SOURCES_FROZEN"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-exact-ci-archive-20261025-child",
+  "startedAt": "2026-10-25T08:31:15.365Z",
+  "finishedAt": "2026-10-25T08:31:28.064Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 230,
+    "sha256": "f91f9496bb3119460dea8f37ca4e58c25166ae4d580a881eb6bd454d711ffecd"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

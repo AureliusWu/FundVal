@@ -1,0 +1,5 @@
+
+> fuyu-fund@15.0.2 check
+> node scripts/check-source.mjs
+
+Syntax checked 207 JavaScript source and test files.

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLocalPaddleOcr } from '../scripts/paddle-ocr-entry.mjs';
+import { png } from './fixtures/image-headers.mjs';
+import { bitmapPreprocessor, handlerPreprocessor, HandlerBitmap, installHandlerBitmap, unexpectedPageBitmap } from './fixtures/image-preprocessor.mjs';
 import {
   PaddleLocalOcrError,
   PADDLE_ALIPAY_RECOGNITION_OPTIONS,
@@ -188,9 +190,44 @@ test('sanitizes successful and failed engine performance without retaining priva
 });
 
 function localPng() {
-  return new Blob([
-    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]),
-  ], { type: 'image/png' });
+  return new Blob([png(100, 100)], { type: 'image/png' });
+}
+
+for (const stage of ['manifest', 'factory', 'initialization', 'crop', 'final-prediction']) {
+  test(`M5 await cancellation after ${stage} cannot dispatch the next step or publish success`, async () => {
+    const controller = new AbortController();
+    const calls = { factory: 0, initialize: 0, predict: 0, dispose: 0, sourceClose: 0, cropClose: 0 };
+    const source = { width: 100, height: 100, close() { calls.sourceClose++; } };
+    const createBitmap = async input => {
+      if (input instanceof Blob) return source;
+      if (stage === 'crop') controller.abort();
+      return { close() { calls.cropClose++; } };
+    };
+    const result = await recognizeAlipayPaddleImage(localPng(), {
+      signal: controller.signal, createImagePreprocessor: bitmapPreprocessor(createBitmap),
+      runtime: { Worker() {}, createImageBitmap: unexpectedPageBitmap, OffscreenCanvas() {}, WebAssembly: {}, structuredClone: value => value },
+      async loadAssetManifest() { if (stage === 'manifest') controller.abort(); },
+      async loadPaddleFactory() {
+        calls.factory++;
+        if (stage === 'factory') controller.abort();
+        return async () => {
+          calls.initialize++;
+          if (stage === 'initialization') controller.abort();
+          return {
+            async predict() { calls.predict++; if (stage === 'final-prediction' && calls.predict === 2) controller.abort(); return [{ items: [] }]; },
+            async dispose() { calls.dispose++; },
+          };
+        };
+      },
+    }).then(() => ({ ok: true }), () => ({ ok: false }));
+    assert.equal(result.ok, false, 'an aborted image task must not return a successful result');
+    assert.equal(calls.sourceClose, 1);
+    if (stage === 'manifest') assert.equal(calls.factory, 0);
+    if (stage === 'factory') assert.equal(calls.initialize, 0);
+    if (stage === 'initialization' || stage === 'crop') assert.equal(calls.predict, 0);
+    assert.equal(calls.dispose, ['manifest', 'factory'].includes(stage) ? 0 : 1);
+    if (stage === 'crop') assert.equal(calls.cropClose, 1);
+  });
 }
 
 async function runRecognitionScenario(performance, { predictionError = null } = {}) {
@@ -209,7 +246,7 @@ async function runRecognitionScenario(performance, { predictionError = null } = 
   };
   const runtime = {
     Worker() {},
-    createImageBitmap: createBitmap,
+    createImageBitmap: unexpectedPageBitmap,
     OffscreenCanvas() {},
     WebAssembly: {},
     structuredClone(value) { return value; },
@@ -222,7 +259,7 @@ async function runRecognitionScenario(performance, { predictionError = null } = 
 
   const options = {
     runtime,
-    createBitmap,
+    createImagePreprocessor: bitmapPreprocessor(createBitmap),
     onProgress({ phase }) { phases.push(phase); },
     async loadAssetManifest(expected) {
       manifestCalls += 1;
@@ -359,4 +396,55 @@ test('initialization failure exports only a safe exhausted-fallback snapshot and
   });
   assert.equal(disposeCalls, 1);
   assert.doesNotMatch(`${error.message}\n${error.stack}\n${JSON.stringify(error.performance)}`, /private|initialization path/i);
+});
+
+for (const failPrediction of [false, true]) test(`adapter factory binding and actual-handler cleanup precede slow OCR disposal (failure=${failPrediction})`, async t => {
+  installHandlerBitmap(t);
+  const file = localPng(), controller = new AbortController(), events = [], crops = [];
+  let sourceClosed = 0, factories = 0, release;
+  const held = new Promise(resolve => { release = resolve; });
+  const source = new HandlerBitmap(100, 100, () => { sourceClosed++; events.push('source-close'); });
+  const actualHandlerFactory = handlerPreprocessor(async (...args) => {
+    if (args.length < 3) return source;
+    const crop = new HandlerBitmap(args[3], args[4], () => events.push('crop-close'));
+    crops.push(crop); return crop;
+  });
+  const rectangles = [];
+  const running = recognizeAlipayPaddleImage(file, {
+    signal: controller.signal,
+    runtime: { Worker() {}, createImageBitmap: unexpectedPageBitmap, OffscreenCanvas() {}, WebAssembly: {}, structuredClone() {} },
+    createImagePreprocessor(options) {
+      factories++; assert.deepEqual(Object.keys(options), ['signal']); assert.equal(options.signal, controller.signal);
+      const processor = actualHandlerFactory(options);
+      return {
+        initialize(input) { assert.equal(input, file); events.push('initialize'); return processor.initialize(input); },
+        crop(rect) { assert.deepEqual(Object.keys(rect).sort(), ['height', 'width', 'x', 'y']); rectangles.push(rect); return processor.crop(rect); },
+        dispose() { events.push('preprocess-dispose'); processor.dispose(); if (failPrediction) throw new Error('private cleanup path'); },
+      };
+    },
+    async loadAssetManifest() {},
+    async loadPaddleFactory() { return async () => ({
+      async predict(bitmap, options) {
+        assert.equal(bitmap, crops.at(-1)); assert.equal(options, PADDLE_ALIPAY_RECOGNITION_OPTIONS);
+        if (failPrediction) throw new Error('private recognition path'); return [{ items: [] }];
+      },
+      async dispose() { events.push('ocr-dispose-start'); await held; events.push('ocr-dispose-end'); },
+    }); },
+  }).then(result => ({ result }), error => ({ error }));
+  try {
+    for (let index = 0; index < 50 && !events.includes('ocr-dispose-start'); index++) await new Promise(setImmediate);
+    assert.ok(events.includes('ocr-dispose-start'), 'the controlled engine reached its actual disposal await');
+    assert.equal(sourceClosed, 1, 'actual Worker-handler source is closed before OCR disposal can settle');
+    assert.ok(events.indexOf('preprocess-dispose') < events.indexOf('ocr-dispose-start'));
+    assert.equal(events.includes('ocr-dispose-end'), false);
+    assert.equal(events.filter(value => value === 'crop-close').length, failPrediction ? 1 : 2);
+  } finally { release(); }
+  const outcome = await running;
+  assert.equal(factories, 1);
+  assert.equal(rectangles.length, failPrediction ? 1 : 2);
+  assert.equal(sourceClosed, 1);
+  if (failPrediction) {
+    assert.ok(outcome.error instanceof PaddleLocalOcrError); assert.equal(outcome.error.stage, 'recognition');
+    assert.doesNotMatch(outcome.error.message + outcome.error.stack, /private|cleanup path|recognition path/);
+  } else { assert.equal(outcome.result.imageWidth, 100); assert.equal(outcome.result.imageHeight, 100); }
 });

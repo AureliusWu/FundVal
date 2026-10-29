@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "at": "2026-10-22T07:59:33.533Z",
+  "scope": "Archive completed accuracy lifecycle and historical pre-fix A/B/metadata evidence; no new business/test/compiler/network execution",
+  "sources": [
+    "C:/Users/84046/AppData/Local/Temp/FundVal-accuracy-lifecycle-20261022-parent",
+    "C:/Users/84046/AppData/Local/Temp/FundVal-private-pipeline-rebase-20261022-b84a1",
+    "C:/Users/84046/AppData/Local/Temp/FundVal-closure-hybrid-prereq-20261022-a1",
+    "C:/Users/84046/AppData/Local/Temp/FundVal-java-prereq-20261022-44ffac94a4"
+  ],
+  "exclusions": {
+    "rebase": [
+      "unpacked: prior already archived791 members"
+    ],
+    "root": [
+      "24 historical .codex-tmp payloads inventory only"
+    ],
+    "siteAndInstalled": "full inventory; selected site payload only"
+  },
+  "oldControl": "C:/Users/84046/AppData/Local/Temp/fundval-model-provenance-archive-20261022-parent/extract/parent/final-state.json",
+  "archiveAddendaOutside": true
+}

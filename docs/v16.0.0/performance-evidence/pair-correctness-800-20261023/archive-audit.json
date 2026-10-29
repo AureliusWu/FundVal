@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "status": "ARCHIVE_VERIFIED_NOT_M3_EXIT_OR_RELEASE",
+  "archive": {
+    "bytes": 14555822,
+    "sha256": "c4fc4fdee76c9f32708fc69f9cde7487618daf64d67d7ba25020ce16bf53751e"
+  },
+  "members": 432,
+  "expandedBytes": 106616981,
+  "rowsSha256": "790e23e61548edeea57b399aea787e816d3e0409940723846d4f610afc262e3b",
+  "raw": {
+    "path": "raw/PAIR.json",
+    "bytes": 88033360,
+    "sha256": "7a72633783011c112ee8661ab079a93f1c61c9db8a5e9554c7b5bd65f9c7dd42"
+  },
+  "nativeCreate": {
+    "label": "tar-create",
+    "command": "tar.exe",
+    "args": [
+      "-czf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\pair-correctness-800-20261023\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-correctness-archive-20261023-parent\\stage",
+      "."
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+    "startedAt": "2026-10-23T07:27:06.125Z",
+    "finishedAt": "2026-10-23T07:27:08.323Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "nativeExtract": {
+    "label": "tar-extract",
+    "command": "tar.exe",
+    "args": [
+      "-xzf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\pair-correctness-800-20261023\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-pair-correctness-archive-20261023-parent\\extract"
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+    "startedAt": "2026-10-23T07:27:08.326Z",
+    "finishedAt": "2026-10-23T07:27:08.777Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "checks": {
+    "allFreshExtractionRows": true,
+    "actualRaw88MbRoundTrip": true,
+    "parentWorkspaceUnchanged": true,
+    "finalSource274": true,
+    "physicalCurrent127": true,
+    "installed68": true,
+    "headBranchIndexAndSamePhaseTrackedDiff": true,
+    "selectedSource250": true,
+    "actualFinalReviewIncluded": true
+  },
+  "timingVerdict": "PASS",
+  "independentAudit": "12883 checks / 0 failures",
+  "release": false,
+  "m3Exit": false
+}

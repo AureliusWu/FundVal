@@ -1,0 +1,92 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import { resolve, relative } from 'node:path';
+import { createHash } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+
+const root = 'D:/AI项目/FundVal';
+const require = createRequire(`${root}/package.json`);
+const { build } = await import(pathToFileURL(require.resolve('vite')));
+const { parseSync } = await import(pathToFileURL(require.resolve('rolldown/utils')));
+const lf = value => value.replaceAll('\r\n', '\n');
+const sha = value => createHash('sha256').update(value).digest('hex');
+const recipe = lf(await readFile(`${root}/scripts/build-site.mjs`, 'utf8'));
+const ast = parseSync('build-site.mjs', recipe).program;
+const wanted = new Set(['APP_SHELL_FILENAME', 'APP_CHUNK_FILENAME', 'OCR_BUNDLE_REFERENCE', 'COLD_LAZY_MODULE', 'STARTUP_MODULES', 'POST_INTEGRITY_MODULES', 'BUSINESS_MODULES', 'APP_CHUNK_GROUPS']);
+const wantedFunctions = new Set(['modulePath', 'collectStaticChunkGraph', 'assertStartupPhaseIsolation']);
+const declarations = ast.body.filter(node => node.type === 'VariableDeclaration' ? node.declarations.some(d => wanted.has(d.id.name)) : node.type === 'FunctionDeclaration' && wantedFunctions.has(node.id?.name));
+assert.equal(declarations.length, wanted.size + wantedFunctions.size);
+const context = vm.createContext({ root, resolve, relative });
+vm.runInContext(declarations.map(node => recipe.slice(node.start, node.end)).join('\n'), context);
+let configNode;
+function visit(node) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'CallExpression' && node.callee?.name === 'viteBuild') configNode = node.arguments[0];
+  for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
+}
+visit(ast.body.find(node => node.type === 'FunctionDeclaration' && node.id?.name === 'buildAppShell'));
+const configSource = recipe.slice(configNode.start, configNode.end);
+assert.equal(vm.runInContext(`(${configSource}).build.write`, context), false);
+const file = 'js/runtime/refresh-resource-cache.js';
+const original = lf(await readFile(`${root}/${file}`, 'utf8'));
+function one(source, search, replacement) {
+  const start = source.indexOf(search);
+  assert.ok(start >= 0);
+  assert.equal(source.indexOf(search, start + search.length), -1);
+  return source.slice(0, start) + replacement + source.slice(start + search.length);
+}
+const fieldBlock = `  const common = ['code', 'source', 'sourceTier', 'cached', 'status', 'fetchedAt', 'cachedAt'];
+  const fields = { nav: ['nav', 'prevNav', 'date', 'prevDate', 'change', 'changeAmt', 'fundName', 'meta'],
+    holdings: ['sourceStatus', 'wireVersion', 'reportDate', 'items'], meta: ['meta'],
+    gold: ['name', 'price', 'changePct', 'observedAt'], indices: ['codes', 'quotes'], estimates: ['codes', 'rows'] }[spec.kind];
+  const allowed = [...common, ...fields];`;
+const table = `const PAYLOAD_FIELDS = Object.fromEntries(Object.entries({
+  nav: ['nav', 'prevNav', 'date', 'prevDate', 'change', 'changeAmt', 'fundName', 'meta'],
+  holdings: ['sourceStatus', 'wireVersion', 'reportDate', 'items'], meta: ['meta'],
+  gold: ['name', 'price', 'changePct', 'observedAt'], indices: ['codes', 'quotes'], estimates: ['codes', 'rows'],
+}).map(([kind, fields]) => [kind, ['code', 'source', 'sourceTier', 'cached', 'status', 'fetchedAt', 'cachedAt', ...fields]]));
+`;
+let transformed = one(original, fieldBlock, '  const allowed = PAYLOAD_FIELDS[spec.kind];');
+transformed = one(transformed, 'const SKIP_DATA_FIELDS =', table + 'const SKIP_DATA_FIELDS =');
+const variants = { baseline: original, payloadFieldTable: transformed };
+let allFields = one(transformed, "        const quoteFields = ['code', 'name', 'price', 'changePct', 'observedAt', 'status', 'cached'];\n", '');
+allFields = one(allFields, 'const SKIP_DATA_FIELDS =', "const INDEX_QUOTE_FIELDS = ['code', 'name', 'price', 'changePct', 'observedAt', 'status', 'cached'];\nconst SKIP_DATA_FIELDS =");
+assert.equal(allFields.split('quoteFields').length - 1, 2);
+variants.payloadAndIndexFieldTables = allFields.replaceAll('quoteFields', 'INDEX_QUOTE_FIELDS');
+
+const report = { sourceCommit: process.env.FUNDVAL_SOURCE_COMMIT || null, recipeLfHash: sha(recipe), sourceLfHash: sha(original),
+  policy: 'Exact AST-extracted production Vite config; write:false virtual cache module only; 3 predetermined rounds for each declared variant; no dependency/minifier/group/target changes.',
+  transformations: Object.fromEntries(Object.entries(variants).filter(([key]) => key !== 'baseline').map(([key, code]) => [key, code])), variants: {} };
+for (const [name, code] of Object.entries(variants)) {
+  const rows = [];
+  for (let round = 1; round <= 3; round++) {
+    const config = vm.runInContext(`(${configSource})`, context);
+    let touched = 0;
+    if (name !== 'baseline') config.plugins = [{ name: 'readonly-cache-fields', enforce: 'pre', transform(source, id) {
+      if (relative(root, id).replaceAll('\\', '/') !== file) return null;
+      assert.equal(lf(source), original); touched++;
+      return { code, map: null };
+    } }];
+    const result = await build(config);
+    const chunks = (Array.isArray(result) ? result.flatMap(item => item.output || []) : result.output || []).filter(item => item.type === 'chunk');
+    assert.equal(touched, name === 'baseline' ? 0 : 1);
+    const entry = chunks.filter(chunk => chunk.isEntry); assert.equal(entry.length, 1);
+    const byName = new Map(chunks.map(chunk => [chunk.fileName, chunk]));
+    const cold = new Set(); const queue = [entry[0].fileName, ...entry[0].dynamicImports];
+    while (queue.length) { const next = queue.shift(); if (cold.has(next)) continue; cold.add(next); assert.ok(byName.has(next)); queue.push(...byName.get(next).imports); }
+    vm.runInContext('assertStartupPhaseIsolation', context)(byName, entry[0], cold);
+    const keys = new Map(chunks.map(chunk => [chunk.fileName, Object.keys(chunk.modules).map(id => relative(root, id).replaceAll('\\', '/')).sort().join('|')]));
+    const graph = chunks.map(chunk => ({ modules: keys.get(chunk.fileName), cold: cold.has(chunk.fileName), imports: chunk.imports.map(path => keys.get(path)).sort(), dynamicImports: chunk.dynamicImports.map(path => keys.get(path)).sort() })).sort((a, b) => a.modules.localeCompare(b.modules));
+    rows.push({ round, chunkCount: chunks.length, raw: chunks.reduce((sum, c) => sum + Buffer.byteLength(c.code), 0), all: chunks.reduce((sum, c) => sum + gzipSync(c.code).length, 0), cold: chunks.filter(c => cold.has(c.fileName)).reduce((sum, c) => sum + gzipSync(c.code).length, 0), graphHash: sha(JSON.stringify(graph)) });
+  }
+  assert.ok(rows.every(row => JSON.stringify({ ...row, round: 0 }) === JSON.stringify({ ...rows[0], round: 0 })));
+  report.variants[name] = rows;
+  process.stdout.write(JSON.stringify({ name, rows }) + '\n');
+}
+assert.equal(lf(await readFile(`${root}/${file}`, 'utf8')), original);
+report.sourceUnchanged = true;
+await writeFile(new URL('./report.json', import.meta.url), JSON.stringify(report, null, 2) + '\n');
+process.stdout.write('Report saved outside repo.\n');

@@ -1,0 +1,103 @@
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { dirname, relative, resolve, posix } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
+import { gzipSync } from 'node:zlib';
+const directory = dirname(fileURLToPath(import.meta.url));
+const series = resolve(directory, 'series-swc-v1');
+await mkdir(series);
+const original = 'D:/AI项目/FundVal', root = resolve(directory,'source');
+const require = createRequire(resolve(original,'package.json'));
+const { build: viteBuild } = await import(pathToFileURL(require.resolve('vite')));
+const { parseSync } = await import(pathToFileURL(require.resolve('rolldown/utils')));
+const swcRequire=createRequire(resolve(directory,'swc-probe/package.json'));
+const {minify:swcMinify}=await import(pathToFileURL(swcRequire.resolve('@swc/core')));
+if(swcRequire('@swc/core/package.json').version!=='1.16.18')throw Error('SWC version drift');
+const hash = value => createHash('sha256').update(value).digest('hex');
+const source = await readFile(resolve(root,'scripts/build-site.mjs'),'utf8');
+const parsed = parseSync('build-site.mjs',source);
+if(parsed.errors.length)throw Error('Builder parse failed');
+const program=parsed.program;
+const declarationNames=['APP_SHELL_FILENAME','APP_CHUNK_FILENAME','STARTUP_MODULES','POST_INTEGRITY_MODULES','BUSINESS_MODULES','APP_CHUNK_GROUPS','COLD_LAZY_MODULE'];
+const functionNames=['modulePath','collectStaticChunkGraph','assertStartupPhaseIsolation'];
+const declarations=[];
+for(const name of declarationNames){const node=program.body.find(node=>node.type==='VariableDeclaration'&&node.declarations.some(d=>d.id.name===name));if(!node)throw Error('Missing '+name);declarations.push(source.slice(node.start,node.end));}
+for(const name of functionNames){const node=program.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name===name);if(!node)throw Error('Missing '+name);declarations.push(source.slice(node.start,node.end));}
+const calls=[];
+function walk(node, visit){if(!node||typeof node!=='object')return;if(typeof node.type==='string')visit(node);for(const [key,value]of Object.entries(node)){if(['parent','loc','range','comments'].includes(key))continue;if(Array.isArray(value))value.forEach(item=>walk(item,visit));else if(value&&typeof value==='object')walk(value,visit);}}
+walk(program,node=>{if(node.type==='CallExpression'&&node.callee.type==='Identifier'&&node.callee.name==='viteBuild')calls.push(node);});
+if(calls.length!==1||calls[0].arguments[0].type!=='ObjectExpression')throw Error('Unexpected actual build configuration');
+const expression=source.slice(calls[0].arguments[0].start,calls[0].arguments[0].end);
+const createRecipe=new Function('resolve','relative','root',declarations.join('\n')+'\nreturn { config:('+expression+'), collectStaticChunkGraph, assertStartupPhaseIsolation, modulePath };');
+const options={ecma:2022,module:true,toplevel:true,safari10:true,sourceMap:false,
+  compress:{passes:2,pure_getters:false,unsafe:false,keep_fargs:true,pure_funcs:[],drop_console:false,drop_debugger:false,global_defs:{}},
+  mangle:{topLevel:true},format:{comments:'some'}};
+const variants=[{id:'oxc-original',minify:'oxc'},{id:'swc-conservative-p2',minify:'terser',engine:'swc',options}];
+const order=[[0,1],[1,0],[0,1]];
+await writeFile(resolve(series,'protocol.json'),JSON.stringify({sourceCommit:'170fd3eadc6da02750882f8a542904ee2358d0d9',variants,order,rounds:3,
+  onlyRecipeDifferences:['build.minify','vite:terser renderChunk replacement uses pinned SWC with explicit conservative options'],additionalPlugin:'Oxc unchanged. SWC variant disables native Rolldown minification through the standard Vite terser mode; captures the same renderChunk input then invokes SWC instead of Terser. Outputs return through Rolldown final hash/link generation.',write:false,
+  mustMatchOriginal:{all:80494,cold:42985,raw:235647,chunks:16},adoption:false},null,2)+'\n');
+async function inventory(base){const files=[];async function walkDir(path){for(const e of await readdir(path,{withFileTypes:true})){const file=resolve(path,e.name);if(e.isDirectory())await walkDir(file);else if(e.isFile()){const b=await readFile(file);files.push({path:relative(base,file).replaceAll('\\','/'),bytes:b.length,sha256:hash(b)});}else throw Error('Unexpected inventory object');}}await walkDir(base);files.sort((a,b)=>a.path.localeCompare(b.path));return {files:files.length,bytes:files.reduce((n,f)=>n+f.bytes,0),sha256:hash(JSON.stringify(files))};}
+const before={originalJs:await inventory(resolve(original,'js')),originalSite:await inventory(resolve(original,'site')),snapshotJs:await inventory(resolve(root,'js')),git:execFileSync('git',['status','--porcelain'],{cwd:original,encoding:'utf8'})};
+if(before.git!=='')throw Error('Production tree not clean at entry');
+await writeFile(resolve(series,'before.json'),JSON.stringify(before,null,2)+'\n');
+const runs=[];
+for(let round=0;round<order.length;round++)for(const index of order[round]){
+  const variant=variants[index], target=resolve(series,variant.id,'round-'+(round+1));await mkdir(resolve(target,'input'),{recursive:true});
+  const recipe=createRecipe(resolve,relative,root), captured=[];
+  const config=recipe.config;if(config.build.minify!=='oxc'||config.build.target!=='es2022'||config.build.write!==false)throw Error('Original recipe drift');
+  config.build.minify=variant.minify;
+  config.plugins=[{name:'isolated-input-inventory',configResolved(config){
+    const plugin=config.plugins.find(p=>p.name==='vite:terser');if(!plugin||typeof plugin.renderChunk!=='function')throw Error('Terser plugin hook shape changed');
+    const originalHook=plugin.renderChunk;
+    plugin.renderChunk=function(code,chunk,...rest){
+      const name=chunk.name.replace(/[^A-Za-z0-9._-]/g,'_');
+      captured.push({name:chunk.name,bytes:Buffer.byteLength(code),sha256:hash(code),pureMarkers:(code.match(/[@#]__(?:PURE|NO_SIDE_EFFECTS)__/g)||[]).length});
+      return writeFile(resolve(target,'input',name+'.js.txt'),code).then(()=>variant.engine==='swc'?swcMinify(code,structuredClone(variant.options)):originalHook.call(this,code,chunk,...rest));
+    };
+  }}];
+  const start=performance.now(),result=await viteBuild(config),buildWallMs=performance.now()-start;
+  const outputs=Array.isArray(result)?result.flatMap(o=>o.output||[]):result.output||[];
+  const chunks=outputs.filter(o=>o.type==='chunk'),byFile=new Map(chunks.map(c=>[c.fileName,c]));
+  const entries=chunks.filter(c=>c.isEntry);if(entries.length!==1||entries[0].fileName!=='js/app-shell.js')throw Error('Entry changed');
+  const cold=recipe.collectStaticChunkGraph(byFile,[entries[0].fileName,...entries[0].dynamicImports]);
+  recipe.assertStartupPhaseIsolation(byFile,entries[0],cold);
+  const moduleRole=[],rows=[],linkErrors=[];
+  for(const chunk of chunks){
+    const ast=parseSync(chunk.fileName,chunk.code);if(ast.errors.length)throw Error('Emitted syntax failed '+chunk.fileName);
+    const statics=[],dynamics=[];
+    walk(ast.program,node=>{
+      if((node.type==='ImportDeclaration'||node.type==='ExportNamedDeclaration'||node.type==='ExportAllDeclaration')&&node.source)statics.push(node.source.value);
+      if(node.type==='ImportExpression'){
+        const specifier=typeof node.source.value==='string'?node.source.value:
+          node.source.type==='TemplateLiteral'&&node.source.expressions.length===0&&node.source.quasis.length===1?node.source.quasis[0].value.cooked:null;
+        if(typeof specifier!=='string')throw Error('Nonliteral dynamic import '+chunk.fileName);
+        dynamics.push(specifier);
+      }
+    });
+    const resolved=spec=>posix.normalize(posix.join(posix.dirname(chunk.fileName),spec));
+    const actualStatic=[...new Set(statics.map(resolved))].sort(),actualDynamic=[...new Set(dynamics.map(resolved))].sort();
+    if(JSON.stringify(actualStatic)!==JSON.stringify([...chunk.imports].sort()))linkErrors.push({file:chunk.fileName,kind:'static',actual:actualStatic,declared:chunk.imports});
+    if(JSON.stringify(actualDynamic)!==JSON.stringify([...chunk.dynamicImports].sort()))linkErrors.push({file:chunk.fileName,kind:'dynamic',actual:actualDynamic,declared:chunk.dynamicImports});
+    for(const dependency of [...actualStatic,...actualDynamic])if(!byFile.has(dependency))throw Error('Unlinkable import '+dependency);
+    for(const id of Object.keys(chunk.modules))moduleRole.push({path:recipe.modulePath(id),chunk:chunk.name,role:cold.has(chunk.fileName)?'cold':'lazy'});
+    const bytes=Buffer.from(chunk.code),out=resolve(target,chunk.fileName);await mkdir(dirname(out),{recursive:true});await writeFile(out,bytes);
+    rows.push({path:chunk.fileName,name:chunk.name,role:cold.has(chunk.fileName)?'cold':'lazy',bytes:bytes.length,gzip:gzipSync(bytes).length,sha256:hash(bytes),exports:chunk.exports,imports:chunk.imports,dynamicImports:chunk.dynamicImports});
+  }
+  if(linkErrors.length)throw Error('Final AST/metadata import mismatch '+JSON.stringify(linkErrors));
+  rows.sort((a,b)=>a.path.localeCompare(b.path));moduleRole.sort((a,b)=>a.path.localeCompare(b.path)||a.chunk.localeCompare(b.chunk));
+  const record={variant:variant.id,round:round+1,chunks:rows.length,raw:rows.reduce((n,r)=>n+r.bytes,0),all:rows.reduce((n,r)=>n+r.gzip,0),cold:rows.filter(r=>r.role==='cold').reduce((n,r)=>n+r.gzip,0),buildWallMs,
+    chunkFingerprint:hash(JSON.stringify(rows)),moduleRoleHash:hash(JSON.stringify(moduleRole)),isolationVerified:true,finalImportLinkVerified:true,capturedInputs:captured.sort((a,b)=>a.name.localeCompare(b.name)),rows,moduleRole};
+  if(index===0&&(record.all!==80494||record.cold!==42985||record.raw!==235647||record.chunks!==16))throw Error('Original baseline does not match real site');
+  await writeFile(resolve(target,'record.json'),JSON.stringify(record,null,2)+'\n');runs.push(record);
+  process.stdout.write(JSON.stringify({variant:record.variant,round:record.round,all:record.all,cold:record.cold,raw:record.raw,chunks:record.chunks,moduleRoleHash:record.moduleRoleHash,
+    buildWallMs:record.buildWallMs,pureMarkers:captured.reduce((n,c)=>n+c.pureMarkers,0)})+'\n');
+}
+const after={originalJs:await inventory(resolve(original,'js')),originalSite:await inventory(resolve(original,'site')),snapshotJs:await inventory(resolve(root,'js')),git:execFileSync('git',['status','--porcelain'],{cwd:original,encoding:'utf8'})};
+if(JSON.stringify(before)!==JSON.stringify(after))throw Error('Source/site changed during isolated experiment');
+if(new Set(runs.map(r=>r.moduleRoleHash)).size!==1)throw Error('Module roles changed');
+for(const variant of variants){if(new Set(runs.filter(r=>r.variant===variant.id).map(r=>r.chunkFingerprint)).size!==1)throw Error('Nondeterministic outputs '+variant.id);}
+await writeFile(resolve(series,'minifier-report.json'),JSON.stringify({schema:1,recordedAtHost:new Date().toISOString(),options,sourceCommit:'170fd3eadc6da02750882f8a542904ee2358d0d9',before,after,runs,adoption:false,latencyGate:'NOT_RUN',fullTests:'NOT_RUN'},null,2)+'\n');
+

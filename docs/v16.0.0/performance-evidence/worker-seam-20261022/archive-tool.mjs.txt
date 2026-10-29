@@ -1,0 +1,85 @@
+import { readFile,writeFile,readdir,lstat,mkdir,copyFile,realpath } from 'node:fs/promises';
+import { resolve,relative,dirname } from 'node:path';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import assert from 'node:assert/strict';
+const dir=import.meta.dirname,stage=resolve(dir,'stage'),extract=resolve(dir,'extract');
+const builds='C:/Users/84046/AppData/Local/Temp/fundval-worker-seam-builds-20261022-a4bf3fd2';
+const out='D:/AI项目/FundVal/docs/v16.0.0/performance-evidence/worker-seam-20261022';
+const sha=b=>createHash('sha256').update(b).digest('hex');
+const load=async p=>JSON.parse(await readFile(p,'utf8'));
+const summary=await load(resolve(builds,'execution-summary.json'));
+assert.ok(summary.status==='SIX_BUILDS_RECORDED'||summary.status==='STOPPED_FAILURE_NO_RETRY');
+assert.equal(summary.runs.length+summary.unattempted.length,6);
+await mkdir(stage);await mkdir(extract);
+const copied=[];
+async function put(source,destination){
+ assert.equal((await lstat(source)).isSymbolicLink(),false);
+ const target=resolve(stage,destination);
+ assert.ok(target.startsWith(stage+'\\')&&!destination.split('/').includes('..'));
+ await mkdir(dirname(target),{recursive:true});
+ const bytes=await readFile(source);await copyFile(source,target);
+ assert.equal(sha(await readFile(target)),sha(bytes));copied.push({path:destination,bytes:bytes.length,sha256:sha(bytes)});
+}
+async function tree(source,label,skip=new Set()){
+ const entries=await readdir(source,{withFileTypes:true});
+ for(const e of entries){if(skip.has(e.name))continue;const p=resolve(source,e.name),q=label+'/'+e.name;
+  if(e.isSymbolicLink())throw new Error('Link refused '+p);
+  if(e.isDirectory())await tree(p,q);else if(e.isFile())await put(p,q);else throw new Error('Entry refused '+p);
+ }
+}
+const roots=[
+ ['bounded-live-review','D:/AI项目/FundVal/Temp/m3-material-boundary-20261022-scope-review'],
+ ['diagnostics-rejection','C:/Users/84046/AppData/Local/Temp/fundval-m3-diagnostics-boundary-20261022-a9001aa7c749'],
+ ['whole-pipeline-design','C:/Users/84046/AppData/Local/Temp/FundVal-M3-private-pipeline-design-20261022-a1'],
+ ['old-baseline','C:/Users/84046/AppData/Local/Temp/FundVal-worker-baseline-20261022-a1'],
+ ['source-preparation','C:/Users/84046/AppData/Local/Temp/fundval-worker-seam-20261022-fc680351',new Set(['candidate'])],
+ ['behavior-qualification','C:/Users/84046/AppData/Local/Temp/FundVal-worker-seam-qualification-20261022-a1'],
+ ['parent-verification','C:/Users/84046/AppData/Local/Temp/fundval-worker-parent-review-20261022-e829659bd4'],
+];
+for(const [label,path,skip]of roots)await tree(path,label,skip);
+await tree(resolve(builds,'A'),'baseline-inputs',new Set(['node_modules','site']));
+for(const e of await readdir(builds,{withFileTypes:true})){
+ const p=resolve(builds,e.name);
+ if(e.isFile())await put(p,'builds/'+e.name);
+ else if(e.isDirectory()&&!['A','B','runs'].includes(e.name))await tree(p,'builds/'+e.name);
+}
+const omissions=[];
+for(const run of summary.runs){
+ const root=resolve(builds,'runs',run.label),receipt=await load(resolve(root,'receipt.json'));
+ for(const e of await readdir(root,{withFileTypes:true}))if(e.isFile())await put(resolve(root,e.name),'builds/runs/'+run.label+'/'+e.name);
+ if(receipt.artifact){
+  const site=resolve(root,'site'),manifest=await load(resolve(site,'js/app-chunks.json'));
+  const selected=['index.html','sw.js','js/app-chunks.json',...manifest.chunks.map(c=>c.path)];
+  for(const p of selected)await put(resolve(site,p),'builds/runs/'+run.label+'/selected-site/'+p);
+  omissions.push({label:run.label,completeInventoryIn:'builds/runs/'+run.label+'/receipt.json',archivedSiteMembers:selected.length,omitted:receipt.artifact.files.filter(f=>!selected.includes(f.path))});
+ }
+}
+await put(resolve(dir,'PROTOCOL.md'),'archive/PROTOCOL.md');
+await put(import.meta.filename,'archive/archive.mjs');
+copied.sort((a,b)=>a.path.localeCompare(b.path));
+assert.equal(new Set(copied.map(r=>r.path)).size,copied.length);
+const inventory={schema:1,roots:roots.map(([label,path])=>({label,path})),builds,summaryStatus:summary.status,files:copied,omissions,inventorySha256:sha(JSON.stringify(copied))};
+await writeFile(resolve(dir,'inventory.json'),JSON.stringify(inventory,null,2)+'\n',{flag:'wx'});
+await mkdir(out,{recursive:true});
+const archive=resolve(out,'original-evidence.tar.gz');
+try{await lstat(archive);throw new Error('Archive already exists');}catch(e){if(e.code!=='ENOENT')throw e;}
+async function native(label,args){
+ const startedAt=new Date().toISOString(),r=spawnSync('tar.exe',args,{windowsHide:true,encoding:null,timeout:120000,maxBuffer:2_000_000});
+ const stdout=r.stdout??Buffer.alloc(0),stderr=r.stderr??Buffer.alloc(0);
+ await writeFile(resolve(dir,label+'.stdout'),stdout,{flag:'wx'});await writeFile(resolve(dir,label+'.stderr'),stderr,{flag:'wx'});
+ const receipt={command:'tar.exe',args,startedAt,endedAt:new Date().toISOString(),exitCode:r.status,signal:r.signal,error:r.error?.message??null,stdout:{bytes:stdout.length,sha256:sha(stdout)},stderr:{bytes:stderr.length,sha256:sha(stderr)}};
+ await writeFile(resolve(dir,label+'.native.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+ assert.equal(r.status,0);assert.equal(r.signal,null);assert.equal(r.error,undefined);return receipt;
+}
+const pack=await native('pack',['-czf',archive,'-C',stage,'.']);
+const unpack=await native('unpack',['-xzf',archive,'-C',extract]);
+async function scan(folder,base=folder){const rows=[];for(const e of await readdir(folder,{withFileTypes:true})){const p=resolve(folder,e.name);if(e.isSymbolicLink())throw new Error('Extracted link');if(e.isDirectory())rows.push(...await scan(p,base));else{assert.ok(e.isFile());const b=await readFile(p);rows.push({path:relative(base,p).replaceAll('\\','/'),bytes:b.length,sha256:sha(b)});}}return rows.sort((a,b)=>a.path.localeCompare(b.path));}
+assert.equal(await realpath(extract),extract);
+const extracted=await scan(extract);assert.deepEqual(extracted,copied);
+const bytes=await readFile(archive);
+const audit={schema:1,status:'PASS',archive:{path:archive,bytes:bytes.length,sha256:sha(bytes)},members:copied.length,uncompressedBytes:copied.reduce((a,b)=>a+b.bytes,0),inventorySha256:inventory.inventorySha256,extract,exactMemberSet:true,pack,unpack,omittedScope:'OCR/dependency payloads and repeated copied public source/assets from six full local sites; exact complete per-run inventories retained',productAdopted:false};
+await writeFile(resolve(dir,'archive-audit.json'),JSON.stringify(audit,null,2)+'\n',{flag:'wx'});
+for(const name of ['inventory.json','archive-audit.json','PROTOCOL.md'])await copyFile(resolve(dir,name),resolve(out,name));
+await copyFile(import.meta.filename,resolve(out,'archive-tool.mjs.txt'));
+console.log(JSON.stringify(audit));

@@ -1,0 +1,75 @@
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { spawnSync, execFileSync } from 'node:child_process';
+import { join, relative } from 'node:path';
+const root = 'D:/AI项目/FundVal';
+const output = "C:/Users/84046/AppData/Local/Temp/fundval-catalog-revalidate-20261018-72166824f10b45f5a1b5976f180bd4c9/final";
+const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+function sourceInventory() {
+  const paths = [...new Set(git('ls-files', '--cached', '--others', '--exclude-standard').split('\n'))]
+    .filter(p => /^(?:js|scripts|test|e2e|data|css)\//.test(p) || /^(?:index.html|sw.js|manifest.json|package.json|package-lock.json|playwright.config.mjs)$/.test(p)).sort();
+  const files = paths.map(path => { const b = readFileSync(join(root, path)); return { path, bytes: b.length, sha256: sha(b) }; });
+  return { files: files.length, bytes: files.reduce((n, f) => n + f.bytes, 0), sha256: sha(JSON.stringify(files)) };
+}
+function siteInventory() {
+  const paths = [];
+  function walk(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const file = join(dir, entry.name);
+      if (entry.isDirectory()) walk(file);
+      else if (entry.isFile()) paths.push(relative(join(root, 'site'), file).replaceAll('\\', '/'));
+      else throw Error('Unexpected nonregular site entry');
+    }
+  }
+  walk(join(root, 'site'));
+  const files = paths.sort((a,b) => a.localeCompare(b)).map(path => {
+    const b = readFileSync(join(root, 'site', path));
+    return { path, bytes: b.length, sha256: sha(b) };
+  });
+  return { files: files.length, bytes: files.reduce((n,f) => n + f.bytes, 0), sha256: sha(JSON.stringify(files)) };
+}
+const report = { schema: 1, status: 'RUNNING', sourceHead: git('rev-parse', 'HEAD'), startedAt: new Date().toISOString(),
+  sourceDateEpoch: '1792046773', sourceBefore: sourceInventory(), catalogBefore: sha(readFileSync(join(root,'data/fund-catalog.json'))),
+  commands: [], finalBuilds: [], notProductionOrDeviceEvidence: true, noNewPairedLatencyRun: true };
+const env = { ...process.env, SOURCE_DATE_EPOCH: report.sourceDateEpoch };
+function run(name, command, expected = 0) {
+  const start = performance.now();
+  const result = spawnSync('powershell.exe', ['-NoProfile','-Command', command], { cwd: root, env, encoding: 'utf8', maxBuffer: 64*1024*1024 });
+  const log = String(result.stdout || '') + String(result.stderr || '');
+  writeFileSync(join(output, name + '.log'), log, { flag: 'wx' });
+  const record = { name, command, exit: result.status, expected, durationMs: performance.now() - start, log: name + '.log' };
+  report.commands.push(record);
+  process.stdout.write(JSON.stringify(record) + '\n');
+  if (result.error || result.status !== expected) throw Error(name + ' unexpected result: ' + log.slice(-3000));
+  return log;
+}
+try {
+  const tap = run('test', 'npm test -- --test-reporter=tap');
+  report.tests = Object.fromEntries(['tests','pass','fail','skipped'].map(k => [k, Number(tap.match(new RegExp('^# ' + k + ' (\\d+)$','m'))?.[1])]));
+  report.syntaxLog = run('check', 'npm run check').match(/Syntax checked[^\n]+/)?.[0] || null;
+  run('build-before-e2e', 'npm run build');
+  const e2e = run('e2e', 'npm run test:e2e');
+  report.e2eSummary = e2e.match(/\d+ passed[^\n]*/g)?.at(-1) || null;
+  for (let i=1; i<=3; i++) {
+    run('build-final-' + i, 'npm run build');
+    const critical = execFileSync(process.execPath, ['scripts/release-fingerprint.mjs','--directory','site'], { cwd: root, encoding: 'utf8' }).trim();
+    report.finalBuilds.push({ round: i, critical, site: siteInventory() });
+  }
+  report.budgetLog = run('budget', 'node scripts/release-fingerprint.mjs --assert-app-bundle-budget site', 1);
+  report.auditLog = run('audit', 'npm audit --registry=https://registry.npmjs.org --audit-level=high');
+  report.status = 'LOCAL_CHECKS_PASS_EXISTING_ALL_BUDGET_FAIL';
+} catch (error) {
+  report.status = 'LOCAL_CHECK_FAILURE';
+  report.error = String(error.stack || error);
+  process.exitCode = 1;
+} finally {
+  report.sourceAfter = sourceInventory();
+  report.catalogAfter = sha(readFileSync(join(root,'data/fund-catalog.json')));
+  report.sourceUnchanged = JSON.stringify(report.sourceBefore) === JSON.stringify(report.sourceAfter);
+  report.catalogUnchanged = report.catalogBefore === report.catalogAfter;
+  report.completedAt = new Date().toISOString();
+  writeFileSync(join(output,'checks.json'), JSON.stringify(report,null,2) + '\n', { flag: 'wx' });
+  process.stdout.write(JSON.stringify({ status: report.status, sourceUnchanged: report.sourceUnchanged, catalogUnchanged: report.catalogUnchanged, report: join(output,'checks.json') }) + '\n');
+  if (!report.sourceUnchanged || !report.catalogUnchanged) process.exitCode = 1;
+}

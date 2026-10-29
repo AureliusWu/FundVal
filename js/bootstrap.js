@@ -13,8 +13,8 @@ function showStartupFailure(reason) {
 }
 
 try {
-  const { recoverPendingRepositoryTransaction, withHoldingsLock } = await import('./storage/holdings-repository.js');
-  const { runLocalMigrations } = await import('./migrations.js');
+  const { recoverPendingRepositoryTransaction, withHoldingsLock } = await import('./storage/startup-repository.js');
+  const { runLocalMigrations } = await import('./startup-migrations.js');
   const startup = await withHoldingsLock(() => {
     const recovery = recoverPendingRepositoryTransaction();
     if (!recovery.ok) return recovery;

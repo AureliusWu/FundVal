@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-23T02:04:33.868Z",
+  "scope": "archive completed narrow compiler-overlay trial; no compiler or product execution",
+  "sources": [
+    "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+    "C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-probe-20261023-parent",
+    "C:/Users/84046/AppData/Local/Temp/FundVal-closure-overlay-execution-20261023-parent"
+  ],
+  "extras": [
+    "static overlay assessment",
+    "read-only hybrid integration report+AST receipt"
+  ],
+  "exclusions": [
+    "unmodifiedJDK/JARbinaries metadataonly",
+    "current product inventories only; real source payload already§52",
+    "laterdiagnosis/addenda outside archive"
+  ],
+  "frozenOriginalStop": "§53 untouched"
+}

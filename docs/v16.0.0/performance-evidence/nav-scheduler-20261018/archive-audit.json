@@ -1,0 +1,65 @@
+{
+  "sourceBindingsMatch": true,
+  "archives": [
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/final-five-old-source.tap.txt",
+      "bytes": 8338,
+      "sha256": "9247dacedc94fc699e4e6b6b440ddfba69c6fc6c3fcf138827a3461a5db46523",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/final-five-current-source.tap.txt",
+      "bytes": 2518,
+      "sha256": "55a61199c1cb60054909e1bc1598358849a9dc1c2396e67118c5314d7d6810f0",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/executor-final40.tap.txt",
+      "bytes": 10685,
+      "sha256": "622e30d1fa08df1da8e534fda8718c507202aa0b6c8d753cad9d512001deafb8",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/browser-red.log.txt",
+      "bytes": 3468,
+      "sha256": "8f4c552d912ab5b95793ac67eec2f3c5f02eed64e133cd94b600f298c91854b3",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/browser-green.log.txt",
+      "bytes": 531,
+      "sha256": "841a316b3bf7b2a8b4d76c628d510bc927cbd25670ab1568088ea335449fefa4",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/e2e-full.log.txt",
+      "bytes": 22059,
+      "sha256": "c3553505311033f8954c3bf9a18125a2ca2936d53ba9788b8f87f7af6e3acbd2",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/budget.log.txt",
+      "bytes": 426,
+      "sha256": "821a0db9a81649a431b5cecd8e3b0360c92a6aec1ecabb1acb8f98a69da91e3d",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/check-final.log.txt",
+      "bytes": 113,
+      "sha256": "869e8ac57f1f63ea86241f2484dfc7698a6d4d0937e30e166609a02dcccd4a90",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/audit.log.txt",
+      "bytes": 25,
+      "sha256": "dc1a4bd9a3ce8b642ccf8bc1045f62643fb99dd06069afda88dde2ba906724fb",
+      "extraTerminalLf": 1
+    },
+    {
+      "path": "docs/v16.0.0/performance-evidence/nav-scheduler-20261018/measure-builds.mjs.txt",
+      "bytes": 3094,
+      "sha256": "2dfd619316effdeb0d1d2f88c356b053f4cb665f83a8d03d214c585f9d1c08c6",
+      "extraTerminalLf": 1
+    }
+  ]
+}

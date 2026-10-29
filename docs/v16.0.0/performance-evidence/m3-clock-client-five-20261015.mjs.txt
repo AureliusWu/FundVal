@@ -1,0 +1,68 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
+import { execFileSync } from 'node:child_process';
+const root = 'D:/AI项目/FundVal';
+const paths = ['js/eastmoney-estimate.js', 'js/config.js', 'js/runtime/worker-contract.js', 'js/runtime/quote-contract.js', 'js/runtime/quote-normalizer.js'];
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+async function hashes() { return Object.fromEntries(await Promise.all(paths.map(async p => [p, hash(await readFile(root + '/' + p))]))); }
+const report = {
+  schema: 1, status: 'READ_ONLY_POST_DENIED_CLOCK_SYNC_FIXED_FIVE',
+  sourceHead: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
+  startedAt: new Date().toISOString(),
+  protocol: { attempts: 5, codes: ['005844', '012920'], realClient: 'fetchEstimateRows', force: true,
+    explicitNow: false, envProxy: true, perAttemptTimeout: 'unchanged client default 10000ms',
+    noAdaptiveRetries: true, originalFailedSamplesReplaced: false,
+    instrumentation: 'Native response.json observes limited public metadata and returns the exact payload; small observer overhead disclosed. No Date, payload, validator, source or timeout changes.' },
+  clockAttempt: { authorized: true, resyncCalls: 1, result: 'ACCESS_DENIED', errorHex: '0x80070005', clockUnchanged: true, configurationUnchanged: true },
+  sourceHashesBefore: await hashes(), samples: [],
+};
+const nativeFetch = globalThis.fetch;
+const { fetchEstimateRows } = await import(pathToFileURL(root + '/js/eastmoney-estimate.js'));
+const text = value => typeof value === 'string' ? value.slice(0, 160) : null;
+try {
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const started = performance.now(), sample = { attempt, startedAt: new Date().toISOString() };
+    globalThis.fetch = async (url, options) => {
+      const request = new URL(url);
+      if (request.origin !== 'https://sinan-estimate-push.ligugu69.workers.dev' || request.pathname !== '/estimates'
+        || request.searchParams.get('codes') !== report.protocol.codes.join(',') || options?.method && options.method !== 'GET') throw new Error('Read-only diagnostic scope escaped');
+      const response = await nativeFetch(url, options), json = response.json.bind(response);
+      sample.http = { status: response.status, date: text(response.headers.get('date')), receivedAt: new Date().toISOString() };
+      response.json = async () => {
+        const payload = await json(), now = Date.now();
+        sample.metadata = { capturedAt: new Date(now).toISOString(), schemaVersion: payload?.schema_version ?? null,
+          source: text(payload?.source), status: text(payload?.status), fetchedAt: text(payload?.fetched_at), generatedAt: text(payload?.generated_at),
+          itemCount: Array.isArray(payload?.items) ? payload.items.length : null };
+        for (const [label, value] of [['fetched', payload?.fetched_at], ['generated', payload?.generated_at], ['httpDate', response.headers.get('date')]]) {
+          const epoch = typeof value === 'string' ? Date.parse(value) : NaN;
+          sample.metadata[label + 'MinusCaptureMs'] = Number.isFinite(epoch) ? epoch - now : null;
+        }
+        return payload;
+      };
+      return response;
+    };
+    try {
+      const rows = await fetchEstimateRows(report.protocol.codes, { force: true });
+      sample.result = 'ACCEPTED';
+      sample.rows = [...rows].filter(([, row]) => row).map(([code, row]) => ({ code,
+        status: row.status, valueKind: row.source_quote?.valueKind, value: row.source_quote?.value,
+        changePct: row.source_quote?.changePct, baseNav: row.source_quote?.baseNav,
+        baseNavDate: row.source_quote?.baseNavDate, targetDate: row.source_quote?.targetDate,
+        observedAt: row.source_quote?.observedAt, fetchedAt: row.source_quote?.fetchedAt,
+        sourceId: row.source_quote?.sourceId, sourceTier: row.source_quote?.sourceTier, quoteStatus: row.source_quote?.status }));
+    } catch (error) { sample.result = 'REJECTED'; sample.error = { name: error.name, code: error.code ?? null }; }
+    sample.durationMs = performance.now() - started;
+    report.samples.push(sample);
+    process.stdout.write(JSON.stringify(sample) + '\n');
+  }
+} finally { globalThis.fetch = nativeFetch; }
+report.sourceHashesAfter = await hashes();
+report.sourceUnchanged = JSON.stringify(report.sourceHashesBefore) === JSON.stringify(report.sourceHashesAfter);
+report.completedAt = new Date().toISOString();
+report.summary = { acceptedRequests: report.samples.filter(s => s.result === 'ACCEPTED').length,
+  capturedMetadata: report.samples.filter(s => s.metadata).length,
+  acceptedRows: report.samples.reduce((n, s) => n + (s.rows?.length || 0), 0),
+  notIndependentNavReconciliation: true, noProductionUiOrReleaseProof: true };
+await writeFile(new URL('./client-five.json', import.meta.url), JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
+process.stdout.write(JSON.stringify({ summary: report.summary, sourceUnchanged: report.sourceUnchanged }) + '\n');

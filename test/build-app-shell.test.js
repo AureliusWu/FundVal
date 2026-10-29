@@ -10,13 +10,19 @@ test('production build emits a budgeted split homepage graph without OCR', async
 
   assert.match(build, /const APP_SHELL_GZIP_BUDGET = 52_241/);
   assert.match(build, /const APP_CHUNK_MANIFEST = 'js\/app-chunks\.json'/);
-  assert.match(build, /codeSplitting: true/);
-  assert.match(build, /minify: 'esbuild'/);
+  assert.match(build, /codeSplitting: \{ groups: APP_CHUNK_GROUPS \}/);
+  assert.match(build, /minify: 'oxc'/);
+  assert.match(build, /priority: 100, test: id => STARTUP_MODULES\.has/);
+  assert.match(build, /priority: 90, test: id => POST_INTEGRITY_MODULES\.has/);
+  assert.match(build, /assertStartupPhaseIsolation\(chunkByFile, entry, coldStartFiles\)/);
+  assert.match(build, /Homepage bootstrap or migration graph contains post-integrity app modules/);
+  assert.match(build, /Homepage cold-start graph contains OCR, cloud\/Gist or diagnostics modules/);
   assert.match(build, /entryFileNames: APP_SHELL_FILENAME/);
   assert.match(build, /chunkFileNames: APP_CHUNK_FILENAME/);
   assert.match(build, /collectStaticChunkGraph/);
   assert.match(build, /\[entry\.fileName, \.\.\.entry\.dynamicImports\]/);
-  assert.match(build, /chunk\.isDynamicEntry && Object\.keys\(chunk\.modules\)\.length > 0/);
+  assert.match(build, /lazyChunks\.filter\(chunk => chunk\.isDynamicEntry\)/);
+  assert.match(build, /lazyFeatureFiles\.has\(chunk\.fileName\) && Object\.keys\(chunk\.modules\)\.length > 0/);
   assert.match(build, /Homepage build must retain at least one non-OCR on-demand feature chunk/);
   assert.match(build, /Homepage chunk \$\{chunk\.fileName\} unexpectedly contains an OCR runtime or asset reference/);
   assert.match(build, /for \(const \{ chunk \} of measurements\)/);

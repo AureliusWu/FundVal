@@ -5,10 +5,12 @@ import {
 } from './holding-set-contract.js';
 export { validateHoldingSet } from './holding-set-contract.js';
 
-const MAX_ROWS = 50;
+export const WORKER_REQUEST_LIMIT = 50;
+const MAX_ROWS = WORKER_REQUEST_LIMIT;
 const KINDS = new Set(['intraday_estimate', 'qdii_next_nav_estimate', 'holdings_model', 'official_nav', 'unavailable']);
 const ROW_STATUSES = new Set(['ok', 'success', 'fresh', 'delayed', 'modeled', 'degraded', 'stale', 'latest_official', 'official', 'realtime', 'unavailable', 'error', 'failed']);
 const TOP_STATUSES = new Set(['ok', 'partial', 'degraded', 'unavailable']);
+const HTTP_METADATA_AHEAD_MS = 2000;
 
 export class WorkerContractError extends Error {
   constructor(code) {
@@ -37,7 +39,7 @@ function kind(value) {
   if (value === 'overseas_model') return 'qdii_next_nav_estimate';
   return KINDS.has(value) ? value : '';
 }
-function chooseNumber(row, canonical, aliases, { percent = false, ignoreNullAliases = false } = {}) {
+function chooseNumber(row, canonical, aliases, percent = false, ignoreNullAliases = false) {
   const hasCanonical = own(row, canonical);
   let value = hasCanonical ? numeric(row[canonical], percent) : null;
   if (hasCanonical && row[canonical] != null && value == null) reject('WORKER_ROW_INVALID');
@@ -71,6 +73,7 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   const legacyKind = own(row, 'est_kind') ? kind(row.est_kind) : '';
   if ((own(row, 'kind') && !canonicalKind) || (own(row, 'est_kind') && !legacyKind)) reject('WORKER_ROW_INVALID');
   const valueKind = canonicalKind || legacyKind || (wireVersion === 1 ? 'intraday_estimate' : '');
+  const official = valueKind === 'official_nav';
   if (!valueKind) reject('WORKER_ROW_INVALID');
   if (canonicalKind && legacyKind && canonicalKind !== legacyKind && canonicalKind !== 'unavailable') reject('WORKER_ALIAS_CONFLICT');
   const status = text(row.status, 32) || (wireVersion === 1 && !canonicalKind ? 'ok' : '');
@@ -80,11 +83,11 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   if (!unusable && !source) reject('WORKER_ROW_INVALID');
   const name = text(row.name ?? row.jjjc, 160) || code;
   const baseNav = chooseNumber(row, 'base_nav', ['last_nav', 'dwjz']);
-  const valueNav = chooseNumber(row, 'value_nav', valueKind === 'official_nav' ? ['est_nav', 'gsz'] : ['estimate_nav', 'est_nav', 'gsz'],
-    { ignoreNullAliases: valueKind === 'official_nav' });
-  const change = valueKind === 'official_nav'
-    ? chooseNumber(row, 'value_change', ['est_change', 'gszzl'], { percent: true, ignoreNullAliases: true })
-    : chooseNumber(row, own(row, 'estimate_change') ? 'estimate_change' : 'value_change', ['est_change', 'gszzl'], { percent: true });
+  const valueNav = chooseNumber(row, 'value_nav', official ? ['est_nav', 'gsz'] : ['estimate_nav', 'est_nav', 'gsz'],
+    false, official);
+  const change = official
+    ? chooseNumber(row, 'value_change', ['est_change', 'gszzl'], true, true)
+    : chooseNumber(row, own(row, 'estimate_change') ? 'estimate_change' : 'value_change', ['est_change', 'gszzl'], true);
   const baseDateRaw = own(row, 'base_nav_date') ? row.base_nav_date : (canonicalKind ? null : row.nav_date ?? row.gzrq);
   const baseDate = normalizeQuoteDate(baseDateRaw);
   if (baseDateRaw != null && baseDateRaw !== '' && !baseDate) reject('WORKER_ROW_INVALID');
@@ -95,7 +98,7 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   if (!unusable && row.source_time_precision === 'date' && sourceTime !== sourceDate
     || !unusable && ['datetime', 'minute'].includes(row.source_time_precision) && sourceTime === sourceDate) reject('WORKER_ROW_INVALID');
   const targetRaw = own(row, 'value_date') ? row.value_date
-    : (valueKind === 'official_nav' && canonicalKind ? row.nav_date : sourceDate);
+    : (official && canonicalKind ? row.nav_date : sourceDate);
   const targetDate = normalizeQuoteDate(targetRaw);
   for (const alias of ['estimate_time', 'est_time', 'gxrq']) {
     if (!row[alias] || !sourceTime) continue;
@@ -108,16 +111,16 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
   }
   const nowMs = clock(now);
   if (!unusable && (valueNav == null || valueNav <= 0 || !sourceDate || sourceMs == null || sourceMs > nowMs
-    || !targetDate || !baseDate && valueKind !== 'official_nav'
+    || !targetDate || !baseDate && !official
     || baseDate && (baseDate >= targetDate || baseDate > chinaDay(nowMs))
     || baseNav != null && baseNav <= 0
     || (baseNav == null) !== (baseDate == null)
-    || valueKind !== 'official_nav' && (baseNav == null || change == null)
+    || !official && (baseNav == null || change == null)
     || valueKind !== 'qdii_next_nav_estimate' && targetDate > chinaDay(nowMs)
     || valueKind !== 'qdii_next_nav_estimate' && targetDate !== sourceDate)) reject('WORKER_ROW_INVALID');
   if (unusable && canonicalKind === 'unavailable' && [baseNav, valueNav, change].some(value => value != null)) reject('WORKER_ROW_INVALID');
-  const coverage = chooseNumber(row, 'coverage', ['model_coverage'], { percent: true, ignoreNullAliases: true });
-  const quoteCount = chooseNumber(row, 'quote_count', ['model_quote_count'], { ignoreNullAliases: true });
+  const coverage = chooseNumber(row, 'coverage', ['model_coverage'], true, true);
+  const quoteCount = chooseNumber(row, 'quote_count', ['model_quote_count'], false, true);
   const reportRaw = own(row, 'report_date') ? row.report_date : row.model_report_date;
   if (own(row, 'report_date') && own(row, 'model_report_date') && row.model_report_date !== reportRaw
     && (text(row.model_report_date, 10) || text(reportRaw, 10))) reject('WORKER_ALIAS_CONFLICT');
@@ -144,38 +147,48 @@ export function normalizeWorkerEstimateRow(row, { wireVersion = 1, now = Date.no
     status: unusable ? 'unavailable' : 'ok', source_status: status,
     base_nav: unusable ? null : baseNav, base_nav_date: unusable ? null : baseDate,
     value_nav: unusable ? null : valueNav,
-    value_change: valueKind === 'official_nav' && !unusable ? change : null,
+    value_change: official && !unusable ? change : null,
     value_date: unusable ? null : targetDate,
-    estimate_nav: valueKind !== 'official_nav' && !unusable ? valueNav : null,
-    estimate_change: valueKind !== 'official_nav' && !unusable ? change : null,
+    estimate_nav: !official && !unusable ? valueNav : null,
+    estimate_change: !official && !unusable ? change : null,
     source_time: unusable ? null : sourceTime,
-    last_nav: unusable ? null : baseNav, nav_date: valueKind === 'official_nav' ? targetDate : baseDate,
+    last_nav: unusable ? null : baseNav, nav_date: official ? targetDate : baseDate,
     est_nav: unusable ? null : valueNav, est_change: unusable ? null : change,
     est_time: unusable ? null : sourceTime,
-    est_kind: valueKind === 'official_nav' ? 'official_nav' : valueKind === 'qdii_next_nav_estimate' ? 'overseas_model' : valueKind === 'holdings_model' ? 'holdings_model' : 'estimate',
+    est_kind: official ? 'official_nav' : valueKind === 'qdii_next_nav_estimate' ? 'overseas_model' : valueKind === 'holdings_model' ? 'holdings_model' : 'estimate',
     coverage, quote_count: quoteCount, report_date: reportDate || null,
   };
 }
 
-/** HTTP schema is independent of the estimate-wire-v8 row fixture schema. */
-export function parseWorkerEnvelope(payload, { endpoint, requestedCodes = [], now = Date.now() } = {}) {
+function parseEnvelope(payload, { endpoint, requestedCodes = [], now = Date.now() } = {}, metadataAheadMs) {
   if (!record(payload) || !['estimates', 'holdings'].includes(endpoint) || !Array.isArray(payload.items) || payload.items.length > MAX_ROWS) reject('WORKER_PAYLOAD_INVALID');
   const wireVersion = own(payload, 'schema_version') ? payload.schema_version : 1;
   if (own(payload, 'schema_version') && wireVersion !== 2) reject('WORKER_SCHEMA_UNSUPPORTED');
   const nowMs = clock(now);
+  let skewMs = 0;
   const status = payload.status ?? (endpoint === 'holdings' && !payload.items.length ? 'empty' : 'ok');
   if (wireVersion === 2 && (!own(payload, 'status') || !TOP_STATUSES.has(payload.status))) reject('WORKER_STATUS_INVALID');
   if (!TOP_STATUSES.has(status) && !(wireVersion === 1 && endpoint === 'holdings' && status === 'empty')) reject('WORKER_STATUS_INVALID');
   if (wireVersion === 2) {
     const generated = timestamp(payload.generated_at, { zoned: true });
-    if (!text(payload.service_version, 80) || generated == null || generated > nowMs
+    if (!text(payload.service_version, 80) || generated == null || generated > nowMs + metadataAheadMs
       || !Array.isArray(payload.capabilities) || payload.capabilities.length > 16
       || !payload.capabilities.every(value => /^[a-z][a-z0-9_]{0,39}$/.test(value))
       || new Set(payload.capabilities).size !== payload.capabilities.length
       || !payload.capabilities.includes(`${endpoint}_v2`)) reject('WORKER_METADATA_INVALID');
+    skewMs = Math.max(skewMs, generated - nowMs);
+  } else if (metadataAheadMs > 0 && own(payload, 'generated_at')) {
+    // V1 did not define generation metadata. Keep its strict public contract
+    // unchanged, but an HTTP body cannot smuggle an unbounded clock field.
+    const generated = timestamp(payload.generated_at, { zoned: true });
+    if (generated == null || generated > nowMs + metadataAheadMs) reject('WORKER_METADATA_INVALID');
+    skewMs = Math.max(skewMs, generated - nowMs);
   }
-  if (own(payload, 'fetched_at') && (timestamp(payload.fetched_at, { zoned: true }) == null
-    || timestamp(payload.fetched_at, { zoned: true }) > nowMs)) reject('WORKER_METADATA_INVALID');
+  if (own(payload, 'fetched_at')) {
+    const fetched = timestamp(payload.fetched_at, { zoned: true });
+    if (fetched == null || fetched > nowMs + metadataAheadMs) reject('WORKER_METADATA_INVALID');
+    skewMs = Math.max(skewMs, fetched - nowMs);
+  }
   const requested = new Set(requestedCodes);
   if (!requested.size || requested.size !== requestedCodes.length || [...requested].some(code => !/^\d{6}$/.test(code))) reject('WORKER_ACCOUNTING_INVALID');
   let items;
@@ -239,5 +252,21 @@ export function parseWorkerEnvelope(payload, { endpoint, requestedCodes = [], no
   }
   return { wireVersion, status, source: text(payload.source, 120), fetchedAt: payload.fetched_at || '',
     generatedAt: payload.generated_at || '', serviceVersion: payload.service_version || '',
-    capabilities: wireVersion === 2 ? [...payload.capabilities] : [], reportDate: text(payload.report_date, 10), items };
+    capabilities: wireVersion === 2 ? [...payload.capabilities] : [], reportDate: text(payload.report_date, 10), items,
+    ...(skewMs > 0 ? { clientReceivedAt: new Date(nowMs).toISOString(), skewMs } : {}) };
+}
+
+/** HTTP schema is independent of the estimate-wire-v8 row fixture schema. */
+export function parseWorkerEnvelope(payload, options = {}) {
+  return parseEnvelope(payload, options, 0);
+}
+
+/**
+ * Only freshly received HTTP bodies use this bounded transport compatibility.
+ * It never adjusts the clock used for row/source/period/report validation.
+ * Raw server metadata is retained; callers use clientReceivedAt for acquisition
+ * only when a small positive metadata skew was actually accepted.
+ */
+export function parseWorkerHttpEnvelope(payload, options = {}) {
+  return parseEnvelope(payload, options, HTTP_METADATA_AHEAD_MS);
 }

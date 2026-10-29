@@ -54,3 +54,11 @@ PR workflow API的 `headSha` 指向PR源提交，实际checkout/artifact/CodeQL�
 - PR 新增两项 CodeQL finding：实现、本地回归和真实复扫均已闭环；已有五项必须进入后续工程问题清单。
 - 安全扫描门禁满足。M0 仍需完成 collector 跨平台审阅修复、受保护合并和 main 候选字节验证。
 - 生产部署、main候选原样发布、设备/PWA验收不属于本次CI成功证据；未执行。
+
+## 2026-10-15：#5 相关维护器健壮性加固（等待新精确复扫）
+
+HTTP→固定JSON本身是正常目录维护功能，不按规则名直接声称任意文件写入。现已补真实缺口：16MiB输入/输出、原始行与接纳字段预算、实际stream字节与UTF8检查、20秒Promise/abort/单调deadline、同目录独占descriptor写入后rename，失败不截断旧目标。新增27项测试，含实际旧源与两个后续负控；完整本地门禁通过，但原M3预算仍失败，产品产物不变。
+
+一次原生公开下载仅写独立Temp镜像成功，项目原目录未改。它不验证上游完整性或全部文件系统故障；没有dismiss/suppress #5，也不能因本地通过就预称CodeQL关闭。确切实现、测试、限制和证据见[维护器报告](performance-evidence/catalog-maintenance-20261015/README.md)。前一2a9f analysis1958051698仍1result，不继承给新实现；需新SHA真实扫描。
+
+10月18日恢复后另补空/极小片对象累积负控并改固定16MiB保留正文缓冲（不是总堆上限），最终31定向、新全量1059/1056PASS/3skip、syntax205/E2E30、三次产品字节确定性及官方audit0。前述10月15日结果保留为历史窗口，最新source hash1a9c与新证据见同一报告末尾；仍等待精确提交真实复扫，不把本地资源修复写成扫描关闭结论。

@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "project": "FundVal",
+  "recordedAt": "2026-10-01 15:07:27 UTC",
+  "scope": "Hermetic local desktop Chrome, 390x844 viewport, no-store localhost transport, Service Worker blocked; no real providers, Gist writes, physical-device or production performance acceptance.",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v24.14.0",
+    "npm": "11.9.0",
+    "chromeVersion": "154.0.8037.93",
+    "chromeExecutable": "C:/Program Files/Google/Chrome/Application/chrome.exe"
+  },
+  "fullE2e": {
+    "command": "FUNDVAL_E2E_PORT=12437 npm run test:e2e",
+    "passed": 19,
+    "failed": 0,
+    "exitCode": 0,
+    "durationSeconds": 29.3,
+    "fixtureCorrection": "The official-date case disables its synthetic holdings response so a legitimate current holdings model cannot replace the official quote; dedupe and dates retain strict assertions."
+  },
+  "current": {
+    "origin": "http://127.0.0.1:12437",
+    "command": "npm run test:e2e -- --grep 'local mobile cold/warm readiness'",
+    "independentRuns": 3,
+    "runDurationsSeconds": [
+      5.7,
+      5.3,
+      5.1
+    ],
+    "runs": [
+      [
+        {
+          "coldReadyMs": 231.10000002384186,
+          "warmReadyMs": 101.19999998807907,
+          "saveUiMs": 71.82600000000002
+        },
+        {
+          "coldReadyMs": 181,
+          "warmReadyMs": 115.30000001192093,
+          "saveUiMs": 82.18379999999979
+        },
+        {
+          "coldReadyMs": 196,
+          "warmReadyMs": 120.59999996423721,
+          "saveUiMs": 82.57250000000022
+        }
+      ],
+      [
+        {
+          "coldReadyMs": 200.19999998807907,
+          "warmReadyMs": 106.60000002384186,
+          "saveUiMs": 68.58699999999999
+        },
+        {
+          "coldReadyMs": 183.80000001192093,
+          "warmReadyMs": 108.09999996423721,
+          "saveUiMs": 65.38200000000006
+        },
+        {
+          "coldReadyMs": 169.60000002384186,
+          "warmReadyMs": 101.10000002384186,
+          "saveUiMs": 66.95479999999998
+        }
+      ],
+      [
+        {
+          "coldReadyMs": 212.5999999642372,
+          "warmReadyMs": 101.60000002384186,
+          "saveUiMs": 75.44830000000002
+        },
+        {
+          "coldReadyMs": 146.0999999642372,
+          "warmReadyMs": 116.10000002384186,
+          "saveUiMs": 67.59089999999969
+        },
+        {
+          "coldReadyMs": 157,
+          "warmReadyMs": 106.89999997615814,
+          "saveUiMs": 70.3125
+        }
+      ]
+    ],
+    "summary": {
+      "coldReadyMs": {
+        "samples": 9,
+        "median": 183.80000001192093,
+        "maximum": 231.10000002384186,
+        "p95": null,
+        "p95Reason": "These small local samples do not support a stable p95 estimate."
+      },
+      "warmReadyMs": {
+        "samples": 9,
+        "median": 106.89999997615814,
+        "maximum": 120.59999996423721,
+        "p95": null,
+        "p95Reason": "These small local samples do not support a stable p95 estimate."
+      },
+      "saveUiMs": {
+        "samples": 9,
+        "median": 70.3125,
+        "maximum": 82.57250000000022,
+        "p95": null,
+        "p95Reason": "These small local samples do not support a stable p95 estimate."
+      }
+    },
+    "artifact": {
+      "criticalFingerprint": "e04fbba687d0c3588657748a7811ed811cee03ab990e6b554dfd2cf18852e986",
+      "rootProvidedFingerprintMatches": true,
+      "chunkVerification": {
+        "count": 24,
+        "bytes": 246489
+      },
+      "coldStartGzipBytes": 44311,
+      "allNonOcrGzipBytes": 83371
+    }
+  },
+  "freshReference": {
+    "commit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "directory": "C:/Users/84046/AppData/Local/Temp/fundval-m3-perf-reference-addc689a17064f8c98e07606d84fdfe7",
+    "origin": "http://127.0.0.1:12438",
+    "sourceDateEpoch": 1790569957,
+    "resolvedLockEquivalent": true,
+    "declaredInstalledVersionsMatch": true,
+    "independentRuns": 2,
+    "runDurationsSeconds": [
+      5.7,
+      6.4
+    ],
+    "runs": [
+      [
+        {
+          "coldReadyMs": 306.5,
+          "warmReadyMs": 111.59999996423721,
+          "saveUiMs": 88.202
+        },
+        {
+          "coldReadyMs": 174.80000001192093,
+          "warmReadyMs": 133.89999997615814,
+          "saveUiMs": 83.21759999999995
+        },
+        {
+          "coldReadyMs": 199.89999997615814,
+          "warmReadyMs": 148.29999995231628,
+          "saveUiMs": 86.69079999999985
+        }
+      ],
+      [
+        {
+          "coldReadyMs": 251,
+          "warmReadyMs": 144.5,
+          "saveUiMs": 102.94919999999979
+        },
+        {
+          "coldReadyMs": 202.29999995231628,
+          "warmReadyMs": 143.10000002384186,
+          "saveUiMs": 110.6591999999996
+        },
+        {
+          "coldReadyMs": 255.9000000357628,
+          "warmReadyMs": 190.80000001192093,
+          "saveUiMs": 108.1869999999999
+        }
+      ]
+    ],
+    "summary": {
+      "coldReadyMs": {
+        "samples": 6,
+        "median": 226.64999997615814,
+        "maximum": 306.5,
+        "p95": null,
+        "p95Reason": "These small local samples do not support a stable p95 estimate."
+      },
+      "warmReadyMs": {
+        "samples": 6,
+        "median": 143.80000001192093,
+        "maximum": 190.80000001192093,
+        "p95": null,
+        "p95Reason": "These small local samples do not support a stable p95 estimate."
+      },
+      "saveUiMs": {
+        "samples": 6,
+        "median": 95.5755999999999,
+        "maximum": 110.6591999999996,
+        "p95": null,
+        "p95Reason": "These small local samples do not support a stable p95 estimate."
+      }
+    },
+    "sourceProof": {
+      "trackedFilesCompared": 161,
+      "normalizedReferenceFingerprint": "fed2cc2cca6280f725212f5113b41b1e2a7b97795e54eb87c007147ac156bcd7",
+      "normalizedIsolatedFingerprint": "fed2cc2cca6280f725212f5113b41b1e2a7b97795e54eb87c007147ac156bcd7",
+      "mismatches": [],
+      "normalization": "CRLF to LF for lossless UTF-8 text including dotfiles; binary files unchanged.",
+      "allowedTransportOnlyChanges": [
+        {
+          "path": "e2e/v15.spec.js",
+          "changes": "localhost 4173 to 12438",
+          "verified": true
+        },
+        {
+          "path": "scripts/serve-site.mjs",
+          "changes": "localhost 4173 to 12438",
+          "verified": true
+        },
+        {
+          "path": "playwright.config.mjs",
+          "changes": "localhost 4173 to 12438; reuseExistingServer=false for isolation",
+          "verified": true
+        }
+      ]
+    },
+    "build": {
+      "exitCode": 0,
+      "coldStartGzipBytes": 51941,
+      "allNonOcrGzipBytes": 70207
+    }
+  },
+  "comparison": {
+    "method": "All captured samples retained; pooled six-point reference median uses the mean of the middle two. Directions only, not a stable causal or p95 improvement claim.",
+    "medianDeltaPercent": {
+      "coldReadyMs": -18.905801883408213,
+      "warmReadyMs": -25.66063980021127,
+      "saveUiMs": -26.432583211614602
+    }
+  },
+  "gates": {
+    "fullE2e": "PASS",
+    "localThreeSecondInteractionBudget": "PASS",
+    "directionalMedianComparison": "NO_OBSERVED_REGRESSION",
+    "p95": "UNVERIFIED_SMALL_SAMPLE",
+    "coldGzipHardBudget": "PASS",
+    "allNonOcrGzip": "FAIL",
+    "allNonOcrReferenceBytes": 70207,
+    "allNonOcrMaximumAllowedBytes": 77227.70000000001,
+    "allNonOcrOverageBytes": 6143.299999999988,
+    "m3Exit": "NOT_ESTABLISHED"
+  },
+  "notRun": [
+    "Stable p95 estimate",
+    "Independent upstream/server/main-thread latency decomposition",
+    "Physical Android/iOS",
+    "Production request/value smoke",
+    "New deployed artifact",
+    "Durable real production holdings/Gist write"
+  ]
+}

@@ -83,7 +83,7 @@ function nullableBoundedString(value, label, maximum, pattern) {
   return boundedString(value, label, maximum, { pattern });
 }
 
-function finiteNumber(value, label, { minimum = -Infinity, maximum = Infinity, nullable = false } = {}) {
+function finiteNumber(value, label, minimum = -Infinity, maximum = Infinity, nullable = false) {
   if (nullable && value == null) return null;
   if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
     fail('invalid_response', `${label} must be a finite number`);
@@ -184,11 +184,8 @@ function normalizeOfficialFundData(data, expectedParams) {
     assertOnlyKeys(point, ['date', 'timestampMs', 'nav'], `points[${index}]`);
     return Object.freeze({
       date: boundedString(point.date, `points[${index}].date`, 10, { pattern: DATE_RE }),
-      timestampMs: finiteNumber(point.timestampMs, `points[${index}].timestampMs`, {
-        minimum: Date.UTC(1990, 0, 1),
-        maximum: Date.UTC(2200, 0, 1),
-      }),
-      nav: finiteNumber(point.nav, `points[${index}].nav`, { minimum: Number.MIN_VALUE, maximum: 1e9 }),
+      timestampMs: finiteNumber(point.timestampMs, `points[${index}].timestampMs`, Date.UTC(1990, 0, 1), Date.UTC(2200, 0, 1)),
+      nav: finiteNumber(point.nav, `points[${index}].nav`, Number.MIN_VALUE, 1e9),
     });
   });
   if (points[0].timestampMs >= points[1].timestampMs) {
@@ -204,7 +201,7 @@ function normalizeOfficialFundData(data, expectedParams) {
     'currentRate',
   ], 'officialFundData meta');
   const meta = Object.freeze({
-    scale: finiteNumber(rawMeta.scale, 'meta.scale', { minimum: 0, maximum: 1e9, nullable: true }),
+    scale: finiteNumber(rawMeta.scale, 'meta.scale', 0, 1e9, true),
     managerName: nullableBoundedString(rawMeta.managerName, 'meta.managerName', 80),
     managerWorkTime: nullableBoundedString(rawMeta.managerWorkTime, 'meta.managerWorkTime', 80),
     managerId: nullableBoundedString(rawMeta.managerId, 'meta.managerId', 40, /^[A-Za-z0-9_-]+$/),
@@ -232,12 +229,8 @@ function normalizeQuoteData(operation, data, expectedParams) {
     seen.add(code);
     return Object.freeze({
       code,
-      price: finiteNumber(quote.price, `quotes[${index}].price`, { minimum: Number.MIN_VALUE, maximum: 1e15 }),
-      changePct: finiteNumber(quote.changePct, `quotes[${index}].changePct`, {
-        minimum: -1e6,
-        maximum: 1e6,
-        nullable: true,
-      }),
+      price: finiteNumber(quote.price, `quotes[${index}].price`, Number.MIN_VALUE, 1e15),
+      changePct: finiteNumber(quote.changePct, `quotes[${index}].changePct`, -1e6, 1e6, true),
       sourceTimeRaw: nullableBoundedString(
         quote.sourceTimeRaw,
         `quotes[${index}].sourceTimeRaw`,

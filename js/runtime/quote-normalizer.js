@@ -2,41 +2,27 @@ import {
   compareQuotesByQuality,
   createQuoteEnvelope,
   normalizeQuoteDate,
+  nextWeekdayDate,
+  normalizeConfidence,
   nullableNumber,
   parseQuoteTimestamp,
   quoteToLegacyFreshness,
   unavailableQuote,
 } from './quote-contract.js';
 import { classifyAssetKind, classifyMarketKind, normalizeMarketKind } from './market-session.js';
-import { marketClock } from './market-clock.js';
+import { chinaDateKey, isSingleMarketSession, marketClock, zonedTimeParts } from './market-clock.js';
 import { canonicalSourceId, sourceTierFor } from './source-registry.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKEND_CARRYOVER_MS = 72 * 60 * 60 * 1000;
 const WORKER_DIAGNOSTIC_KEYS = Object.freeze(['fallback_reason', 'primary_reason', 'model_reason', 'official_reason']);
-const WORKER_DIAGNOSTIC_REASON_CODES = Object.freeze({
-  upstream_empty: 'upstream_empty',
-  no_data: 'no_data',
-  no_quote: 'no_quote',
-  unavailable: 'unavailable',
-  source_unavailable: 'source_unavailable',
-  timeout: 'timeout',
-  network_error: 'network_error',
-  http_4xx: 'http_4xx',
-  http_5xx: 'http_5xx',
-  invalid_response: 'invalid_response',
-  invalid_payload: 'invalid_payload',
-  stale: 'stale',
-});
-const WORKER_STATUS_REASON_CODES = Object.freeze({
-  latest_official: 'latest_official',
-  official: 'official',
-  degraded: 'degraded',
-  stale: 'stale',
-  unavailable: 'unavailable',
-  error: 'error',
-  failed: 'failed',
-});
+const WORKER_DIAGNOSTIC_REASON_CODES = Object.freeze([
+  'upstream_empty', 'no_data', 'no_quote', 'unavailable', 'source_unavailable',
+  'timeout', 'network_error', 'http_4xx', 'http_5xx', 'invalid_response', 'invalid_payload', 'stale',
+]);
+const WORKER_STATUS_REASON_CODES = Object.freeze([
+  'latest_official', 'official', 'degraded', 'stale', 'unavailable', 'error', 'failed',
+]);
 const MAX_WORKER_DIAGNOSTIC_CODES = WORKER_DIAGNOSTIC_KEYS.length + 2;
 
 function text(value) {
@@ -65,9 +51,7 @@ function workerDiagnosticCode(value, allowedCodes) {
   if (typeof value !== 'string') return null;
   const normalized = value.trim().toLowerCase();
   if (!normalized) return null;
-  return Object.prototype.hasOwnProperty.call(allowedCodes, normalized)
-    ? allowedCodes[normalized]
-    : 'unclassified';
+  return allowedCodes.includes(normalized) ? normalized : 'unclassified';
 }
 
 function diagnosticReasonCodes(row) {
@@ -98,20 +82,12 @@ function observedAtFromRow(row) {
   return firstText(row?.source_time, row?.est_time, row?.observedAt) || null;
 }
 
-function marketWeekday(timestamp, timeZone) {
-  try {
-    return new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(new Date(timestamp));
-  } catch (_) {
-    return null;
-  }
-}
-
 function isWeekendCarryover(observedMs, nowMs, session) {
   if (!['closed', 'preopen', 'unknown'].includes(session.marketState)) return false;
-  const sourceDay = marketWeekday(observedMs, session.timezone);
-  const currentDay = marketWeekday(nowMs, session.timezone);
-  return sourceDay === 'Fri'
-    && ['Sat', 'Sun', 'Mon'].includes(currentDay)
+  const sourceDay = zonedTimeParts(observedMs, session.timezone)?.weekday;
+  const currentDay = zonedTimeParts(nowMs, session.timezone)?.weekday;
+  return sourceDay === 5
+    && [6, 0, 1].includes(currentDay)
     && nowMs - observedMs <= WEEKEND_CARRYOVER_MS;
 }
 
@@ -265,7 +241,91 @@ export function normalizeOfficialNavQuote(move = {}, options = {}) {
   }, { now: options.now });
 }
 
+// New aggregate evidence is independent of legacy aliases. Persisted evidence
+// remains untrusted: never relabel a foreign fund or rescue a damaged new slot
+// with whichever model last wrote est_*. Old single-model rows stay compatible.
+function modelEvidenceQuote(fund, options, key, valueKind, sourceId) {
+  const slot = Object.getOwnPropertyDescriptor(fund, key);
+  const flag = name => {
+    const descriptor = Object.getOwnPropertyDescriptor(fund, name);
+    return descriptor?.enumerable && Object.hasOwn(descriptor, 'value') && descriptor.value;
+  };
+  if (!slot && !(flag('est_model') && flag('est_holdings_model'))) return null;
+  const item = identity(fund, options);
+  const missing = reason => unavailableQuote({ ...item, reasonCodes: [reason] }, options);
+  if (!slot) return missing('legacy_model_provenance_ambiguous');
+  let evidence;
+  try {
+    if (!Object.hasOwn(slot, 'value')) return missing('model_evidence_invalid');
+    const raw = slot.value;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return missing('model_evidence_invalid');
+    const fields = ['fundCode', 'value', 'changePct', 'baseNav', 'baseNavDate', 'targetDate',
+      'observedAt', 'fetchedAt', 'coverage', 'confidence', 'modelVersion', 'note',
+      ...(valueKind === 'holding_lookthrough_estimate' ? ['reportDate', 'quoteCount']
+        : ['label', 'quarter', 'validUntil', 'minimumWeight'])];
+    const descriptors = Object.getOwnPropertyDescriptors(raw);
+    if (fields.some(field => !Object.hasOwn(descriptors, field)
+      || !Object.hasOwn(descriptors[field], 'value'))) return missing('model_evidence_invalid');
+    evidence = Object.fromEntries(fields.map(field => [field, descriptors[field].value]));
+  } catch (_) { return missing('model_evidence_invalid'); }
+  const number = value => typeof value === 'number' && Number.isFinite(value);
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)
+    || typeof evidence.fundCode !== 'string' || !/^\d{6}$/.test(evidence.fundCode) || evidence.fundCode !== item.fundCode
+    || evidence.fundCode !== String(fund.code ?? fund.fundCode ?? '')
+    || !number(evidence.value) || evidence.value <= 0 || !number(evidence.changePct)
+    || !number(evidence.baseNav) || evidence.baseNav <= 0
+    || Math.abs(evidence.value - evidence.baseNav * (1 + evidence.changePct / 100)) > 1e-7
+    || typeof evidence.baseNavDate !== 'string' || typeof evidence.targetDate !== 'string'
+    || typeof evidence.observedAt !== 'string' || evidence.fetchedAt !== null && typeof evidence.fetchedAt !== 'string'
+    || !normalizeQuoteDate(evidence.baseNavDate) || !normalizeQuoteDate(evidence.targetDate)
+    || evidence.baseNavDate >= evidence.targetDate || parseQuoteTimestamp(evidence.observedAt) == null
+    || !number(evidence.coverage) || evidence.coverage < 0 || evidence.coverage > 100
+    || typeof evidence.note !== 'string' || evidence.note.length > 1000
+    || evidence.modelVersion !== null && (typeof evidence.modelVersion !== 'string' || evidence.modelVersion.length > 80)
+    || evidence.confidence !== null && !(number(evidence.confidence) && evidence.confidence >= 0 && evidence.confidence <= 1)
+      && !['low', 'medium', 'high'].includes(evidence.confidence)) return missing('model_evidence_invalid');
+  const nowNumber = options.now instanceof Date ? options.now.getTime() : Number(options.now);
+  const now = Number.isFinite(nowNumber) ? nowNumber : Date.now();
+  let expired = false;
+  if (valueKind === 'holding_lookthrough_estimate') {
+    if (typeof evidence.reportDate !== 'string') return missing('model_evidence_invalid');
+    const report = normalizeQuoteDate(evidence.reportDate);
+    if (!report || report > chinaDateKey(now) || evidence.coverage < 50
+      || !Number.isInteger(evidence.quoteCount) || evidence.quoteCount < 5 || evidence.quoteCount > 10
+      || chinaDateKey(parseQuoteTimestamp(evidence.observedAt)) !== evidence.targetDate
+      || !isSingleMarketSession(evidence.baseNavDate, evidence.targetDate, item.market)) return missing('model_evidence_invalid');
+    expired = now - Date.parse(`${report}T23:59:59+08:00`) > 185 * DAY_MS;
+  } else {
+    if (!number(evidence.minimumWeight) || evidence.minimumWeight <= 0
+      || evidence.coverage < evidence.minimumWeight || evidence.targetDate !== nextWeekdayDate(evidence.baseNavDate)
+      || typeof evidence.label !== 'string' || evidence.label.length > 160
+      || typeof evidence.quarter !== 'string' || typeof evidence.validUntil !== 'string') return missing('model_evidence_invalid');
+    const until = evidence.validUntil ? normalizeQuoteDate(evidence.validUntil) : null;
+    const quarter = String(evidence.quarter || '').match(/^(\d{4})Q([1-4])$/i);
+    if (evidence.validUntil && !until || evidence.quarter && !quarter) return missing('model_evidence_invalid');
+    if (until) expired = now > Date.parse(`${until}T23:59:59+08:00`);
+    else if (quarter) expired = now >= Date.UTC(Number(quarter[1]), (Number(quarter[2]) + 1) * 3, 1) - 8 * 3600_000;
+  }
+  const fetchedAt = evidence.fetchedAt ?? options.fetchedAt;
+  if (fetchedAt != null && (typeof fetchedAt !== 'string' || parseQuoteTimestamp(fetchedAt) == null
+    || parseQuoteTimestamp(fetchedAt) < parseQuoteTimestamp(evidence.observedAt)
+    || parseQuoteTimestamp(fetchedAt) > now)) return missing('model_evidence_invalid');
+  const future = parseQuoteTimestamp(evidence.observedAt) > now;
+  return normalizeExistingQuoteFreshness(createQuoteEnvelope({
+    ...item, valueKind, sourceId, sourceTier: 'model',
+    value: evidence.value, changePct: evidence.changePct, baseNav: evidence.baseNav,
+    baseNavDate: evidence.baseNavDate, targetDate: evidence.targetDate,
+    observedAt: evidence.observedAt, fetchedAt,
+    coverage: evidence.coverage, confidence: evidence.confidence, modelVersion: evidence.modelVersion,
+    status: expired || future ? 'stale' : 'model',
+    reasonCodes: [valueKind === 'model_estimate' ? 'model_estimate' : 'holdings_lookthrough',
+      ...(expired ? ['model_evidence_expired'] : []), ...(future ? ['source_time_in_future'] : [])],
+  }, { now }), { now });
+}
+
 export function normalizeMarketModelQuote(fund = {}, options = {}) {
+  const evidence = modelEvidenceQuote(fund, options, 'market_model_evidence', 'model_estimate', 'market-model');
+  if (evidence) return evidence;
   return normalizeEstimateQuote({
     ...fund,
     kind: 'model_estimate',
@@ -286,6 +346,8 @@ export function normalizeMarketModelQuote(fund = {}, options = {}) {
 }
 
 export function normalizeHoldingLookthroughQuote(fund = {}, options = {}) {
+  const evidence = modelEvidenceQuote(fund, options, 'holdings_model_evidence', 'holding_lookthrough_estimate', 'quarterly-holdings-model');
+  if (evidence) return evidence;
   return normalizeEstimateQuote({
     ...fund,
     kind: 'holding_lookthrough_estimate',
@@ -302,6 +364,48 @@ export function normalizeHoldingLookthroughQuote(fund = {}, options = {}) {
     confidence: fund.est_confidence,
     stale: fund.est_holdings_stale,
   }, options);
+}
+
+/** Only attach a model explanation to the same source/value/period evidence. */
+export function modelNoteForQuote(fund, quote, field = 'note') {
+  if (!['note', 'label'].includes(field) || !quote || quote.status !== 'model' || quote.fundCode !== String(fund?.code ?? '')) return '';
+  const source = quote.sourceTier === 'cache' ? quote.originalSource : quote.sourceId;
+  const key = source === 'market-model' ? 'market_model_evidence'
+    : source === 'quarterly-holdings-model' ? 'holdings_model_evidence' : '';
+  if (!key) return '';
+  try {
+    const slot = Object.getOwnPropertyDescriptor(fund, key);
+    if (!slot) {
+      const value = field === 'label' && source === 'market-model' ? fund.est_model_label : field === 'note' ? fund.est_note : null;
+      return !(fund.est_model && fund.est_holdings_model) && typeof value === 'string' ? value.slice(0, 1000) : '';
+    }
+    if (!Object.hasOwn(slot, 'value')) return '';
+    const binding = ['fundCode', 'value', 'changePct', 'baseNav', 'baseNavDate', 'targetDate', 'observedAt', 'coverage'];
+    const fields = [...binding, 'modelVersion', 'confidence', field];
+    const descriptors = Object.getOwnPropertyDescriptors(slot.value);
+    if (fields.some(key => !Object.hasOwn(descriptors, key) || !Object.hasOwn(descriptors[key], 'value'))) return '';
+    const evidence = Object.fromEntries(fields.map(key => [key, descriptors[key].value]));
+    return binding.every(key => evidence[key] === quote[key])
+      && (evidence.modelVersion || null) === quote.modelVersion
+      && normalizeConfidence(evidence.confidence) === quote.confidence
+      && typeof evidence[field] === 'string' && evidence[field].length <= 1000 ? evidence[field] : '';
+  } catch (_) { return ''; }
+}
+
+/** Preserve the selected/cache winner, but do not bypass its model expiry. */
+export function normalizeFundQuoteFreshness(fund, options = {}) {
+  const quote = normalizeExistingQuoteFreshness(fund.quote, options);
+  const source = quote.sourceTier === 'cache' ? quote.originalSource : quote.sourceId;
+  const key = source === 'market-model' ? 'market_model_evidence'
+    : source === 'quarterly-holdings-model' ? 'holdings_model_evidence' : '';
+  if (!key || !Object.hasOwn(fund, key) || ['stale', 'unavailable'].includes(quote.status)) return quote;
+  const candidate = modelEvidenceQuote(fund, { ...options, fetchedAt: quote.fetchedAt,
+    fundCode: quote.fundCode, fundName: quote.fundName, market: quote.market, assetKind: quote.assetKind },
+  key, source === 'market-model' ? 'model_estimate' : 'holding_lookthrough_estimate', source);
+  const same = ['fundCode', 'valueKind', 'value', 'changePct', 'baseNav', 'baseNavDate', 'targetDate',
+    'observedAt', 'coverage', 'confidence', 'modelVersion'].every(field => quote[field] === candidate[field]);
+  return same && candidate.status === 'model' ? quote : createQuoteEnvelope({ ...quote, status: 'stale',
+    reasonCodes: [...quote.reasonCodes, ...candidate.reasonCodes, 'model_evidence_not_current'] }, options);
 }
 
 function dedupeQuotes(quotes) {

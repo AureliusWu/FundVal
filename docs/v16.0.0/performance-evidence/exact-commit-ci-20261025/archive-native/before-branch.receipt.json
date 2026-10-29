@@ -1,0 +1,23 @@
+{
+  "command": "git",
+  "args": [
+    "-C",
+    "D:/AI项目/FundVal",
+    "branch",
+    "--show-current"
+  ],
+  "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-exact-ci-archive-20261025-child",
+  "startedAt": "2026-10-25T08:31:15.589Z",
+  "finishedAt": "2026-10-25T08:31:15.662Z",
+  "nativeExit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "bytes": 30,
+    "sha256": "78340c815a666d7b467236b0ac1d279b3acd681acaccd408d0bc2a7158bf83c8"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

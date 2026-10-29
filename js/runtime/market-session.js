@@ -52,26 +52,20 @@ function zonedParts(now, timeZone) {
     const minute = Number(values.minute);
     if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
     return {
-      weekday: values.weekday,
+      weekday: ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 })[values.weekday],
       dateKey: `${values.year}-${values.month}-${values.day}`,
-      minute: hour * 60 + minute,
+      hour, minute,
     };
   } catch (_) {
     return null;
   }
 }
 
-function weekdayIndex(value) {
-  return ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 })[value];
-}
-
 function holidaySet(value) {
   return value instanceof Set ? value : new Set(Array.isArray(value) ? value : []);
 }
 
-function stateForGold(parts) {
-  const day = weekdayIndex(parts.weekday);
-  const minute = parts.minute;
+function stateForGold(day, minute) {
   const overnight = (minute >= 20 * 60 && day >= 1 && day <= 5)
     || (minute < 2 * 60 + 30 && day >= 2 && day <= 6);
   if (overnight) return 'open';
@@ -82,10 +76,8 @@ function stateForGold(parts) {
   return 'closed';
 }
 
-function stateForWindows(descriptor, parts) {
-  const day = weekdayIndex(parts.weekday);
+function stateForWindows(descriptor, day, minute) {
   if (day === 0 || day === 6) return 'closed';
-  const minute = parts.minute;
   if (descriptor.preopen != null && minute >= descriptor.preopen && minute < descriptor.windows[0][0]) return 'preopen';
   for (const [start, end] of descriptor.windows) {
     if (minute >= start && minute < end) return 'open';
@@ -102,19 +94,26 @@ function refreshDelayForState(state) {
   return 5 * MINUTE;
 }
 
+// Both the legacy wrapper and MarketClock consume the same exchange-local
+// parts. This module never imports the clock, avoiding a new dependency cycle.
+export function marketStateFromParts(market, parts, options = {}) {
+  if (!parts) return 'unknown';
+  const kind = normalizeMarketKind(market);
+  const descriptor = REGISTRY[kind];
+  const day = parts.weekday;
+  const minute = parts.hour * 60 + parts.minute;
+  if (!Number.isInteger(day) || day < 0 || day > 6 || !Number.isInteger(minute) || minute < 0 || minute >= 1440) return 'unknown';
+  if (holidaySet(options.holidays).has(parts.dateKey)) return 'holiday';
+  if (kind === 'gold') return stateForGold(day, minute);
+  return descriptor.windows.length ? stateForWindows(descriptor, day, minute) : 'unknown';
+}
+
 export function marketSession(market, now = new Date(), options = {}) {
   const marketKind = normalizeMarketKind(market);
   const descriptor = REGISTRY[marketKind];
   const instant = now instanceof Date ? now : new Date(now);
   const parts = Number.isFinite(instant.getTime()) ? zonedParts(instant, descriptor.timezone) : null;
-  let marketState = 'unknown';
-
-  if (parts) {
-    if (holidaySet(options.holidays).has(parts.dateKey)) marketState = 'holiday';
-    else if (marketKind === 'gold') marketState = stateForGold(parts);
-    else if (descriptor.windows.length) marketState = stateForWindows(descriptor, parts);
-  }
-
+  const marketState = marketStateFromParts(marketKind, parts, options);
   const nextDelay = refreshDelayForState(marketState);
   return Object.freeze({
     market: marketKind,

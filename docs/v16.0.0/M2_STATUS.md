@@ -1,7 +1,7 @@
 # M2 数据可信核心：实现与验证
 
 > 日期：2026-10-01（Asia/Shanghai）
-> 状态：LOCAL PASS / PROTECTED CI PENDING；未生产发布。
+> 状态：M2 EXIT / PROTECTED MAIN CANDIDATE VERIFIED；未生产发布。
 > 起点：M0 主线 `4c04e7fec9635d099191c0899dc57a25dd343fab`；独立先红提交 `72a25a2`。
 > 分支：`codex/v16.0.0-data-contracts`。版本保持 15.0.2，v16 版本冻结在 M6。
 
@@ -70,4 +70,18 @@ E2E 包含正式 NAV 区间标签、缓存重开、份额 100→200 后网络 50
 - M5：`contracts/ocr-import-safety.contract.mjs` 的布局导入门禁仍 RED；解码前像素预检/内存、取消、移动端与更新 guard 待实施。两个 RED 合同必须在对应里程碑纳入自动测试并关闭后才可发布。
 - M6：三类物理 Android/iOS/PWA 各三次、v15→v16 真升级、生产 smoke 与同一候选产物发布未执行。
 
-不得把模拟器、桌面 E2E、本地纯内存适配器或当前 15.0.2 显示当作 v16 已发布/真机已通过。保护分支 PR 的 candidate/codeql/CodeQL 通过并完成产物校验后，才将 M2 标为退出并进入 M3。
+不得把模拟器、桌面 E2E、本地纯内存适配器或当前 15.0.2 显示当作 v16 已发布/真机已通过。以下主线证据满足 M2 退出要求；总非 OCR 预算尚未通过，M3 不得以此标记性能退出。
+
+## 7. 受保护主线退出证据
+
+- PR [#11](https://github.com/AureliusWu/FundVal/pull/11) head `f93668e7e8b00d6c1d564edc751111e4f1e5d1f3`：required candidate/codeql 与独立 GitHub Advanced Security CodeQL 全绿后受保护 squash merge。
+- main：`154139d78b0e226fd99ec9a3009c1e63c06925ca`；真正 push/main [CI 36867144431](https://github.com/AureliusWu/FundVal/actions/runs/36867144431)，attempt 1，candidate job 110385355950、codeql job 110385355760 均成功。
+- Linux 548/548、0 fail/skip，syntax 155、E2E 13/13、audit 0。main CodeQL analysis 1874085816 对应该 SHA：103 rules、3 results，error/warning 为空；原 M0 main 为 5 results。既有 3 个 findings 不因 workflow 成功就算已修复。
+- immutable artifact 11164058335，`fundval-candidate-154139d78b0e226fd99ec9a3009c1e63c06925ca-1`。真正 main-only CLI 验证 exit 0，133 文件/92,432,941 B 的路径、大小、SHA 逐项一致。
+- 内层 `site.tar` 92,538,880 B，SHA256 `b8c9fb8babe79bfc876f59678a7f444943c00ecde69bce7f43f2bd3445352791`。
+- site fingerprint `7e39499e560bce2dae5b3e0b3b9db3e8f36604efeaeb595ba31ed2505bad7f3a`；release fingerprint `8b4d3fe965ced8c09ad009b585e345e07d388fe1617232c70bbfe09ce439fa0f`，官方脚本重算与 manifest 一致。
+- app 35 chunks/226,084 B、OCR 23 assets/88,196,906 B 校验通过。3 次独立 gzip 重算 cold 51,650 / 52,241 B、all 86,310 B，后者仍红。
+- 外 ZIP 92,563,148 B 仅 API/CI 记录，未独立重算外 ZIP digest；不扩大内 tar 验证结论。
+- 下载核验目录：`C:\Users\84046\AppData\Local\Temp\fundval-m2-main-154139d-d275701107de4d4da112ba84faa26d5d\verified-site`。
+- PR synthetic merge 与 main squash 是不同 commit，OCR manifest 的 `generated_at` 因 SOURCE_DATE_EPOCH/commit 时间不同而不同，跨 commit 全目录指纹不同属于预期；同一 commit 的连续两次构建仍必须指纹相同。
+- 生产 workflow 未执行，生产未因合并自动发布。下一实施分支为 `codex/v16.0.0-refresh-plan`。

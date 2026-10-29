@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "at": "2026-10-22T07:02:43.817Z",
+  "scope": "Freeze completed local P1 results and exact final product inputs, then fresh extract every archived member; no product/test/build/network execution",
+  "sources": [
+    "C:/Users/84046/AppData/Local/Temp/fundval-model-provenance-fix-20261022-parent",
+    "C:/Users/84046/AppData/Local/Temp/FundVal-dual-model-P1-red-20261022-a1"
+  ],
+  "control": "C:/Users/84046/AppData/Local/Temp/fundval-pair824-extract-07zGKl/postflight/postflight.json",
+  "changed": [
+    "e2e/v16-refresh.spec.js",
+    "js/accuracy.js",
+    "js/app.js",
+    "js/holdings-estimate.js",
+    "js/runtime/fund-model-enrichment.js",
+    "js/runtime/quote-normalizer.js",
+    "test/accuracy.test.js",
+    "test/holdings-integration-regression.test.js"
+  ],
+  "added": [
+    "test/model-consumers-v16.test.js",
+    "test/model-provenance-v16.test.js"
+  ],
+  "exclusions": "24 historical Android output payloads and nonselected site/installed payloads inventory only; archive self and later native/audit addenda outside archive"
+}

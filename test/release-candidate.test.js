@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { createCandidate, inventorySite, validateCandidateManifest, verifyAndExtractCandidate } from '../scripts/release-candidate.mjs';
+import { fingerprintReleaseDirectory, RELEASE_CRITICAL_PATHS, verifyAppChunkReleaseDirectory } from '../scripts/release-fingerprint.mjs';
 import { validateCandidateRun } from '../scripts/resolve-release-candidate.mjs';
 import { validateInstallPolicy } from '../scripts/dependency-install-policy.mjs';
 
@@ -13,6 +16,35 @@ const verifiedRun = {
   repository: { full_name: origin.repository }, head_repository: { full_name: origin.repository },
   event: 'push', head_branch: 'main', head_sha: origin.sha, status: 'completed', conclusion: 'success', run_attempt: 1,
 };
+
+async function writeReleaseFixture(site, { oversized = false, oversizedCold = false } = {}) {
+  for (const path of RELEASE_CRITICAL_PATHS) {
+    await mkdir(dirname(join(site, path)), { recursive: true });
+    await writeFile(join(site, path), `synthetic:${path}\n`);
+  }
+  const lazy = Buffer.alloc(oversized ? 100_000 : 16);
+  for (let offset = 0; offset < lazy.length; offset += 32) {
+    createHash('sha256').update(`synthetic-fixture-${offset}`).digest().copy(lazy, offset);
+  }
+  const cold = oversizedCold ? Buffer.alloc(100_000) : Buffer.from('export const synthetic = true;\n');
+  if (oversizedCold) for (let offset = 0; offset < cold.length; offset += 32) {
+    createHash('sha256').update(`synthetic-cold-fixture-${offset}`).digest().copy(cold, offset);
+  }
+  const definitions = [
+    ['js/app-shell.js', 'cold', cold],
+    ['js/chunks/feature-fixture.js', 'lazy', lazy],
+  ];
+  for (const [path, , bytes] of definitions) {
+    await mkdir(dirname(join(site, path)), { recursive: true });
+    await writeFile(join(site, path), bytes);
+  }
+  await writeFile(join(site, 'js/app-chunks.json'), JSON.stringify({
+    schema: 1, entry: 'js/app-shell.js', coldStart: ['js/app-shell.js'], lazy: ['js/chunks/feature-fixture.js'],
+    chunks: definitions.map(([path, role, bytes]) => ({ path, role, bytes: bytes.length,
+      gzipBytes: gzipSync(bytes).length, sha256: createHash('sha256').update(bytes).digest('hex') })),
+  }));
+  return fingerprintReleaseDirectory(site);
+}
 
 test('candidate provenance rejects failed, fork, PR, branch, mismatched SHA and unrelated workflow runs', () => {
   const expected = { ...origin, workflowId: 88 };
@@ -61,12 +93,14 @@ test('candidate packing and extraction preserve every byte and reject modified a
     const site = join(directory, 'site');
     await mkdir(join(site, 'js'), { recursive: true });
     await mkdir(join(site, '.playwright-results'), { recursive: true });
+    await writeReleaseFixture(site);
     await writeFile(join(site, 'index.html'), '<html>synthetic</html>\r\n');
     await writeFile(join(site, 'js', 'app.js'), 'export const value = 0;\n');
     await writeFile(join(site, '.playwright-results', 'ignored.txt'), 'test output');
+    const releaseFingerprint = await fingerprintReleaseDirectory(site);
     const output = join(directory, 'bundle');
-    const manifest = await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint: 'c'.repeat(64) });
-    assert.equal(manifest.site.files.length, 2);
+    const manifest = await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint });
+    assert.ok(manifest.site.files.some(file => file.path === 'js/chunks/feature-fixture.js'));
     assert.equal(manifest.site.files.some(file => file.path.includes('playwright')), false);
     const extracted = join(directory, 'extracted');
     await verifyAndExtractCandidate({ ...origin, bundle: output, output: extracted });
@@ -85,6 +119,51 @@ test('candidate packing and extraction preserve every byte and reject modified a
     await assert.rejects(() => verifyAndExtractCandidate({ ...origin, bundle: output, output: extracted }), /empty directory/);
     await writeFile(join(output, 'site.tar'), 'tampered archive');
     await assert.rejects(() => verifyAndExtractCandidate({ ...origin, bundle: output, output: join(directory, 'bad') }), /checksum/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('standalone candidate admission records an actual total above the former ceiling without enforcing a total limit', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'fundval-budget-admission-'));
+  try {
+    const site = join(directory, 'site');
+    const releaseFingerprint = await writeReleaseFixture(site, { oversized: true });
+    const actual = await verifyAppChunkReleaseDirectory(site);
+    assert.ok(actual.actualAllNonOcrGzipBytes > 92_160, 'The lazy fixture must exceed the former actual gzip ceiling.');
+    assert.ok(actual.actualColdStartGzipBytes <= 52_241, 'The unchanged cold ceiling must still fit.');
+    const output = join(directory, 'bundle');
+    const manifest = await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint });
+    assert.ok(manifest.site.totalBytes > 100_000, 'WIP packaging is allowed and retains all bytes.');
+    const extracted = join(directory, 'extracted');
+    await verifyAndExtractCandidate({ ...origin, bundle: output, output: extracted });
+    assert.deepEqual(await inventorySite(extracted), manifest.site);
+    assert.deepEqual(await verifyAppChunkReleaseDirectory(extracted), actual);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('standalone candidate admission still rejects actual oversized cold gzip even if archive and inventory match', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'fundval-cold-budget-admission-'));
+  try {
+    const site = join(directory, 'site');
+    const releaseFingerprint = await writeReleaseFixture(site, { oversizedCold: true });
+    const actual = await verifyAppChunkReleaseDirectory(site);
+    assert.ok(actual.actualColdStartGzipBytes > 52_241, 'The negative fixture must exceed the unchanged actual cold gzip ceiling.');
+    const output = join(directory, 'bundle');
+    const manifest = await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint });
+    assert.ok(manifest.site.totalBytes > 100_000, 'WIP packaging is allowed and retains all bytes.');
+    await assert.rejects(() => verifyAndExtractCandidate({ ...origin, bundle: output, output: join(directory, 'extracted') }),
+      /cold.*budget|budget.*cold/i);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('standalone candidate admission recomputes release-critical fingerprint rather than trusting its declaration', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'fundval-fingerprint-admission-'));
+  try {
+    const site = join(directory, 'site');
+    await writeReleaseFixture(site);
+    const output = join(directory, 'bundle');
+    await createCandidate({ ...origin, site, output, event: 'push', branch: 'main', releaseFingerprint: 'c'.repeat(64) });
+    await assert.rejects(() => verifyAndExtractCandidate({ ...origin, bundle: output, output: join(directory, 'extracted') }),
+      /release fingerprint mismatch/i);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

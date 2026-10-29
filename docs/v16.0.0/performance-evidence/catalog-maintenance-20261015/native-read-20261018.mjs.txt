@@ -1,0 +1,42 @@
+import { mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
+const dir = "C:/Users/84046/AppData/Local/Temp/fundval-catalog-revalidate-20261018-72166824f10b45f5a1b5976f180bd4c9/final/native";
+const source = 'D:/AI项目/FundVal/scripts/refresh-fund-catalog.mjs';
+const local = 'D:/AI项目/FundVal/data/fund-catalog.json';
+const hash = b => createHash('sha256').update(b).digest('hex');
+await mkdir(dir + '/scripts', { recursive: true });
+await mkdir(dir + '/data');
+await copyFile(source, dir + '/scripts/refresh-fund-catalog.mjs');
+const mod = await import(pathToFileURL(dir + '/scripts/refresh-fund-catalog.mjs').href);
+const before = await readFile(local);
+const result = { schema: 1, status: 'RUNNING', attempts: 1, singleIntegrationNotLatencyBenchmark: true,
+  sourceSha256: hash(await readFile(source)), copiedModuleExact: hash(await readFile(source)) === hash(await readFile(dir + '/scripts/refresh-fund-catalog.mjs')),
+  startedAt: new Date().toISOString(), noRepositoryCatalogWrite: true, envProxyLaunch: true };
+try {
+  const fetched = await mod.refreshFundCatalog({ fetchFn: async (url, options) => {
+    result.request = { url, headers: options.headers, method: 'GET (fetch default)' };
+    const response = await fetch(url, options);
+    result.http = { status: response.status, url: response.url,
+      contentLength: response.headers.get('content-length'), contentType: response.headers.get('content-type'),
+      contentEncoding: response.headers.get('content-encoding'), date: response.headers.get('date') };
+    return response;
+  } });
+  const bytes = await readFile(fetched.target);
+  const rows = JSON.parse(bytes);
+  result.status = 'NATIVE_PUBLIC_GET_AND_TEMP_PUBLICATION_PASSED';
+  result.output = { count: fetched.count, bytes: bytes.length, sha256: hash(bytes),
+    samples: rows.filter(r => ['005844','012920'].includes(r.code)),
+    sameAsExistingLocalCatalog: bytes.equals(before) };
+} catch (error) {
+  result.status = 'NATIVE_PUBLIC_GET_NOT_VERIFIED';
+  result.error = { name: error.name, message: error.message, code: error.code || error.cause?.code || null };
+} finally {
+  result.catalogBeforeSha256 = hash(before);
+  result.catalogAfterSha256 = hash(await readFile(local));
+  result.repositoryCatalogUnchanged = result.catalogBeforeSha256 === result.catalogAfterSha256;
+  result.completedAt = new Date().toISOString();
+  result.notIndependentIdentityReconciliationOrUpstreamCompletenessProof = true;
+  await writeFile("C:/Users/84046/AppData/Local/Temp/fundval-catalog-revalidate-20261018-72166824f10b45f5a1b5976f180bd4c9/final/native-read.json", JSON.stringify(result,null,2)+'\n', { flag: 'wx' });
+  process.stdout.write(JSON.stringify(result,null,2)+'\n');
+}

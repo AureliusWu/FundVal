@@ -1,47 +1,15 @@
 import { getOverseasConfig, loadOverseasModels, selectOverseasModel, calculateOverseasEstimate, validateOverseasEstimatePeriod } from "../overseas-model.js";
-import { latestOfficialNavBase, formatChinaQuoteTime } from "../holdings-estimate.js";
-import { parseQuoteTimestamp } from "./quote-contract.js";
+import { latestOfficialNavBase } from "../holdings-estimate.js";
 export { getOverseasConfig, loadOverseasModels, selectOverseasModel };
 const isUsableNav = value => Number.isFinite(value) && value > 0;
 const fmt = value => Number(value).toFixed(2);
 
-export async function fetchOverseasModelQuotes(signal, { fetchTencentQuotes, fetchGoldPrice }) {
-  var tencentCodes = ['usEEM', 'usQQQ', 'usSPY', 'usNDX', 'usIXIC', 'usINX', 'usSMH', 'usSOXX', 'usEWY', 'r_hkHSTECH', 'r_hkHSI'];
-  var modelConfig = getOverseasConfig();
-  collectOverseasModelCodes(modelConfig.models, tencentCodes);
-  collectOverseasModelCodes(modelConfig.rules, tencentCodes);
-  var results = await Promise.all([fetchTencentQuotes(tencentCodes, signal), fetchGoldPrice(signal)]);
-  var q = results[0] || {};
-  var gold = results[1];
-  if (gold && Number.isFinite(gold.changePct)) {
-    if (gold.status === 'current') q.AU9999 = { price: gold.price, changePct: gold.changePct,
-      sourceTime: formatChinaQuoteTime(parseQuoteTimestamp(gold.observedAt) / 1000) };
-  }
-  return q;
-}
-
-function collectOverseasModelCodes(models, out) {
-  var seen = {};
-  out.forEach(function(code) { seen[code] = true; });
-  var list = Array.isArray(models) ? models : Object.keys(models || {}).map(function(k) { return models[k]; });
-  list.forEach(function(model) {
-    var legs = [];
-    if (model && Array.isArray(model.legs)) legs = legs.concat(model.legs);
-    if (model && model.fallback && Array.isArray(model.fallback.legs)) legs = legs.concat(model.fallback.legs);
-    legs.forEach(function(leg) {
-      if (leg && leg.code && !seen[leg.code]) {
-        seen[leg.code] = true;
-        out.push(leg.code);
-      }
-    });
-  });
-}
 
 function chooseOverseasModel(fund) {
   return selectOverseasModel(String(fund && fund.code || ''), String(fund && fund.name || ''));
 }
 
-export function applyOverseasModelEstimate(fund, quotes) {
+export function applyOverseasModelEstimate(fund, quotes, options = {}) {
   if (!fund || fund.est_realtime !== false) return;
   var model = chooseOverseasModel(fund);
   if (!model) return;
@@ -81,4 +49,14 @@ export function applyOverseasModelEstimate(fund, quotes) {
   fund.est_model_quarter = model.quarter || '';
   fund.est_confidence = result.confidence;
   fund.est_note = fund.est_model_label + ' · ' + fund.est_model_version + ' · 可用权重' + fmt(result.usableWeight) + '% · 行情时间' + (result.sourceTime || '未知') + ' · 下一净值自建模型估算，不是基金公司官方净值';
+  if (/^\d{6}$/.test(String(fund.code || ''))) fund.market_model_evidence = Object.freeze({
+    fundCode: fund.code, value: fund.est_nav, changePct,
+    baseNav: modelBaseNav, baseNavDate: modelBaseDate, targetDate: period.targetDate,
+    observedAt: result.sourceTime, coverage: result.usableWeight,
+    fetchedAt: options.fetchedAt ?? fund.fetched_at ?? fund.fetchedAt ?? null,
+    confidence: result.confidence, modelVersion: fund.est_model_version,
+    note: fund.est_note, label: fund.est_model_label,
+    quarter: model.quarter || '', validUntil: model.valid_until || '',
+    minimumWeight: model.min_weight,
+  });
 }

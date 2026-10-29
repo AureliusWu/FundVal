@@ -1,0 +1,210 @@
+{
+  "status": "ARCHIVE_AUDIT_PASS_NOT_CANDIDATE_PASS",
+  "checks": [
+    {
+      "label": "frozen source and tool bytes unchanged",
+      "pass": true
+    },
+    {
+      "label": "A complete actual artifact exactly current",
+      "pass": true
+    },
+    {
+      "label": "B actual one-build materiality failure not adopted",
+      "pass": true
+    },
+    {
+      "label": "all native receipt stdout stderr actual byte SHA preserved",
+      "pass": true
+    },
+    {
+      "label": "all tar paths normalized relative safe",
+      "pass": true
+    },
+    {
+      "label": "new extraction all members match byte SHA path",
+      "pass": true
+    },
+    {
+      "label": "stage all members unchanged",
+      "pass": true
+    },
+    {
+      "label": "workspace selected originals unchanged",
+      "pass": true
+    },
+    {
+      "label": "A-source selected originals unchanged",
+      "pass": true
+    },
+    {
+      "label": "A-selected-site selected originals unchanged",
+      "pass": true
+    },
+    {
+      "label": "B-source selected originals unchanged",
+      "pass": true
+    },
+    {
+      "label": "B-selected-site selected originals unchanged",
+      "pass": true
+    },
+    {
+      "label": "root current273 site127 installed68 and Git same",
+      "pass": true
+    }
+  ],
+  "receipts": [
+    {
+      "label": "tar-create",
+      "command": "tar",
+      "args": [
+        "-czf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\private-vertical-20261023\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-private-vertical-archive-20261023-parent\\stage",
+        "."
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:45:28.153Z",
+      "finishedAt": "2026-10-23T02:45:30.024Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-list",
+      "command": "tar",
+      "args": [
+        "-tzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\private-vertical-20261023\\original-evidence.tar.gz"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:45:30.025Z",
+      "finishedAt": "2026-10-23T02:45:30.127Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 30118,
+        "sha256": "34e196a4da61f0b7aafe4f8b702cbe70f7653846d606da69e6819f61907e6ff1"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "tar-extract",
+      "command": "tar",
+      "args": [
+        "-xzf",
+        "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\private-vertical-20261023\\original-evidence.tar.gz",
+        "-C",
+        "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-private-vertical-archive-20261023-parent\\extract"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:45:30.130Z",
+      "finishedAt": "2026-10-23T02:45:30.608Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "label": "diff-check",
+      "command": "git",
+      "args": [
+        "-C",
+        "D:/AI项目/FundVal",
+        "diff",
+        "--check"
+      ],
+      "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-closure-overlay-20261023-parent",
+      "startedAt": "2026-10-23T02:45:36.027Z",
+      "finishedAt": "2026-10-23T02:45:36.153Z",
+      "nativeExit": 0,
+      "signal": null,
+      "error": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1822,
+        "sha256": "0a62311b4757827442f618629d112864fc8299aca0feaaeeb72a38506928ac66"
+      }
+    }
+  ],
+  "before": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "after": {
+    "source": 273,
+    "sourceSha256": "d0d9554fef7d2ef4b75f67a7db4fef558e03bb03f0897f2305617c6361090a3e",
+    "site": 127,
+    "siteSha256": "0641039bb788b27c58c0ec0dc3d93b40cbc95bc2c51c935c105c9354c9b29d31",
+    "installed": 68,
+    "head": "170fd3eadc6da02750882f8a542904ee2358d0d9",
+    "branch": "codex/v16.0.0-m3-continuation",
+    "indexSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "actual": {
+    "A": {
+      "status": "EXACT_CURRENT_A_BUILD_MATCH",
+      "chunks": 16,
+      "raw": 252331,
+      "all": 85969,
+      "cold": 46149
+    },
+    "B": {
+      "status": "MATERIALITY_NOT_QUALIFIED",
+      "chunks": 17,
+      "raw": 256307,
+      "all": 87338,
+      "cold": 46005
+    },
+    "allDelta": 1369,
+    "coldDelta": -144,
+    "completeQa": false,
+    "equivalence": false,
+    "deterministicThreeBuilds": false,
+    "performance": false,
+    "adopt": false,
+    "release": "NOT_RELEASED"
+  },
+  "archive": {
+    "path": "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\private-vertical-20261023\\original-evidence.tar.gz",
+    "bytes": 15194623,
+    "sha256": "93dde2ffa959fbeb9ec00b0ff584d0c347b444109ca2191ed8c522f1e82b5d0d"
+  },
+  "inventory": {
+    "count": 669,
+    "bytes": 25920452,
+    "sha256": "c2ca2b247124edce69c06462f2338bd5c2e8672df0d56b3cba5edb7ee243f02b"
+  },
+  "extract": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-private-vertical-archive-20261023-parent\\extract",
+  "addendaOutside": true
+}

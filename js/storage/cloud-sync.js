@@ -61,7 +61,7 @@ function cloudReadValue(result) {
   if (!isObject(result) || !Object.prototype.hasOwnProperty.call(result, 'ok')) {
     return { ok: true, value: result, version: null };
   }
-  if (result.ok !== true) return { ok: false, reason: result.reason || 'remote_read_failed' };
+  if (result.ok !== true) return { ok: false, reason: result.reason || 'remote_read_failed', ...remoteFailureDetails(result) };
   const hasRaw = Object.prototype.hasOwnProperty.call(result, 'raw');
   const hasPayload = Object.prototype.hasOwnProperty.call(result, 'payload');
   const hasContent = Object.prototype.hasOwnProperty.call(result, 'content');
@@ -74,6 +74,22 @@ function cloudReadValue(result) {
       : cloneJsonValue(hasRaw ? result.raw : (hasPayload ? result.payload : result.content)),
     version: result.version ?? result.etag ?? null,
     requiresPatch: result.requiresPatch === true,
+  };
+}
+
+// Policy metadata may cross into a user-visible status model; never propagate
+// arbitrary adapter properties, headers, response bodies or exception messages.
+function remoteFailureDetails(result) {
+  const value = result?.failure;
+  const codes = ['auth', 'permission', 'missing', 'conflict', 'rate_limit', 'unavailable', 'network', 'invalid_response', 'invalid_request'];
+  const safe = value && codes.includes(value.code)
+    && (value.status === null || (Number.isInteger(value.status) && value.status >= 100 && value.status <= 599))
+    && typeof value.retryable === 'boolean'
+    && Number.isFinite(value.retryAfterMs) && value.retryAfterMs >= 0 && value.retryAfterMs <= 86400000;
+  return {
+    ...(safe ? { failure: Object.freeze({ code: value.code, status: value.status,
+      retryable: value.retryable, retryAfterMs: value.retryAfterMs }) } : {}),
+    ...(result?.writeUnknown === true ? { writeUnknown: true } : {}),
   };
 }
 
@@ -328,7 +344,7 @@ export async function synchronizeHoldingsCloud(options = {}) {
   } catch (error) {
     return failure(error?.code || 'remote_read_failed', { error });
   }
-  if (!initialRemote.ok) return failure(initialRemote.reason);
+  if (!initialRemote.ok) return failure(initialRemote.reason, remoteFailureDetails(initialRemote));
 
   const remoteParsed = parseAndMigrateHoldings(initialRemote.value);
   if (!remoteParsed.ok) return failure('remote_payload_invalid', { error: remoteParsed.error });
@@ -418,10 +434,10 @@ export async function synchronizeHoldingsCloud(options = {}) {
       content: JSON.stringify(writePayload, null, 2),
     });
   } catch (error) {
-    return failure(error?.code || 'remote_patch_failed', { error, writeSchema });
+    return failure(error?.code || 'remote_patch_failed', { error, writeSchema, writeUnknown: true });
   }
   if (!positiveAck(patchResult)) {
-    return failure(patchResult?.reason || 'remote_patch_failed', { writeSchema });
+    return failure(patchResult?.reason || 'remote_patch_failed', { writeSchema, ...remoteFailureDetails(patchResult) });
   }
 
   let verifiedRemote;
@@ -434,7 +450,7 @@ export async function synchronizeHoldingsCloud(options = {}) {
   }
   if (!verifiedRemote.ok) {
     return failure(verifiedRemote.reason || 'remote_readback_failed', {
-      patched: true, patchAcknowledged: true, writeSchema,
+      patched: true, patchAcknowledged: true, writeSchema, ...remoteFailureDetails(verifiedRemote),
     });
   }
   if (writeSchema === HOLDINGS_SCHEMA_VERSION && verifiedRemote.requiresPatch) {
@@ -443,11 +459,8 @@ export async function synchronizeHoldingsCloud(options = {}) {
     });
   }
   try {
-    const observedCanonical = canonicalCloudPayload(verifiedRemote.value, writeSchema);
-    if (observedCanonical !== expectedRemoteCanonical) {
-      return failure('remote_readback_mismatch', {
-        patched: true, patchAcknowledged: true, writeSchema,
-      });
+    if (canonicalCloudPayload(verifiedRemote.value, writeSchema) !== expectedRemoteCanonical) {
+      return failure('remote_readback_mismatch', { patched: true, patchAcknowledged: true, writeSchema });
     }
   } catch (error) {
     return failure('remote_readback_invalid', {
@@ -555,7 +568,7 @@ export async function pullHoldingsCloud(options = {}) {
   } catch (error) {
     return failure(error?.code || 'remote_read_failed', { error });
   }
-  if (!remoteRead.ok) return failure(remoteRead.reason);
+  if (!remoteRead.ok) return failure(remoteRead.reason, remoteFailureDetails(remoteRead));
   const remoteParsed = parseAndMigrateHoldings(remoteRead.value);
   if (!remoteParsed.ok) return failure('remote_payload_invalid', { error: remoteParsed.error });
   if (remoteParsed.readonly || !remoteParsed.document) {

@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "status": "ARCHIVE_BYTES_VERIFIED_NOT_RELEASE",
+  "archive": {
+    "bytes": 10284125,
+    "sha256": "63ef139c550aa71f2d9e755ba77deb01e0b9351bfe6463a8d6add70e7caaa971"
+  },
+  "members": 844,
+  "expandedBytes": 21026354,
+  "rowsSha256": "6b9f3e4c4e3c6c92868a0febfa62263bd4d51b93343eadfab9ef3e1ec265ca66",
+  "nativeCreate": {
+    "label": "tar-create",
+    "command": "tar.exe",
+    "args": [
+      "-czf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\controller-extraction-20261025\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-controller-extraction-archive-20261025-review-a3\\stage",
+      "."
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-controller-extraction-archive-20261025-review-a3",
+    "startedAt": "2026-10-25T06:24:29.582Z",
+    "finishedAt": "2026-10-25T06:24:32.247Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "nativeExtract": {
+    "label": "tar-extract",
+    "command": "tar.exe",
+    "args": [
+      "-xzf",
+      "D:\\AI项目\\FundVal\\docs\\v16.0.0\\performance-evidence\\controller-extraction-20261025\\original-evidence.tar.gz",
+      "-C",
+      "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-controller-extraction-archive-20261025-review-a3\\extract"
+    ],
+    "cwd": "C:\\Users\\84046\\AppData\\Local\\Temp\\FundVal-controller-extraction-archive-20261025-review-a3",
+    "startedAt": "2026-10-25T06:24:32.247Z",
+    "finishedAt": "2026-10-25T06:24:32.774Z",
+    "nativeExit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "checks": {
+    "freshStage": true,
+    "freshExtractionEveryPathBytesAndSha256": true,
+    "allNineOriginalWorkspacesUnchanged": true,
+    "bothOriginalBrowserDirectoriesUnchanged": true,
+    "finalSource281Unchanged": true,
+    "selectedSource257": true,
+    "actualSite129Unchanged": true,
+    "selectedSite105": true,
+    "installed68Unchanged": true,
+    "headBranchIndexUnchanged": true,
+    "allSevenFinalLocalGatesMatchFrozenSource": true,
+    "actualNativeFailuresPreserved": true,
+    "sourceAndBrowserPayloadsVerified": true
+  },
+  "finalSourceRowsSha256": "8b93b2e2476757a381e3788f3f82428b54cfa26fae7fe6f3339a0896f8a71653",
+  "finalSiteRowsSha256": "94bd2839eb13c06ae0000c98264587936d494eea3e3562786864f812bf5bf5ce",
+  "missingOriginals": [
+    "Second archive attempt native1 stopped on two existing synthetic diagnostic-redaction fixtures. Native terminal output was not independently redirected; original failed script, before receipts and explicit review retained. a3 uses exact file and match hash allowlist, never disables screening.",
+    "First archive attempt native1 was observed in the terminal, not redirected into original independent native stdout/stderr/receipt files. Original script, before receipts and explicit failure observation retained; no missing original reconstructed.",
+    "Initial PWA worker has stdout/stderr but no originally saved standalone native-exit receipts; not reconstructed.",
+    "PWA takeover has protocol, receipts, source snapshots and transcripts, but no original REPORT.md; not reconstructed.",
+    "Original patch-order/hunk wrapper failures and scope probe/readonly syntax checks that existed only in thread output have no independent saved native receipt; original scripts/reports retained without fabricated receipts.",
+    "Original five-test RED receipt is retained; sixth wiring regression was added later and has no pre-fix RED claim.",
+    "Successful browser run has last-run and accuracy artifact only; no invented success trace or screenshot."
+  ],
+  "release": false,
+  "m3Exit": false,
+  "newPerformanceRun": false,
+  "immutableCommitCI": false
+}

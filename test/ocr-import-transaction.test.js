@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { commitConfirmedImport } from '../js/ocr/import-transaction.js';
+import { createHoldingImportPlan } from '../js/holding-import-plan.js';
 import {
   HOLDINGS_V3_KEY, loadHoldingsRepository, saveLegacyHoldingsTransaction,
 } from '../js/storage/holdings-repository.js';
@@ -24,7 +25,12 @@ function fixture() {
     { code: '001001', name: '合成基金A', shares: 10, cost: 1, note: 'keep note' },
   ]).ok, true);
   const baseline = loadHoldingsRepository(storage).document;
-  const rows = [{ id: 'synthetic-row', code: '001001', name: '合成基金A', shares: 20, cost: 1, action: 'update' }];
+  // The transaction fixture is an explicitly trusted OCR plan, not a raw row
+  // with absent evidence. Concurrency/lock assertions below remain unchanged.
+  const rows = createHoldingImportPlan([{ semanticReliable: true,
+    match: { status: 'matched', strategy: 'code', code: '001001', name: '合成基金A' },
+  }], loadHoldingsRepository(storage).legacy, { importable: true });
+  rows[0].shares = 20;
   return { storage, locks, baseline, rows, isLocked: () => locked };
 }
 

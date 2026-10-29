@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "status": "M3_IN_PROGRESS_NOT_RELEASED",
+  "parentCommit": "b9da4db6fd6b0225b4030c37c2f06cb74ac34cd1",
+  "change": "Test-only: reject Windows drive/UNC roots on POSIX via node:path.win32.parse, retaining all negative controls. No product source/config/dependency/version change.",
+  "spec": {"path": "e2e/v16-app-update-guards.spec.js", "bytes": 20701, "sha256": "ffd3bc41cdc30db7dca71c70e0424c5beeaf49c5cdbe9db683d9647eb1ef74c2"},
+  "appUnchangedRawSha256": "ddc8b53ac9f8035749f6ab2478b3ac0d3d1b1bb6b37c3340396439cff9de8318",
+  "oldExactCi": {"run": 38704643538, "url": "https://github.com/AureliusWu/FundVal/actions/runs/38704643538", "headSha": "b9da4db6fd6b0225b4030c37c2f06cb74ac34cd1", "conclusion": "failure", "failedStep": 11, "failure": "Two new E2E harness preflight controls received a contained POSIX literal path for C:/Windows/win.ini, before opening native app pages.", "e2ePassed": 28, "e2eFailed": 2, "e2eSeconds": 52.4, "testSyntaxBuildAssetAuditSucceeded": true, "codeqlJobSucceeded": true, "notZeroAlertClaim": true, "diagnosticsPreserved": true, "sealUploadBudgetStepsSkipped": true, "notOnlyBudgetFailure": true},
+  "pathMatrix": {"checks": 58, "passed": 58, "win32AndPosixInjected": true, "actualHelperAstSha256": "3af998fed5d31c3f7ad99ac10e31b00c48f7eb11c8bffc58ce6c5049397689de", "oldHelperPosixNegativeFailures": 2, "purePathNoTargetIo": true, "notLinuxBrowserProof": true, "notSymlinkSandboxProof": true, "report": "C:/Users/84046/AppData/Local/Temp/fundval-site-asset-path-matrix-20261015-43b8267cb8244f9192ab99205b77ebc7/report.json"},
+  "localChecks": {
+    "test": {"tests": 1030, "passed": 1027, "failed": 0, "skipped": 3, "durationMs": 5589.8729},
+    "syntaxFiles": 204,
+    "e2e": {"passed": 30, "seconds": 54.4, "newCasesSeconds": [8.0, 2.4], "owned12437Exited": true},
+    "build": {"rounds": 3, "allAfterE2e": true, "sourceDateEpoch": "1792046773", "chunks": 16, "raw": 235665, "allGzip": 80477, "coldGzip": 42992, "critical": "e6f89a3d534040d6bef8a98555dda95d45978e64f43a741f2bb16dd6fd726725", "wholeSiteFiles": 127, "wholeSiteBytes": 92507487, "wholeSiteSha256": "01b76d4781c3c1e1fefd2a529874feaa4ba555a5f94dbfd41b0d00224a631f93", "productIdenticalToPreviousFrozenBuild": true},
+    "sources": {"files": 213, "bytes": 4924390, "sha256": "88362b192ea6ffd207f37ccb0fffe38f7e299f48edb95cac1af1274a75f5e57f", "unchangedDuringThreeBuilds": true, "sameAlgorithmAsPreviousPageUpdateReport": true},
+    "ocr": {"assets": 23, "bytes": 88196906, "verifiedBytesSha": true, "executed": false},
+    "allBudgetPass": false,
+    "remainingIntegerBytes": 3250,
+    "newLatencyPairRun": false,
+    "absoluteSmokeOnly": [
+      {"coldReadyMs": 135.5, "warmReadyMs": 79.39999999850988, "saveUiMs": 90.6871000000001},
+      {"coldReadyMs": 141.90000000223517, "warmReadyMs": 83.39999999850988, "saveUiMs": 89.77409999999963},
+      {"coldReadyMs": 129.5, "warmReadyMs": 83, "saveUiMs": 75.0630999999994}
+    ]
+  },
+  "scope": "Previous page-update JSON/MD remain an exact historical local window, not overwritten or extended to Linux. This follow-up retains old CI failure and local logs; new commit CI must be observed separately. No main/deploy/tag/release or physical-device/real-Gist/live-data verification."
+}

@@ -1,0 +1,30 @@
+.github/workflows/ci.yml:50:        run: npm run build
+.github/workflows/ci.yml:101:          path: site/.playwright-results/
+.github/workflows/ci.yml:126:          path: |
+.github/workflows/deploy.yml:52:          path: ${{ runner.temp }}/candidate
+.github/workflows/deploy.yml:84:        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+.github/workflows/deploy.yml:86:          path: site
+node_modules/vite/dist/node\chunks\node.js:11038://#region ../../node_modules/.pnpm/launch-editor@2.14.1/node_modules/launch-editor/editor-info/macos.js
+node_modules/vite/dist/node\chunks\node.js:11073://#region ../../node_modules/.pnpm/launch-editor@2.14.1/node_modules/launch-editor/editor-info/linux.js
+node_modules/vite/dist/node\chunks\node.js:11107://#region ../../node_modules/.pnpm/launch-editor@2.14.1/node_modules/launch-editor/editor-info/windows.js
+node_modules/vite/dist/node\chunks\node.js:11140://#region ../../node_modules/.pnpm/launch-editor@2.14.1/node_modules/launch-editor/guess.js
+node_modules/vite/dist/node\chunks\node.js:11215://#region ../../node_modules/.pnpm/launch-editor@2.14.1/node_modules/launch-editor/get-args.js
+node_modules/vite/dist/node\chunks\node.js:11294://#region ../../node_modules/.pnpm/launch-editor@2.14.1/node_modules/launch-editor/index.js
+node_modules/vite/dist/node\chunks\node.js:11344:	function launchEditor(file, specifiedEditor, onErrorCallback) {
+node_modules/vite/dist/node\chunks\node.js:11348:		if (process.platform === "win32" && path$7.resolve(fileName).startsWith("\\\\")) return onErrorCallback(fileName, "UNC paths are not supported on Windows to avoid security issues. See https://github.com/vitejs/launch-editor/tree/main/packages/launch-editor#unc-paths-on-windows for details.");
+node_modules/vite/dist/node\chunks\node.js:11391:	module.exports = launchEditor;
+node_modules/vite/dist/node\chunks\node.js:11394://#region ../../node_modules/.pnpm/launch-editor-middleware@2.14.1/node_modules/launch-editor-middleware/index.js
+node_modules/vite/dist/node\chunks\node.js:11408:		return function launchEditorMiddleware(req, res) {
+node_modules/vite/dist/node\chunks\node.js:11415:				res.end(`launch-editor-middleware: invalid URL.`);
+node_modules/vite/dist/node\chunks\node.js:11421:				res.end(`launch-editor-middleware: required query param "file" is missing.`);
+node_modules/vite/dist/node\chunks\node.js:26639:	middlewares.use("/__open-in-editor", (0, import_launch_editor_middleware.default)());
+.\e2e\v16-app-update-guards.spec.js:2:import { createServer } from 'node:http';
+.\e2e\v16-app-update-guards.spec.js:46:  const server = createServer(async (request, response) => {
+.\e2e\v16-service-worker-messages.spec.js:2:import { createServer } from 'node:http';
+.\e2e\v16-service-worker-messages.spec.js:11:  const server = createServer((request, response) => {
+.\scripts\collect-baseline.mjs:5:import { createConnection, createServer } from 'node:net';
+.\scripts\collect-baseline.mjs:181:    const server = createServer();
+.\scripts\serve-site.mjs:1:import { createServer } from 'node:http';
+.\scripts\serve-site.mjs:22:createServer(async (request, response) => {
+.\scripts\measure-performance-pair.mjs:5:import { createServer } from 'node:net';
+.\scripts\measure-performance-pair.mjs:275:      const server = createServer(); server.once('error', failed);

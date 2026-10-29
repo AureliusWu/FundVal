@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "status": "IN_PROGRESS_NOT_RELEASED",
+  "parentCommit": "f625062afcab1e88ccb54d50d558d59d96a99542",
+  "scope": "Uncommitted local business-source changes on the parent checkpoint; not CI or production evidence.",
+  "source": {
+    "orderedPaths": ["js/overseas-model.js", "js/runtime/remote-schema.js", "js/runtime/worker-contract.js"],
+    "hashRecipe": "SHA256 of ordered path + NUL + UTF8 source normalized CRLF to LF + NUL",
+    "sha256": "409b8a54852c058bb9221d9081836065f44394bb953742013d7725e2fea711d6",
+    "fileLfSha256": {
+      "js/overseas-model.js": "6f372642cbc45505d7b8066dff307c0e41aa9cf43ec5b95677af530ffb6be895",
+      "js/runtime/remote-schema.js": "663513d9244ca5a442b69148d74146de8e86237dcef46dc98255a26050d96029",
+      "js/runtime/worker-contract.js": "54bab1e12f3127b8d28b98185175864ea4dc420b2c862954ab542b3293aa2b44"
+    }
+  },
+  "adopted": [
+    "Private Worker chooseNumber positional scalar options and one function-local official boolean, with unchanged alias/date/accounting guards.",
+    "Private Bridge finiteNumber positional scalar options; original metadata object literal and own-data-property semantics retained.",
+    "Overseas latest source uses a single pass instead of a temporary array and sort; equal timestamps retain the first item."
+  ],
+  "virtual": {
+    "recipe": "Existing Vite 8.2.2 / oxc / es2022 / original chunk groups / write:false",
+    "repetitionsPerSide": 3,
+    "baseline": { "chunks": 16, "rawBytes": 242075, "allGzipBytes": 82286, "coldGzipBytes": 43702 },
+    "current": { "chunks": 16, "rawBytes": 241635, "allGzipBytes": 82202, "coldGzipBytes": 43699 },
+    "delta": { "rawBytes": -440, "allGzipBytes": -84, "coldGzipBytes": -3 },
+    "normalizedGraphSha256": "732c1409f7cca62d3711143a8bdbc77c9977d910b2ffe8173eba06d8d7ff1495",
+    "graphEqual": true,
+    "graphScope": "Sorted chunk names, cold/lazy roles, module paths, static and dynamic import target names. Not artifact-content hashes."
+  },
+  "characterization": {
+    "newPermanentTests": 10,
+    "wireTestsOldSourceInMemory": { "tests": 8, "pass": 8 },
+    "overseasTestsOldSourceInMemory": { "tests": 11, "pass": 11 },
+    "finalRootTargetTests": { "tests": 63, "pass": 63 },
+    "independentFinalReviewTests": { "tests": 76, "pass": 76 },
+    "wirePrivateCases": {
+      "aliasCases": 1784, "aliasExceptionBoundaries": 8826, "aliasChangingReadCases": 1784,
+      "metadataCases": 170, "metadataExceptionBoundaries": 763, "metadataChangingReadCases": 170,
+      "finiteNumberCases": 186
+    },
+    "independentComparisons": { "workerPublicCases": 1530, "bridgePublicCases": 308, "overseasCases": 4059, "overseasGetterTraceSteps": 48, "overseasExceptionCases": 49 },
+    "intermediateFailures": [
+      "Two new test failures caused by shared VM globals replacing the old reference helper; separate VM contexts fixed the harness and old/current sources were both rerun.",
+      "The proposed metadata table assignment triggered inherited setters, unlike the original literal. A public-API test failed on the proposed source and passed on fixed parent source. The table was discarded; final old literal passes both setter-installation branches."
+    ],
+    "preserved": ["null and true zero", "numeric-string versus numeric-only trust boundaries", "getter/own order and errors", "aliases and field order", "metadata freeze and own data properties", "future/stale/coverage/quarter checks", "all existing closed provider and operation allowlists"],
+    "review": "PASS for the three changed modules; not a complete security or repository audit."
+  },
+  "localGates": {
+    "unit": { "tests": 850, "pass": 847, "fail": 0, "skipped": 3, "skipReason": "Windows symlink permission conditions" },
+    "syntaxFiles": 184,
+    "audit": { "registry": "https://registry.npmjs.org/", "vulnerabilities": 0 },
+    "e2e": {
+      "tests": 23, "pass": 23, "durationSeconds": 40.7, "ownedPort": 12437, "serverStopped": true,
+      "syntheticOnly": true,
+      "readinessSamples": [
+        { "coldReadyMs": 173.40000000596046, "warmReadyMs": 124.29999999701977, "saveUiMs": 85.82589999999982 },
+        { "coldReadyMs": 219.1000000089407, "warmReadyMs": 120.09999999403954, "saveUiMs": 92.58150000000023 },
+        { "coldReadyMs": 218.70000000298023, "warmReadyMs": 152.20000000298023, "saveUiMs": 82.19930000000022 }
+      ],
+      "readinessMeaning": "Descriptive absolute-budget checks only; not paired regression evidence. No sample selected or removed."
+    },
+    "build": {
+      "sourceDateEpoch": 1791002003,
+      "consecutivePostE2eBuilds": 2,
+      "fingerprints": ["12fb81227fb07404304e0a7d85866d954f610bb7e59be765c02c6a8ef1cb748f", "12fb81227fb07404304e0a7d85866d954f610bb7e59be765c02c6a8ef1cb748f"],
+      "appByteVerification": "PASS", "appChunks": 16, "appRawBytes": 241635,
+      "ocrByteVerification": "PASS", "ocrAssets": 23, "ocrBytes": 88196906, "ocrExecution": "NOT_RUN"
+    }
+  },
+  "budget": {
+    "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "baselineAllNonOcrGzipBytes": 70207,
+    "actualColdGzipBytes": 43699, "coldBudgetBytes": 52241, "coldPass": true,
+    "actualAllNonOcrGzipBytes": 82202, "allBudgetNumerator": 772277, "allBudgetDenominator": 10, "allPass": false,
+    "integerBytesStillRequired": 4975, "cliExitCode": 1, "importClosureVerified": false, "verdict": "FAIL"
+  },
+  "publicReadOnlyProbe": {
+    "protocol": "public-worker-five-consecutive-v1",
+    "sourceScope": "Earlier discarded metadata-table candidate, not final complete application source; unchanged final Worker source hash below.",
+    "inventoryLfSha256": "65496a1304abc523e53ba399b677d94069e1e17c67d28dc62bd8eb5316c117e0",
+    "workerLfSha256": "54bab1e12f3127b8d28b98185175864ea4dc420b2c862954ab542b3293aa2b44",
+    "remoteSchemaLfSha256AtSampling": "bdfad0a82bd9904defd8b92a82395014a120cb4a54ab4631fc8138602feced26",
+    "inventoryUnchangedDuringSampling": true,
+    "codes": ["005844", "012920"], "samples": 5, "httpStatuses": [200, 200, 200, 200, 200],
+    "requestTimeoutMs": 20000, "transportIsApplicationClient": false,
+    "requestedAtEpochMs": [1791003029910, 1791003040589, 1791003040690, 1791003040790, 1791003040892],
+    "jsonCompletedAtEpochMs": [1791003040584, 1791003040690, 1791003040790, 1791003040891, 1791003040990],
+    "latencyMs": [10674, 101, 100, 101, 98],
+    "fetchedAt": "2026-10-03T04:50:43.069Z", "httpDate": "Sat, 03 Oct 2026 04:50:43 GMT",
+    "fetchedAtAheadOfCompletedClientMs": [2485, 2379, 2279, 2178, 2079],
+    "wireVersion": 1, "responseStatus": "degraded", "generatedAtPresent": false,
+    "envelopePass": 0, "reasonCode": "WORKER_METADATA_INVALID", "verdict": "NOT_VERIFIED",
+    "diagnosticRowsOnly": [
+      { "code": "005844", "kind": "official_nav", "valueDate": "2026-09-30", "valueNav": 3.1282, "baseDate": "2026-09-29", "baseNav": 3.2259, "changePercent": -3.03 },
+      { "code": "012920", "kind": "official_nav", "valueDate": "2026-09-29", "valueNav": 3.7594, "baseDate": "2026-09-28", "baseNav": 3.7218, "changePercent": 1.01 }
+    ],
+    "independentNav": {
+      "firstAttempt": "HTTP 200, strict text boundary extraction failed; NOT_VERIFIED retained.",
+      "separateDiagnosticAttempt": "One further public GET, static AST initializer location plus JSON.parse, no remote JS execution.",
+      "httpStatus": 200, "bytes": 320727, "latencyMs": 179,
+      "code": "005844", "valueDate": "2026-09-30", "valueNav": 3.1282, "baseDate": "2026-09-29", "baseNav": 3.2259,
+      "verdict": "MATCH_DIAGNOSTIC_ONLY", "envelopeRescued": false,
+      "httpDateAheadOfClientMs": -5893708, "httpDateMeaning": "Possibly cached response date; not a current clock calibration source."
+    },
+    "readOnlyWindowsTimeStatus": { "leapIndicator": 3, "synchronized": false, "stratum": 0, "source": "Local CMOS Clock", "lastSuccessfulSync": "unspecified", "systemChanged": false },
+    "finding": "P1 ingestion availability in this host probe: fetched_at ahead of completed local clock is correctly rejected. Local time service is unsynchronized; exact skew attribution and impact in other browser/production hosts remain unconfirmed.",
+    "trustVerdict": "CONDITIONALLY_TRUSTED",
+    "notEvidenceOf": ["successful full primary ingestion", "production UI or device acceptance", "all production environments failing", "wrong values being shown as realtime"]
+  },
+  "evidencePreservation": { "historicalRawReports": "Four historical LF hashes unchanged.", "newPairedLatencyAfterChanges": "NOT_RUN" },
+  "release": { "m3Exit": false, "m4Started": false, "m5Started": false, "m6Started": false, "mergeMain": false, "deploy": false, "versionBump": false, "status": "IN_PROGRESS_NOT_RELEASED" }
+}

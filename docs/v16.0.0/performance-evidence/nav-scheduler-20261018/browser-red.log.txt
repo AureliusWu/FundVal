@@ -1,0 +1,63 @@
+[WebServer] (node:29436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:21732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 e2e\v16-refresh.spec.js:250:1 › large official-only portfolio drains without overflowing the real Bridge queue (4.8s)
+
+
+  1) e2e\v16-refresh.spec.js:250:1 › large official-only portfolio drains without overflowing the real Bridge queue 
+
+    Error: All official fallbacks must survive parent-queue admission
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 5
+    + Received  + 5
+
+    @@ -97,11 +97,11 @@
+        "1.2000",
+        "1.2000",
+        "1.2000",
+        "1.2000",
+        "1.2000",
+    -   "1.2000",
+    -   "1.2000",
+    -   "1.2000",
+    -   "1.2000",
+    -   "1.2000",
+    +   "--",
+    +   "--",
+    +   "--",
+    +   "--",
+    +   "--",
+      ]
+
+      258 |   const navs = page.locator('#fund-list .nav-cur');
+      259 |   await expect(navs).toHaveCount(rows.length);
+    > 260 |   expect(await navs.allTextContents(), 'All official fallbacks must survive parent-queue admission').toEqual(rows.map(() => '1.2000'));
+          |                                                                                                      ^
+      261 |   const dates = page.locator('#fund-list .quote-time');
+      262 |   expect(await dates.allTextContents(), 'Request completion must not turn the official NAV date into today').toEqual(rows.map(() => '2026-09-28'));
+      263 |   expect(harness.requests('cold', 'nav')).toHaveLength(rows.length);
+        at D:\AI项目\FundVal\e2e\v16-refresh.spec.js:260:102
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    site\.playwright-results\v16-refresh-large-official-32855-owing-the-real-Bridge-queue\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: site\.playwright-results\v16-refresh-large-official-32855-owing-the-real-Bridge-queue\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    site\.playwright-results\v16-refresh-large-official-32855-owing-the-real-Bridge-queue\trace.zip
+    Usage:
+
+        npx playwright show-trace site\.playwright-results\v16-refresh-large-official-32855-owing-the-real-Bridge-queue\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e\v16-refresh.spec.js:250:1 › large official-only portfolio drains without overflowing the real Bridge queue 
+

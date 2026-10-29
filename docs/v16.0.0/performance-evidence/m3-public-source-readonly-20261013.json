@@ -1,0 +1,853 @@
+{
+  "schema": 1,
+  "status": "READ_ONLY_SOURCE_ACCEPTANCE_OBSERVED_NOT_RELEASED",
+  "observedDate": "2026-10-13",
+  "binding": {
+    "sourceCommit": "06aa5daaf6bfcfe21f8360c5426813f6d43262b9",
+    "sourcePaths": [
+      "js/eastmoney-estimate.js",
+      "js/runtime/worker-contract.js",
+      "js/runtime/quote-normalizer.js",
+      "js/config.js"
+    ],
+    "version": "15.0.2"
+  },
+  "protocol": {
+    "runtime": "Node v24.14.0 --use-env-proxy",
+    "function": "fetchEstimateRows",
+    "codes": [
+      "005844",
+      "012920"
+    ],
+    "method": "GET",
+    "defaultTimeoutMs": 10000,
+    "readOnly": true,
+    "publicFundDataOnly": true,
+    "realHoldingsOrTokenUsed": false,
+    "sourceGuardChanged": false,
+    "workerOrClockChanged": false
+  },
+  "startClockDiagnostic": {
+    "protocol": "Explicit options.now captured before each request, not the production app call shape",
+    "samples": [
+      {
+        "index": 1,
+        "observedAt": "2026-10-13T15:23:19.654Z",
+        "durationMs": 8579.8149,
+        "status": "REJECTED",
+        "errorName": "WorkerContractError",
+        "errorCode": "WORKER_METADATA_INVALID",
+        "message": "WORKER_METADATA_INVALID"
+      },
+      {
+        "index": 2,
+        "observedAt": "2026-10-13T15:23:28.234Z",
+        "durationMs": 166.07680000000073,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "observedAt": "2026-10-13T15:23:28.400Z",
+        "durationMs": 106.72999999999956,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "observedAt": "2026-10-13T15:23:28.507Z",
+        "durationMs": 119.30429999999978,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "observedAt": "2026-10-13T15:23:28.627Z",
+        "durationMs": 374.66929999999957,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:23:28.221Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      }
+    ],
+    "accepted": 4,
+    "rejected": 1,
+    "interpretation": "Retained diagnostic negative observation. parseWorkerEnvelope rejects generated_at/fetched_at later than the supplied now. A request-start clock can precede a freshly generated response, but the first rejected payload was not retained, so its exact offending field is unproven. Do not label this as an observed application bug or a server-time failure."
+  },
+  "trustVerdict": "CONDITIONALLY_TRUSTED_FOR_THE_RECORDED_OFFICIAL_INTERVALS_ONLY",
+  "limits": [
+    "Both funds returned official NAV fallback, not current intraday estimates.",
+    "012920 covers Oct 9 to Oct 12; it is not Oct 13 or a one-day intraday move.",
+    "005844 covers Oct 12 to Oct 13; official target date being today does not turn it into an intraday estimate.",
+    "Values were accepted by the actual envelope/row/Quote validators; a separate authoritative upstream readback and production browser rendering were not performed in this probe.",
+    "The prior Oct 11 direct-transport failures remain historical observations; env-proxy success does not prove the same network path or global source availability.",
+    "A shared fetched timestamp across samples is an upstream observation, not proof of its cache policy.",
+    "These are data-read diagnostics, not new paired performance or physical-device/PWA/real-Gist acceptance.",
+    "Both no-force and force:true series retained the same sourceFetchedAt within each series. Cache behavior and per-hop timing were not independently determined. The earlier unforced series is not substituted for the app default forced route."
+  ],
+  "nextGate": {
+    "m3": "IN_PROGRESS",
+    "allGzipBytes": 81158,
+    "allBudgetBytes": 77227.7,
+    "remainingWholeBytes": 3931,
+    "pairedLatency": "INCONCLUSIVE_WARM_P95_STABILITY",
+    "production": false
+  },
+  "normalClockUnforcedCall": {
+    "protocol": "No options.now override, matching production clock handling, but force is omitted (unforced). Not the complete default refresh request shape. Five declared sequential samples, no retries.",
+    "samples": [
+      {
+        "index": 1,
+        "observedAt": "2026-10-13T15:24:15.572Z",
+        "durationMs": 9892.8105,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "observedAt": "2026-10-13T15:24:25.465Z",
+        "durationMs": 126.45039999999972,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "observedAt": "2026-10-13T15:24:25.591Z",
+        "durationMs": 141.2432000000008,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "observedAt": "2026-10-13T15:24:25.733Z",
+        "durationMs": 115.93279999999868,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "observedAt": "2026-10-13T15:24:25.849Z",
+        "durationMs": 114.25330000000031,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:24:25.100Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      }
+    ],
+    "accepted": 5,
+    "rejected": 0,
+    "timing": {
+      "samples": 5,
+      "medianMs": 126.45039999999972,
+      "p95NearestRankMs": 9892.8105,
+      "maximumMs": 9892.8105,
+      "description": "Whole public HTTP client wall time, including transport and validation. Five samples are descriptive, not a production latency distribution or isolated proxy/Worker/upstream time.",
+      "nearDefaultTimeoutFirstSample": true
+    }
+  },
+  "defaultRefreshForcedCall": {
+    "protocol": "force:true, no options.now override, default timeout; matching the default app estimate HTTP options for forcing and clock handling. No generation cancellation was exercised. Five declared sequential GET samples, no retries.",
+    "force": true,
+    "samples": [
+      {
+        "index": 1,
+        "observedAt": "2026-10-13T15:27:50.850Z",
+        "durationMs": 9073.4834,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "observedAt": "2026-10-13T15:27:59.923Z",
+        "durationMs": 108.47420000000056,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "observedAt": "2026-10-13T15:28:00.032Z",
+        "durationMs": 108.56049999999959,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "observedAt": "2026-10-13T15:28:00.141Z",
+        "durationMs": 421.3279999999995,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "observedAt": "2026-10-13T15:28:00.562Z",
+        "durationMs": 106.70390000000043,
+        "status": "ACCEPTED",
+        "items": [
+          {
+            "code": "005844",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-13",
+            "baseNavDate": "2026-10-12",
+            "baseNav": 3.0167,
+            "valueNav": 3.059,
+            "changePct": 1.4,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-13",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          },
+          {
+            "code": "012920",
+            "status": "ok",
+            "kind": "official_nav",
+            "valueDate": "2026-10-12",
+            "baseNavDate": "2026-10-09",
+            "baseNav": 3.6843,
+            "valueNav": 3.5827,
+            "changePct": -2.76,
+            "quoteStatus": "official",
+            "sourceId": "eastmoney-official-nav",
+            "sourceObservedAt": "2026-10-12",
+            "sourceFetchedAt": "2026-10-13T15:27:59.917Z",
+            "reasonCodes": [
+              "FALLBACK_REASON_UPSTREAM_EMPTY",
+              "PRIMARY_REASON_UPSTREAM_EMPTY",
+              "MODEL_REASON_UNCLASSIFIED",
+              "UPSTREAM_STATUS_LATEST_OFFICIAL",
+              "UPSTREAM_FALLBACK",
+              "SOURCE_TIME_DATE_ONLY",
+              "OFFICIAL_NAV_FALLBACK"
+            ]
+          }
+        ]
+      }
+    ],
+    "accepted": 5,
+    "rejected": 0,
+    "timing": {
+      "samples": 5,
+      "medianMs": 108.56049999999959,
+      "p95NearestRankMs": 9073.4834,
+      "maximumMs": 9073.4834,
+      "nearDefaultTimeoutFirstSample": true,
+      "description": "Full client wall time, including transport and validation; five descriptive samples, not isolated provider time or production latency distribution."
+    }
+  }
+}

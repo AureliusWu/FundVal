@@ -1,0 +1,185 @@
+{
+  "schema": 1,
+  "evidenceKind": "READ_ONLY_EXACT_SHA_GITHUB_CI_OBSERVATION",
+  "observedAt": "2026-10-15T07:30:37Z",
+  "repository": "AureliusWu/FundVal",
+  "head": "1a02e3c88ece09ef2620c638b61bf7ed30b28112",
+  "ref": "refs/heads/codex/v16.0.0-m3-continuation",
+  "localIdentity": {
+    "command": "git rev-parse HEAD",
+    "head": "1a02e3c88ece09ef2620c638b61bf7ed30b28112",
+    "gitStatusShort": "",
+    "trackedFilesModifiedByObserver": false
+  },
+  "run": {
+    "id": 38698735715,
+    "name": "FundVal CI",
+    "event": "push",
+    "url": "https://github.com/AureliusWu/FundVal/actions/runs/38698735715",
+    "createdAt": "2026-10-15T07:26:16Z",
+    "updatedAt": "2026-10-15T07:28:18Z",
+    "status": "completed",
+    "conclusion": "failure",
+    "headSha": "1a02e3c88ece09ef2620c638b61bf7ed30b28112"
+  },
+  "jobs": [
+    {
+      "id": 116301457845,
+      "name": "codeql",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-15T07:26:18Z",
+      "completedAt": "2026-10-15T07:27:22Z",
+      "failedSteps": []
+    },
+    {
+      "id": 116301458066,
+      "name": "candidate",
+      "status": "completed",
+      "conclusion": "failure",
+      "startedAt": "2026-10-15T07:26:18Z",
+      "completedAt": "2026-10-15T07:28:16Z",
+      "failedSteps": [{"number": 15, "name": "Enforce actual M3 app bundle budget", "exitCode": 1}],
+      "successfulRelevantSteps": [
+        "Install reviewed locked dependencies",
+        "Audit dependencies",
+        "Test and syntax check",
+        "Build static Pages candidate",
+        "Verify Pages artifact",
+        "Install Chrome for E2E",
+        "Run hermetic browser E2E",
+        "Seal immutable candidate",
+        "Upload immutable candidate"
+      ],
+      "skippedSteps": ["Preserve failed synthetic E2E diagnostics", "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020"]
+    }
+  ],
+  "checks": {
+    "total": 2,
+    "exactSha": true,
+    "entries": [
+      {"name": "candidate", "app": "github-actions", "conclusion": "failure"},
+      {"name": "codeql", "app": "github-actions", "conclusion": "success"}
+    ],
+    "independentAdditionalCodeqlCheckObserved": false
+  },
+  "freshRemoteResults": {
+    "unit": {"platform": "Linux GitHub runner", "tests": 1012, "pass": 1012, "fail": 0, "skipped": 0, "durationMs": 6771.7073},
+    "syntaxCheckedJavaScriptFiles": 202,
+    "npmAuditReportedVulnerabilities": 0,
+    "e2e": {"passed": 28, "summaryDurationSeconds": 51.8, "boundary": "Hermetic synthetic browser E2E; not production/device acceptance"},
+    "build": {"appChunks": 16, "appRawBytes": 235415, "allNonOcrGzipBytes": 80394, "coldStartGzipBytes": 42907},
+    "ocrAssetVerification": {"assets": 23, "rawBytes": 88196906},
+    "budget": {
+      "baselineCommit": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+      "baselineAllNonOcrGzipBytes": 70207,
+      "actualColdStartGzipBytes": 42907,
+      "actualAllNonOcrGzipBytes": 80394,
+      "coldBudgetBytes": 52241,
+      "allBudgetNumerator": 772277,
+      "allBudgetDenominator": 10,
+      "allBudgetBytes": 77227.7,
+      "coldPass": true,
+      "allPass": false,
+      "pass": false,
+      "verdict": "FAIL",
+      "importClosureVerified": false,
+      "failureMessage": "App bundle exceeds all non-OCR gzip budget: 80394 > 77227.7 bytes."
+    }
+  },
+  "seal": {
+    "verifiedCandidateSha": "1a02e3c88ece09ef2620c638b61bf7ed30b28112",
+    "files": 127,
+    "printedSiteInventoryFingerprint": "3a036fef79323c4b546356595700121b8e435d4317e5f46e9770683d3c511fcb",
+    "printedFingerprintSource": "scripts/release-candidate.mjs:186 prints manifest.site.fingerprint",
+    "releaseCriticalFingerprintFromRemoteArtifact": null,
+    "criticalFingerprintBoundary": "Not printed by this summary; artifact not downloaded. Do not relabel the site-inventory fingerprint as the release-critical fingerprint."
+  },
+  "artifact": {
+    "count": 1,
+    "id": 11954259001,
+    "name": "fundval-candidate-1a02e3c88ece09ef2620c638b61bf7ed30b28112-1",
+    "sizeInBytes": 92633686,
+    "createdAt": "2026-10-15T07:28:13Z",
+    "expired": false,
+    "uploadedZipSha256FromActionLog": "ae0d9a267bc798a68e486f6a401e9295ba3c07c75a9918e4a7d36a55a89ca858",
+    "downloaded": false,
+    "boundary": "Metadata and action-log digest only; no local byte verification of the large archive. Upload before failed budget is not release admission."
+  },
+  "codeql": {
+    "analysisId": 1957643413,
+    "commitSha": "1a02e3c88ece09ef2620c638b61bf7ed30b28112",
+    "ref": "refs/heads/codex/v16.0.0-m3-continuation",
+    "createdAt": "2026-10-15T07:27:15Z",
+    "analysisKey": ".github/workflows/ci.yml:codeql",
+    "category": "/language:javascript-typescript",
+    "tool": "CodeQL",
+    "toolVersion": "2.27.2",
+    "resultsCount": 1,
+    "rulesCount": 103,
+    "scannedJavaScriptFilesFromLog": 87,
+    "availableJavaScriptFilesFromLog": 87,
+    "error": "",
+    "warning": "",
+    "branchAlerts": [
+      {
+        "number": 7,
+        "rule": "js/missing-origin-check",
+        "state": "fixed",
+        "updatedAt": "2026-10-15T07:27:15Z",
+        "mostRecentInstanceSha": "e750daebb0219ef17b227fdd9a6ceca3ae5b6382",
+        "location": "sw.js:79",
+        "boundary": "Historical last instance is retained by GitHub; it is not a finding on the new SHA."
+      },
+      {
+        "number": 5,
+        "rule": "js/http-to-file-access",
+        "securitySeverity": "medium",
+        "state": "open",
+        "createdAt": "2026-09-30T07:47:46Z",
+        "mostRecentInstanceSha": "1a02e3c88ece09ef2620c638b61bf7ed30b28112",
+        "location": "scripts/refresh-fund-catalog.mjs:65",
+        "boundary": "Existing remaining finding; this CI observation does not resolve its source-to-destination risk."
+      },
+      {
+        "number": 3,
+        "rule": "js/file-system-race",
+        "state": "fixed",
+        "mostRecentInstanceSha": "2f7e77f21c55b73508503a07c0aa859183aedcb5",
+        "boundary": "Historical fixed instance, not current new-SHA finding."
+      }
+    ],
+    "newFindingsObservedOnThisSha": false,
+    "securityBoundary": "npm audit zero and one existing CodeQL result are scoped tool observations, not a universal absence-of-vulnerabilities claim."
+  },
+  "actionWarnings": [
+    {"step": "Upload immutable candidate", "code": "DEP0040", "description": "Action runtime punycode deprecation"},
+    {"step": "Upload immutable candidate", "code": "DEP0169", "description": "Action runtime url.parse deprecation"}
+  ],
+  "observationFailureBoundary": {
+    "singleGetRunEofObserved": true,
+    "handling": "Read-only requery of the same exact run succeeded; EOF was not treated as CI terminal status.",
+    "oldShaResultsSubstituted": false
+  },
+  "conclusion": {
+    "onlyFailedCiStep": "Enforce actual M3 app bundle budget",
+    "remainingBudgetGapBytes": 3166.3,
+    "swOriginAlert7FixedByFreshExactShaAnalysis": true,
+    "existingCodeqlAlert5StillOpenOnExactSha": true,
+    "workflowRerunOrDispatch": false,
+    "repositoryOrDocumentationChangedByObserver": false,
+    "deploymentOrFormalReleaseClaim": false
+  },
+  "retrievals": [
+    "git rev-parse HEAD; git status --short",
+    "gh run list --commit 1a02e3c88ece09ef2620c638b61bf7ed30b28112",
+    "gh run view 38698735715 --json databaseId,headSha,name,event,status,conclusion,createdAt,updatedAt,url,jobs",
+    "gh api repos/AureliusWu/FundVal/actions/runs/38698735715",
+    "gh run view 38698735715 --job 116301458066 --log (filtered relevant summaries)",
+    "gh run view 38698735715 --job 116301457845 --log (filtered security-analysis summaries)",
+    "gh api repos/AureliusWu/FundVal/actions/runs/38698735715/artifacts",
+    "gh api repos/AureliusWu/FundVal/commits/1a02e3c88ece09ef2620c638b61bf7ed30b28112/check-runs",
+    "gh api --method GET repos/AureliusWu/FundVal/code-scanning/analyses -f ref=refs/heads/codex/v16.0.0-m3-continuation",
+    "gh api --method GET repos/AureliusWu/FundVal/code-scanning/alerts -f ref=refs/heads/codex/v16.0.0-m3-continuation"
+  ]
+}

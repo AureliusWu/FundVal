@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-23T02:45:19.308Z",
+  "scope": "Completed unique A/B materiality failure, no qualification/adoption",
+  "included": [
+    "both complete 249/257 source payloads",
+    "all completed workspace protocols, ledgers, inventories and native receipts",
+    "actual A/B app chunks plus selected HTML/SW/manifest and complete site inventories"
+  ],
+  "excluded": [
+    "node_modules junctions and installed payload",
+    "generated OCR binary payload; complete inventories retained",
+    "later archive audit and post-doc receipts are addenda"
+  ],
+  "noNewBuildOrTest": true
+}

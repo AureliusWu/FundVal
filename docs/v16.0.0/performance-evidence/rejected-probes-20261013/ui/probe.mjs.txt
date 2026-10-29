@@ -1,0 +1,153 @@
+import assert from 'node:assert/strict';
+import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { relative, resolve, dirname } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { gzipSync } from 'node:zlib';
+
+const root = 'D:/AI项目/FundVal';
+const ownDirectory = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(resolve(root, 'package.json'));
+const { parseSync } = await import(pathToFileURL(require.resolve('rolldown/utils')).href);
+const { build: viteBuild, version: viteVersion } = await import(pathToFileURL(require.resolve('vite')).href);
+const appPath = resolve(root, 'js/app.js');
+const recipePath = resolve(root, 'scripts/build-site.mjs');
+const app = (await readFile(appPath, 'utf8')).replaceAll('\r\n', '\n');
+const recipe = (await readFile(recipePath, 'utf8')).replaceAll('\r\n', '\n');
+const sha = text => createHash('sha256').update(text).digest('hex');
+const sourceSha = sha(app), recipeSha = sha(recipe);
+const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+assert.equal(head, '17bb8b8dbaacfdf91bccf30b0d89a2c3e33fb9c1');
+assert.equal(viteVersion, '8.2.2');
+const parse = (name, source) => parseSync(name, source).program;
+const findFunction = (program, name) => program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+const appProgram = parse('app.js', app);
+const recipeProgram = parse('build-site.mjs', recipe);
+const buildFunction = findFunction(recipeProgram, 'buildAppShell');
+const firstDeclaration = buildFunction.body.body[0];
+assert.equal(firstDeclaration.type, 'VariableDeclaration');
+const buildCall = firstDeclaration.declarations[0].init.argument;
+assert.equal(buildCall.callee.name, 'viteBuild');
+const configSource = recipe.slice(buildCall.arguments[0].start, buildCall.arguments[0].end);
+const groupsStart = recipe.indexOf('const APP_SHELL_FILENAME =');
+const groupsEnd = recipe.indexOf('\nfunction resolveSiteSourceDateEpoch');
+assert.ok(groupsStart > 0 && groupsEnd > groupsStart);
+const declarations = recipe.slice(groupsStart, groupsEnd);
+function config() {
+  const value = new Function('root', 'relative', 'resolve', `${declarations}\nreturn (${configSource});`)(root, relative, resolve);
+  assert.equal(value.configFile, false);
+  assert.equal(value.build.write, false);
+  assert.equal(value.build.minify, 'oxc');
+  assert.equal(value.build.target, 'es2022');
+  return value;
+}
+function walk(node, visit) {
+  if (!node || typeof node !== 'object') return;
+  visit(node);
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(child => walk(child, visit));
+    else if (value && typeof value === 'object') walk(value, visit);
+  }
+}
+function chain(node) {
+  if (node.type !== 'BinaryExpression' || node.operator !== '+') return [node];
+  return [...chain(node.left), node.right];
+}
+const selectedFunctions = ['renderFundList', 'renderHoldingsList', 'renderIndexBar'];
+const replacements = [];
+for (const name of selectedFunctions) {
+  const owner = findFunction(appProgram, name);
+  assert.ok(owner, `${name} exists`);
+  walk(owner, node => {
+    if (node.type !== 'AssignmentExpression' || node.operator !== '+=' || node.left.type !== 'Identifier' || node.left.name !== 'html') return;
+    const pieces = chain(node.right);
+    if (pieces.length < 3 || pieces[0].type !== 'Literal' || typeof pieces[0].value !== 'string') return;
+    replacements.push({ owner: name, start: node.right.start, end: node.right.end,
+      before: app.slice(node.right.start, node.right.end), pieces: pieces.map(piece => ({
+        literal: piece.type === 'Literal' && typeof piece.value === 'string', value: piece.value,
+        source: app.slice(piece.start, piece.end),
+      })) });
+  });
+}
+assert.ok(replacements.length >= 10, 'Select real renderer expression chains, not a no-op');
+const templateText = value => value.replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${');
+function after(replacement, strict) {
+  return '`' + replacement.pieces.map(piece => piece.literal ? templateText(piece.value)
+    : '${' + (strict ? "'' + (" + piece.source + ')' : piece.source) + '}').join('') + '`';
+}
+function variant(strict) {
+  let source = app;
+  for (const replacement of [...replacements].sort((a,b) => b.start - a.start)) {
+    source = source.slice(0, replacement.start) + after(replacement, strict) + source.slice(replacement.end);
+  }
+  const program = parse('app.js', source);
+  assert.equal(program.body.length, appProgram.body.length);
+  return source;
+}
+const variants = { baseline: app, strictTemplates: variant(true), nativeTemplates: variant(false) };
+function staticClosure(byFile, roots) {
+  const seen = new Set(), queue = [...roots];
+  while (queue.length) {
+    const filename = queue.shift();
+    if (seen.has(filename)) continue;
+    const chunk = byFile.get(filename);
+    assert.ok(chunk, `Generated static dependency ${filename} exists`);
+    seen.add(filename);
+    queue.push(...chunk.imports);
+  }
+  return seen;
+}
+async function measure(name) {
+  const buildConfig = config();
+  let seen = 0;
+  if (name !== 'baseline') buildConfig.plugins = [{ name: `fundval-memory-${name}`, enforce: 'pre',
+    transform(source, id) {
+      if (id.replaceAll('\\', '/') !== appPath.replaceAll('\\', '/')) return null;
+      assert.equal(source.replaceAll('\r\n', '\n'), app);
+      seen++;
+      return { code: variants[name], map: null };
+    } }];
+  const result = await viteBuild(buildConfig);
+  if (name !== 'baseline') assert.equal(seen, 1, 'Exactly one app module transformed');
+  const outputs = Array.isArray(result) ? result.flatMap(item => item.output || []) : result.output || [];
+  const chunks = outputs.filter(output => output.type === 'chunk');
+  const entry = chunks.find(chunk => chunk.isEntry);
+  assert.equal(entry.fileName, 'js/app-shell.js');
+  const byFile = new Map(chunks.map(chunk => [chunk.fileName, chunk]));
+  const cold = staticClosure(byFile, [entry.fileName, ...entry.dynamicImports]);
+  const coldModules = [...cold].flatMap(filename => Object.keys(byFile.get(filename).modules));
+  assert.ok(!coldModules.some(id => /(?:ocr|paddle|onnx|tesseract|\/storage\/(?:cloud-|gist-)|\/runtime\/(?:quote-diagnostics|diagnostics-ui))/.test(id)));
+  const inventory = chunks.map(chunk => ({ bytes: Buffer.byteLength(chunk.code), gzip: gzipSync(chunk.code).length,
+    role: cold.has(chunk.fileName) ? 'cold' : 'lazy', modules: Object.keys(chunk.modules).map(id => relative(root, id).replaceAll('\\','/')).sort() }));
+  const graph = chunks.map(chunk => ({ modules: Object.keys(chunk.modules).map(id => relative(root,id).replaceAll('\\','/')).sort(),
+    role: cold.has(chunk.fileName) ? 'cold' : 'lazy',
+    imports: chunk.imports.map(id => Object.keys(byFile.get(id).modules).map(moduleId => relative(root,moduleId).replaceAll('\\','/')).sort()),
+    dynamic: chunk.dynamicImports.map(id => Object.keys(byFile.get(id).modules).map(moduleId => relative(root,moduleId).replaceAll('\\','/')).sort())
+  })).sort((a,b) => JSON.stringify(a.modules).localeCompare(JSON.stringify(b.modules)));
+  return { chunks: chunks.length, raw: inventory.reduce((a,b) => a+b.bytes,0),
+    all: inventory.reduce((a,b) => a+b.gzip,0), cold: inventory.filter(item=>item.role==='cold').reduce((a,b)=>a+b.gzip,0), graphSha: sha(JSON.stringify(graph)) };
+}
+const rounds = [];
+for (let round=1;round<=3;round++) {
+  const data = { round };
+  for (const name of Object.keys(variants)) { data[name] = await measure(name); console.log(JSON.stringify({ round, name, ...data[name] })); }
+  rounds.push(data);
+}
+for (const name of Object.keys(variants)) for (const round of rounds.slice(1)) assert.deepEqual(round[name], rounds[0][name]);
+assert.equal(rounds[0].baseline.all, 81158);
+assert.equal(rounds[0].baseline.cold, 42907);
+assert.equal(rounds[0].baseline.raw, 237665);
+assert.equal(sha((await readFile(appPath, 'utf8')).replaceAll('\r\n','\n')), sourceSha);
+assert.equal(sha((await readFile(recipePath, 'utf8')).replaceAll('\r\n','\n')), recipeSha);
+assert.equal(execFileSync('git', ['rev-parse','HEAD'], {cwd:root,encoding:'utf8'}).trim(),head);
+const report = { head, sourceSha, recipeSha, recipeConfigSha: sha(configSource), recipeGroupsSha: sha(declarations),
+  dependencies: { vite: viteVersion, minify: 'oxc', target: 'es2022', groups: 'EXACT_ACTUAL_RECIPE' },
+  selectedFunctions, transformedExpressions: replacements.length, sourceBytes: Object.fromEntries(Object.entries(variants).map(([name,source])=>[name,Buffer.byteLength(source)])),
+  rounds, sourceUnchanged: true, recipeUnchanged: true,
+  strictSemantics: 'Retains dynamic expression evaluation order and default-hint addition coercion inside every interpolation; exact renderer fixtures still required.',
+  nativeSemantics: 'Does not preserve arbitrary object coercion hints; measurement-only negative control, not approved source.',
+  patches: replacements.map(replacement=>({ owner: replacement.owner, before: replacement.before, strictAfter: after(replacement,true), nativeAfter: after(replacement,false) })) };
+await writeFile(resolve(ownDirectory,'report.json'), JSON.stringify(report,null,2)+'\n');
+console.log(JSON.stringify({report:resolve(ownDirectory,'report.json'), measurements:rounds[0], transformedExpressions:replacements.length}));

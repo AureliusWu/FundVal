@@ -1,0 +1,211 @@
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, lstatSync } from 'node:fs';
+import { resolve, dirname, isAbsolute } from 'node:path';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+
+// Archive only. No sampling, test, build, browser or production operation.
+// All writes are exclusive, original input directories are inventoried before/after.
+const here = import.meta.dirname;
+const root = 'D:/AI项目/FundVal';
+const temp = 'C:/Users/84046/AppData/Local/Temp';
+const parent = resolve(temp, 'FundVal-pair-controllers-800-20261025-parent');
+const preflight = resolve(temp, 'FundVal-controller-preflight-final-20261025-a1');
+const terminalReview = process.argv[2];
+assert.ok(terminalReview && isAbsolute(terminalReview), 'Pass actual terminal-review workspace');
+assert.equal(lstatSync(terminalReview).isDirectory(), true);
+assert.equal(lstatSync(terminalReview).isSymbolicLink(), false);
+const dest = resolve(root, 'docs/v16.0.0/performance-evidence/pair-controllers-800-20261025');
+const stage = resolve(here, 'stage'), extract = resolve(here, 'extract');
+const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const json = path => JSON.parse(readFileSync(path, 'utf8'));
+const save = (path, bytes) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, bytes, { flag: 'wx' }); };
+const saveJSON = (path, value) => save(path, JSON.stringify(value, null, 2) + '\n');
+function inventory(base, excluded = new Set(), part = '') {
+  const rows = [];
+  for (const entry of readdirSync(resolve(base, part), { withFileTypes: true })) {
+    if (!part && excluded.has(entry.name)) continue;
+    const path = part ? part + '/' + entry.name : entry.name;
+    const physical = resolve(base, path);
+    assert.equal(lstatSync(physical).isSymbolicLink(), false, 'No symlink: ' + physical);
+    if (entry.isDirectory()) rows.push(...inventory(base, excluded, path));
+    else {
+      assert.equal(entry.isFile(), true, 'Regular files only: ' + physical);
+      const bytes = readFileSync(physical);
+      rows.push({ path, bytes: bytes.length, sha256: sha(bytes) });
+    }
+  }
+  return rows.sort((a, b) => a.path.localeCompare(b.path));
+}
+function verifyRows(base, rows) {
+  for (const row of rows) {
+    const bytes = readFileSync(resolve(base, row.path));
+    assert.equal(bytes.length, row.bytes, row.path + ' bytes');
+    assert.equal(sha(bytes), row.sha256, row.path + ' SHA');
+  }
+}
+function native(label, command, args, timeout = 180000) {
+  const startedAt = new Date().toISOString();
+  const env = { ...process.env }; delete env.NODE_OPTIONS; delete env.NODE_V8_COVERAGE;
+  const result = spawnSync(command, args, { cwd: here, windowsHide: true, encoding: null, maxBuffer: 30_000_000, timeout, env });
+  const stdout = result.stdout ?? Buffer.alloc(0), stderr = result.stderr ?? Buffer.alloc(0);
+  save(resolve(here, label + '.stdout'), stdout); save(resolve(here, label + '.stderr'), stderr);
+  const receipt = { label, command, args, cwd: here, startedAt, finishedAt: new Date().toISOString(),
+    nativeExit: result.status, signal: result.signal, error: result.error?.message ?? null,
+    stdout: { bytes: stdout.length, sha256: sha(stdout) }, stderr: { bytes: stderr.length, sha256: sha(stderr) } };
+  saveJSON(resolve(here, label + '.receipt.json'), receipt);
+  assert.equal(receipt.nativeExit, 0, label + ' native exit');
+  assert.equal(receipt.error, null); assert.equal(receipt.signal, null);
+  return { receipt, stdout, stderr };
+}
+
+const frozen = json(resolve(parent, 'FROZEN.json'));
+const sourcePath = resolve(temp, 'FundVal-m3-responsibility-extraction-20261023-parent/QA_SOURCE_V3.json');
+const source = json(sourcePath);
+const outcome = json(resolve(parent, 'OUTCOME.json'));
+const timingAudit = json(resolve(parent, 'INDEPENDENT_AUDIT.json'));
+const raw = readFileSync(resolve(parent, 'PAIR.json'));
+const protocol = resolve(dest, 'PROTOCOL.md');
+assert.deepEqual(readdirSync(dest).sort(), ['PROTOCOL.md']);
+assert.equal(sha(readFileSync(protocol)), frozen.protocolSha256);
+assert.equal(existsSync(stage), false); assert.equal(existsSync(extract), false);
+assert.equal(source.full.length, 281); assert.equal(source.full.length, frozen.sourceCount);
+assert.equal(source.sourceRowsSha256, frozen.sourceRowsSha256);
+assert.equal(sha(JSON.stringify(source.full)), frozen.sourceRowsSha256);
+assert.equal(frozen.artifact.files.length, 129); assert.equal(frozen.installed.length, 68);
+assert.equal(raw.length, 88027817);
+assert.equal(sha(raw), 'c0586a69852c8415090f46384ca1e1483ad41371adae4af3306bff85fdf1b4e7');
+assert.equal(outcome.postflightError, null); assert.equal(outcome.receipt.nativeExit, 0);
+assert.equal(outcome.receipt.error, null); assert.equal(outcome.receipt.signal, null);
+assert.deepEqual(outcome.rawReport, { bytes: raw.length, sha256: sha(raw), status: 'PASS', observed: { retainedCompletePairs: 800, warmupCompletePairs: 4, failedPairs: 0 } });
+assert.equal(timingAudit.status, 'INDEPENDENT_AUDIT_PASS'); assert.equal(timingAudit.checkCount, 12883); assert.deepEqual(timingAudit.failed, []);
+assert.equal(timingAudit.raw.sha256, sha(raw)); assert.equal(timingAudit.raw.nativeExit, 0);
+assert.equal(json(resolve(parent, 'independent-audit.receipt.json')).nativeExit, 0);
+assert.equal(existsSync(resolve(terminalReview, 'REPORT.md')), true, 'Actual terminal report must exist');
+
+const linkedBase = resolve(root, 'docs/v16.0.0/performance-evidence/controller-extraction-20261025');
+const linkedArchive = resolve(linkedBase, 'original-evidence.tar.gz');
+const linkedArchiveBytes = readFileSync(linkedArchive);
+assert.equal(linkedArchiveBytes.length, 10284125);
+assert.equal(sha(linkedArchiveBytes), '63ef139c550aa71f2d9e755ba77deb01e0b9351bfe6463a8d6add70e7caaa971');
+const linkedRows = ['archive-audit.json', 'README.md'].map(path => {
+  const bytes = readFileSync(resolve(linkedBase, path)); return { path, bytes: bytes.length, sha256: sha(bytes) };
+});
+
+function guard(label) {
+  assert.deepEqual(inventory(root, new Set(['.git', 'node_modules', 'site', 'Temp', '.claude', 'docs'])), source.noDocs);
+  verifyRows(root, source.full.filter(row => row.path.startsWith('docs/')));
+  assert.deepEqual(inventory(resolve(root, 'site')), [...frozen.artifact.files].sort((a, b) => a.path.localeCompare(b.path)));
+  verifyRows(resolve(root, 'node_modules'), frozen.installed);
+  assert.equal(sha(readFileSync(protocol)), frozen.protocolSha256);
+  for (const [tag, args, expected] of [
+    ['head', ['rev-parse', 'HEAD'], frozen.head],
+    ['branch', ['branch', '--show-current'], frozen.branch],
+    ['index', ['diff', '--cached', '--binary'], frozen.index],
+    ['tracked-diff', ['diff', '--binary', 'HEAD', '--'], frozen.trackedDiffSha256],
+  ]) {
+    const result = native(label + '-' + tag, 'git', ['-C', root, ...args]);
+    assert.equal(tag === 'index' || tag === 'tracked-diff' ? sha(result.stdout) : result.stdout.toString().trim(), expected);
+  }
+}
+guard('before');
+
+const originalWorkspaces = [
+  { prefix: 'parent', originalPath: parent },
+  { prefix: 'preflight-review', originalPath: preflight },
+  { prefix: 'terminal-review', originalPath: terminalReview },
+].map(item => ({ ...item, rows: inventory(item.originalPath) }));
+const selectedSource = source.full.filter(row => !row.path.startsWith('.codex-tmp/'));
+const selectedSite = frozen.artifact.files.filter(row => !row.path.startsWith('assets/ocr/'));
+assert.equal(selectedSource.length, 257); assert.equal(selectedSite.length, 105);
+const inputs = [...originalWorkspaces,
+  { prefix: 'final-source', originalPath: root, rows: selectedSource },
+  { prefix: 'selected-current-site', originalPath: resolve(root, 'site'), rows: selectedSite },
+  { prefix: 'linked-controller-QA', originalPath: linkedBase, rows: linkedRows }];
+const forbidden = /(^|\/)(node_modules|\.git)(\/|$)|(^|\/)\.env(?:\.|$)|\.(?:pem|p12|pfx|key)$/i;
+const secretPattern = /(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)/g;
+const reviewedSyntheticFixture = {
+  path: 'final-source/test/integrity.test.js',
+  fileSha256: 'a609a9fa8f5eb67ecee22701de658b3208c0f32599ec6e0e9836c4c23e9b9dc5',
+  matchHashes: ['25a70677dea9fe85187cdf1e330388c67281f3c075b38c98759366e0919720d6', 'ae8754608195aafb81001fbdb911f6019eb8b13fa6e5ef7229ea71b0b9a7f976'],
+  reason: 'Exact same pre-reviewed synthetic redaction fixtures from controller QA archive; no value printed.'
+};
+let scannedTextFiles = 0, reviewedSyntheticMatches = 0;
+for (const input of inputs) for (const row of input.rows) {
+  const path = input.prefix + '/' + row.path;
+  assert.equal(forbidden.test(row.path), false, 'Forbidden payload path: ' + path);
+  const bytes = readFileSync(resolve(input.originalPath, row.path));
+  assert.equal(bytes.length, row.bytes); assert.equal(sha(bytes), row.sha256);
+  assert.ok(row.bytes < 10_000_000 || (path === 'parent/PAIR.json' && row.bytes === raw.length && row.sha256 === sha(raw)), 'Unexpected giant payload: ' + path);
+  if (!bytes.includes(0)) {
+    scannedTextFiles++;
+    for (const match of bytes.toString('utf8').matchAll(secretPattern)) {
+      assert.equal(path, reviewedSyntheticFixture.path, 'Unreviewed secret-shaped path; do not print value');
+      assert.equal(row.sha256, reviewedSyntheticFixture.fileSha256);
+      assert.ok(reviewedSyntheticFixture.matchHashes.includes(sha(match[0])), 'Unreviewed secret candidate; do not print value');
+      reviewedSyntheticMatches++;
+    }
+  }
+}
+assert.equal(reviewedSyntheticMatches, 2);
+for (const input of inputs) for (const row of input.rows) {
+  const bytes = readFileSync(resolve(input.originalPath, row.path));
+  assert.equal(bytes.length, row.bytes); assert.equal(sha(bytes), row.sha256);
+  save(resolve(stage, input.prefix, row.path), bytes);
+}
+save(resolve(stage, 'protocol/PROTOCOL.md'), readFileSync(protocol));
+save(resolve(stage, 'frozen-inputs/QA_SOURCE_V3.json'), readFileSync(sourcePath));
+save(resolve(stage, 'tools/common.mjs.txt'), readFileSync(resolve(temp, 'FundVal-closure-overlay-20261023-parent/common.mjs')));
+save(resolve(stage, 'archive-tool.mjs.txt'), readFileSync(import.meta.filename));
+const rows = inventory(stage);
+assert.equal(rows.filter(row => row.bytes === raw.length && row.sha256 === sha(raw)).length, 1, 'Raw report stored only once');
+const plan = {
+  schema: 1,
+  scope: 'Unique final controller/name-settlement candidate800+4 timings, raw native evidence, read-only reviews and exact selected source; not immutable CI, M3 EXIT, devices or release.',
+  raw: { path: 'parent/PAIR.json', bytes: raw.length, sha256: sha(raw) },
+  originalWorkspaces,
+  protocol: { path: 'protocol/PROTOCOL.md', sha256: frozen.protocolSha256 },
+  source: { completeInventory: source.full, noDocsInventory: source.noDocs, rowsSha256: frozen.sourceRowsSha256,
+    payloadCount: selectedSource.length, omittedHistoricalAndroidPayloads: 24 },
+  currentSite: { completeInventory: frozen.artifact.files, artifact: frozen.artifact, rowsSha256: frozen.siteRowsSha256,
+    payloadCount: selectedSite.length, omitted: 'assets/ocr/ 24 generated files including manifest, inventory only' },
+  referenceSite: { artifact: timingAudit.artifacts.reference, actualPayloadIncluded: false,
+    limitation: 'Sampler cleaned owned reference snapshot; no claim to re-read removed payload or preserve its internal build logs' },
+  installedInventory: frozen.installed, installedPayloadIncluded: false,
+  linkedControllerQA: { archivePath: 'docs/v16.0.0/performance-evidence/controller-extraction-20261025/original-evidence.tar.gz',
+    archiveBytes: linkedArchiveBytes.length, archiveSha256: sha(linkedArchiveBytes), duplicateArchiveIncluded: false, includedMetadata: linkedRows },
+  screening: { scannedTextFiles, reviewedSyntheticMatches, reviewedSyntheticFixture, unreviewedSecretMatches: 0,
+    limitation: 'Task-owned synthetic benchmark/review/source evidence only; not comprehensive secret-scanning certification or binary-content audit' },
+  rows, count: rows.length, bytes: rows.reduce((sum, row) => sum + row.bytes, 0), rowsSha256: sha(JSON.stringify(rows)),
+};
+saveJSON(resolve(here, 'PLAN.json'), plan); saveJSON(resolve(dest, 'archive-plan.json'), plan);
+const packed = native('tar-create', 'tar.exe', ['-czf', resolve(dest, 'original-evidence.tar.gz'), '-C', stage, '.']);
+mkdirSync(extract);
+const unpacked = native('tar-extract', 'tar.exe', ['-xzf', resolve(dest, 'original-evidence.tar.gz'), '-C', extract]);
+assert.deepEqual(inventory(extract), rows);
+for (const input of originalWorkspaces) assert.deepEqual(inventory(input.originalPath), input.rows);
+verifyRows(linkedBase, linkedRows);
+assert.equal(sha(readFileSync(linkedArchive)), sha(linkedArchiveBytes));
+guard('after');
+const archivedRaw = readFileSync(resolve(extract, 'parent/PAIR.json'));
+assert.equal(archivedRaw.length, raw.length); assert.equal(sha(archivedRaw), sha(raw));
+const compressed = readFileSync(resolve(dest, 'original-evidence.tar.gz'));
+const archiveAudit = {
+  schema: 1, status: 'ARCHIVE_VERIFIED_NOT_M3_EXIT_OR_RELEASE',
+  archive: { bytes: compressed.length, sha256: sha(compressed) }, members: rows.length, expandedBytes: plan.bytes,
+  rowsSha256: plan.rowsSha256, raw: plan.raw, nativeCreate: packed.receipt, nativeExtract: unpacked.receipt,
+  checks: { freshExtractionEveryRow: true, raw88MbRoundTripExactAndSingleCopy: true, allThreeOriginalWorkspacesUnchanged: true,
+    protocolOriginalBytesPreserved: true, source281Unchanged: true, selectedSource257: true, site129Unchanged: true,
+    selectedSite105: true, installed68Unchanged: true, headBranchIndexAndSamePhaseTrackedDiffUnchanged: true,
+    linkedControllerArchiveHashUnchanged: true, terminalReviewIncluded: true },
+  timingVerdict: 'PASS', independentOriginalHelperAudit: '12883 checks / 0 failures; not a second independently implemented statistical algorithm',
+  limitations: timingAudit.limitations, release: false, m3Exit: false, immutableCommitCI: false,
+};
+saveJSON(resolve(dest, 'archive-audit.json'), archiveAudit);
+save(resolve(dest, 'archive-tool.mjs.txt'), readFileSync(import.meta.filename));
+for (const entry of readdirSync(here, { withFileTypes: true })) {
+  if (entry.isFile() && /^(?:before|after|tar-create|tar-extract)[-.]/.test(entry.name)) {
+    save(resolve(dest, 'archive-native', entry.name), readFileSync(resolve(here, entry.name)));
+  }
+}
+process.stdout.write(JSON.stringify(archiveAudit, null, 2) + '\n');

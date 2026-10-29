@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "scope": "Original tracked diff captured after successful measurement and BEFORE writing result docs, plus complete CLI stdout/stderr log",
+  "sourceIdentityMatchesRawReport": true,
+  "terminalExitCode": 0,
+  "files": [
+    {
+      "path": "pre-sampling-tracked.diff.txt",
+      "originalBytes": 5389,
+      "rawSha256": "bd23762e7ded67453853e34acd7eec5845c156521036d2653c63be07998c1adf",
+      "lfSha256": "bd23762e7ded67453853e34acd7eec5845c156521036d2653c63be07998c1adf"
+    },
+    {
+      "path": "run.log.txt",
+      "originalBytes": 5955,
+      "rawSha256": "d9d1c4c1837e1c0b2fe49296c935633f1850345c84192f585e104faf2c0fb68f",
+      "lfSha256": "6a6c3eeb5699e19f936be0de2d3f2574b515f3938b75c4ef2d0bca566fdeec15"
+    },
+    {
+      "path": "verify-report.mjs.txt",
+      "originalBytes": 5264,
+      "rawSha256": "30f44eb1747c958e34c007d0120b7f6bc30679e3c18e3a21d80b57588410340f",
+      "lfSha256": "30f44eb1747c958e34c007d0120b7f6bc30679e3c18e3a21d80b57588410340f"
+    },
+    {
+      "path": "verify-report-v2.mjs.txt",
+      "originalBytes": 5272,
+      "rawSha256": "5ca1758fabc016349897201ed18ea19e37ad4bd67193b506afb089c5d3cdd822",
+      "lfSha256": "5ca1758fabc016349897201ed18ea19e37ad4bd67193b506afb089c5d3cdd822"
+    }
+  ]
+}

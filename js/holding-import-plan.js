@@ -59,7 +59,17 @@ export function suggestCostFromScreenshot(candidate, shares) {
   return total != null && realShares != null ? total / realShares : null;
 }
 
-export function createHoldingImportPlan(candidates, holdings) {
+export function setHoldingImportRowEnabled(row, enabled) {
+  const explicitlyEnabled = enabled === true;
+  return {
+    ...row,
+    explicitlyEnabled,
+    approvedIdentity: explicitlyEnabled ? { code: text(row.code), name: text(row.name) || text(row.code) } : null,
+    action: explicitlyEnabled ? resolveCandidateSelectionAction(row.existing, row.explicitSkip === true) : 'skip',
+  };
+}
+
+export function createHoldingImportPlan(candidates, holdings, options = {}) {
   const existingByCode = activeHoldingByCode(holdings);
   return (Array.isArray(candidates) ? candidates : []).map((candidate, index) => {
     const match = candidate && candidate.match || {};
@@ -69,6 +79,14 @@ export function createHoldingImportPlan(candidates, holdings) {
     const name = text(match.name || (match.fund && match.fund.name) || candidate && candidate.name || candidate && candidate.rawFundName || code);
     const warnings = Array.isArray(candidate && candidate.warnings) ? [...candidate.warnings] : [];
     if (!matched) warnings.push('基金代码或名称需要人工确认');
+    // Policy is structured evidence, never guessed from human warning text.
+    const risks = candidate?.risks || {};
+    const riskReasons = [];
+    if (options?.importable !== true) riskReasons.push('layout_untrusted');
+    if (candidate?.semanticReliable !== true) riskReasons.push('row_geometry_untrusted');
+    if (!matched || !['code', 'exact_name'].includes(match.strategy) || risks.identityUncertain === true) riskReasons.push('identity_unconfirmed');
+    for (const key of ['shareClassUncertain', 'numericAmbiguous', 'signUncertain']) if (risks[key] === true) riskReasons.push(key);
+    const requiresExplicitEnable = riskReasons.length > 0;
     return {
       id: `alipay-${index + 1}`,
       rawFundName: text(candidate && candidate.rawFundName),
@@ -81,7 +99,12 @@ export function createHoldingImportPlan(candidates, holdings) {
       holdingProfitRate: finite(candidate && candidate.holdingProfitRate),
       dailyProfit: finite(candidate && candidate.dailyProfit),
       existing: existing ? { code: existing.code, name: existing.name, shares: existing.shares, cost: existing.cost } : null,
-      action: matched ? (existing ? 'update' : 'add') : 'skip',
+      action: matched && !requiresExplicitEnable ? (existing ? 'update' : 'add') : 'skip',
+      sourceIdentity: { code, name },
+      riskReasons,
+      requiresExplicitEnable,
+      explicitlyEnabled: false,
+      approvedIdentity: null,
       shares: existing ? formValue(existing.shares) : '',
       // Unknown cost is canonical null. The form renders it as an empty value
       // with a "--" hint; never stringify null or silently coerce it to zero.
@@ -98,6 +121,14 @@ function validateOne(row) {
   const code = text(row.code);
   if (!FUND_CODE_RE.test(code)) return { ok: false, message: '请确认 6 位基金代码' };
   const name = text(row.name) || code;
+  if (!['add', 'update'].includes(row.action)) return { ok: false, message: '请选择新增、更新或跳过' };
+  const trustedPolicy = row.requiresExplicitEnable === false
+    && Array.isArray(row.riskReasons) && row.riskReasons.length === 0
+    && row.sourceIdentity?.code === code && row.sourceIdentity?.name === name;
+  if (!trustedPolicy
+    && (row.explicitlyEnabled !== true || row.approvedIdentity?.code !== code || row.approvedIdentity?.name !== name)) {
+    return { ok: false, message: '请逐行核对基金身份和真实份额，并勾选“启用此行”' };
+  }
   const shares = positive(row.shares);
   if (shares == null) return { ok: false, message: '请填写大于 0 的真实持有份额' };
   const submittedCost = optionalCost(row.cost);
