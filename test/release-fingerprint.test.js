@@ -16,6 +16,8 @@ import {
 } from '../scripts/release-fingerprint.mjs';
 
 assert.ok(RELEASE_CRITICAL_PATHS.includes('manifest.json'));
+assert.ok(RELEASE_CRITICAL_PATHS.includes('icon-maskable-192.png'));
+assert.ok(RELEASE_CRITICAL_PATHS.includes('icon-maskable-512.png'));
 assert.ok(RELEASE_CRITICAL_PATHS.includes('js/ocr/performance-ledger.js'));
 assert.ok(RELEASE_CRITICAL_PATHS.includes('js/app-chunks.json'));
 assert.ok(RELEASE_CRITICAL_PATHS.includes('js/update-compat.js'));

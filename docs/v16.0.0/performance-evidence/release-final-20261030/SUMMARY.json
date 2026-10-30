@@ -1,0 +1,974 @@
+{
+  "schema": 1,
+  "project": "FundVal",
+  "version": "16.0.0",
+  "recordDate": "2026-10-30",
+  "status": "INCONCLUSIVE",
+  "measurementCompleted": true,
+  "allPerformanceGatesPassed": false,
+  "observedWrapperExitCode": 1,
+  "runnerConfiguredInconclusiveExitCode": 2,
+  "identity": {
+    "referenceSha": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+    "currentSha": "35808ee3b4698db1f9919cbc8f0d4033f9baa986",
+    "currentCiRun": "40877032757",
+    "currentCiAttempt": "1",
+    "currentReleaseCriticalFingerprint": "41be13fac787e2b5840b502cb52e716ad680b0965cff2d4457e7662bda633bb7",
+    "currentSiteInventoryFingerprint": "9cf89940f039d4221a956d08f8d98362f1a534217fe27b1283b99c1429591507",
+    "referenceSourceInventorySha256": "d6799f083c63ab046caba1900a1fe9fc2851d27fc6344ea2615f06b71e465db5",
+    "referenceRawLockSha256": "bee46bdc3098dd585b4347847121c2c76615d99171a87ec8d19d9a23b5111c82",
+    "referenceInstalledDependencies": {
+      "@paddleocr/paddleocr-js": "0.4.2",
+      "@tesseract.js-data/chi_sim": "1.0.0",
+      "onnxruntime-web": "1.27.0",
+      "tesseract.js": "7.0.0",
+      "tesseract.js-core": "7.0.0",
+      "@playwright/test": "1.62.1",
+      "esbuild": "0.28.2",
+      "vite": "8.2.2"
+    },
+    "currentDependencyLockScope": "Original exact CI artifact built from its committed lock; current working-tree node_modules is not used to rebuild either side."
+  },
+  "environment": {
+    "node": "v24.14.0",
+    "platform": "win32",
+    "osRelease": "10.0.26200",
+    "cpuModel": "AMD Ryzen 5 3600 6-Core Processor              ",
+    "logicalCpus": 12,
+    "totalMemoryBytes": 17119784960,
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "serviceWorkers": "Existing guarded registration denial + blocked SW script requests + zero registration/controller/worker assertions",
+    "origin": "http://127.0.0.1:6037",
+    "chromeVersion": "156.0.8078.74"
+  },
+  "method": {
+    "protocol": "measure-performance-pair.mjs paired-readiness-v2-same-document-counters, unchanged measureSide and summarizePairs",
+    "origin": "One owned loopback HTTP origin and identical root URL; static root changes only after prior context has closed; before measuring each artifact, startup graph bytes verified.",
+    "urlScope": "Controlled root-URL CPU/whole-version comparison only, not actual /FundVal/ deployment-path acceptance. Separate upgrade preflight found the historical v15 root-absolute preload/lazy-save path fails under /FundVal/. Neither baseline nor artifacts are patched here; root-URL save timings must not be generalized to old production-subpath availability.",
+    "ordering": "Alternating AB/BA whole pairs, four prespecified warm-up pairs retained but excluded from inference; no outlier removal or failed sample replacement.",
+    "cold": "Fresh empty storage/context per side; HTTP cache disabled, no-store local transport, no service workers.",
+    "warm": "Same-context reload retaining local storage after untimed drain; HTTP cache still disabled/no-store. This is not HTTP-cache-hot or OS warm PWA launch.",
+    "interaction": "Real synthetic UI save of E2E fund 005844, 100 shares, cost1.2; click through visible holding result (not a separate durability readback assertion); runner wall timer retains automation overhead.",
+    "fixtures": "Unchanged historical v15 default synthetic estimate/empty holdings at fixed Date2026-08-28T06:45:10Z; nonfixture providers, Gist and SW requests blocked.",
+    "attribution": "Loopback navigation TTFB/download vs post-response bootstrap/DOM residual, long tasks, LCP if available, request counts/bytes and partial same-document renderer counters; neither isolated server CPU nor OS CPU nor production API timings.",
+    "dependencies": "Both actual releases retain original locks/build tools. Historical v15 Vite8.2.2 and final v16 Vite8.2.4 differ, so effects cannot be attributed solely to application code. Existing M3 same-lock guard is unchanged.",
+    "thresholds": {
+      "medianRatio": 1.15,
+      "p95Ratio": 1.2,
+      "absoluteCriticalMs": 3000,
+      "stabilityWidth": 0.2,
+      "bootstrapPassConfidence": 0.95
+    },
+    "caveat": "Small tail counts and desktop scheduling limit inference; INCONCLUSIVE is retained, not promoted to PASS."
+  },
+  "requested": {
+    "retainedPairs": 60,
+    "warmupPairs": 4,
+    "bootstrap": 5000,
+    "seed": 160003
+  },
+  "observed": {
+    "retainedCompletePairs": 60,
+    "warmupCompletePairs": 4,
+    "AB": 30,
+    "BA": 30,
+    "discardedRetainedSamples": 0,
+    "retries": 0,
+    "pageErrors": 0,
+    "instrumentationFailures": 0
+  },
+  "integrity": {
+    "status": "PASS"
+  },
+  "health": {
+    "complete": true,
+    "retainedCompletePairs": 60,
+    "pageErrors": 0,
+    "instrumentationFailures": 0,
+    "validCounters": true,
+    "verdict": "PASS"
+  },
+  "cleanup": [
+    {
+      "resource": "ownedBrowser",
+      "status": "PASS"
+    },
+    {
+      "resource": "ownedSameOriginServer",
+      "status": "PASS"
+    }
+  ],
+  "startedAt": "2026-10-30T04:45:45.094Z",
+  "finishedAt": "2026-10-30T04:48:41.684Z",
+  "summary": {
+    "verdict": "INCONCLUSIVE",
+    "retainedPairs": 60,
+    "balanced": true,
+    "orderCounts": {
+      "AB": 30,
+      "BA": 30
+    },
+    "metrics": {
+      "coldReadyMs": {
+        "reference": {
+          "samples": 60,
+          "median": 142.85000000009313,
+          "p95": 174.59999999962747,
+          "maximum": 200.29999999981374
+        },
+        "current": {
+          "samples": 60,
+          "median": 136.75000000023283,
+          "p95": 179.60000000009313,
+          "maximum": 196.09999999962747
+        },
+        "medianRatio": 0.9572978648942504,
+        "p95Ratio": 1.0286368843097156,
+        "medianDeltaPercent": -4.27021351057496,
+        "p95DeltaPercent": 2.863688430971556,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.9307875894995077,
+            0.9771368272967338
+          ],
+          "p95Ratio": [
+            0.8797250859130633,
+            1.1163069544360225
+          ],
+          "referenceP95Ms": [
+            166.6999999997206,
+            181.20000000018626
+          ],
+          "currentP95Ms": [
+            154,
+            188.6999999997206
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.08304696449310767,
+          "current": 0.1932071269471192
+        },
+        "p95Stable": true,
+        "passConfidence": 0.9992,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 30,
+            "referenceMedian": 143.9000000001397,
+            "currentMedian": 133.80000000004657
+          },
+          "BA": {
+            "pairs": 30,
+            "referenceMedian": 141.30000000004657,
+            "currentMedian": 137.85000000009313
+          }
+        }
+      },
+      "warmReadyMs": {
+        "reference": {
+          "samples": 60,
+          "median": 75.19999999995343,
+          "p95": 113.09999999962747,
+          "maximum": 129.89999999990687
+        },
+        "current": {
+          "samples": 60,
+          "median": 70.89999999990687,
+          "p95": 87.5,
+          "maximum": 100.79999999981374
+        },
+        "medianRatio": 0.9428191489355155,
+        "p95Ratio": 0.7736516357231495,
+        "medianDeltaPercent": -5.718085106448445,
+        "p95DeltaPercent": -22.634836427685045,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.8887443070882364,
+            0.987951807227038
+          ],
+          "p95Ratio": [
+            0.680759275237017,
+            0.9954493742900195
+          ],
+          "referenceP95Ms": [
+            92.6999999997206,
+            122.60000000009313
+          ],
+          "currentP95Ms": [
+            81.1999999997206,
+            99.79999999981374
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.2643678160961186,
+          "current": 0.21257142857249295
+        },
+        "p95Stable": false,
+        "passConfidence": 1,
+        "verdict": "INCONCLUSIVE",
+        "reasons": [
+          "A p95 confidence interval is wider than the declared stability limit.",
+          "Confidence bounds do not establish a stable pass or a confident relative regression."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 30,
+            "referenceMedian": 77.75,
+            "currentMedian": 71.30000000004657
+          },
+          "BA": {
+            "pairs": 30,
+            "referenceMedian": 74.39999999990687,
+            "currentMedian": 69.75000000023283
+          }
+        }
+      },
+      "saveUiMs": {
+        "reference": {
+          "samples": 60,
+          "median": 75.71680000000924,
+          "p95": 89.54630000000179,
+          "maximum": 100.79959999999846
+        },
+        "current": {
+          "samples": 60,
+          "median": 65.73044999999547,
+          "p95": 72.71239999998943,
+          "maximum": 107.54850000000442
+        },
+        "medianRatio": 0.868109191090847,
+        "p95Ratio": 0.8120089830622591,
+        "medianDeltaPercent": -13.189080890915294,
+        "p95DeltaPercent": -18.79910169377409,
+        "confidenceIntervals95": {
+          "medianRatio": [
+            0.84350628795078,
+            0.8906646198180885
+          ],
+          "p95Ratio": [
+            0.7866025541955318,
+            0.8692918196575209
+          ],
+          "referenceP95Ms": [
+            86.03119999999763,
+            91.8801999999996
+          ],
+          "currentP95Ms": [
+            71.19810000000143,
+            73.65189999999711
+          ]
+        },
+        "p95RelativeIntervalWidth": {
+          "reference": 0.0653181650163308,
+          "current": 0.0337466511901139
+        },
+        "p95Stable": true,
+        "passConfidence": 1,
+        "verdict": "PASS",
+        "reasons": [
+          "Both upper 95% relative bounds meet the limits, with stable p95 intervals and at least 95% bootstrap pass confidence."
+        ],
+        "orderEffect": {
+          "AB": {
+            "pairs": 30,
+            "referenceMedian": 75.23294999999052,
+            "currentMedian": 65.75989999999547
+          },
+          "BA": {
+            "pairs": 30,
+            "referenceMedian": 76.9005500000003,
+            "currentMedian": 65.5876500000013
+          }
+        }
+      }
+    },
+    "method": {
+      "p95": "nearest rank: sorted[ceil(0.95 * n) - 1]",
+      "median": "arithmetic mean of the middle two values for even n",
+      "uncertainty": "95% percentile bootstrap, resampling whole pairs within AB/BA strata; deterministic PRNG seed; all retained samples included",
+      "bootstrap": 5000,
+      "seed": 160003,
+      "minimumPairs": 60,
+      "medianLimit": 1.15,
+      "p95Limit": 1.2,
+      "absoluteBudgetMs": 3000,
+      "stabilityLimit": 0.2,
+      "confidenceCaveat": "Bootstrap pass confidence is the fraction of resamples meeting the gate, not a probability that the population passes. Small tail counts and desktop scheduling limit inference."
+    }
+  },
+  "attribution": {
+    "reference": {
+      "cold": {
+        "navigationTtfbMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 1.8999999999068677,
+          "p95": 2.3999999999068677,
+          "maximum": 3.1000000000931323
+        },
+        "htmlDownloadMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0.5,
+          "p95": 1.2000000001862645,
+          "maximum": 1.7000000001862645
+        },
+        "postHttpBootstrapAndDomMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 134.95000000018626,
+          "p95": 164.59999999962747,
+          "maximum": 191.5
+        },
+        "longTaskTotalMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "lcpAtCollectionMs": {
+          "samples": 60,
+          "missing": 7,
+          "median": null,
+          "p95": null,
+          "maximum": null
+        },
+        "partialRendererTaskMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 86.92150000000001,
+          "p95": 105.791,
+          "maximum": 120.392
+        },
+        "partialRendererScriptMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 8.172,
+          "p95": 10.02,
+          "maximum": 11.49
+        },
+        "partialRendererLayoutMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 36.2405,
+          "p95": 47.804,
+          "maximum": 50.926
+        }
+      },
+      "warm": {
+        "navigationTtfbMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 1.5,
+          "p95": 2.1000000000931323,
+          "maximum": 2.7999999998137355
+        },
+        "htmlDownloadMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0.39999999990686774,
+          "p95": 0.6000000000931323,
+          "maximum": 0.8999999999068677
+        },
+        "postHttpBootstrapAndDomMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 70.29999999981374,
+          "p95": 106.70000000018626,
+          "maximum": 122.39999999990687
+        },
+        "longTaskTotalMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "lcpAtCollectionMs": {
+          "samples": 60,
+          "missing": 1,
+          "median": null,
+          "p95": null,
+          "maximum": null
+        },
+        "partialRendererTaskMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 29.244499999999995,
+          "p95": 37.346,
+          "maximum": 43.002
+        },
+        "partialRendererScriptMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 1.9994999999999998,
+          "p95": 2.5500000000000003,
+          "maximum": 3.423
+        },
+        "partialRendererLayoutMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0.7375,
+          "p95": 1.0839999999999999,
+          "maximum": 1.198
+        }
+      },
+      "save": {
+        "clickToVisibleDomMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 21.25,
+          "p95": 22.399999999906868,
+          "maximum": 23.5
+        }
+      }
+    },
+    "current": {
+      "cold": {
+        "navigationTtfbMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 2,
+          "p95": 2.5,
+          "maximum": 3.2999999998137355
+        },
+        "htmlDownloadMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0.5,
+          "p95": 1.2000000001862645,
+          "maximum": 1.6000000000931323
+        },
+        "postHttpBootstrapAndDomMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 128.35000000009313,
+          "p95": 171.10000000009313,
+          "maximum": 186.79999999981374
+        },
+        "longTaskTotalMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "lcpAtCollectionMs": {
+          "samples": 60,
+          "missing": 8,
+          "median": null,
+          "p95": null,
+          "maximum": null
+        },
+        "partialRendererTaskMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 91.8285,
+          "p95": 107.56599999999999,
+          "maximum": 125.00900000000001
+        },
+        "partialRendererScriptMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 10.114,
+          "p95": 12.42,
+          "maximum": 14.344000000000001
+        },
+        "partialRendererLayoutMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 37.4055,
+          "p95": 46.113,
+          "maximum": 58.831
+        }
+      },
+      "warm": {
+        "navigationTtfbMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 1.5,
+          "p95": 2.1000000000931323,
+          "maximum": 2.7999999998137355
+        },
+        "htmlDownloadMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0.39999999990686774,
+          "p95": 0.8999999999068677,
+          "maximum": 0.8999999999068677
+        },
+        "postHttpBootstrapAndDomMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 64.64999999990687,
+          "p95": 79.89999999990687,
+          "maximum": 95.6999999997206
+        },
+        "longTaskTotalMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "lcpAtCollectionMs": {
+          "samples": 60,
+          "missing": 2,
+          "median": null,
+          "p95": null,
+          "maximum": null
+        },
+        "partialRendererTaskMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 30.587499999999995,
+          "p95": 36.69,
+          "maximum": 39.957
+        },
+        "partialRendererScriptMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 2.3785,
+          "p95": 2.928,
+          "maximum": 3.257
+        },
+        "partialRendererLayoutMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0.7035,
+          "p95": 1.0430000000000001,
+          "maximum": 1.0959999999999999
+        }
+      },
+      "save": {
+        "clickToVisibleDomMs": {
+          "samples": 60,
+          "missing": 0,
+          "median": 18.600000000093132,
+          "p95": 19.800000000279397,
+          "maximum": 21.700000000186265
+        }
+      }
+    }
+  },
+  "requests": {
+    "reference": {
+      "cold": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 23,
+          "p95": 23,
+          "maximum": 23
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 19,
+          "p95": 19,
+          "maximum": 19
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 4,
+          "p95": 4,
+          "maximum": 4
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 214327,
+          "p95": 214327,
+          "maximum": 214327
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      },
+      "warm": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 23,
+          "p95": 23,
+          "maximum": 23
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 19,
+          "p95": 19,
+          "maximum": 19
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 4,
+          "p95": 4,
+          "maximum": 4
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 214327,
+          "p95": 214327,
+          "maximum": 214327
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      },
+      "savePreparation": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      },
+      "save": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 7,
+          "p95": 7,
+          "maximum": 7
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 4,
+          "p95": 4,
+          "maximum": 4
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 2,
+          "p95": 2,
+          "maximum": 2
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 1,
+          "p95": 1,
+          "maximum": 1
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 17851,
+          "p95": 17851,
+          "maximum": 17851
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      }
+    },
+    "current": {
+      "cold": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 18,
+          "p95": 18,
+          "maximum": 18
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 14,
+          "p95": 14,
+          "maximum": 14
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 4,
+          "p95": 4,
+          "maximum": 4
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 291804,
+          "p95": 291804,
+          "maximum": 291804
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      },
+      "warm": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 18,
+          "p95": 18,
+          "maximum": 18
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 14,
+          "p95": 14,
+          "maximum": 14
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 4,
+          "p95": 4,
+          "maximum": 4
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 291804,
+          "p95": 291804,
+          "maximum": 291804
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      },
+      "savePreparation": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      },
+      "save": {
+        "allRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 11,
+          "p95": 11,
+          "maximum": 11
+        },
+        "loopbackRequestCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 4,
+          "p95": 4,
+          "maximum": 4
+        },
+        "syntheticReadCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 2,
+          "p95": 2,
+          "maximum": 2
+        },
+        "blockedCount": {
+          "samples": 60,
+          "missing": 0,
+          "median": 5,
+          "p95": 5,
+          "maximum": 5
+        },
+        "measuredLoopbackResponseBodyBytes": {
+          "samples": 60,
+          "missing": 0,
+          "median": 29830,
+          "p95": 29830,
+          "maximum": 29830
+        },
+        "unmeasuredLoopbackResponses": {
+          "samples": 60,
+          "missing": 0,
+          "median": 0,
+          "p95": 0,
+          "maximum": 0
+        },
+        "note": "Phase totals include untimed drain after the measured readiness/save boundary; byte sums cover measured HTTP response bodies only, not upstream fixture bodies or network compression. Missing response sizes are separately counted, not invented as zero."
+      }
+    }
+  },
+  "bundle": {
+    "reference": {
+      "chunks": 22,
+      "coldChunks": 12,
+      "rawBytes": 195074,
+      "coldGzipBytes": 51941,
+      "allGzipBytes": 70207
+    },
+    "current": {
+      "chunks": 17,
+      "coldChunks": 6,
+      "rawBytes": 280237,
+      "coldGzipBytes": 51282,
+      "allGzipBytes": 95880
+    },
+    "coldHardLimitBytes": 52241,
+    "allGzipHardLimit": "NOT_ENFORCED_BY_USER_POLICY"
+  },
+  "rawReceipt": {
+    "localPath": "Temp/v16-performance-20261030-child/release-pair-60-20261030.json",
+    "bytes": 7109221,
+    "sha256": "86e0d73dc026e4afc0be0f271a9151736ed68835259cf92145c1e56763d3b74a",
+    "originalRetained": true,
+    "archive": {
+      "status": "ARCHIVED_ORIGINAL_BYTES",
+      "bytes": 409965,
+      "sha256": "4d2d2aec3b2eef1f3c874dcc8c2aa5304604b9a166ec574ca8a8b7a75e80bcc9",
+      "originalSha256": "86e0d73dc026e4afc0be0f271a9151736ed68835259cf92145c1e56763d3b74a",
+      "gunzipSha256Verified": true,
+      "path": "release-pair-60.raw.json.gz"
+    }
+  },
+  "transferWarning": {
+    "coldAndWarmMeasuredPhaseBodyDeltaPercent": 36.148968632043555,
+    "saveMeasuredPhaseBodyDeltaPercent": 67.1054842865946,
+    "scope": "Measured loopback response body totals including untimed drain; not critical-path-only bytes or production compression. Fewer requests and lower loopback latency do not prove lighter real-network loading. User total-bundle waiver does not remove this warning."
+  },
+  "limits": [
+    "Root-URL benchmark, not /FundVal/ deployment-path or old-v15 subpath-save availability proof.",
+    "Warm is no-store same-context reload with local storage, not HTTP-cache hot or OS-installed-PWA launch.",
+    "Cold is empty-holdings application readiness; save creates one synthetic holding, not a real seven-fund portfolio.",
+    "Synthetic fixture upstream timing is not provider/network API latency.",
+    "Historical and final releases use different original dependency locks/build tools; effects are not isolated application-code causation.",
+    "Desktop Chrome at390x844, not phone/iOS/installed-PWA performance.",
+    "LCP and renderer attribution retain missing/partial coverage rather than backfilling zero; aggregate bytes include untimed drain and are not critical-path transfer only.",
+    "Warm point estimates improved but declared p95 interval-width stability failed; overall remains INCONCLUSIVE."
+  ]
+}

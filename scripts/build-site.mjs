@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { build as viteBuild } from 'vite';
 import { buildPaddleOcrAssets } from './build-paddle-ocr.mjs';
+import { verifyPwaIconAssets } from './pwa-icon-assets.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = resolve(root, 'site');
@@ -276,11 +277,14 @@ async function buildAppShell() {
   console.log(`Homepage cold-start gzip: ${coldStartGzipBytes}/${APP_SHELL_GZIP_BUDGET} bytes; all chunks: ${totalGzipBytes} bytes gzip.`);
 }
 
+await verifyPwaIconAssets(root);
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 
 for (const source of [
-  'index.html', 'ocr-import.html', 'quote-bridge.html', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png', 'css', 'js', 'data', 'THIRD_PARTY_NOTICES.md',
+  'index.html', 'ocr-import.html', 'quote-bridge.html', 'manifest.json', 'sw.js',
+  'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png',
+  'css', 'js', 'data', 'THIRD_PARTY_NOTICES.md',
 ]) {
   await copyIntoSite(source);
 }

@@ -23,6 +23,7 @@ test('CI validates every branch and PR, seals review candidates and has no produ
   assert.match(workflow, /test -s site\/js\/update-compat\.js/);
   assert.match(workflow, /actions\/upload-artifact@[0-9a-f]{40}/);
   assert.match(workflow, /name: fundval-candidate-\$\{\{ github\.sha \}\}-\$\{\{ github\.run_attempt \}\}/);
+  assert.match(workflow.slice(workflow.indexOf('name: Upload immutable candidate'), workflow.indexOf('name: Enforce actual app startup budget')), /compression-level: 6/);
   assert.match(workflow, /CANDIDATE_EVENT: \$\{\{ github\.event_name \}\}/);
   assert.match(workflow, /CANDIDATE_BRANCH: \$\{\{ github\.head_ref \|\| github\.ref_name \}\}/);
   assert.match(workflow, /Preserve failed synthetic E2E diagnostics\s*\n\s+if: failure\(\)/);

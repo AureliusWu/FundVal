@@ -1,0 +1,246 @@
+{
+  "schema": 1,
+  "date": "2026-10-30",
+  "scope": "LOCAL_FOLLOWUP_NOT_PUBLISHED",
+  "sourceScope": "js/css/scripts/contracts/test/e2e/.github/root runtime-package; PNG identity verified separately; docs/Temp/environment excluded from sourceDigest",
+  "sourceBase": "35808ee3b4698db1f9919cbc8f0d4033f9baa986",
+  "qa": [
+    {
+      "name": "test-1",
+      "originalLabel": "followup30-final-test-2",
+      "nativeExit": 0,
+      "startedAt": "2026-10-30T04:59:11.011Z",
+      "finishedAt": "2026-10-30T04:59:21.078Z",
+      "sourceDigest": "c3588c0aa1f166aaa9631b7f49ab0c7dd04c79159bb2885b827d985139324828",
+      "siteBeforeDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "siteAfterDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "stdout": {
+        "bytes": 216220,
+        "sha256": "71c4b344ead84e5518c0f38727d46edb434f1735efcd070313b1604098678269"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originalReceiptSha256": "8bb2e62160504b56463d5e018be8acb4e808b32529faa1d869989e586928eeab"
+    },
+    {
+      "name": "check-1",
+      "originalLabel": "followup30-final-check-1",
+      "nativeExit": 0,
+      "startedAt": "2026-10-30T04:59:54.162Z",
+      "finishedAt": "2026-10-30T05:00:08.179Z",
+      "sourceDigest": "c3588c0aa1f166aaa9631b7f49ab0c7dd04c79159bb2885b827d985139324828",
+      "siteBeforeDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "siteAfterDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "stdout": {
+        "bytes": 112,
+        "sha256": "39889aa341714f2aa93f004cc40432eb6035013e701e4dbb8f53e084bfb3ed64"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originalReceiptSha256": "de61412171fd75f1d6665c04c4ad1bdee3c7a3b49530126bd4031c7af33522e9"
+    },
+    {
+      "name": "build-1",
+      "originalLabel": "followup30-final-build-1",
+      "nativeExit": 0,
+      "startedAt": "2026-10-30T05:01:26.353Z",
+      "finishedAt": "2026-10-30T05:01:28.502Z",
+      "sourceDigest": "c3588c0aa1f166aaa9631b7f49ab0c7dd04c79159bb2885b827d985139324828",
+      "siteBeforeDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "siteAfterDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "stdout": {
+        "bytes": 1497,
+        "sha256": "f8376c44cb64d35bf9c8ec412a011991db7d44ebecf744e29f47ec46d2561fd5"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originalReceiptSha256": "7d88c3e5ed4e3aadc0fb8203ee990e658537af2d24dff6c8a1e1d22f7b5a1305"
+    },
+    {
+      "name": "build-2",
+      "originalLabel": "followup30-final-build-2",
+      "nativeExit": 0,
+      "startedAt": "2026-10-30T05:01:30.556Z",
+      "finishedAt": "2026-10-30T05:01:32.523Z",
+      "sourceDigest": "c3588c0aa1f166aaa9631b7f49ab0c7dd04c79159bb2885b827d985139324828",
+      "siteBeforeDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "siteAfterDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "stdout": {
+        "bytes": 1497,
+        "sha256": "f8376c44cb64d35bf9c8ec412a011991db7d44ebecf744e29f47ec46d2561fd5"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originalReceiptSha256": "19e10349f0913ff16930ffb7461687d242747f9ec0fd754499c346cda26f587f"
+    },
+    {
+      "name": "e2e-1",
+      "originalLabel": "followup30-final-e2e-1",
+      "nativeExit": 0,
+      "startedAt": "2026-10-30T05:01:34.121Z",
+      "finishedAt": "2026-10-30T05:04:49.661Z",
+      "sourceDigest": "c3588c0aa1f166aaa9631b7f49ab0c7dd04c79159bb2885b827d985139324828",
+      "siteBeforeDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "siteAfterDigest": "959c06db7c99d246c4ec2e89adb28ad24dcc7c8bf8d8432886b7c995d6759639",
+      "stdout": {
+        "bytes": 27589,
+        "sha256": "0a8ee66b3830eb77e65c51be906e0540235d30d3c7981a99929d0c31b689fd3e"
+      },
+      "stderr": {
+        "bytes": 352,
+        "sha256": "fad34473f8c30f61772a39e0d9a5d1cb4309b8cf66501d642db451a786e9c18c"
+      },
+      "originalReceiptSha256": "854f4ea05e57a559acc5d53d7c7b3fc00ed6657d06bd52641d0b96b05bae26d3"
+    }
+  ],
+  "assets": {
+    "result": "PASS",
+    "records": [
+      {
+        "path": "icon-maskable-192.png",
+        "width": 192,
+        "height": 192,
+        "bytes": 62895,
+        "sha256": "bc7fea754478786a03db6fbcfd97e63a2801a8714e7cc61007d404e79df2bdbd",
+        "opaque": true,
+        "bluePixels": 4027,
+        "blueBounds": {
+          "minX": 47,
+          "minY": 52,
+          "maxX": 145,
+          "maxY": 131
+        },
+        "blueRadiusRatio": 0.33245734506056895
+      },
+      {
+        "path": "icon-maskable-512.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 425226,
+        "sha256": "055e243d7cdadceac0a8420e12dd8e483d146ed76cc8adbcc31cabca37dbe3b9",
+        "opaque": true,
+        "bluePixels": 28318,
+        "blueBounds": {
+          "minX": 124,
+          "minY": 138,
+          "maxX": 389,
+          "maxY": 351
+        },
+        "blueRadiusRatio": 0.33615601995349803
+      }
+    ],
+    "scope": "PNG dimensions/opacity and blue-ink heuristic; full outline and platform crops require visual/device review."
+  },
+  "localSite": {
+    "files": 141,
+    "inventoryFingerprint": "c2dc6d9e63408a583889eb2d40390322227da1edaff97b2c59ed25801a6f4e21"
+  },
+  "originalReleasedSite": {
+    "files": 139,
+    "inventoryFingerprint": "9cf89940f039d4221a956d08f8d98362f1a534217fe27b1283b99c1429591507"
+  },
+  "difference": {
+    "added": [
+      "icon-maskable-192.png",
+      "icon-maskable-512.png"
+    ],
+    "substantiveChanged": [
+      "manifest.json"
+    ],
+    "lineEndingOnly": [
+      "css/ocr.css",
+      "css/style.css",
+      "data/market-calendars.json",
+      "index.html",
+      "js/accuracy.js",
+      "js/app.js",
+      "js/bootstrap.js",
+      "js/config.js",
+      "js/eastmoney-estimate.js",
+      "js/freshness.js",
+      "js/fund-holdings.js",
+      "js/holding-import-plan.js",
+      "js/holdings-estimate.js",
+      "js/integrity.js",
+      "js/notifications/notification-controller.js",
+      "js/ocr-import-page.js",
+      "js/ocr/engine.js",
+      "js/ocr/image-header.js",
+      "js/ocr/page-guard.js",
+      "js/ocr/preprocess-client.js",
+      "js/ocr/preprocess-worker.js",
+      "js/overseas-model.js",
+      "js/paddle-local-ocr.js",
+      "js/resilience.js",
+      "js/runtime/business-features.js",
+      "js/runtime/cache-envelope.js",
+      "js/runtime/diagnostics-ui.js",
+      "js/runtime/fund-model-enrichment.js",
+      "js/runtime/generation-resource-scope.js",
+      "js/runtime/holding-quote-amounts.js",
+      "js/runtime/holding-set-contract.js",
+      "js/runtime/market-clock.js",
+      "js/runtime/market-session.js",
+      "js/runtime/notification-policy-runtime.js",
+      "js/runtime/notification-policy.js",
+      "js/runtime/page-navigation.js",
+      "js/runtime/pwa-update-controller.js",
+      "js/runtime/quote-contract.js",
+      "js/runtime/quote-diagnostics.js",
+      "js/runtime/quote-normalizer.js",
+      "js/runtime/quote-presentation.js",
+      "js/runtime/refresh-execution.js",
+      "js/runtime/refresh-generation.js",
+      "js/runtime/refresh-plan.js",
+      "js/runtime/refresh-resource-cache.js",
+      "js/runtime/refresh-resource-policy.js",
+      "js/runtime/refresh-runtime.js",
+      "js/runtime/remote-schema.js",
+      "js/runtime/security-quote-batch.js",
+      "js/runtime/source-registry.js",
+      "js/runtime/sync-policy.js",
+      "js/runtime/sync-status.js",
+      "js/runtime/valuation-period.js",
+      "js/runtime/worker-contract.js",
+      "js/startup-migrations.js",
+      "js/storage/cloud-archive-ui.js",
+      "js/storage/cloud-create-intent.js",
+      "js/storage/cloud-runtime.js",
+      "js/storage/cloud-sync.js",
+      "js/storage/gist-credentials.js",
+      "js/storage/gist-http.js",
+      "js/storage/gist-remote.js",
+      "js/storage/gist-runtime.js",
+      "js/storage/holdings-repository.js",
+      "js/storage/holdings-schema.js",
+      "js/storage/startup-repository.js",
+      "js/version.js",
+      "ocr-import.html",
+      "sw.js"
+    ],
+    "missing": [],
+    "appChunksByteIdentical": true
+  },
+  "coldGzipBytes": 51282,
+  "coldGzipLimit": 52241,
+  "allNonOcrGzipBytes": 95880,
+  "allLimitEnabled": false,
+  "noTagPushReleaseOrDeployment": true,
+  "retainedPriorFailure": {
+    "label": "followup30-final-test-1",
+    "nativeExit": 1,
+    "stdout": {
+      "bytes": 216901,
+      "sha256": "57e6200a6fbf835dc21b086b22ff56ed73f2d6bf01f346ef336e5266c4ce47cc"
+    },
+    "explanation": "Existing 50ms queued-offline relay fixture used setImmediate instead of a transport-entry handshake; only its test synchronization changed, with all original timeout and behavior assertions retained. No Gist runtime behavior changed."
+  }
+}
