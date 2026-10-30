@@ -1,4 +1,4 @@
-const CACHE = 'fuyu-v16.0.0';
+const CACHE = 'fuyu-v16.0.1';
 const CACHE_PREFIX = 'fuyu-v';
 let updateRequester = null;
 const CORE = [

@@ -1,6 +1,6 @@
 {
   "name": "fuyu-fund",
-  "version": "16.0.0",
+  "version": "16.0.1",
   "private": true,
   "type": "module",
   "packageManager": "npm@11.9.0",

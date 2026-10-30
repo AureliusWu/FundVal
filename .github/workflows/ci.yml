@@ -143,7 +143,8 @@ jobs:
             ${{ runner.temp }}/candidate/site.tar
             ${{ runner.temp }}/candidate/candidate.json
           if-no-files-found: error
-          compression-level: 0
+          # Transport-only compression; candidate site bytes and admission gates stay unchanged.
+          compression-level: 6
           retention-days: 30
       # Total non-OCR bytes are still reported, without a ceiling by user policy.
       # The unchanged cold-start budget must still fail this required job.

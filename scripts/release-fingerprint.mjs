@@ -20,6 +20,8 @@ const APP_BUNDLE_ALL_LIMIT_ENABLED = false;
 export const RELEASE_CRITICAL_PATHS = Object.freeze([
   'index.html',
   'manifest.json',
+  'icon-maskable-192.png',
+  'icon-maskable-512.png',
   'sw.js',
   'js/app-shell.js',
   'js/app-chunks.json',

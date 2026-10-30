@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "recordDate": "2026-10-30",
+  "scope": "WINDOWS_CHROME_HEADLESS_NATIVE_INSTALLED_PWA_AND_NATIVE_SW_TWO_VERSION_ACCEPTANCE",
+  "status": {
+    "nativeTwoVersion": "PASS_3_OF_3",
+    "nativeInstalledCurrentPageEntry": "PASS_1_OF_1",
+    "originalInstalledLaunchEntry": "FAIL_RETAINED",
+    "oldUiSaveLane": "FAIL_RETAINED_NOT_RECLASSIFIED",
+    "physicalAndroidIos": "NOT_RUN",
+    "desktopShortcutHumanClickAndMobileA2hs": "NOT_RUN",
+    "liveProviderAndGistAcceptance": "NOT_RUN",
+    "newMaskableWorktreeCandidate": "NOT_THE_TARGET_OF_THIS_UPGRADE_RUN"
+  },
+  "versions": [
+    "15.0.2",
+    "16.0.0"
+  ],
+  "referenceSha": "40e68edab9cb3fba0b17338dc3672a82d13ad17e",
+  "targetSha": "35808ee3b4698db1f9919cbc8f0d4033f9baa986",
+  "source": {
+    "referenceSourceInventorySha256": "d6799f083c63ab046caba1900a1fe9fc2851d27fc6344ea2615f06b71e465db5",
+    "referenceLockSha256": "bee46bdc3098dd585b4347847121c2c76615d99171a87ec8d19d9a23b5111c82",
+    "referenceBuildFingerprint": "29641fb2e9ad927871a2485f07cbdd0d78e9707a6e999ea5160e5822b6471402",
+    "referenceFiles": 110,
+    "referenceBytes": 92344588,
+    "targetInventoryFingerprint": "9cf89940f039d4221a956d08f8d98362f1a534217fe27b1283b99c1429591507",
+    "targetFiles": 139,
+    "targetReleaseCriticalFingerprint": "41be13fac787e2b5840b502cb52e716ad680b0965cff2d4457e7662bda633bb7",
+    "installedHarnessSha256": "3d73163291f91d5c21e7926f634239fa3283650d85f5823200b8879cbf6d6ebe",
+    "nativeEarlierHarnessSha256": null,
+    "nativeHarnessScope": "Earlier native-only receipt predates installed-entry changes; no missing tester hash was reconstructed or fabricated."
+  },
+  "browserVersion": "156.0.8078.74",
+  "scenario": "existingHoldingsDiscardDraftThenUpgrade",
+  "workflow": [
+    "Canonical synthetic pre-existing Schema3 holding read by the actual old App",
+    "Old draft blocks real distinct waiting v16 Worker update",
+    "User-native cancel discards draft without changing canonical holding SHA",
+    "Native safe update activates actual v16 with original holding SHA unchanged",
+    "Native v16 UI saves shares101 and preserves true cost0",
+    "Offline reopening preserves the newly saved SHA and remains editable"
+  ],
+  "nativeSamples": [
+    {
+      "sample": 1,
+      "result": "PASS",
+      "offlineToEditableHoldingsMs": 174.82589999999982,
+      "oldHoldingsSha256": "c77f757b6bf3c3530bc56400c5b23d35f7385bf80cb11b2e581b63ff0e59df41",
+      "preUpgradeHoldingsSha256": "c77f757b6bf3c3530bc56400c5b23d35f7385bf80cb11b2e581b63ff0e59df41",
+      "newHoldingsSha256": "c77f757b6bf3c3530bc56400c5b23d35f7385bf80cb11b2e581b63ff0e59df41",
+      "postUpgradeSavedHoldingsSha256": "b3d4cb06abf4f7ec9e90992432f41e97b45a366988271109b3563015a2c62021",
+      "contextClosed": true,
+      "browserClosed": true,
+      "serverClosed": true
+    },
+    {
+      "sample": 2,
+      "result": "PASS",
+      "offlineToEditableHoldingsMs": 172.40639999999985,
+      "oldHoldingsSha256": "e646efa67d12f3b1bb8231f862b0fe0969ed4d133ca5c34c038d7904893369d8",
+      "preUpgradeHoldingsSha256": "e646efa67d12f3b1bb8231f862b0fe0969ed4d133ca5c34c038d7904893369d8",
+      "newHoldingsSha256": "e646efa67d12f3b1bb8231f862b0fe0969ed4d133ca5c34c038d7904893369d8",
+      "postUpgradeSavedHoldingsSha256": "4a63b026a58c68a4c87ce5d705d59f6cd94c53dff050adefa9070ee44d16ab97",
+      "contextClosed": true,
+      "browserClosed": true,
+      "serverClosed": true
+    },
+    {
+      "sample": 3,
+      "result": "PASS",
+      "offlineToEditableHoldingsMs": 174.03100000000268,
+      "oldHoldingsSha256": "54a2db3e9ed3d2ec81c4ae20807379b9e0ec216b06244b41336a1a39c2229a7e",
+      "preUpgradeHoldingsSha256": "54a2db3e9ed3d2ec81c4ae20807379b9e0ec216b06244b41336a1a39c2229a7e",
+      "newHoldingsSha256": "54a2db3e9ed3d2ec81c4ae20807379b9e0ec216b06244b41336a1a39c2229a7e",
+      "postUpgradeSavedHoldingsSha256": "b3e69154981aa821d807ee37cf4d97ae33a18938d3dcd1fc6404eb474a953207",
+      "contextClosed": true,
+      "browserClosed": true,
+      "serverClosed": true
+    }
+  ],
+  "installedSample": {
+    "result": "PASS",
+    "entry": "current-page",
+    "mode": "headless",
+    "osStateReturned": true,
+    "sameNativeTarget": true,
+    "sameNativeContext": true,
+    "windowBefore": 1491893721,
+    "windowAfter": 1491893724,
+    "standaloneBeforeUpgrade": true,
+    "standaloneAfterUpgrade": true,
+    "standaloneAfterOffline": true,
+    "offlineToEditableHoldingsMs": 182.45989999999983,
+    "uninstalledOnlyOwnTestApp": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "ownedInstalledProfileProcessCheck": {
+    "observedAt": "2026-10-30T04:59:40.073Z",
+    "chromeProcesses": 0,
+    "scope": "Only the three task-owned persistent-profile labels; no personal profile enumeration or removal"
+  },
+  "failureHistory": [
+    {
+      "name": "historical-native-preflight-failure-1",
+      "scope": "Preflight realpath callback signature bug, zero browser; fixed without altering products or assertions"
+    },
+    {
+      "name": "historical-native-old-save-failure-2",
+      "scope": "Old UI save did not produce a holding; stopped before upgrade"
+    },
+    {
+      "name": "historical-native-old-save-failure-3",
+      "scope": "Initial reload explicitly completed; old UI save still failed, accompanied by root modulepreload404; exact caught save-error root cause not established"
+    },
+    {
+      "name": "historical-installed-launch-target-failure-1",
+      "scope": "Native install/OS state/launch succeeded, but launched target was not matched to a Playwright page"
+    },
+    {
+      "name": "historical-installed-tab-ancestry-failure-2",
+      "scope": "Native launch target is tab, page targets have no parentId; strict ancestry rejected rather than selecting any same-URL page"
+    }
+  ],
+  "boundaries": [
+    "No manifest/source/SW version was rewritten for testing",
+    "Native assets bind complete original v15 source/build110 files and original v16 CI candidate139 files",
+    "No display-mode emulation, app preference setting, CDP media override or response substitution to claim standalone",
+    "PWA.openCurrentPageInApp is a distinct native installed entry; it does not reclassify prior PWA.launch failures",
+    "All canonical data are synthetic; raw holdings and financial screenshots are not present in receipts",
+    "No product source was changed and production release/tag were not modified",
+    "Desktop headless native app proof does not certify Android/iOS install/upgrade or visible OS icon/shortcut UX"
+  ],
+  "archivedReceipts": [
+    {
+      "file": "native-existing-three-samples.receipt.json.gz",
+      "rawBytes": 70334,
+      "rawSha256": "46fc1d29664d89b3e19f1e603dd9808fd915f01c4dc706858215b2b41ba966e7",
+      "gzipBytes": 5681,
+      "gzipSha256": "d9f083cec3a766adbd6da1f0708bd1d824a0b23a177cabe98c7dd32c0990265e",
+      "verdict": "PASS"
+    },
+    {
+      "file": "installed-current-page.receipt.json.gz",
+      "rawBytes": 28914,
+      "rawSha256": "b6dcb951a7de94ab1c66c2ea2914317918a882c0889e8a0c9f95cc66dc10e706",
+      "gzipBytes": 5118,
+      "gzipSha256": "f9d4487e73660a2e286bc4395943994e345f0ce3545994ea492373610a05f0d5",
+      "verdict": "PASS"
+    },
+    {
+      "file": "historical-native-preflight-failure-1.receipt.json.gz",
+      "rawBytes": 509,
+      "rawSha256": "3132083e847443e874f2c3e873fa477dbf8bcdf89cf57e115d616bb3654b4373",
+      "gzipBytes": 349,
+      "gzipSha256": "8f1bc918f13dcce6e1dcf752d4b22881c8ff28fb7f9e3c6608bbc6cf7681ca5a",
+      "verdict": "FAIL"
+    },
+    {
+      "file": "historical-native-old-save-failure-2.receipt.json.gz",
+      "rawBytes": 14732,
+      "rawSha256": "52d23f656057b442ce3fc2abeda4b9197bc5851b029ced6969600094973e6148",
+      "gzipBytes": 3020,
+      "gzipSha256": "7854738de5852752fa6cf4a1f2267dc032dd1906c83c6c14121d7ee6aa78e527",
+      "verdict": "FAIL"
+    },
+    {
+      "file": "historical-native-old-save-failure-3.receipt.json.gz",
+      "rawBytes": 17351,
+      "rawSha256": "c2785d36e96166b888f8c4125a17a88b13beaeddf920269ac8cf9b3811b66745",
+      "gzipBytes": 3279,
+      "gzipSha256": "a913904c7b833265cea886f968159df41aa987693ae55666875f017796926def",
+      "verdict": "FAIL"
+    },
+    {
+      "file": "historical-installed-launch-target-failure-1.receipt.json.gz",
+      "rawBytes": 24080,
+      "rawSha256": "5e17107a45a884c01db954f1bffb16f75743a94868912918773f43fc1efb593f",
+      "gzipBytes": 3744,
+      "gzipSha256": "cd4344f65b5d237c45bf7f18bb651ffa3222fac5b51e34140a5a463a833acc42",
+      "verdict": "FAIL"
+    },
+    {
+      "file": "historical-installed-tab-ancestry-failure-2.receipt.json.gz",
+      "rawBytes": 25716,
+      "rawSha256": "bc4aa12ab32a793ad61524e306c046ee6a919fc3bfab76dcd2eb38ff6edc3a2b",
+      "gzipBytes": 4028,
+      "gzipSha256": "9681bdfe2893030a7e67d4b41ae9d9960e26f37a514d1eedc6dcd6f5401e141e",
+      "verdict": "FAIL"
+    }
+  ]
+}

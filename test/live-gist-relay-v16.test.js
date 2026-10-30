@@ -215,8 +215,11 @@ test('pre-offline and invalid offline controls cause no transport and no queued 
 });
 
 test('queued offline/online epoch changes invalidate old work but leave the other actor usable', async () => {
-  const held = deferred(), h = harness({ transport: async request => { if (request.actor === 'B') await held.promise; } });
-  await verified(h); const waiting = read(h, 'B'); await turn();
+  const held = deferred(), entered = deferred();
+  const h = harness({ transport: async request => { if (request.actor === 'B') { entered.resolve(); await held.promise; } } });
+  // Wait for this transport, not an unrelated setImmediate turn that can run
+  // after the fixture's unchanged 50 ms timeout under parallel suite load.
+  await verified(h); const waiting = read(h, 'B'); await entered.promise;
   const old = send(h); h.relay.setActorOffline('A', true); h.relay.setActorOffline('A', false); held.resolve();
   assert.equal((await waiting).ok, true); assert.equal((await old).ok, false); assert.equal(h.calls.length, 2);
   assert.equal((await send(h, patch(h, 'B'), 'B')).ok, true);
