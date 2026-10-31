@@ -8,7 +8,7 @@ const receiptStep = workflow.match(/      - name: Preserve successful synthetic 
 test('successful E2E receipts are retained separately with the already pinned action', () => {
   assert.ok(receiptStep, 'missing successful-run receipt artifact');
   assert.match(receiptStep, /if: success\(\)/);
-  assert.match(receiptStep, /uses: actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
+  assert.match(receiptStep, /uses: actions\/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9/);
   assert.match(receiptStep, /name: fundval-e2e-receipts-\$\{\{ github\.sha \}\}-\$\{\{ github\.run_attempt \}\}/);
   assert.match(receiptStep, /include-hidden-files: true/);
   assert.match(receiptStep, /if-no-files-found: error/);

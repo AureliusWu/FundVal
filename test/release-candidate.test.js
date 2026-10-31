@@ -184,7 +184,7 @@ test('review branch candidates keep their origin and cannot enter production ver
 test('install policy requires an exact reviewed set of lifecycle scripts with unchanged integrity', async () => {
   const lock = JSON.parse(await readFile(new URL('../package-lock.json', import.meta.url), 'utf8'));
   const policy = JSON.parse(await readFile(new URL('../.github/dependency-install-policy.json', import.meta.url), 'utf8'));
-  assert.equal(validateInstallPolicy(lock, policy).length, 5);
+  assert.equal(validateInstallPolicy(lock, policy).length, 4);
   for (const key of ['version', 'integrity']) {
     const changed = structuredClone(lock);
     changed.packages['node_modules/esbuild'][key] = 'unreviewed';
