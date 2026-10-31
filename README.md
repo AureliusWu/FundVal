@@ -1,5 +1,9 @@
 # 蜉蝣基金 (FundVal)
 
+<!-- project-badges:start -->
+[![Version](https://img.shields.io/github/v/tag/AureliusWu/FundVal?sort=semver&style=flat-square&label=version)](https://github.com/AureliusWu/FundVal/tags) [![Build](https://github.com/AureliusWu/FundVal/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AureliusWu/FundVal/actions/workflows/ci.yml) [![Last commit](https://img.shields.io/github/last-commit/AureliusWu/FundVal?style=flat-square)](https://github.com/AureliusWu/FundVal/commits/main)
+<!-- project-badges:end -->
+
 当前版本：`16.0.1`。这里标识源码版本；此补丁接入独立 maskable 图标与构建/发布资产检查，并补充可重复的升级、性能验证工具和证据；不改变持仓、同步、估值计算或依赖版本。最终提交、精确 CI、同候选部署和生产验证以 [v16.0.1 发布记录](https://github.com/AureliusWu/FundVal/releases/tag/v16.0.1) 为准，不能只凭源码升版宣布上线。
 
 补充证据见 [三项工作汇总](docs/v16.0.0/FOLLOWUP_20261030.md)：真实 v15.0.2→原发布 v16.0.0 的原生 SW 3轮、Windows Chrome headless 已安装窗口1轮通过；60对整版性能对照整体 `INCONCLUSIVE`，并非所有环境全面提速。这些是明确版本范围的历史证据，不能冒充 v16.0.1 新候选、手机真机或真实 Gist 双端通过。物理设备、真实同步、完整生产行情核对与既有安全/资源警告仍须如实保留，见 [v16 风险账](docs/v16.0.0/RELEASE_RISK_ACCEPTANCE_20261028.md)。
