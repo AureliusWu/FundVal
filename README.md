@@ -4,132 +4,39 @@
 [![Version](https://img.shields.io/github/v/tag/AureliusWu/FundVal?sort=semver&style=flat-square&label=version)](https://github.com/AureliusWu/FundVal/tags) [![Build](https://github.com/AureliusWu/FundVal/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AureliusWu/FundVal/actions/workflows/ci.yml) [![Last commit](https://img.shields.io/github/last-commit/AureliusWu/FundVal?style=flat-square)](https://github.com/AureliusWu/FundVal/commits/main)
 <!-- project-badges:end -->
 
-当前版本：`16.0.1`。这里标识源码版本；此补丁接入独立 maskable 图标与构建/发布资产检查，并补充可重复的升级、性能验证工具和证据；不改变持仓、同步、估值计算或依赖版本。最终提交、精确 CI、同候选部署和生产验证以 [v16.0.1 发布记录](https://github.com/AureliusWu/FundVal/releases/tag/v16.0.1) 为准，不能只凭源码升版宣布上线。
+当前版本：`16.0.1`。
 
-补充证据见 [三项工作汇总](docs/v16.0.0/FOLLOWUP_20261030.md)：真实 v15.0.2→原发布 v16.0.0 的原生 SW 3轮、Windows Chrome headless 已安装窗口1轮通过；60对整版性能对照整体 `INCONCLUSIVE`，并非所有环境全面提速。这些是明确版本范围的历史证据，不能冒充 v16.0.1 新候选、手机真机或真实 Gist 双端通过。物理设备、真实同步、完整生产行情核对与既有安全/资源警告仍须如实保留，见 [v16 风险账](docs/v16.0.0/RELEASE_RISK_ACCEPTANCE_20261028.md)。
+轻量、移动端优先的个人基金盘中观察 PWA，用于查看基金估值、净值涨跌、持仓市值和主要市场行情。它不做自动交易，也不构成投资建议。
 
-v16 保留 Schema 3、持仓备份、失败后待同步、未保存编辑保护、来源/日期和 null/0 语义。不会通过强制刷新、清空持仓、借用主账号测试 Gist 或伪造验收结果发布。本补丁前一生产版为 v16.0.0；历史性能对照基线为 v15.0.2。
+[在线使用](https://aureliuswu.github.io/FundVal/) · [v16.0.1 Release](https://github.com/AureliusWu/FundVal/releases/tag/v16.0.1)
 
-## V16.0.1 可信架构
+## 核心能力
 
-- 页面先读本地缓存，再通过司南服务端代理批量刷新；单只失败不会阻塞或清空其他基金。
-- 基金报价链不再按基金代码调用同代码证券接口；任何无法确认身份的值保持 `null / --`，不得参与市值或收益计算。
-- 东方财富与腾讯 JSONP 仅能在 `quote-bridge.html` 的 `sandbox="allow-scripts"` 隔离页内执行；Bridge 没有 `allow-same-origin`，不能读取主持仓或 Gist PAT。主页面 CSP 只执行同源脚本，并再次校验 Bridge 返回的结构化数据。
-- 重仓证券代码、名称、占比、数量和来源元数据均在输入侧规范化，所有远端文本在输出侧转义；远端 HTML/SVG/JavaScript 字符串不会执行。
-- 启动前执行持仓与缓存一致性检查；主数据损坏时自动尝试从最近两份备份恢复。
-- 重复持仓按更新时间合并，同时间戳下删除标记优先，避免旧设备把已删除基金恢复回来。
-- 旧行情缓存只保留当前有效基金，并自动清理孤立的单基金净值缓存。
-- 浏览器存储写入失败时降级处理，不让配额、隐私模式或权限异常中断主程序。
-- 运行时错误与未处理 Promise 会记录到本地诊断日志，并自动脱敏 GitHub Token。
-- 启动只创建一个 refresh generation：缓存立即渲染，批量主报价先提交，正式净值、重仓、海外模型和详情随后按需 enrichment。
-- 打开页面、手动刷新、恢复前台和网络恢复都会发起新请求；刷新串行化，旧请求不会覆盖新请求。
-- 刷新按 A 股、港股、海外、黄金市场时段调度；上游只给日期时显示“延迟”，不以请求时间冒充行情时间。
-- 海外估值模型位于 `data/overseas-models.json`，结果保留模型版本、置信度和准确度台账。
-- QDII 主列优先显示带真实市场时间的下一净值模型估算；最近正式净值涨跌保留在详情中，模型过期时自动回退。
-- 数据状态统一为：实时、延迟、旧数据、模型估算、最新正式净值、暂不可估值。
-- 官方盘中估值不可用时，国内基金按最新正式净值与十大重仓当日行情贡献估算；展示行情时间、覆盖率并明确说明不是官方净值。
-- Gist 永久保留旧版 `fuyu-holdings.json`，Schema 3 使用按设备隔离的 `fuyu-holdings-v3-*.json`；新版合并所有 V3 分片和较新的旧版变更，只写当前设备分片，旧客户端无法降写 revision、tombstone 或 note。同步前备份原始远端文件，PATCH 后必须读回规范化校验。
-- 删除持仓会同步清理卡片、详情、行情缓存、元数据缓存和在途请求；刷新或重启后不会复活 tombstone。
-- `sw.js` 按资源类型采用 network-first、cache-first 和 stale-while-revalidate；生产构建生成 `js/app-chunks.json`，部署按每个 chunk 的字节数和 SHA-256 校验完整性。
-- `js/update-compat.js` 只在旧版缓存脚本仍暴露受保护更新函数时桥接新版“安全更新”按钮；现代脚本中保持无操作，不复制或绕过未保存输入、云同步与多标签页门禁。
-- 使用 ES Modules 和 Node 内置测试；基础行情页面保持零框架。支付宝截图导入以 `@paddleocr/paddleocr-js@0.4.2` + PP-OCRv6 tiny 为主引擎，仅在用户选择图片后按需加载同源静态资源；Tesseract 只保留为降级/回归链路。
-- 生产构建保留真实动态 import 边界：云同步、通知、重仓、持仓导入导出、诊断和 Bridge 客户端按需加载。v15.0.2 发布构建冷启动图为 51,941 B gzip，低于未上调的 52,241 B 门禁；全部非 OCR chunks 为 70,207 B gzip，相对 v15.0.1 历史基线增加 11.15%，作为 PWA 首次安装负担警告保留。OCR 资源不进入首屏或 Service Worker `CORE`。
-- 启动链、云同步、备选行情和海外模型配置均有超时与降级保护；不因单个悬挂请求卡住后续刷新。
-- 缓存与持仓指纹绑定，数量或成本变化后不会离线展示旧市值/收益；过期缓存明确标为“旧数据”。
-- 过季模型、未来时间、缺失时间或过期成分行情不会冒充实时估值，自动回退到最近正式净值。
-- 新增支付宝 / 蚂蚁财富基金持仓截图导入：图片在不加载主盘行情脚本、带严格同源 CSP 的独立页面本机预处理和识别，不上传、不写入本地存储/诊断日志；识别结果必须逐项确认后才会写入持仓。确认后的结构化持仓仍遵循用户已配置的 Gist 同步设置，截图和 OCR 原文不会上传。
-- v15 在 MuMu Android/Brave 中用真实支付宝长截图完成本地识别：约 23.5 秒产生 15 条候选，12 条自动匹配、3 条要求人工核对；本次只识别未确认写入。该结果是模拟器证据，不替代物理 Android/iOS。
-- 当前 PaddleOCR 主链构建资源总量为 82,356,164 bytes（按 manifest 排除 Tesseract fallback 与许可证角色）；两条 OCR 链路均不进入首页首屏请求，也不加入 Service Worker `CORE` 预缓存。`/assets/ocr/` 走 SW network-only，避免再复制约 82 MB 到 Cache Storage（浏览器仍可按 HTTP 头缓存）。
-- OCR 只把“持有金额、累计收益”等字段作为快照核对信息。必须填写真实持有份额，才允许按 `（持有金额 − 累计收益）÷ 份额` 换算成本净值；不会按估值反推份额，也不会删除截图外持仓。
-- 基金目录为构建时生成的同源 `data/fund-catalog.json`；页面只在截图确认时按需读取该 JSON，不执行第三方 JSONP。
-- Android OCR 在选图前校验最新版浏览器所需能力，兼容系统文件选择器返回的空 MIME/通用二进制类型；识别期间采用单任务锁，避免重复点击并行启动多个高内存 Worker。
-- PaddleOCR 页面侧改为约 4.9 KB 的轻量协议门面，Paddle/OpenCV 只在单个同源 Worker 中执行；分片 `ImageBitmap` 直接转移所有权，检测、识别与管线批次均为 1，避免主线程重复持有一套约 128 MiB 的 OpenCV WASM 内存。
+- 基金盘中估值、最新净值、持仓市值、今日盈亏与排序。
+- QDII / 海外基金模型估算；证据不足或过期时回退到正式净值或不可用状态。
+- GitHub Gist 持仓同步、JSON 导入导出、备份与恢复。
+- 支付宝 / 蚂蚁财富持仓截图本地 OCR，人工确认后才写入持仓。
+- PWA 安装、离线缓存、更新提示与本地通知。
+- 行情、缓存、同步和错误处理保留来源、时间与失败降级，不用 `0` 冒充缺失数据。
 
-运行检查：
+## 开发与验证
 
 ```bash
+npm ci
 npm test
 npm run check
 npm run build
 npm run test:e2e
 ```
 
-个人基金盘中估值监控 PWA，托管于 [aureliuswu.github.io/FundVal](https://aureliuswu.github.io/FundVal/)。
+## AI / 维护者入口
 
-## 定位
+修改前先读 [AGENTS.md](AGENTS.md)。它是当前架构、安全边界、数据语义与验证要求的主要工程约束。
 
-蜉蝣基金是一个轻量、纯前端、移动端优先的基金盘中观察工具。它不做复杂投研或自动交易，只帮助用户快速查看自选基金的估值、净值涨跌、持仓市值和主要市场行情。
+- 当前正式发行与资产：以 GitHub Release 为准。
+- 当前工程约束：`AGENTS.md`。
+- 发布风险、验收和历史证据：`docs/`，不要回填进 README。
+- OCR、本地数据与第三方许可：按仓库现有文档和 `THIRD_PARTY_NOTICES.md` 执行。
+- 不得通过清空持仓、伪造行情、借用真实 Token 或跳过来源/时间校验来让测试通过。
 
-## 功能
-
-- 基金盘中估值、最新净值涨跌、持仓市值、今日盈亏。
-- QDII/海外基金：存在合格且带真实市场时间的下一净值模型时，主列显示模型估算；模型缺失或过期时回退最新公布净值涨跌，详情保留两者的来源与日期。
-- 顶部指数/黄金行情条。
-- 多维排序：估值/净值涨跌、今日盈亏、市值、累计收益。
-- 基金卡片展开：通过只读代理展示带披露截止日期的十大重仓股、基金信息、费率。
-- 0 份额关注模式。
-- GitHub Gist 云同步、JSON 导入导出。
-- 支付宝基金持仓截图本地 OCR 导入与人工确认同步。
-- PWA 安装、离线缓存、更新提示、14:30 本地通知。
-
-## 技术
-
-零框架静态单页应用；构建仅复制静态资源并生成 Pages 产物：
-
-- `index.html`：页面结构与 PWA 入口。
-- `ocr-import.html`：隔离的支付宝截图本地识别页面，不加载主盘行情脚本。
-- `js/bootstrap.js`：启动顺序与启动前完整性检查。
-- `js/resilience.js`：自动恢复、缓存清理、错误日志和网络状态保护。
-- `js/integrity.js`：可测试的持仓、缓存与诊断纯函数。
-- `js/app.js`：页面与刷新编排；`js/runtime/` 保存刷新、通知、Bridge、远端 schema 和活动持仓边界。
-- `quote-bridge.html`、`js/sandbox/quote-bridge-runtime.js`：无法访问主页面同源存储的受限 JSONP 执行面。
-- `js/runtime/quote-bridge-client.js`：按需创建沙箱、校验消息来源和结构化响应。
-- `js/paddle-local-ocr.js`：File/Blob 仅本地校验、PaddleOCR/PP-OCRv6 tiny 分片识别及 Worker 受控释放。
-- `js/ocr-table-layout.js`：依据文字坐标重建支付宝持仓双列表格与四类数值字段。
-- `js/local-ocr.js`：Tesseract 本地预处理与降级/回归链路，不是 v14 长截图主引擎。
-- `js/alipay-ocr-parser.js`：支付宝持仓 OCR 纯解析与 A/C 份额防误配。
-- `js/holding-import-plan.js`：导入确认、真实份额校验和批量持仓映射纯函数。
-- `js/fund-catalog.js`：按需读取同源基金目录，不执行第三方脚本。
-- `css/style.css`：基础行情页样式与响应式布局；`css/ocr.css`：按需 OCR 独立页样式。
-- `manifest.json`：PWA 名称、图标、启动配置。
-- `sw.js`：Service Worker 缓存和通知。
-
-## 数据源与信任边界
-
-- 司南 Worker `/estimates`：盘中估值与可验证正式净值的主要结构化 JSON 来源；本地开发只通过固定路由的同源只读代理访问，不能代理任意 URL。
-- 东方财富基金数据、净值趋势与腾讯行情：仅在隔离 JSONP Bridge 内执行；主页面只接收通过 operation、请求代码、字段长度和有限数值校验后的结果。
-- 东方财富 fundf10：十大重仓经只读 Worker 代理获取并保留披露截止日期；基金信息、费率来自基金详情元数据。
-- 腾讯行情：指数与海外模型成分行情。
-- 支付宝截图导入：图片和 OCR 在本机处理；基金名称/代码只与同源静态基金目录匹配。目录维护源为东方财富公开基金目录数据，构建前以 `npm run refresh:fund-catalog` 显式更新，不在用户导入时请求第三方脚本。
-
-## 开发
-
-基础行情页没有框架运行时依赖。OCR 主链使用固定版本的 PaddleOCR JS 0.4.2 与 PP-OCRv6 tiny 同源静态资源，且只在用户选择截图后加载；Tesseract 仅用于降级/回归。构建阶段会校验模型摘要，并用相对构建基址生成、校验适配 GitHub Pages 项目子路径的 Paddle Worker URL。常用检查：
-
-```bash
-npm test
-npm run check
-npm run build
-npm run test:e2e
-npm run serve
-```
-
-更新本地基金目录（仅维护/发布前执行，不会处理用户截图）：
-
-```bash
-npm run refresh:fund-catalog
-```
-
-第三方 OCR 组件、版本和许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
-
-推送 `main` 分支后，GitHub Actions 会执行锁定安装、依赖安全审计、测试、语法检查、静态产物校验并部署 GitHub Pages；PR/build 仅有仓库读权限，Pages/OIDC 写权限只在部署 job 中授予。
-
-## 项目关系
-
-- `FundVal`：蜉蝣基金，本项目。
-- `pan`：盘中宝，历史/维护中的早期盘中估值产品；新能力优先进入 FundVal。
-- `fund-compass`：司南基金，选基、择时、资产分析与回测系统。
-
-## 风险提示
-
-所有估值、模型、涨跌幅和通知仅供个人参考，不构成投资建议。
+README 只维护用户入口和当前状态；发布审计、性能证据、逐版本流水继续留在 `docs/`、Release 和 Git 历史中。
