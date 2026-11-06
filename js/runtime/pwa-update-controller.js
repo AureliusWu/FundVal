@@ -180,6 +180,9 @@ export function createPwaUpdateController({ hasUnsavedPageInput, isSyncing, isSa
     }
   }
 
-  return { start, hasServiceWorkerUpdateBlocker, applyPendingServiceWorkerUpdate,
+  // Select the APK lifecycle at construction; the browser registration and
+  // update policy above stay identical for the public PWA.
+  return { start: globalThis.document?.documentElement?.dataset?.fundvalPlatform === 'android' ? () => {} : start,
+    hasServiceWorkerUpdateBlocker, applyPendingServiceWorkerUpdate,
     isUpdateApplying: () => serviceWorkerUpdateApplying };
 }

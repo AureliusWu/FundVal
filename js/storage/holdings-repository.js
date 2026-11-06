@@ -23,6 +23,22 @@ export const HOLDINGS_CLOUD_BACKUP_PREVIOUS_KEY = 'fuyu_holdings_cloud_backup_pr
 const LEGACY_BACKUP_KEYS = ['fuyu_backup_latest', 'fuyu_backup_previous'];
 export const HOLDINGS_LOCK_NAME = 'fuyu_holdings_repository_v1';
 
+function validAndroidCheckpoint(snapshot) {
+  try {
+    const raw = snapshot[HOLDINGS_V3_KEY];
+    if (typeof raw !== 'string' || snapshot[HOLDINGS_JOURNAL_KEY] != null
+      || typeof snapshot[HOLDINGS_DEVICE_KEY] !== 'string' || !snapshot[HOLDINGS_DEVICE_KEY]) return false;
+    const document = normalizeHoldingsDocumentV3(JSON.parse(raw));
+    const compat = JSON.stringify(toLegacyHoldings(document));
+    const meta = snapshot[HOLDINGS_PROJECTION_META_KEY];
+    if (meta != null) {
+      const parsed = JSON.parse(meta);
+      if (parsed?.version !== 1 || parsed.v3Canonical !== raw || parsed.v1Raw !== compat) return false;
+    }
+    return canonicalHoldingsDocument(document) === raw && snapshot[HOLDINGS_V1_COMPAT_KEY] === compat;
+  } catch (_) { return false; }
+}
+
 /**
  * Every browser entry point must hold this origin-wide lock while calling the
  * synchronous repository helpers below (including reads that may recover or
@@ -40,6 +56,13 @@ export async function withHoldingsLock(callback, { locks = globalThis.navigator?
     return await locks.request(HOLDINGS_LOCK_NAME, { mode: 'exclusive' }, async lock => {
       if (!lock) return { ok: false, reason: 'storage_lock_unavailable', document: null, legacy: [] };
       entered = true;
+      if (globalThis.document?.documentElement?.dataset?.fundvalPlatform === 'android') {
+        const bridge = globalThis.FundValAndroid;
+        if (typeof bridge?.withDurableHoldings !== 'function') {
+          return { ok: false, reason: 'android_storage_unavailable', document: null, legacy: [] };
+        }
+        return await bridge.withDurableHoldings(callback, validAndroidCheckpoint);
+      }
       return await callback();
     });
   } catch (_) {

@@ -447,13 +447,14 @@ async function createGistRemoteAdapter(token, gistId, options = {}) {
 
 async function createCloudLocalAdapter(gistId, options = {}) { return (await loadCloudArchiveFeature()).createCloudLocalAdapter(gistId, options); }
 
-function reloadHoldingsAfterCloud(scope = {}) {
-  return withHoldingsLock(() => {
+async function reloadHoldingsAfterCloud(scope = {}) {
+  const loaded = await withHoldingsLock(() => {
     if (scope.isCurrent && !scope.isCurrent()) return { ok: false, reason: 'cloud_configuration_changed' };
-    const loaded = loadHoldingsRepository(undefined, { cacheKey: CACHE_KEY });
-    if (loaded.ok) installHoldingsDocument(loaded.document);
-    return loaded;
+    return loadHoldingsRepository(undefined, { cacheKey: CACHE_KEY });
   });
+  if (scope.isCurrent && !scope.isCurrent()) return { ok: false, reason: 'cloud_configuration_changed' };
+  if (loaded.ok) installHoldingsDocument(loaded.document);
+  return loaded;
 }
 
 

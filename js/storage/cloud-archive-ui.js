@@ -285,7 +285,7 @@ function createCloudLocalAdapter(gistId, options = {}) {
     async markPending(pending, details) {
       if (!isCurrent()) return changed();
       const { finalizeCloudSyncMetadata } = await loadCloudSyncFeature();
-      return withHoldingsLock(() => {
+      const saved = await withHoldingsLock(() => {
         if (!isCurrent()) return changed();
         const loaded = loadHoldingsRepository(undefined, { cacheKey: CACHE_KEY });
         if (!loaded.ok) return loaded;
@@ -298,9 +298,12 @@ function createCloudLocalAdapter(gistId, options = {}) {
           return { ok: false, reason: 'sync_meta_write_failed' };
         }
         setSyncPending(final.pending);
-        installHoldingsDocument(loaded.document);
         return { ok: true, pending: final.pending, document: loaded.document };
       });
+      if (!isCurrent()) return changed();
+      if (saved.ok) installHoldingsDocument(saved.document);
+      else setSyncPending(true);
+      return saved;
     }
   };
 }

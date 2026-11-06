@@ -7,10 +7,19 @@ export function createHoldingsTransfer({ getHoldingsDocument, getHoldings, insta
   async function exportData() {
     const { loadAccuracy } = await import('../accuracy.js');
     if (!getHoldingsDocument()) { showToast('持仓数据未通过校验，无法导出'); return; }
-    const blob = new Blob([JSON.stringify({
+    const contents = JSON.stringify({
       ...JSON.parse(canonicalHoldingsDocument(getHoldingsDocument())),
       overseasAccuracy: loadAccuracy()
-    }, null, 2)], { type: 'application/json' });
+    }, null, 2);
+    if (document.documentElement?.dataset.fundvalPlatform === 'android') {
+      try {
+        const result = await globalThis.FundValAndroid?.exportHoldings(contents);
+        if (result === 'saved') showToast('已导出持仓文件');
+        else if (result !== 'cancelled') showToast('未能导出持仓文件，请重试');
+      } catch (_) { showToast('未能导出持仓文件，请重试'); }
+      return;
+    }
+    const blob = new Blob([contents], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'fuyu-holdings.json';
@@ -22,6 +31,12 @@ export function createHoldingsTransfer({ getHoldingsDocument, getHoldings, insta
   function importData(e) {
     const file = e.target.files[0];
     if (!file) return;
+    if (globalThis.document?.documentElement?.dataset?.fundvalPlatform === 'android'
+      && (!Number.isSafeInteger(file.size) || file.size <= 0 || file.size > 4 * 1024 * 1024)) {
+      e.target.value = '';
+      showToast('持仓备份必须是 4 MiB 以内的 JSON 文件');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async ev => {
       try {

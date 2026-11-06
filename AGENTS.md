@@ -15,6 +15,7 @@
 - `js/config.js` 负责 TTL、超时和交易时段刷新间隔。
 - `js/calculator.js` 只放纯计算与显示来源优先级。
 - `js/storage.js` 保留通用安全存储；`js/storage/` 负责 Schema 3 仓储、迁移、事务恢复与云同步。Gist 的旧版文件必须永久保留，Schema 3 只写按设备隔离的 V3 分片；所有读写失败必须可降级并保留待同步状态。
+- APK 的 `android/` 仅打包同源资产，主页和 OCR 页通过私有原生消息端口接入持仓检查点。持有原 Web Lock，原子写入/同步/读回确认后才能发布持仓成功状态；不得把 Token、截图、OCR 原文或行情缓存写入检查点。发布 APK 前须验证同签名升级、强停重启、系统文件往返和 Android 实际长截图识别，网页版不加载 Android 桥接脚本。
 - `js/overseas-model.js` 读取 `data/overseas-models.json`，不得回填硬编码基金规则。
 - `js/accuracy.js` 记录海外模型预测、官方净值结算和 MAE/方向准确率。
 - `js/paddle-local-ocr.js` 只接受本地 `File`/`Blob`，按需加载 `@paddleocr/paddleocr-js@0.4.2`、PP-OCRv6 tiny、同源 Worker/WASM/模型并输出坐标块；不得接受 URL、Base64 或上传截图。
