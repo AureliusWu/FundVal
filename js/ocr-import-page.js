@@ -21,7 +21,7 @@ import {
 import { runStartupIntegrityChecks } from './resilience.js';
 import { safeRemoveItem, safeSetItem } from './storage.js';
 import { loadHoldingsRepository, withHoldingsLock } from './storage/holdings-repository.js';
-import { commitConfirmedImport } from './ocr/import-transaction.js';
+import { commitConfirmedImport } from './ocr/import-transaction.js?v=16.0.2';
 import { createOcrPageGuard } from './ocr/page-guard.js';
 
 const CACHE_KEY = 'fuyu_funds_cache_v1';

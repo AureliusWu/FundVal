@@ -5,7 +5,7 @@ import { APP_VERSION } from '../js/version.js';
 
 const PREFIX = '/FundVal/';
 const OLD_CACHE = 'fuyu-v16.0.1';
-const OCR_MODULES = ['ocr-import-page', 'alipay-ocr-parser', 'fund-catalog', 'holding-import-plan', 'ocr-table-layout']
+const OCR_MODULES = ['ocr-import-page', 'alipay-ocr-parser', 'fund-catalog', 'holding-import-plan', 'ocr-table-layout', 'ocr/import-transaction']
   .map(name => `${PREFIX}js/${name}.js`);
 
 // A real Chrome controller uses the unchanged app SW policy with the old
@@ -70,8 +70,9 @@ test('old active SW does not mix cached OCR module versions in the new document'
 
     await page.goto(`${origin}${PREFIX}ocr-import.html`);
     expect(await page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    expect(pageErrors).toEqual([]);
     const [chooser] = await Promise.all([
-      page.waitForEvent('filechooser'), page.getByRole('button', { name: '选择本地截图' }).click(),
+      page.waitForEvent('filechooser', { timeout: 8000 }), page.getByRole('button', { name: '选择本地截图' }).click(),
     ]);
     expect(await chooser.element().getAttribute('id')).toBe('ocr-image-input');
     expect(pageErrors).toEqual([]);
