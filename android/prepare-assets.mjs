@@ -28,7 +28,7 @@ assert.match(version, /^\d+\.\d+\.\d+$/);
 assert.equal(versionSource.match(/APP_VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/)?.[1], version);
 assert.ok(manifest.description.includes(`v${version} `));
 const [major, minor, patch] = version.split('.').map(Number);
-const apkRevision = 6;
+const apkRevision = 7;
 assert.ok(major < 2100 && minor < 100 && patch < 100);
 const versionCode = major * 1_000_000 + minor * 10_000 + patch * 100 + apkRevision;
 const www = resolve(stage, 'assets/www');

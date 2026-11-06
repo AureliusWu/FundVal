@@ -2,7 +2,9 @@ import { createFundMatchSession, detectAlipayHoldingSourceEvidence, matchFundCan
 import { loadFundCatalog } from './fund-catalog.js';
 import {
   createHoldingImportPlan,
+  holdingImportReviewStatus,
   importPlanSummary,
+  isTrustedHoldingMatch,
   resolveCandidateSelectionAction,
   setHoldingImportRowEnabled,
   validateHoldingImportPlan,
@@ -243,14 +245,13 @@ function buildPaddleHoldingCandidates(recognition, catalog, matchSession) {
   const layoutMs = Math.max(0, monotonicNow() - layoutStartedAt - matchMs);
   const parseStartedAt = monotonicNow();
   const holdings = layout.previewRows.map(row => {
-    const warnings = [];
+    const warnings = Array.isArray(row.match?.warnings) ? [...row.match.warnings] : [];
     if (!layout.schema.header.reliable) {
       warnings.push('表头未完整识别，金额与收益按支付宝三列布局定位，请逐项核对');
     }
     if (!layout.schema.geometry.reliable) {
       warnings.push('本行列位置证据不足，未识别字段保持为空');
     }
-    if (row.match?.strategy === 'fuzzy') warnings.push('基金名称为 OCR 模糊匹配，请核对份额类别');
     return {
       code: row.match?.code || null,
       name: row.name || null,
@@ -263,10 +264,11 @@ function buildPaddleHoldingCandidates(recognition, catalog, matchSession) {
       match: row.match,
       semanticReliable: row.semanticReliable === true,
       risks: {
-        identityUncertain: row.match?.status !== 'matched'
-          || !['code', 'exact_name'].includes(row.match?.strategy)
-          || normalizeFundName(row.name) !== normalizeFundName(row.match?.name),
-        shareClassUncertain: row.match?.status !== 'matched' && (row.match?.candidates?.length || 0) > 1,
+        identityUncertain: !isTrustedHoldingMatch(row.match)
+          || (row.match.strategy !== 'verified_alias' && normalizeFundName(row.name) !== normalizeFundName(row.match.name)),
+        shareClassUncertain: row.match?.status !== 'matched' && row.match?.strategy !== 'currency_ambiguous'
+          && (row.match?.candidates?.length || 0) > 1,
+        currencyUncertain: row.match?.strategy === 'currency_ambiguous',
         numericAmbiguous: row.evidence?.middle > 2 || row.evidence?.right > 2,
         signUncertain: row.risks?.signUncertain === true,
       },
@@ -296,7 +298,8 @@ function candidateOptions(row) {
   const manual = '<option value="">手动填写 / 请选择候选</option>';
   return manual + candidates.map(candidate => {
     const value = `${candidate.code}|${candidate.name}`;
-    return `<option value="${escapeHtml(value)}"${candidate.code === row.code ? ' selected' : ''}>${escapeHtml(candidate.name)} · ${escapeHtml(candidate.code)}</option>`;
+    const identityHint = candidate.shareClassUnspecified === true ? '（未标 A/C 类别）' : '';
+    return `<option value="${escapeHtml(value)}"${candidate.code === row.code ? ' selected' : ''}>${escapeHtml(candidate.name)} · ${escapeHtml(candidate.code)}${identityHint}</option>`;
   }).join('');
 }
 
@@ -328,8 +331,31 @@ function snapshotItem(label, value, suffix = '') {
   return `<div class="ocr-snapshot-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(formatSnapshot(value, suffix))}</strong></div>`;
 }
 
+function candidateReviewLabel(status) {
+  return status === 'needs_review' ? '需要核对' : status === 'reviewed' ? '已人工核对' : '已匹配';
+}
+
+function reviewSummaryText(rows) {
+  const summary = importPlanSummary(rows);
+  return `${summary.total} 条候选；${summary.reviewedOrMatched} 条已匹配或已核对，${summary.needsConfirmation} 条需人工核对。`;
+}
+
+function refreshReviewPresentation(root, row) {
+  const status = holdingImportReviewStatus(row);
+  const needsConfirmation = status === 'needs_review';
+  root.classList.toggle('needs-confirmation', needsConfirmation);
+  const badge = root.querySelector('.ocr-match-badge');
+  if (badge) {
+    badge.classList.toggle('needs', needsConfirmation);
+    badge.textContent = candidateReviewLabel(status);
+  }
+  const count = element('ocr-import-body').querySelector('.ocr-review-count');
+  if (count) count.textContent = reviewSummaryText(state.rows);
+}
+
 function renderCandidate(row) {
-  const needsConfirmation = row.matchStatus !== 'matched' || row.requiresExplicitEnable;
+  const reviewStatus = holdingImportReviewStatus(row);
+  const needsConfirmation = reviewStatus === 'needs_review';
   const warnings = row.warnings.length
     ? `<ul class="ocr-warning-list">${row.warnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join('')}</ul>`
     : '';
@@ -342,7 +368,7 @@ function renderCandidate(row) {
           <div class="ocr-candidate-name">${escapeHtml(row.name || row.rawFundName || '未识别基金')}</div>
           <div class="ocr-candidate-meta">${escapeHtml(existingHint)}</div>
         </div>
-        <span class="ocr-match-badge ${needsConfirmation ? 'needs' : ''}">${needsConfirmation ? '需要核对' : '已匹配'}</span>
+        <span class="ocr-match-badge ${needsConfirmation ? 'needs' : ''}">${candidateReviewLabel(reviewStatus)}</span>
       </div>
       <div class="ocr-snapshot-grid">
         ${snapshotItem('截图持有金额', row.holdingAmount)}
@@ -368,10 +394,9 @@ function renderCandidate(row) {
 }
 
 function renderResults() {
-  const summary = importPlanSummary(state.rows);
   const catalogWarning = state.catalogWarning ? `<br>${escapeHtml(state.catalogWarning)}` : '';
   element('ocr-import-body').innerHTML = `
-    <div class="ocr-results-summary"><strong>识别结果仅为候选</strong><br>${escapeHtml(`${summary.total} 条候选；${summary.matched} 条已匹配，${summary.needsConfirmation} 条需人工核对。`)}${catalogWarning}<br>截图外的旧持仓将保持不变；选择“跳过”不会写入任何数据。</div>
+    <div class="ocr-results-summary"><strong>识别结果仅为候选</strong><br><span class="ocr-review-count" aria-live="polite">${escapeHtml(reviewSummaryText(state.rows))}</span>${catalogWarning}<br>截图外的旧持仓将保持不变；选择“跳过”不会写入任何数据。</div>
     <div class="ocr-candidate-list">${state.rows.map(renderCandidate).join('')}</div>
     <label class="ocr-confirm-check"><input id="ocr-import-ack" type="checkbox">我已逐项核对基金身份和真实份额；我理解截图金额/收益只是快照，确认后才会同步到 FundVal。</label>`;
   element('ocr-import-confirm').hidden = false;
@@ -604,6 +629,7 @@ function chooseCandidate(event) {
     const row = setHoldingImportRowEnabled(readCandidateFormRow(state.rows[index], root), enable.checked);
     state.rows[index] = row;
     root.querySelector('[data-field="action"]').value = row.action;
+    refreshReviewPresentation(root, row);
     return;
   }
   const actionSelect = event.target.closest('[data-field="action"]');
@@ -658,11 +684,7 @@ function refreshManualCandidateState(root, options = {}) {
   }
   const meta = root.querySelector('.ocr-candidate-meta');
   if (meta) meta.textContent = existingHoldingHint(existing);
-  const badge = root.querySelector('.ocr-match-badge');
-  if (badge) {
-    badge.classList.add('needs');
-    badge.textContent = '已手动调整，请核对';
-  }
+  refreshReviewPresentation(root, row);
 }
 
 function editCandidateIdentity(event) {

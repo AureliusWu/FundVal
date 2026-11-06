@@ -37,14 +37,16 @@ function entryFromRow(row) {
 }
 
 /** Keep only fund identity fields; OCR data never belongs in the catalogue. */
-export function normalizeFundCatalog(raw) {
+export function normalizeFundCatalog(raw, { preserveCodeConflicts = false } = {}) {
   if (!Array.isArray(raw)) throw new FundCatalogError();
   const seen = new Set();
   const catalog = [];
   for (const row of raw) {
     const entry = entryFromRow(row);
-    if (!entry || seen.has(entry.code)) continue;
-    seen.add(entry.code);
+    if (!entry) continue;
+    const key = preserveCodeConflicts ? `${entry.code}\u0000${normalizeFundCatalogQuery(entry.name)}` : entry.code;
+    if (seen.has(key)) continue;
+    seen.add(key);
     catalog.push(entry);
   }
   if (raw.length && !catalog.length) throw new FundCatalogError();
@@ -121,7 +123,9 @@ function loadWithTimeout(fetchFn, url, timeoutMs) {
       headers: { Accept: 'application/json' },
     })).then(async response => {
       if (!response || !response.ok || typeof response.json !== 'function') throw new FundCatalogError();
-      const catalog = normalizeFundCatalog(await response.json());
+      // OCR must see conflicting names under one code rather than silently
+      // treating the first catalogue record as a verified identity.
+      const catalog = normalizeFundCatalog(await response.json(), { preserveCodeConflicts: true });
       finish(resolve, catalog);
     }).catch(() => finish(reject, new FundCatalogError()));
   });

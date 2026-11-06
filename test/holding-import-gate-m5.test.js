@@ -32,6 +32,7 @@ for (const [name, value] of [
   ['ambiguous A/C identity', candidate('000001', { match: { status: 'needs_confirmation', strategy: 'exact_name_ambiguous', candidates: [] } })],
   ['structured identity uncertainty', candidate('000001', { risks: { identityUncertain: true } })],
   ['structured share-class uncertainty', candidate('000001', { risks: { shareClassUncertain: true } })],
+  ['structured currency uncertainty', candidate('000001', { risks: { currencyUncertain: true } })],
   ['structured numeric ambiguity', candidate('000001', { risks: { numericAmbiguous: true } })],
   ['structured sign uncertainty', candidate('000001', { risks: { signUncertain: true } })],
   ['unmatched row', candidate('000001', { match: { status: 'unmatched' } })],
@@ -59,6 +60,26 @@ test('explicit row enable is a pure code-and-name-bound grant, not global acknow
     assert.equal(plan.validateHoldingImportPlan([changed]).ok, false, field);
   }
   assert.equal(plan.validateHoldingImportPlan([{ ...approved, shares: '250', cost: '0' }]).ok, true);
+});
+
+test('verified aliases still require reliable layout, same bound identity, and actual shares', () => {
+  const alias = candidate('000002', { match: { status: 'matched', strategy: 'verified_alias', code: '000002', name: 'Verified' } });
+  const row = create(alias);
+  assert.equal(row.action, 'add');
+  assert.equal(plan.holdingImportReviewStatus(row), 'matched');
+  assert.equal(plan.validateHoldingImportPlan([row]).ok, false);
+  assert.equal(plan.validateHoldingImportPlan([{ ...row, name: 'Another share class', shares: 1 }]).ok, false);
+  assert.equal(create(alias, { importable: false }).action, 'skip');
+});
+
+test('review totals count matched-but-risky rows and bind manual review to the chosen identity', () => {
+  const risk = create(candidate('000002', { risks: { numericAmbiguous: true } }));
+  const missingCode = create(candidate('', { match: { status: 'needs_confirmation', strategy: 'currency_ambiguous' } }));
+  assert.deepEqual(plan.importPlanSummary([create(), risk, missingCode]),
+    { total: 3, reviewedOrMatched: 1, needsConfirmation: 2, add: 0, update: 1, skip: 2 });
+  assert.equal(plan.holdingImportReviewStatus(enabled(risk)), 'reviewed');
+  assert.equal(plan.holdingImportReviewStatus({ ...enabled(risk), code: '000001' }), 'needs_review');
+  assert.equal(plan.holdingImportReviewStatus(enabled(missingCode)), 'needs_review');
 });
 
 test('a trusted row changed to a different identity also requires a fresh explicit grant', () => {
