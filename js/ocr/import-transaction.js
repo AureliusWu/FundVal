@@ -1,6 +1,6 @@
 import { normalizeHoldingsDocumentV3 } from '../storage/holdings-schema.js';
 import { loadHoldingsRepository, saveLegacyHoldingsTransaction, withHoldingsLock } from '../storage/holdings-repository.js';
-import { applyHoldingImportPlan, validateHoldingImportPlan } from '../holding-import-plan.js';
+import { applyHoldingImportPlan, validateHoldingImportPlan } from '../holding-import-plan.js?v=16.0.2';
 
 // The baseline is captured when candidates are shown, never re-based at click
 // time. Compare only selected identities so unrelated new holdings survive.

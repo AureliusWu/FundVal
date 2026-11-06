@@ -33,3 +33,22 @@ test('runtime, release metadata and maintained documentation versions stay synch
   assert.match(changelog, new RegExp(`^## ${escapedVersion} - \\d{4}-\\d{2}-\\d{2}$`, 'm'));
   assert.match(feedback, new RegExp(`^# 蜉蝣基金（FundVal）v${escapedVersion} 实施反馈$`, 'm'));
 });
+
+test('OCR page, import transaction, and their changed static modules share one release-specific URL key', async () => {
+  const [html, page, transaction] = await Promise.all([
+    readFile(new URL('../ocr-import.html', import.meta.url), 'utf8'),
+    readFile(new URL('../js/ocr-import-page.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/ocr/import-transaction.js', import.meta.url), 'utf8'),
+  ]);
+  const entryRefs = [...html.matchAll(/\bsrc="(js\/ocr-import-page\.js[^"\s]*)"/g)].map(match => match[1]);
+  assert.deepEqual(entryRefs, [`js/ocr-import-page.js?v=${APP_VERSION}`]);
+  function assertVersionedImport(source, path) {
+    const imports = [...source.matchAll(/\bfrom\s+['"](\.{1,2}\/[^'"]+)['"]/g)].map(match => match[1]);
+    const refs = imports.filter(specifier => specifier.split('?')[0] === path);
+    assert.deepEqual(refs, [`${path}?v=${APP_VERSION}`]);
+  }
+  for (const name of ['alipay-ocr-parser', 'fund-catalog', 'holding-import-plan', 'ocr-table-layout', 'ocr/import-transaction']) {
+    assertVersionedImport(page, `./${name}.js`);
+  }
+  assertVersionedImport(transaction, '../holding-import-plan.js');
+});

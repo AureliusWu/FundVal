@@ -18,7 +18,7 @@ import {
 const catalog = [
   { code: '005827', name: '易方达蓝筹精选混合' },
   { code: '012920', name: '易方达全球成长精选混合(QDII)人民币A' },
-  { code: '012921', name: '易方达全球成长精选混合(QDII)人民币C' },
+  { code: '012922', name: '易方达全球成长精选混合(QDII)人民币C' },
   { code: '005844', name: '东方人工智能主题混合A' },
   { code: '005845', name: '东方人工智能主题混合C' }
 ];
@@ -132,13 +132,134 @@ test('merges a wrapped name before parsing adjacent holding fields', () => {
   assert.equal(Object.hasOwn(parsed.holdings[0], 'rawText'), false);
 });
 
-test('matches a correct six-digit code before an OCR-different name', () => {
+test('requires review rather than trusting a code paired with an OCR-different name', () => {
   const match = matchFundCandidate({ code: '005827', name: '易方达蓝筹精迭混合' }, catalog);
-  assert.equal(match.status, 'matched');
-  assert.equal(match.strategy, 'code');
-  assert.equal(match.fund.code, '005827');
-  assert.equal(match.code, '005827');
+  assert.equal(match.status, 'needs_confirmation');
+  assert.equal(match.strategy, 'code_name_conflict');
+  assert.equal(match.fund, null);
+  assert.equal(match.code, null);
   assert.ok(match.warnings.length);
+});
+
+const verifiedProducts = [
+  ['建信新兴市场优选混合（QDII）A', '539002', '建信新兴市场混合(QDII)A'],
+  ['建信新兴市场优选混合(QDII)C', '018147', '建信新兴市场混合(QDII)C'],
+  ['永赢先锋半导体智选混合 A', '025208', '永赢先锋半导体智选混合发起A'],
+  ['永赢先锋半导体智选混合C', '025209', '永赢先锋半导体智选混合发起C'],
+  ['华泰柏瑞质量成长混合A', '008528', '华泰柏瑞质量成长A'],
+  ['华泰柏瑞质量成长混合 C', '011452', '华泰柏瑞质量成长C'],
+];
+const aliasCatalog = verifiedProducts.map(([, code, name]) => ({ code, name }));
+
+test('only trusts exact public abbreviations with their verified catalog code and spelling', () => {
+  for (const [alias, code, canonical] of verifiedProducts) {
+    const match = matchFundCandidate({ name: alias }, aliasCatalog);
+    assert.equal(match.status, 'matched');
+    assert.equal(match.strategy, 'verified_alias');
+    assert.equal(match.code, code);
+    assert.equal(match.name, canonical);
+    assert.equal(matchFundCandidate({ code, name: alias }, aliasCatalog).strategy, 'code');
+    assert.equal(matchFundCandidate({ name: canonical }, aliasCatalog).strategy, 'exact_name');
+  }
+});
+
+test('rejects alias drift or collision rather than weakening to fuzzy auto-selection', () => {
+  const [name, code, canonical] = verifiedProducts[0];
+  const drifted = [
+    { code, name: '建信完全不同混合(QDII)A' },
+    { code: '999999', name: canonical },
+  ];
+  const unverified = matchFundCandidate({ name }, drifted);
+  assert.equal(unverified.strategy, 'alias_unverified');
+  assert.equal(unverified.fund, null);
+  assert.equal(matchFundCandidate({ code, name }, drifted).strategy, 'code_name_conflict');
+  const wrongLiteral = [{ code: '999999', name }];
+  assert.equal(matchFundCandidate({ name }, wrongLiteral).strategy, 'alias_unverified');
+  assert.equal(matchFundCandidate({ code: '999999', name }, wrongLiteral).strategy, 'code_name_conflict');
+  const wrongClassSpelling = [{ code: '999999', name: `${name}类` }];
+  assert.equal(matchFundCandidate({ name }, wrongClassSpelling).strategy, 'alias_unverified');
+  assert.equal(matchFundCandidate({ code: '999999', name }, wrongClassSpelling).strategy, 'code_name_conflict');
+  const literal = [{ code, name }];
+  assert.equal(matchFundCandidate({ name }, literal).strategy, 'exact_name');
+  const collision = matchFundCandidate({ code, name }, [...aliasCatalog, { code: '999999', name }]);
+  assert.equal(collision.strategy, 'exact_name_ambiguous');
+  assert.equal(collision.fund, null);
+});
+
+const currencyCatalog = [
+  ...catalog,
+  { code: '012921', name: '易方达全球成长精选混合(QDII)美元现汇A' },
+  { code: '012923', name: '易方达全球成长精选混合(QDII)美元现汇C' },
+  { code: '539001', name: '建信纳斯达克100指数(QDII)A人民币' },
+  { code: '012751', name: '建信纳斯达克100指数(QDII)A美元现汇' },
+  { code: '012752', name: '建信纳斯达克100指数(QDII)C人民币' },
+  { code: '017641', name: '摩根标普500指数(QDII)人民币A' },
+  { code: '019305', name: '摩根标普500指数(QDII)人民币C' },
+  { code: '017642', name: '摩根标普500指数(QDII)美钞' },
+  { code: '017643', name: '摩根标普500指数(QDII)美汇' },
+];
+
+test('requires a QDII currency decision when the same share class has several currencies', () => {
+  for (const [name, codes] of [
+    ['易方达全球成长精选混合(QDII)A', ['012920', '012921']],
+    ['易方达全球成长精选混合(QDII)C', ['012922', '012923']],
+    ['建信纳斯达克100指数(QDII)A', ['539001', '012751']],
+  ]) {
+    const match = matchFundCandidate({ name }, currencyCatalog);
+    assert.equal(match.status, 'needs_confirmation');
+    assert.equal(match.strategy, 'currency_ambiguous');
+    assert.equal(match.code, null);
+    assert.deepEqual(match.candidates.map(item => item.code), codes);
+    assert.equal(matchFundCandidate({ code: codes[0], name }, currencyCatalog).strategy, 'code');
+  }
+  const singleCurrency = matchFundCandidate({ name: '易方达全球成长精选混合(QDII)A' }, catalog);
+  assert.equal(singleCurrency.strategy, 'currency_ambiguous');
+  assert.equal(singleCurrency.fund, null);
+  assert.deepEqual(singleCurrency.candidates.map(item => item.code), ['012920']);
+});
+
+test('keeps unclear foreign-currency classes visible as explicitly unclassified, not opposite RMB classes', () => {
+  const name = '摩根标普500指数(QDII)C';
+  const match = matchFundCandidate({ name }, currencyCatalog);
+  assert.equal(match.strategy, 'currency_ambiguous');
+  assert.deepEqual(match.candidates.map(item => [item.code, item.shareClassUnspecified ?? false]), [
+    ['019305', false], ['017642', true], ['017643', true],
+  ]);
+  assert.match(match.warnings[0], /未注明份额类别/);
+  assert.equal(matchFundCandidate({ code: '017642', name }, currencyCatalog).strategy, 'code_name_conflict');
+});
+
+test('allows equivalent explicit currency spelling but never silently swaps cash, wire, currency or class', () => {
+  const base = '易方达全球成长精选混合(QDII)';
+  assert.equal(matchFundCandidate({ name: `${base}A(人民币份额)` }, currencyCatalog).code, '012920');
+  assert.equal(matchFundCandidate({ name: `${base}CNya` }, currencyCatalog).code, '012920');
+  assert.equal(matchFundCandidate({ name: `${base}A美元现汇` }, currencyCatalog).code, '012921');
+  assert.equal(matchFundCandidate({ name: `${base}美元现汇(A类)` }, currencyCatalog).code, '012921');
+  assert.equal(matchFundCandidate({ name: `${base}A美元现钞` }, currencyCatalog).fund, null);
+  assert.equal(matchFundCandidate({ code: '012920', name: `${base}美元现汇A` }, currencyCatalog).strategy, 'code_name_conflict');
+  assert.equal(matchFundCandidate({ code: '012920', name: `${base}人民币C` }, currencyCatalog).strategy, 'code_name_conflict');
+  assert.equal(matchFundCandidate({ code: '012920', name: `${base}人民币A美元现汇` }, currencyCatalog).strategy, 'currency_ambiguous');
+  const wrongClass = matchFundCandidate({ name: `${base}美元现汇(C类)` }, currencyCatalog.filter(entry => entry.code !== '012923'));
+  assert.equal(wrongClass.fund, null);
+  assert.deepEqual(wrongClass.candidates, []);
+  assert.equal(matchFundCandidate({ code: '025208', name: '永赢先锋半导体智选混合C' }, aliasCatalog).strategy, 'code_name_conflict');
+});
+
+test('does not collapse conflicting printed codes or conflicting catalog codes to a match', () => {
+  assert.equal(extractFundCode('005844 / 005845'), null);
+  assert.equal(extractFundCode('005844 / 005844'), '005844');
+  const session = createFundMatchSession(catalog);
+  const name = '东方人工智能主题混合A';
+  assert.equal(session.match({ name }).strategy, 'exact_name');
+  assert.equal(session.match({ code: '005844 005845', name }).strategy, 'code_ambiguous');
+  const duplicate = [...catalog, { code: '005844', name: '不同主题混合A' }];
+  assert.equal(matchFundCandidate({ code: '005844', name }, duplicate).strategy, 'code_ambiguous');
+  assert.equal(matchFundCandidate({ name }, duplicate).strategy, 'code_ambiguous');
+  const parsed = parseAlipayHoldingScreenshot({
+    text: '支付宝 基金持有\n东方人工智能主题混合A 005844 / 005845\n持有金额 12.00\n持有收益 +2.00',
+  }, catalog);
+  assert.equal(parsed.holdings[0].code, null);
+  assert.equal(parsed.holdings[0].match.strategy, 'code_ambiguous');
 });
 
 test('does not silently replace an unrecognized OCR code with a name match', () => {
@@ -307,7 +428,7 @@ test('requires confirmation instead of selecting among close fuzzy candidates', 
   const match = matchFundCandidate({ name: '易方达全球成长精选混合(QDII)人民币' }, catalog);
   assert.equal(match.status, 'needs_confirmation');
   assert.equal(match.strategy, 'fuzzy_ambiguous');
-  assert.deepEqual(match.candidates.map(item => item.code), ['012920', '012921']);
+  assert.deepEqual(match.candidates.map(item => item.code), ['012920', '012922']);
 });
 
 test('returns no holdings for empty or non-Alipay text', () => {

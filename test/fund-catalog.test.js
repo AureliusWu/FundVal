@@ -32,6 +32,7 @@ test('loads only same-origin JSON and retains only minimal catalog identity fiel
   assert.deepEqual(catalog, [
     { code: '000001', name: '华夏成长混合', pinyin: 'huaxiachengzhang' },
     { code: '000002', name: '华夏成长混合C', pinyin: 'huaxiachengzhangc' },
+    { code: '000001', name: '重复', pinyin: 'duplicate' },
   ]);
   assert.equal('holdingAmount' in catalog[0], false);
 });

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { APP_VERSION } from '../js/version.js';
 
 const [app, bootstrap, ocr, migrations, serviceWorker, gistRemote, holdingEdit, ocrTransaction, cloudArchive, features, sync, syncPolicy] = await Promise.all([
   readFile(new URL('../js/app.js', import.meta.url), 'utf8'),
@@ -27,7 +28,7 @@ test('all local holding mutations use the authoritative Schema 3 repository', ()
   assert.match(cloudArchive, /persistHoldingsDocument/);
   assert.doesNotMatch(app, /function pruneOldTombstones/);
   assert.doesNotMatch(app, /safeSetItem\(STORAGE_KEY/);
-  assert.match(ocr, /from '\.\/ocr\/import-transaction\.js'/);
+  assert.ok(ocr.includes(`from './ocr/import-transaction.js?v=${APP_VERSION}'`), 'OCR must use the current release transaction');
   assert.match(ocrTransaction, /return withHoldingsLock\(/);
   assert.match(ocrTransaction, /saveLegacyHoldingsTransaction\(storage, result\.holdings/);
   assert.match(ocrTransaction, /expectedDocument: loaded\.document/);

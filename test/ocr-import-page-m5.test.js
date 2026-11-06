@@ -20,26 +20,29 @@ function formHarness(candidate = row()) {
   const fields = Object.fromEntries(['action', 'code', 'name', 'shares', 'cost', 'candidate', 'screenshot-cost', 'enable', 'enable-container']
     .map(name => [name, { value: '', checked: false, hidden: false, dataset: { field: name } }]));
   for (const key of ['action', 'code', 'name', 'shares', 'cost']) fields[key].value = candidate[key];
-  const badge = { classList: { add() {} }, textContent: '' }, meta = { textContent: '' };
+  const badge = { classList: { toggle() {} }, textContent: '' }, meta = { textContent: '' }, count = { textContent: '' };
   const root = { dataset: { rowId: candidate.id, explicitSkip: 'false' },
+    classList: { toggle() {} },
     querySelector(selector) {
       if (selector === '.ocr-match-badge') return badge; if (selector === '.ocr-candidate-meta') return meta;
       const match = /^\[data-field="([a-z-]+)"\]$/.exec(selector); return match ? fields[match[1]] : null;
     } };
   for (const [name, control] of Object.entries(fields)) control.closest = selector => selector === '[data-row-id]' ? root
     : selector.split(',').some(part => part.trim() === `[data-field="${name}"]`) ? control : null;
-  const body = { querySelector: () => root };
+  const body = { querySelector: selector => selector === '.ocr-review-count' ? count : root };
   const names = ['escapeHtml', 'finite', 'formatSnapshot', 'candidateOptions', 'actionOptions', 'actionOptionsForExisting',
     'costDisplay', 'existingHoldingHint', 'snapshotItem', 'renderCandidate', 'readRowsFromForm', 'chooseCandidate',
-    'existingHoldingForCode', 'refreshManualCandidateState', 'editCandidateIdentity'];
+    'existingHoldingForCode', 'refreshManualCandidateState', 'editCandidateIdentity', 'candidateReviewLabel',
+    'reviewSummaryText', 'refreshReviewPresentation'];
   // New shared form reader is included when the implementation supplies it.
   if (ast.body.some(node => node.id?.name === 'readCandidateFormRow')) names.push('readCandidateFormRow');
-  const factory = new Function('element', 'setHoldingImportRowEnabled', 'resolveCandidateSelectionAction', 'initial',
+  const factory = new Function('element', 'setHoldingImportRowEnabled', 'resolveCandidateSelectionAction',
+    'holdingImportReviewStatus', 'importPlanSummary', 'initial',
     `let state={rows:[initial],holdings:[{code:'000001',name:'Synthetic A',shares:100,cost:null}]};\n`
     + names.map(functionText).join('\n') + '\nreturn { renderCandidate,readRowsFromForm,chooseCandidate,editCandidateIdentity,getRow:()=>state.rows[0] };');
   const api = factory(id => id === 'ocr-import-body' ? body : null, plan.setHoldingImportRowEnabled,
-    plan.resolveCandidateSelectionAction, candidate);
-  return { api, fields, root };
+    plan.resolveCandidateSelectionAction, plan.holdingImportReviewStatus, plan.importPlanSummary, candidate);
+  return { api, fields, root, badge, count };
 }
 
 test('actual rendered risk row exposes an independent unchecked labelled enable control', () => {
@@ -61,6 +64,8 @@ test('only the actual explicit-enable change handler grants a bound row and enab
   const submitted = h.api.readRowsFromForm()[0];
   assert.equal(submitted.explicitlyEnabled, true); assert.equal(submitted.action, 'update');
   assert.equal(plan.validateHoldingImportPlan([submitted]).ok, true);
+  assert.equal(h.badge.textContent, '已人工核对');
+  assert.match(h.count.textContent, /0 条需人工核对/);
 });
 
 test('an identity edit without a dispatched input event cannot reuse the previous bound grant', () => {
@@ -76,6 +81,8 @@ for (const field of ['code', 'name']) test('editing ' + field + ' revokes prior 
   assert.equal(h.api.getRow().explicitlyEnabled, false); assert.equal(h.fields.enable.checked, false);
   assert.equal(h.fields.action.value, 'skip'); h.fields.action.value = 'add';
   assert.equal(plan.validateHoldingImportPlan(h.api.readRowsFromForm()).ok, false);
+  assert.equal(h.badge.textContent, '需要核对');
+  assert.match(h.count.textContent, /1 条需人工核对/);
 });
 
 test('choosing a catalog candidate is not an explicit activation and revokes old consent', () => {
@@ -94,11 +101,11 @@ test('identity edits expose the initially hidden gate of a trusted row without s
 
 test('actual candidate projection passes structured row risks instead of parsing warning text', () => {
   const build = new Function('reconstructOcrTableLayout', 'detectAlipayHoldingSourceEvidence', 'normalizeFundName', 'monotonicNow',
-    'matchFundCandidate', functionText('buildPaddleHoldingCandidates') + '\nreturn buildPaddleHoldingCandidates;');
+    'matchFundCandidate', 'isTrustedHoldingMatch', functionText('buildPaddleHoldingCandidates') + '\nreturn buildPaddleHoldingCandidates;');
   const preview = { name: 'Synthetic C', semanticReliable: false, evidence: { middle: 3, right: 2 },
     match: { status: 'matched', strategy: 'fuzzy', code: '000001', name: 'Synthetic A' } };
   const result = build(() => ({ previewRows: [preview], schema: { importable: false, header: { reliable: false }, geometry: { reliable: false } } }),
-    () => ({ supported: true }), value => String(value || ''), () => 1, () => null)({ tokens: [], imageWidth: 1440 }, []);
+    () => ({ supported: true }), value => String(value || ''), () => 1, () => null, plan.isTrustedHoldingMatch)({ tokens: [], imageWidth: 1440 }, []);
   assert.equal(result.holdings[0].semanticReliable, false);
   assert.equal(result.holdings[0].risks.identityUncertain, true); assert.equal(result.holdings[0].risks.numericAmbiguous, true);
 });
