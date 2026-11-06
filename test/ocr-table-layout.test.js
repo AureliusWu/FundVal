@@ -100,6 +100,69 @@ test('reconstructs a fund name split into same-line fragments and a wrapped line
   assert.equal(result.previewRows[0].holdingProfitRate, 15.91);
 });
 
+test('drops a joined Alipay plan badge after a wrapped QDII share class without changing geometry or amounts', () => {
+  const cleanName = '合成全球配置混合(QDII)C';
+  const matcher = name => {
+    if (name === cleanName) return { status: 'matched', strategy: 'exact_name', code: '001001', name };
+    if (name === `${cleanName}定 投`) return { status: 'matched', strategy: 'fuzzy', code: '001009', name: '合成全球配置混合(QDII)A' };
+    return null;
+  };
+  const read = suffix => reconstructOcrTableLayout({ imageWidth: 1440, matchFund: matcher, tokens: [
+    ...tableHeader(), token('合成全球配置', 50, 180, 220, 204),
+    token(`混合(QDII)C${suffix}`, 50, 210, 290, 234),
+    token('147.15', 670, 180), token('-2.50', 670, 220),
+    token('+31.20', 1110, 180), token('+26.91%', 1110, 220),
+  ] });
+  const joined = read('定 投');
+  assert.deepEqual(joined, read(''));
+  const [row] = joined.previewRows;
+  assert.equal(row.name, cleanName);
+  assert.equal(row.match.code, '001001');
+  assert.equal(row.holdingAmount, 147.15);
+  assert.equal(row.dailyProfit, -2.5);
+  assert.equal(row.holdingProfit, 31.2);
+  assert.equal(row.holdingProfitRate, 26.91);
+});
+
+test('treats a separate wrapped plan badge as a boundary, never a name or fuzzy continuation', () => {
+  const queried = [];
+  const names = new Map([['合成稳健混合A', '001001'], ['合成定投精选混合C', '001002']]);
+  const result = reconstructOcrTableLayout({ imageWidth: 1440, matchFund(name) {
+    queried.push(name);
+    const code = names.get(name);
+    if (code) return { status: 'matched', code, name };
+    if (name.includes('定 投')) return { status: 'matched', strategy: 'fuzzy', code: '001009', name: '错误的模糊匹配' };
+    return null;
+  }, tokens: [
+    ...tableHeader(), token('合成稳健', 50, 180, 230, 204), token('混合A', 50, 210, 150, 234),
+    token('定 投', 50, 240, 100, 256),
+    token('81.13', 670, 180), token('-1.28', 670, 220),
+    token('+6.21', 1110, 180), token('+8.29%', 1110, 220),
+    token('合成定投精选混合C', 50, 274, 310, 298),
+    token('172.11', 670, 274), token('+4.12', 670, 314),
+    token('-19.33', 1110, 274), token('-10.10%', 1110, 314),
+  ] });
+  assert.equal(result.schema.importable, true);
+  assert.deepEqual(result.previewRows.map(row => row.name), [...names.keys()]);
+  assert.deepEqual(result.previewRows.map(row => row.match.code), [...names.values()]);
+  assert.equal(queried.some(name => name.includes('定 投') || name.includes('混合A合成')), false);
+  assert.deepEqual(result.previewRows.map(row => [row.holdingAmount, row.dailyProfit, row.holdingProfit, row.holdingProfitRate]),
+    [[81.13, -1.28, 6.21, 8.29], [172.11, 4.12, -19.33, -10.1]]);
+});
+
+test('keeps exact catalog names and does not substitute an uncertain stripped candidate', () => {
+  const exact = '合成定投目标混合C定投';
+  const uncertain = '合成平衡混合A定投';
+  const result = reconstructOcrTableLayout({ imageWidth: 1440, matchFund(name) {
+    if (name === exact || name === '合成定投目标混合C') return { status: 'matched', strategy: 'exact_name', code: name === exact ? '001001' : '001002', name };
+    if (name === uncertain || name === '合成平衡混合A') return { status: 'matched', strategy: 'fuzzy', code: name === uncertain ? '001003' : '001004', name: '合成模拟混合A' };
+    return null;
+  }, tokens: [
+    ...tableHeader(), token(exact, 50, 180, 310, 204), token(uncertain, 50, 340, 310, 364),
+  ] });
+  assert.deepEqual(result.previewRows.map(row => [row.name, row.match.code]), [[exact, '001001'], [uncertain, '001003']]);
+});
+
 test('keeps negative amounts and percentages strict, without partial text extraction', () => {
   assert.equal(parseStrictOcrNumber('-98.08'), -98.08);
   assert.equal(parseStrictOcrNumber('-7.42%', 'percent'), -7.42);
@@ -168,6 +231,25 @@ test('retains an unnamed numeric record for explicit manual confirmation instead
   assert.equal(result.previewRows[1].match, null);
   assert.equal(result.previewRows[1].holdingAmount, 3440.91);
   assert.equal(result.previewRows[1].holdingProfitRate, 1.2);
+});
+
+test('a joined plan badge is removed even when the verified name still needs currency review', () => {
+  const name = '合成海外指数(QDII)A';
+  const candidates = [
+    { code: '001001', name: '合成海外指数(QDII)人民币A' },
+    { code: '001002', name: '合成海外指数(QDII)美元A' },
+  ];
+  const result = reconstructOcrTableLayout({ imageWidth: 1440,
+    matchFund: text => text === name ? { status: 'needs_confirmation', strategy: 'currency_ambiguous', candidates } : null,
+    tokens: [...tableHeader(), token(`${name}定投`, 50, 180, 400, 204),
+      token('200.00', 670, 180), token('+2.00', 670, 220),
+      token('+10.00', 1110, 180), token('+5.26%', 1110, 220)],
+  });
+  assert.equal(result.previewRows.length, 1);
+  assert.equal(result.previewRows[0].name, name);
+  assert.equal(result.previewRows[0].holdingAmount, 200);
+  assert.equal(result.previewRows[0].match.code, undefined);
+  assert.deepEqual(result.previewRows[0].match.candidates, candidates);
 });
 
 test('keeps A/C ambiguity as a preview candidate without choosing a fund identity', () => {

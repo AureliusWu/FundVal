@@ -1,4 +1,5 @@
 const FUND_CODE_RE = /^\d{6}$/;
+const TRUSTED_MATCH_STRATEGIES = new Set(['code', 'exact_name', 'verified_alias']);
 
 function text(value) {
   return String(value == null ? '' : value).trim();
@@ -69,6 +70,28 @@ export function setHoldingImportRowEnabled(row, enabled) {
   };
 }
 
+export function isTrustedHoldingMatch(match) {
+  return match?.status === 'matched' && TRUSTED_MATCH_STRATEGIES.has(match.strategy);
+}
+
+function hasBoundRowApproval(row, code, name) {
+  return row.explicitlyEnabled === true && row.approvedIdentity?.code === code && row.approvedIdentity?.name === name;
+}
+
+function hasTrustedRowIdentity(row, code, name) {
+  return row.matchStatus === 'matched' && row.requiresExplicitEnable === false
+    && Array.isArray(row.riskReasons) && row.riskReasons.length === 0
+    && row.sourceIdentity?.code === code && row.sourceIdentity?.name === name;
+}
+
+export function holdingImportReviewStatus(row) {
+  const code = text(row?.code);
+  const name = text(row?.name) || code;
+  if (!FUND_CODE_RE.test(code)) return 'needs_review';
+  if (hasTrustedRowIdentity(row, code, name)) return 'matched';
+  return hasBoundRowApproval(row, code, name) ? 'reviewed' : 'needs_review';
+}
+
 export function createHoldingImportPlan(candidates, holdings, options = {}) {
   const existingByCode = activeHoldingByCode(holdings);
   return (Array.isArray(candidates) ? candidates : []).map((candidate, index) => {
@@ -84,8 +107,8 @@ export function createHoldingImportPlan(candidates, holdings, options = {}) {
     const riskReasons = [];
     if (options?.importable !== true) riskReasons.push('layout_untrusted');
     if (candidate?.semanticReliable !== true) riskReasons.push('row_geometry_untrusted');
-    if (!matched || !['code', 'exact_name'].includes(match.strategy) || risks.identityUncertain === true) riskReasons.push('identity_unconfirmed');
-    for (const key of ['shareClassUncertain', 'numericAmbiguous', 'signUncertain']) if (risks[key] === true) riskReasons.push(key);
+    if (!matched || !isTrustedHoldingMatch(match) || risks.identityUncertain === true) riskReasons.push('identity_unconfirmed');
+    for (const key of ['shareClassUncertain', 'currencyUncertain', 'numericAmbiguous', 'signUncertain']) if (risks[key] === true) riskReasons.push(key);
     const requiresExplicitEnable = riskReasons.length > 0;
     return {
       id: `alipay-${index + 1}`,
@@ -122,11 +145,8 @@ function validateOne(row) {
   if (!FUND_CODE_RE.test(code)) return { ok: false, message: '请确认 6 位基金代码' };
   const name = text(row.name) || code;
   if (!['add', 'update'].includes(row.action)) return { ok: false, message: '请选择新增、更新或跳过' };
-  const trustedPolicy = row.requiresExplicitEnable === false
-    && Array.isArray(row.riskReasons) && row.riskReasons.length === 0
-    && row.sourceIdentity?.code === code && row.sourceIdentity?.name === name;
-  if (!trustedPolicy
-    && (row.explicitlyEnabled !== true || row.approvedIdentity?.code !== code || row.approvedIdentity?.name !== name)) {
+  const trustedPolicy = hasTrustedRowIdentity(row, code, name);
+  if (!trustedPolicy && !hasBoundRowApproval(row, code, name)) {
     return { ok: false, message: '请逐行核对基金身份和真实份额，并勾选“启用此行”' };
   }
   const shares = positive(row.shares);
@@ -203,14 +223,17 @@ export function applyHoldingImportPlan(holdings, rows, nowISO = new Date().toISO
 }
 
 export function importPlanSummary(rows) {
-  const summary = { total: 0, matched: 0, needsConfirmation: 0, add: 0, update: 0, skip: 0 };
+  const summary = { total: 0, reviewedOrMatched: 0, needsConfirmation: 0, add: 0, update: 0, skip: 0 };
   (Array.isArray(rows) ? rows : []).forEach(row => {
     summary.total += 1;
-    if (row.matchStatus === 'matched') summary.matched += 1;
-    else summary.needsConfirmation += 1;
+    if (holdingImportReviewStatus(row) === 'needs_review') summary.needsConfirmation += 1;
+    else summary.reviewedOrMatched += 1;
     if (row.action === 'add') summary.add += 1;
     else if (row.action === 'update') summary.update += 1;
     else summary.skip += 1;
   });
+  // Keep the previous entry's count available while old PWA pages finish
+  // loading their unversioned dependencies across the release boundary.
+  summary.matched = summary.reviewedOrMatched;
   return summary;
 }

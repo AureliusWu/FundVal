@@ -93,6 +93,9 @@ test('OCR dirty preview blocks peer update and requires explicit discard before 
 const storedDocument = page => page.evaluate(() => JSON.parse(localStorage.getItem('fuyu_holdings_v3')));
 test('OCR risk row requires a real independent enable event before actual locked commit', async ({ page }) => {
   await preview(page, { trustedLayout: false, seed: true });
+  const count = page.locator('.ocr-review-count');
+  await expect(count).toContainText('15 条需人工核对');
+  await expect(page.locator('.ocr-candidate.needs-confirmation')).toHaveCount(15);
   const row = page.locator('.ocr-candidate').first();
   const enable = row.locator('[data-field="enable"]');
   const action = row.locator('[data-field="action"]');
@@ -114,6 +117,8 @@ test('OCR risk row requires a real independent enable event before actual locked
   await enable.evaluate(element => { element.checked = false; });
   await enable.check();
   await expect(action).toHaveValue('update');
+  await expect(count).toContainText('14 条需人工核对');
+  await expect(row.locator('.ocr-match-badge')).toHaveText('已人工核对');
   await page.locator('#ocr-import-confirm').click();
   await page.waitForURL('**/?ocr_import=1');
   const result = await storedDocument(page);

@@ -1,7 +1,7 @@
 {
   "name": "蜉蝣基金",
   "short_name": "蜉蝣基金",
-  "description": "蜉蝣基金 v16.0.1 · 明确日期与来源的基金观察和本地截图导入",
+  "description": "蜉蝣基金 v16.0.2 · 明确日期与来源的基金观察和本地截图导入",
   "id": "/FundVal/",
   "start_url": ".",
   "scope": "./",

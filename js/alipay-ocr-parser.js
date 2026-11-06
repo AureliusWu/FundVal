@@ -177,9 +177,9 @@ export function normalizeFundName(value) {
     .trim();
 }
 
-/** Return a six-digit fund code when the source contains an unambiguous code. */
-export function extractFundCode(value) {
+function fundCodeMentions(value) {
   const source = textOf(value);
+  const codes = new Set();
   FUND_CODE_RE.lastIndex = 0;
   let match;
   while ((match = FUND_CODE_RE.exec(source))) {
@@ -191,9 +191,15 @@ export function extractFundCode(value) {
     // a fund identity. A currency/sign prefix is likewise never a code.
     if (/(?:持有金额|持有市值|持有资产|持仓金额|持仓市值|当前市值|持有收益|累计收益|持仓收益|今日收益|昨日收益|收益率)\s*[：:\s¥￥+\-]*$/u.test(before)) continue;
     if (/[¥￥+\-]$/.test(before) || /^[.,]/.test(after)) continue;
-    return code;
+    codes.add(code);
   }
-  return null;
+  return [...codes];
+}
+
+/** Return a six-digit fund code when the source contains one distinct code. */
+export function extractFundCode(value) {
+  const codes = fundCodeMentions(value);
+  return codes.length === 1 ? codes[0] : null;
 }
 
 function correctedNumericText(value) {
@@ -266,7 +272,7 @@ function numberFromSpatialNeighbour(lines, definition) {
   const blocks = lines.flatMap(line => line.blocks);
   const typicalHeight = median(blocks.map(block => block.height).filter(height => height > 0), 16);
   const candidates = blocks
-    .filter(block => !hasFieldLabel(block.text) && !extractFundCode(block.text))
+    .filter(block => !hasFieldLabel(block.text) && fundCodeMentions(block.text).length === 0)
     .map(block => ({ block, detail: parseNumberDetails(block.text, definition.kind) }))
     .filter(item => item.detail.value != null);
   let best = null;
@@ -359,8 +365,7 @@ function extractAntTableFields(lines, catalog) {
   for (const line of lines) {
     if (lineLooksLikeName(line, catalog) || hasFieldLabel(line.text)) continue;
     let value = line.text;
-    const code = extractFundCode(value);
-    if (code) value = value.replace(code, ' ');
+    for (const code of fundCodeMentions(value)) value = value.replaceAll(code, ' ');
     amounts.push(...parseNumberDetailsList(value, 'amount'));
     percentages.push(...parseNumberDetailsList(value, 'percent'));
   }
@@ -389,7 +394,7 @@ function mergeTableFields(fields, warnings, lines, catalog, tableLayout) {
 
 function cleanNamePart(value) {
   let text = textOf(value)
-    .replace(/(?:^|[^\d])\d{6}(?!\d)/g, ' ')
+    .replace(/(?<![\d.,])\d{6}(?![\d.,])/g, ' ')
     .replace(/[¥￥]\s*[+\-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?/g, ' ')
     .replace(/[+\-](?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?/g, ' ')
     .replace(PERCENT_TOKEN_RE, ' ')
@@ -417,20 +422,60 @@ function normalizedCatalogEntries(fundCatalog) {
   const unique = new Map();
   for (const value of Array.isArray(fundCatalog) ? fundCatalog : []) {
     const entry = catalogEntry(value);
-    if (entry && !unique.has(entry.code)) unique.set(entry.code, entry);
+    if (entry) {
+      const key = `${entry.code}\u0000${entry.normalizedName}`;
+      if (!unique.has(key)) unique.set(key, entry);
+    }
   }
   return [...unique.values()];
 }
 
-function shareClass(value) {
-  const name = normalizeFundName(value);
-  const match = /(?:人民币|美元)?(?:份额)?([ACE])(?:类)?$/i.exec(name);
-  return match ? match[1].toUpperCase() : null;
+// These are exact public product identities, not general word-deletion rules.
+// Sources: CCB Fund's 018147 product summary, Maxwealth's 025208/025209
+// offering notice, and Huatai-PineBridge's 008528/011452 fund disclosures.
+// Require the matching code AND catalog spelling before trusting an alias.
+const VERIFIED_ALIASES = new Map([
+  ['建信新兴市场优选混合(QDII)A', ['539002', '建信新兴市场混合(QDII)A']],
+  ['建信新兴市场优选混合(QDII)C', ['018147', '建信新兴市场混合(QDII)C']],
+  ['永赢先锋半导体智选混合A', ['025208', '永赢先锋半导体智选混合发起A']],
+  ['永赢先锋半导体智选混合C', ['025209', '永赢先锋半导体智选混合发起C']],
+  ['华泰柏瑞质量成长混合A', ['008528', '华泰柏瑞质量成长A']],
+  ['华泰柏瑞质量成长混合C', ['011452', '华泰柏瑞质量成长C']],
+]);
+
+const CURRENCY_CODES = new Map([
+  ['人民币', 'CNY'], ['CNY', 'CNY'], ['RMB', 'CNY'],
+  ['美元', 'USD'], ['USD', 'USD'],
+  ['美元现汇', 'USD_WIRE'], ['美汇', 'USD_WIRE'],
+  ['美元现钞', 'USD_CASH'], ['美钞', 'USD_CASH'],
+  ['港币', 'HKD'], ['港元', 'HKD'], ['HKD', 'HKD'],
+  ['欧元', 'EUR'], ['EUR', 'EUR'], ['日元', 'JPY'], ['JPY', 'JPY'],
+  ['英镑', 'GBP'], ['GBP', 'GBP'], ['新加坡元', 'SGD'], ['SGD', 'SGD'],
+]);
+const CURRENCY_TOKEN = [...CURRENCY_CODES.keys()].sort((a, b) => b.length - a.length).join('|');
+const CURRENCY_SUFFIX = new RegExp(`(?:\\((${CURRENCY_TOKEN})(?:份额)?\\)|(${CURRENCY_TOKEN})(?:份额)?)$`, 'i');
+
+function splitCurrencySuffix(name) {
+  const match = CURRENCY_SUFFIX.exec(name);
+  return match
+    ? { base: name.slice(0, match.index), currency: CURRENCY_CODES.get((match[1] || match[2]).toUpperCase()) }
+    : { base: name, currency: null };
 }
 
-function baseNameWithoutShareClass(value) {
-  const normalized = normalizeFundName(value);
-  return normalized.replace(/(?:人民币|美元)?(?:份额)?[ACE](?:类)?$/i, '');
+function nameIdentity(normalizedName) {
+  const after = splitCurrencySuffix(normalizedName);
+  const share = /(?:\(([A-Z])(?:类|份额)?\)|(?:份额)?([A-Z])(?:类|份额)?)$/i.exec(after.base);
+  const possibleBase = share && after.base.slice(0, share.index);
+  // Do not treat the final letter of ETF, QDII, or an English word as a class.
+  const hasClass = possibleBase && (!/[A-Za-z]$/.test(possibleBase)
+    || /(?:ETF|LOF|QDII|FOF)$/i.test(possibleBase) || splitCurrencySuffix(possibleBase).currency);
+  const before = splitCurrencySuffix(hasClass ? possibleBase : after.base);
+  return {
+    baseName: before.base,
+    shareClass: hasClass ? (share[1] || share[2]).toUpperCase() : null,
+    currency: after.currency || before.currency,
+    currencyConflict: Boolean(after.currency && before.currency && after.currency !== before.currency),
+  };
 }
 
 function searchName(value) {
@@ -466,17 +511,19 @@ export function buildFundMatchIndex(fundCatalog) {
   const entries = normalizedCatalogEntries(fundCatalog).map(entry => ({
     ...entry,
     searchName: searchName(entry.normalizedName),
-    shareClass: shareClass(entry.normalizedName),
-    baseName: baseNameWithoutShareClass(entry.normalizedName),
+    ...nameIdentity(entry.normalizedName),
   }));
   const byCode = new Map();
+  const entriesByCode = new Map();
+  const byBaseName = new Map();
   const byExactNormalizedName = new Map();
   const byBaseNameAndShareClass = new Map();
   const byShareClass = new Map();
   const trigramIndex = new Map();
   for (const entry of entries) {
-    byCode.set(entry.code, entry);
+    appendMapList(entriesByCode, entry.code, entry);
     appendMapList(byExactNormalizedName, entry.normalizedName, entry);
+    appendMapList(byBaseName, entry.baseName, entry);
     appendMapList(byBaseNameAndShareClass, `${entry.baseName}\u0000${entry.shareClass || ''}`, entry);
     appendMapList(byShareClass, entry.shareClass || '', entry);
     for (const token of trigramTokens(entry.searchName)) {
@@ -485,10 +532,17 @@ export function buildFundMatchIndex(fundCatalog) {
       trigramIndex.set(token, matches);
     }
   }
+  const conflictingCodes = new Set();
+  for (const [code, matches] of entriesByCode) {
+    if (matches.length > 1 || matches[0].currencyConflict) conflictingCodes.add(code);
+    else byCode.set(code, matches[0]);
+  }
   const index = Object.freeze({
     kind: 'fund-match-index',
     entries: Object.freeze(entries),
     byCode,
+    conflictingCodes,
+    byBaseName,
     byExactNormalizedName,
     byBaseNameAndShareClass,
     byShareClass,
@@ -503,13 +557,15 @@ function normalizedCatalog(fundCatalog) {
   return buildFundMatchIndex(fundCatalog).entries;
 }
 
-function fuzzyCandidatePool(index, normalizedName, inputClass, maximum) {
+function fuzzyCandidatePool(index, normalizedName, identity, maximum) {
   const tokens = trigramTokens(normalizedName);
   if (!tokens.length) return [];
   const counts = new Map();
   for (const token of tokens) {
     for (const entry of index.trigramIndex.get(token) || []) {
-      if (inputClass && entry.shareClass !== inputClass) continue;
+      if (index.conflictingCodes.has(entry.code)
+        || (identity.shareClass && entry.shareClass !== identity.shareClass)
+        || (identity.currency && entry.currency !== identity.currency)) continue;
       counts.set(entry, (counts.get(entry) || 0) + 1);
     }
   }
@@ -550,72 +606,102 @@ function similarity(left, right) {
   return 1 - levenshtein(left, right) / longest;
 }
 
-/**
- * Match one parsed OCR holding against a catalog. Codes are authoritative;
- * names retain A/C/E distinctions and ambiguous fuzzy results never select a
- * fund by themselves.
- */
+/** Match a local catalog identity without conflating share class or currency. */
 export function matchFundCandidate(candidate, fundCatalog, options = {}) {
   const index = options.index?.kind === 'fund-match-index'
     ? options.index
     : buildFundMatchIndex(fundCatalog);
   const catalog = index.entries;
-  const code = extractFundCode(candidate?.code) || null;
+  const codes = fundCodeMentions(candidate?.code);
+  const code = codes.length === 1 ? codes[0] : null;
   const name = textOf(candidate?.name);
   const normalizedName = normalizeFundName(name);
-  const toCandidate = ({ code: itemCode, name: itemName, score }) => ({ code: itemCode, name: itemName, ...(score == null ? {} : { score: Number(score.toFixed(3)) }) });
+  const identity = nameIdentity(normalizedName);
+  const exact = index.byExactNormalizedName.get(normalizedName) || [];
+  const aliasFingerprint = VERIFIED_ALIASES.get(normalizedName);
+  const aliasEntry = aliasFingerprint && index.byCode.get(aliasFingerprint[0]);
+  const alias = aliasEntry && aliasEntry.normalizedName === aliasFingerprint[1] ? aliasEntry : null;
+  const verifiedLiteral = aliasFingerprint && exact.find(entry => entry.code === aliasFingerprint[0]);
+  const classKey = `${identity.baseName}\u0000${identity.shareClass}`;
+  const classIdentities = identity.shareClass
+    ? (index.byBaseNameAndShareClass.get(classKey) || []).filter(entry => entry.currency === identity.currency)
+    : [];
+  const family = (index.byBaseName.get(alias?.baseName ?? identity.baseName) || [])
+    .filter(entry => !identity.shareClass || entry.shareClass === identity.shareClass
+      || (!entry.shareClass && entry.currency));
+  const unmarkedCurrency = !identity.currency && identity.shareClass && family.some(entry => entry.currency)
+    && (family.length > 1 || !exact.length);
+
+  const toCandidate = ({ code: itemCode, name: itemName, score, shareClass, currency }) => ({
+    code: itemCode,
+    name: itemName,
+    ...(score == null ? {} : { score: Number(score.toFixed(3)) }),
+    ...(!shareClass && currency ? { shareClassUnspecified: true } : {}),
+  });
+  const reviewed = (strategy, entries, warning) => ({
+    status: 'needs_confirmation', strategy, code: null, name: null, fund: null,
+    candidates: [...new Map(entries.filter(entry => !index.conflictingCodes.has(entry.code))
+      .map(entry => [entry.code, toCandidate(entry)])).values()],
+    warnings: [warning],
+  });
+  const matched = (strategy, entry, warnings = []) => {
+    const fund = toCandidate(entry);
+    return { status: 'matched', strategy, code: fund.code, name: fund.name, fund, candidates: [fund], warnings };
+  };
+  const names = [...new Set([...exact, ...classIdentities, ...(alias ? [alias] : [])])];
+  const nameCandidates = unmarkedCurrency ? [...new Set([...names, ...family])] : names;
+
+  if (codes.length > 1 || (code && index.conflictingCodes.has(code))
+    || (!code && nameCandidates.some(entry => index.conflictingCodes.has(entry.code)))) {
+    return reviewed('code_ambiguous', [], '识别到多个不同基金代码或基金目录代码不唯一，未自动选择');
+  }
+  if (identity.currencyConflict) {
+    return reviewed('currency_ambiguous', [], 'OCR 名称中币种互相冲突，请核对原平台基金代码');
+  }
+  if ((alias || verifiedLiteral) && exact.some(entry => entry.code !== aliasFingerprint[0])) {
+    return reviewed('exact_name_ambiguous', names, '基金目录中的同名候选与已验证简称冲突，请核对');
+  }
+  if (aliasFingerprint && !alias && !verifiedLiteral) {
+    return reviewed(code ? 'code_name_conflict' : 'alias_unverified', [], '当前基金目录无法验证此简称和基金代码，请核对');
+  }
 
   if (code) {
     const codeMatch = index.byCode.get(code);
-    const matches = codeMatch ? [codeMatch] : [];
-    if (matches.length === 1) {
-      const warning = normalizedName && normalizedName !== matches[0].normalizedName
-        ? ['基金代码已匹配，OCR 名称与基金库名称不同，请在确认页核对'] : [];
-      const fund = toCandidate(matches[0]);
-      return { status: 'matched', strategy: 'code', code: fund.code, name: fund.name, fund, candidates: [fund], warnings: warning };
+    if (!codeMatch) {
+      return reviewed('code_not_found', nameCandidates, 'OCR 识别到的基金代码不在基金库中，未自动改用名称匹配');
     }
-    const nameCandidates = normalizedName
-      ? (index.byExactNormalizedName.get(normalizedName) || []).map(toCandidate)
-      : [];
-    return {
-      status: 'needs_confirmation', strategy: 'code_not_found', code: null, name: null, fund: null, candidates: nameCandidates,
-      warnings: ['OCR 识别到的基金代码不在基金库中，未自动改用名称匹配']
-    };
+    const codeResolvesCurrency = unmarkedCurrency && codeMatch.shareClass === identity.shareClass
+      && family.includes(codeMatch);
+    if (!normalizedName || names.includes(codeMatch) || codeResolvesCurrency) {
+      return matched('code', codeMatch);
+    }
+    // Do not offer an incompatible class or currency under the conflicting
+    // code; the user must explicitly verify it against the source.
+    return reviewed('code_name_conflict', nameCandidates, 'OCR 基金代码与名称、份额类别或币种无法互相验证，请核对');
   }
 
   if (!normalizedName) {
     return { status: 'unmatched', strategy: 'none', code: null, name: null, fund: null, candidates: [], warnings: ['未识别到基金代码或基金名称'] };
   }
 
-  const exact = index.byExactNormalizedName.get(normalizedName) || [];
-  if (exact.length === 1) {
-    const fund = toCandidate(exact[0]);
-    return { status: 'matched', strategy: 'exact_name', code: fund.code, name: fund.name, fund, candidates: [fund], warnings: [] };
+  if (unmarkedCurrency) {
+    const unclassified = nameCandidates.some(entry => !entry.shareClass && entry.currency);
+    return reviewed('currency_ambiguous', nameCandidates, unclassified
+      ? '截图未注明币种；部分外币目录候选未注明份额类别，请按原平台基金代码核对'
+      : '截图未注明币种，请按原平台基金代码核对人民币或外币份额');
   }
-  if (exact.length > 1) {
-    return { status: 'needs_confirmation', strategy: 'exact_name_ambiguous', code: null, name: null, fund: null, candidates: exact.map(toCandidate), warnings: ['基金名称存在多个精确候选'] };
+  if (names.length > 1) {
+    return reviewed('exact_name_ambiguous', names, '基金名称和份额类别存在多个精确候选');
   }
+  if (exact.length === 1 || classIdentities.length === 1) {
+    return matched('exact_name', exact[0] || classIdentities[0]);
+  }
+  if (alias) return matched('verified_alias', alias);
 
-  const inputClass = shareClass(normalizedName);
-  if (inputClass) {
-    const classIdentity = index.byBaseNameAndShareClass.get(
-      `${baseNameWithoutShareClass(normalizedName)}\u0000${inputClass}`,
-    ) || [];
-    if (classIdentity.length === 1) {
-      const fund = toCandidate(classIdentity[0]);
-      return { status: 'matched', strategy: 'exact_name', code: fund.code, name: fund.name, fund, candidates: [fund], warnings: [] };
-    }
-    if (classIdentity.length > 1) {
-      return {
-        status: 'needs_confirmation', strategy: 'exact_name_ambiguous', code: null, name: null, fund: null,
-        candidates: classIdentity.map(toCandidate), warnings: ['基金名称和份额类别存在多个精确候选'],
-      };
-    }
-  }
   const threshold = Number.isFinite(options.fuzzyThreshold) ? options.fuzzyThreshold : 0.72;
   const ambiguityGap = Number.isFinite(options.ambiguityGap) ? options.ambiguityGap : 0.08;
   const maximum = Math.max(16, Math.min(256, Number(options.maxFuzzyCandidates) || 96));
-  const narrowed = fuzzyCandidatePool(index, normalizedName, inputClass, maximum);
+  const narrowed = fuzzyCandidatePool(index, normalizedName, identity, maximum);
   if (options.metrics && typeof options.metrics === 'object') {
     options.metrics.catalogSize = catalog.length;
     options.metrics.fuzzyCandidateCount = narrowed.length;
@@ -637,11 +723,7 @@ export function matchFundCandidate(candidate, fundCatalog, options = {}) {
       warnings: ['多个基金名称相似候选，未自动选择']
     };
   }
-  const fund = toCandidate(fuzzy[0]);
-  return {
-    status: 'matched', strategy: 'fuzzy', code: fund.code, name: fund.name, fund, candidates: [fund],
-    warnings: ['基金名称为 OCR 模糊匹配，请在确认页核对']
-  };
+  return matched('fuzzy', fuzzy[0], ['基金名称为 OCR 模糊匹配，请在确认页核对']);
 }
 
 /** A bounded in-memory memo for one OCR confirmation session. */
@@ -659,7 +741,7 @@ export function createFundMatchSession(fundCatalog, options = {}) {
     index,
     match(candidate) {
       stats.queries += 1;
-      const key = `${extractFundCode(candidate?.code) || ''}\u0000${normalizeFundName(candidate?.name)}`;
+      const key = `${fundCodeMentions(candidate?.code).sort().join(',')}\u0000${normalizeFundName(candidate?.name)}`;
       if (memo.has(key)) {
         stats.memoHits += 1;
         return memo.get(key);
@@ -688,31 +770,31 @@ function lineLooksLikeName(line, catalog) {
   return NAME_HINT_RE.test(clean) || catalog.some(item => item.normalizedName === normalized || item.normalizedName.includes(normalized) || normalized.includes(item.normalizedName));
 }
 
-function identityCodeAt(lines, index, catalog) {
+function identityCodesAt(lines, index, catalog) {
   const line = lines[index];
-  if (!line || hasFieldLabel(line.text)) return null;
-  const code = extractFundCode(line.text);
-  if (!code) return null;
+  if (!line || hasFieldLabel(line.text)) return [];
+  const codes = fundCodeMentions(line.text);
+  if (!codes.length) return [];
   const previous = lines[index - 1];
   // A bare six-digit number directly below a value label is an amount. It is
   // not allowed to start a new holding card or override a name match.
-  if (previous && hasFieldLabel(previous.text) && !lineLooksLikeName(line, catalog)) return null;
-  return code;
+  if (previous && hasFieldLabel(previous.text) && !lineLooksLikeName(line, catalog)) return [];
+  return codes;
 }
 
-function extractIdentityFundCode(lines, catalog) {
+function extractIdentityFundCodes(lines, catalog) {
+  const codes = new Set();
   for (let index = 0; index < lines.length; index += 1) {
-    const code = identityCodeAt(lines, index, catalog);
-    if (code) return code;
+    for (const code of identityCodesAt(lines, index, catalog)) codes.add(code);
   }
-  return null;
+  return [...codes];
 }
 
 function cardStartIndexes(lines, catalog) {
   const starts = [];
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    if (identityCodeAt(lines, index, catalog)) {
+    if (identityCodesAt(lines, index, catalog).length) {
       const previous = lines[index - 1];
       starts.push(previous && lineLooksLikeName(previous, catalog) ? index - 1 : index);
       continue;
@@ -769,12 +851,13 @@ function extractName(lines, catalog) {
 }
 
 function parseCard(lines, catalog, options) {
-  const code = extractIdentityFundCode(lines, catalog);
+  const codes = extractIdentityFundCodes(lines, catalog);
+  const code = codes.length === 1 ? codes[0] : null;
   const name = extractName(lines, catalog);
-  if (!code && !name) return null;
+  if (!codes.length && !name) return null;
   const base = extractFields(lines);
   const { fields, warnings } = mergeTableFields(base.fields, base.warnings, lines, catalog, options.tableLayout === true);
-  const match = matchFundCandidate({ code, name }, catalog, options);
+  const match = matchFundCandidate({ code: codes.join(' '), name }, catalog, options);
   return {
     code,
     name: name || null,
@@ -821,7 +904,7 @@ function highConfidenceCatalogIdentityCodes(holdings) {
   for (const holding of holdings) {
     const match = holding?.match;
     if (match?.status !== 'matched' || !/^\d{6}$/.test(match.code || '')) continue;
-    if (match.strategy === 'code' || match.strategy === 'exact_name') {
+    if (['code', 'exact_name', 'verified_alias'].includes(match.strategy)) {
       codes.add(match.code);
       continue;
     }

@@ -261,6 +261,25 @@ function callMatcher(matchFund, text, tokens, bbox) {
   }
 }
 
+function isExactNameEvidence(match, text) {
+  if (!match) return false;
+  // The matcher produces these only from literal catalog or verified alias
+  // evidence. Currency ambiguity still anchors a row without picking a code.
+  if (['exact_name', 'exact_name_ambiguous', 'verified_alias', 'currency_ambiguous'].includes(match.strategy)) return true;
+  const name = match.name ?? match.fund?.name;
+  return Boolean(name) && canonicalText(name) === canonicalText(text);
+}
+
+function nameWithoutJoinedPlanBadge(text) {
+  // Ant Fortune places its 定投 badge next to or below the fund name. Paddle
+  // may put both into one box. Only consider an exact terminal label after a
+  // visible fund-type or share-class cue; never remove 定投 inside a name.
+  const stripped = text.replace(/\s*定\s*投$/u, '').trimEnd();
+  if (stripped === text) return null;
+  return /(?:混合|股票|债券|货币|指数|基金|联接|发起式?|持有期|ETF|LOF|\(QDII\)|\[QDII\]|[ACE](?:类)?)$/iu
+    .test(canonicalText(stripped)) ? stripped : null;
+}
+
 function unionBox(tokens) {
   return {
     x0: Math.min(...tokens.map(token => token.x0)),
@@ -296,6 +315,7 @@ function buildNameCandidates(tokens, columns, typicalHeight) {
     .sort(compareTokens);
   const candidates = [];
   for (let index = 0; index < nameTokens.length; index += 1) {
+    if (nameTokens[index].key === '定投') continue;
     const sequence = [nameTokens[index]];
     candidates.push({ tokens: [...sequence], text: sequence[0].text });
     // Paddle may split one visual fund name into several same-line boxes and
@@ -304,7 +324,9 @@ function buildNameCandidates(tokens, columns, typicalHeight) {
     // record gap or an advertisement.
     for (let offset = 1; offset < 4 && index + offset < nameTokens.length; offset += 1) {
       const next = nameTokens[index + offset];
-      if (!tokenCanContinueFundName(sequence, next, typicalHeight)) break;
+      // A separate badge is also a boundary: don't skip across it and then
+      // accidentally join the next visual record onto this name.
+      if (next.key === '定投' || !tokenCanContinueFundName(sequence, next, typicalHeight)) break;
       sequence.push(next);
       candidates.push({
         tokens: [...sequence],
@@ -323,11 +345,23 @@ function findAnchors(tokens, columns, typicalHeight, matchFund) {
   for (const candidate of candidates) {
     if (candidate.tokens.some(token => used.has(token.sourceIndex))) continue;
     const bbox = unionBox(candidate.tokens);
-    const match = callMatcher(matchFund, candidate.text, candidate.tokens, bbox);
+    let text = candidate.text;
+    let match = callMatcher(matchFund, text, candidate.tokens, bbox);
+    const stripped = nameWithoutJoinedPlanBadge(text);
+    if (stripped && !isExactNameEvidence(match, text)) {
+      const cleanedMatch = callMatcher(matchFund, stripped, candidate.tokens, bbox);
+      // A trimmed candidate must have affirmative catalog evidence. In
+      // particular, don't replace one uncertain identity with another fuzzy
+      // match just because the latter looks cosmetically cleaner.
+      if (isExactNameEvidence(cleanedMatch, stripped)) {
+        text = stripped;
+        match = cleanedMatch;
+      }
+    }
     if (!match) continue;
     candidate.tokens.forEach(token => used.add(token.sourceIndex));
     anchors.push({
-      text: candidate.text,
+      text,
       tokens: candidate.tokens,
       bbox,
       match,

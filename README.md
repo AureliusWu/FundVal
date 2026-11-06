@@ -4,11 +4,11 @@
 [![Version](https://img.shields.io/github/v/tag/AureliusWu/FundVal?sort=semver&style=flat-square&label=version)](https://github.com/AureliusWu/FundVal/tags) [![Build](https://github.com/AureliusWu/FundVal/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AureliusWu/FundVal/actions/workflows/ci.yml) [![Last commit](https://img.shields.io/github/last-commit/AureliusWu/FundVal?style=flat-square)](https://github.com/AureliusWu/FundVal/commits/main)
 <!-- project-badges:end -->
 
-当前版本：`16.0.1`。
+当前版本：`16.0.2`。
 
 轻量、移动端优先的个人基金盘中观察 PWA，用于查看基金估值、净值涨跌、持仓市值和主要市场行情。它不做自动交易，也不构成投资建议。
 
-[在线使用](https://aureliuswu.github.io/FundVal/) · [v16.0.1 Release](https://github.com/AureliusWu/FundVal/releases/tag/v16.0.1)
+[在线使用](https://aureliuswu.github.io/FundVal/) · [v16.0.2 Release](https://github.com/AureliusWu/FundVal/releases/tag/v16.0.2)
 
 ## 核心能力
 
