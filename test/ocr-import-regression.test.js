@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { APP_VERSION } from '../js/version.js';
 
 test('OCR import runs in an isolated local-only document and remains confirmation-gated', async () => {
   const [app, page, localOcr, paddleOcr, paddleEntry, layout, plan, catalog, ledger, index, importPage, build, workflow, sw, transaction] = await Promise.all([
@@ -26,7 +27,7 @@ test('OCR import runs in an isolated local-only document and remains confirmatio
   assert.doesNotMatch(app, /ocr-import-page\.js/);
   assert.doesNotMatch(index, /ocr-image-input|ocr-import-modal|image\/png,image\/jpeg,image\/webp/);
   assert.doesNotMatch(index, /assets\/ocr|tesseract/i);
-  assert.match(importPage, /src="js\/ocr-import-page\.js"/);
+  assert.ok(importPage.includes(`src="js/ocr-import-page.js?v=${APP_VERSION}"`), 'isolated OCR entry must use the exact app version');
   assert.match(importPage, /href="css\/ocr\.css"/);
   assert.match(importPage, /accept="image\/png,image\/jpeg,image\/webp"/);
   assert.match(importPage, /Content-Security-Policy/);
